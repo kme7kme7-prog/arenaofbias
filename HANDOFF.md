@@ -6,7 +6,7 @@
 
 - 线上地址：<https://bias-arena.kme7kme7.chatgpt.site/>
 - 当前站点为仅所有者可访问的私有部署。
-- 工作区干净，最近提交：`e729cda Unify both vote buttons during spotlight`。
+- 工作区干净；当前线上版本的最近代码提交：`e729cda Unify both vote buttons during spotlight`。
 - 最近一轮视觉问题已经解决：作品入场时，当前作品放大居中；两侧投票按钮采用一致的退焦表现，放大的作品自然覆盖重叠区域。
 
 ## 已完成的体验
