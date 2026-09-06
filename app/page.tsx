@@ -1,0 +1,999 @@
+'use client';
+
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import NextImage from 'next/image';
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  AudioLines,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Code2,
+  Crosshair,
+  Expand,
+  Eye,
+  Fingerprint,
+  ImageIcon,
+  LockKeyhole,
+  Maximize,
+  RotateCcw,
+  SkipForward,
+  Type,
+  Volume2,
+  VolumeX,
+  X,
+  Zap,
+} from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  arenaReducer,
+  initialState,
+  rounds,
+  stories,
+  type Side,
+} from '@/lib/arena';
+
+const ASSETS = ['/art/signal-a.webp', '/art/signal-b.webp'];
+const ABORTED = 'sequence-cancelled';
+const motionQuery = '(prefers-reduced-motion: reduce)';
+function subscribeMotion(callback: () => void) {
+  const media = window.matchMedia(motionQuery);
+  media.addEventListener('change', callback);
+  return () => media.removeEventListener('change', callback);
+}
+const getMotionPreference = () => window.matchMedia(motionQuery).matches;
+const getServerMotionPreference = () => false;
+
+function delay(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) return reject(new Error(ABORTED));
+    const abort = () => {
+      clearTimeout(timer);
+      reject(new Error(ABORTED));
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+function Mark({ small = false }: { small?: boolean }) {
+  return (
+    <span className={`arena-mark ${small ? 'small' : ''}`} aria-hidden="true">
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
+function WebWork({
+  side,
+  interactive = false,
+}: {
+  side: Side;
+  interactive?: boolean;
+}) {
+  const [booked, setBooked] = useState(false);
+  const [destination, setDestination] = useState(false);
+  return (
+    <div className={`web-work web-${side}`}>
+      <nav>
+        <strong>{side === 'a' ? 'ORBITAL®' : 'luna.'}</strong>
+        <span>THE NEXT FRONTIER</span>
+        <span>↗</span>
+      </nav>
+      <div
+        className="web-hero"
+        style={{ backgroundImage: 'url(/art/lunar.webp)' }}
+      >
+        <span className="web-eyebrow">
+          {side === 'a' ? '不止于此。' : 'YOUR NEXT GREAT ESCAPE'}
+        </span>
+        <h3>
+          {side === 'a' ? (
+            <>
+              LEAVE
+              <br />
+              ORDINARY.
+            </>
+          ) : (
+            <>
+              Somewhere
+              <br />
+              <em>beyond.</em>
+            </>
+          )}
+        </h3>
+        <p>
+          {side === 'a'
+            ? '下一站，让地球成为风景。'
+            : '把日常留在地球。把自己交给月光。'}
+        </p>
+        {interactive ? (
+          <button onClick={() => setBooked(!booked)}>
+            {booked ? '已加入出发名单 ✓' : '预订你的月球之旅'}{' '}
+            <ArrowUpRight size={15} />
+          </button>
+        ) : (
+          <span className="web-faux-button">
+            {side === 'a' ? '探索月球航线' : 'Find your moon'} ↗
+          </span>
+        )}
+      </div>
+      <div className="web-bottom">
+        <span>
+          {side === 'a'
+            ? '01 / LUNAR EXPEDITION'
+            : '01 — The quiet side of the universe.'}
+        </span>
+        {interactive ? (
+          <button onClick={() => setDestination(!destination)}>
+            {destination ? '静海基地 · 7 天航程' : '查看目的地 ↗'}
+          </button>
+        ) : (
+          <span>384,400 KM ↗</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Work({
+  round,
+  side,
+  expanded = false,
+  imageFailed = false,
+}: {
+  round: number;
+  side: Side;
+  expanded?: boolean;
+  imageFailed?: boolean;
+}) {
+  if (round === 0)
+    return imageFailed ? (
+      <div className="asset-error">
+        <ImageIcon />
+        <strong>画面暂时未能载入</strong>
+        <span>可先切换至文字或网页对决</span>
+      </div>
+    ) : (
+      <NextImage
+        className="concept-image"
+        src={ASSETS[side === 'a' ? 0 : 1]}
+        width={1536}
+        height={1024}
+        unoptimized
+        loading="eager"
+        alt={
+          side === 'a' ? '矗立于蓝色海岸的孤独信号塔' : '落日云海中的环形信号站'
+        }
+        draggable={false}
+      />
+    );
+  if (round === 2) return <WebWork side={side} interactive={expanded} />;
+  const story = stories[side];
+  return (
+    <article className={`story-work story-${side}`}>
+      <div className="story-meta">
+        <span>一封未寄出的信</span>
+        <span>23:59:59</span>
+      </div>
+      <h3>
+        {story.heading}
+        <span>。</span>
+      </h3>
+      <div className="story-body">
+        {story.paragraphs.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+      <footer>
+        <span>{story.ending}</span>
+        <AudioLines size={20} />
+      </footer>
+    </article>
+  );
+}
+
+export default function Arena() {
+  const [state, dispatch] = useReducer(arenaReducer, initialState);
+  const [spotlight, setSpotlight] = useState<Side | null>(null);
+  const [expanded, setExpanded] = useState<Side | null>(null);
+  const [sound, setSound] = useState(false);
+  const reducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    getMotionPreference,
+    getServerMotionPreference,
+  );
+  const [failedAssets, setFailedAssets] = useState<string[]>([]);
+  const [progress, setProgress] = useState({ run: -1, value: 0 });
+  const resultProgress =
+    state.phase === 'result' && progress.run === state.run ? progress.value : 0;
+  const stageRef = useRef<HTMLDivElement>(null);
+  const cardA = useRef<HTMLDivElement>(null);
+  const cardB = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<AudioContext | null>(null);
+  const soundRef = useRef(false);
+  const animations = useRef<Animation[]>([]);
+  const round = rounds[state.round];
+  const revealed = state.mode === 'party' || state.phase === 'result';
+  const transitioning = state.phase === 'transition';
+  const blocked = state.phase === 'loading' || transitioning;
+
+  const play = useCallback((kind: 'hover' | 'move' | 'vote' | 'reveal') => {
+    if (!soundRef.current || !audioRef.current) return;
+    const context = audioRef.current;
+    const now = context.currentTime;
+    const duration = kind === 'reveal' ? 0.7 : kind === 'vote' ? 0.4 : 0.09;
+    const notes =
+      kind === 'reveal'
+        ? [261.63, 392, 523.25]
+        : [kind === 'hover' ? 620 : kind === 'vote' ? 130 : 320];
+    notes.forEach((freq, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = kind === 'vote' ? 'triangle' : 'sine';
+      oscillator.frequency.setValueAtTime(freq, now);
+      if (kind === 'vote')
+        oscillator.frequency.exponentialRampToValueAtTime(65, now + duration);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(
+        0.055 / notes.length,
+        now + 0.012 + index * 0.045,
+      );
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    const pending = [...ASSETS, '/art/lunar.webp'].map(
+      (src) =>
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          let done = false;
+          const finish = (failed: boolean) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timeout);
+            if (failed && live)
+              setFailedAssets((previous) => [...previous, src]);
+            resolve();
+          };
+          const timeout = setTimeout(() => finish(true), 10000);
+          img.onload = () => finish(false);
+          img.onerror = () => finish(true);
+          img.src = src;
+        }),
+    );
+    void Promise.all(pending).then(() => {
+      if (live) dispatch({ type: 'LOADED' });
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (state.phase !== 'intro') return;
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const animate = async (
+      element: HTMLElement,
+      frames: Keyframe[],
+      duration: number,
+    ) => {
+      const animation = element.animate(frames, {
+        duration,
+        easing: 'cubic-bezier(.22,1,.36,1)',
+        fill: 'both',
+      });
+      animations.current.push(animation);
+      await animation.finished;
+      if (signal.aborted) throw new Error(ABORTED);
+    };
+    const sequence = async () => {
+      if (reducedMotion) {
+        await delay(200, signal);
+        dispatch({ type: 'READY' });
+        return;
+      }
+      await delay(650, signal);
+      for (const side of ['a', 'b'] as const) {
+        const element = side === 'a' ? cardA.current : cardB.current;
+        const stage = stageRef.current;
+        if (!element || !stage) return;
+        const bounds = element.getBoundingClientRect();
+        const stageBounds = stage.getBoundingClientRect();
+        const x =
+          stageBounds.left +
+          stageBounds.width / 2 -
+          bounds.left -
+          bounds.width / 2;
+        const mobile = window.innerWidth < 700;
+        const scale = mobile
+          ? Math.min(1.55, (window.innerHeight - 170) / bounds.height)
+          : Math.min(1.22, (window.innerHeight - 260) / bounds.height);
+        const focusTransform = `translate3d(${x}px,0,0) scale(${Math.max(scale, 1.03)})`;
+        setSpotlight(side);
+        play('move');
+        await animate(
+          element,
+          [
+            { transform: 'translate3d(0,35px,0) scale(.94)', opacity: 0.45 },
+            { transform: focusTransform, opacity: 1 },
+          ],
+          780,
+        );
+        await delay(1550, signal);
+        await animate(
+          element,
+          [
+            { transform: focusTransform },
+            { transform: 'translate3d(0,0,0) scale(1)' },
+          ],
+          680,
+        );
+        setSpotlight(null);
+        await delay(180, signal);
+      }
+      play('reveal');
+      dispatch({ type: 'READY' });
+    };
+    sequence().catch((error) => {
+      if (!signal.aborted && error?.name !== 'AbortError')
+        dispatch({ type: 'READY' });
+    });
+    return () => {
+      controller.abort();
+      animations.current.forEach((animation) => animation.cancel());
+      animations.current = [];
+      setSpotlight(null);
+    };
+  }, [state.phase, state.run, reducedMotion, play]);
+
+  useEffect(() => {
+    const timeout =
+      state.phase === 'transition'
+        ? setTimeout(
+            () => {
+              setExpanded(null);
+              dispatch({ type: 'ARRIVE' });
+            },
+            reducedMotion ? 50 : 620,
+          )
+        : state.phase === 'locking'
+          ? setTimeout(
+              () => {
+                play('reveal');
+                dispatch({ type: 'REVEAL' });
+              },
+              reducedMotion ? 80 : 1150,
+            )
+          : null;
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [state.phase, reducedMotion, play]);
+
+  useEffect(() => {
+    if (state.phase !== 'result') return;
+    let frame: number;
+    const start = performance.now();
+    const step = (now: number) => {
+      const elapsed = reducedMotion ? 1 : Math.min(1, (now - start) / 1100);
+      setProgress({ run: state.run, value: 1 - Math.pow(1 - elapsed, 3) });
+      if (elapsed < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [state.phase, state.run, reducedMotion]);
+
+  const vote = useCallback(
+    (side: Side) => {
+      if (state.phase !== 'voting') return;
+      play('vote');
+      dispatch({ type: 'VOTE', side });
+    },
+    [state.phase, play],
+  );
+  const switchRound = useCallback(
+    (index: number) => {
+      play('move');
+      dispatch({
+        type: 'SWITCH',
+        round: (index + rounds.length) % rounds.length,
+      });
+    },
+    [play],
+  );
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        expanded ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.repeat
+      )
+        return;
+      if (
+        event.target instanceof HTMLElement &&
+        (event.target.matches('button,input,textarea,select,[role="tab"]') ||
+          event.target.isContentEditable)
+      )
+        return;
+      if (event.key.toLowerCase() === 'a') vote('a');
+      if (event.key.toLowerCase() === 'd') vote('b');
+      if (event.key.toLowerCase() === 'n') switchRound(state.round + 1);
+      if (event.key === ' ' && state.phase === 'intro') {
+        event.preventDefault();
+        dispatch({ type: 'READY' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [vote, switchRound, state.round, state.phase, expanded]);
+
+  useEffect(
+    () => () => {
+      void audioRef.current?.close();
+    },
+    [],
+  );
+
+  const toggleSound = async () => {
+    const enabled = !sound;
+    if (enabled) {
+      try {
+        audioRef.current ??= new AudioContext();
+        await audioRef.current.resume();
+      } catch {
+        return;
+      }
+    }
+    soundRef.current = enabled;
+    setSound(enabled);
+    if (enabled) play('move');
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+
+  const statusText =
+    state.phase === 'loading'
+      ? '画面载入中'
+      : state.phase === 'intro'
+        ? spotlight
+          ? `正在观测作品 ${spotlight.toUpperCase()}`
+          : '作品入场'
+        : state.phase === 'voting'
+          ? '轮到你的直觉了'
+          : state.phase === 'locking'
+            ? '选择已锁定'
+            : state.phase === 'result'
+              ? '本轮评审完成'
+              : '正在切换对局';
+
+  return (
+    <div
+      className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''}`}
+    >
+      <div className="ambient-grid" aria-hidden="true" />
+      <div className="edge-coordinate left" aria-hidden="true">
+        BIAS / OBSERVATION SYSTEM — 026
+      </div>
+      <header className="topbar">
+        <div className="brand">
+          <Mark />
+          <div>
+            <strong>
+              BIAS<span>ARENA</span>
+            </strong>
+            <small>
+              偏见试验场 <span>／</span> EST. 2026
+            </small>
+          </div>
+        </div>
+        <div className="header-divider" />
+        <div className="terminal-label">
+          <span className="live-dot" /> 对决终端{' '}
+          <span className="mono">/ 01</span>
+        </div>
+        <div className="header-right">
+          <span className="demo-label">
+            DEMO BUILD <b>0.1</b>
+          </span>
+          <button
+            className={`icon-button ${sound ? 'on' : ''}`}
+            onClick={toggleSound}
+            aria-label={sound ? '关闭音效' : '开启音效'}
+            title={sound ? '关闭音效' : '开启音效'}
+          >
+            {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+          <button
+            className="icon-button fullscreen-button"
+            onClick={toggleFullscreen}
+            aria-label="切换全屏"
+            title="切换全屏"
+          >
+            <Maximize size={17} />
+          </button>
+        </div>
+      </header>
+
+      <main className="main-terminal">
+        <section className="command-row">
+          <div className="section-heading">
+            <span className="section-code">{'// SUBJECTIVE JUDGEMENT'}</span>
+            <h1>
+              直觉，即是答案<span>。</span>
+            </h1>
+          </div>
+          <Tabs
+            value={state.mode}
+            onValueChange={(value) =>
+              dispatch({ type: 'MODE', mode: value as 'blind' | 'party' })
+            }
+            className="mode-tabs"
+            aria-label="评审模式"
+          >
+            <TabsList>
+              <TabsTrigger value="blind" disabled={blocked}>
+                <Fingerprint size={17} />
+                <span>认真盲测</span>
+              </TabsTrigger>
+              <TabsTrigger value="party" disabled={blocked}>
+                <Zap size={17} />
+                <span>娱乐站队</span>
+              </TabsTrigger>
+            </TabsList>
+            <p>
+              {state.mode === 'blind'
+                ? '隐藏名字，只看作品。'
+                : '阵营已公开，喜欢就站这边。'}
+            </p>
+          </Tabs>
+        </section>
+
+        <section className="briefing" aria-label="本轮创作要求">
+          <div className="round-tag">
+            <Crosshair size={19} />
+            <span>
+              ROUND <b>{round.id}</b>
+            </span>
+          </div>
+          <div className="briefing-copy">
+            <span className="prompt-label">本轮命题</span>
+            <h2 key={round.id}>{round.prompt}</h2>
+          </div>
+          <span className="briefing-detail">{round.detail}</span>
+          <div className="briefing-corner" aria-hidden="true" />
+        </section>
+
+        <div className="field-meta">
+          <span>
+            <i /> LIVE COMPARISON <span className="meta-slash">/</span>{' '}
+            {round.category}
+          </span>
+          <output className="field-status" aria-live="polite">
+            <i />
+            {statusText}
+          </output>
+          <span className="meta-right">
+            {state.mode === 'blind' ? (
+              <LockKeyhole size={12} />
+            ) : (
+              <Eye size={12} />
+            )}{' '}
+            {revealed ? 'IDENTITY OPEN' : 'IDENTITY ENCRYPTED'}
+          </span>
+        </div>
+
+        <div className="arena-stage" ref={stageRef}>
+          <div className="stage-watermark" aria-hidden="true">
+            {spotlight ? spotlight.toUpperCase() : 'VS'}
+          </div>
+          {(['a', 'b'] as const).map((side, index) => {
+            const chosen = state.choice === side;
+            const ratio = index === 0 ? round.ratio : 100 - round.ratio;
+            return (
+              <div
+                key={side}
+                className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && !chosen ? 'not-chosen' : ''}`}
+              >
+                <div className="work-panel" ref={index === 0 ? cardA : cardB}>
+                  <div className="panel-heading">
+                    <div className="panel-identity">
+                      <span className="side-letter">{side.toUpperCase()}</span>
+                      <span className="model-identity">
+                        {revealed ? round.models[index] : '未知模型'}
+                        <small>
+                          {revealed ? 'DEMO IDENTITY' : 'ANONYMOUS ENTRY'}
+                        </small>
+                      </span>
+                    </div>
+                    <span className="entry-number">
+                      {round.code} / 0{index + 1}
+                    </span>
+                    <span className="panel-lock">
+                      {revealed ? <Eye size={15} /> : <LockKeyhole size={15} />}
+                    </span>
+                  </div>
+                  <div
+                    className={`work-viewport ${state.round === 1 ? 'is-story' : ''}`}
+                  >
+                    <div className="work-inner" key={`${state.round}-${side}`}>
+                      <Work
+                        round={state.round}
+                        side={side}
+                        imageFailed={failedAssets.includes(ASSETS[index])}
+                      />
+                    </div>
+                    <div className="scan-line" aria-hidden="true" />
+                    <span className="image-corner tl" aria-hidden="true" />
+                    <span className="image-corner br" aria-hidden="true" />
+                    {state.round === 0 && (
+                      <div className="image-caption">
+                        <span>EXHIBIT {side.toUpperCase()}</span>
+                        <strong>{round.labels[index]}</strong>
+                      </div>
+                    )}
+                    <button
+                      className="expand-control"
+                      onClick={() => setExpanded(side)}
+                      disabled={state.phase === 'intro' || blocked}
+                      aria-label={`放大查看作品 ${side.toUpperCase()}`}
+                      title={state.round === 2 ? '打开交互预览' : '放大查看'}
+                    >
+                      <Expand size={17} />
+                    </button>
+                    {chosen && (
+                      <div className="chosen-stamp">
+                        <Check size={17} />
+                        <span>YOUR PICK</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="panel-bottom">
+                    <span>
+                      <i />
+                      {state.phase === 'result'
+                        ? '身份已揭晓'
+                        : state.round === 2
+                          ? 'HTML / 可打开交互预览'
+                          : state.round === 1
+                            ? 'TEXT / 短篇创作'
+                            : 'IMAGE / 概念设计'}
+                    </span>
+                    <span className="panel-bars" aria-hidden="true">
+                      ▌▌▏▌▏▌▌
+                    </span>
+                    <span>
+                      0{index + 1} — {round.id}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className={`vote-button vote-${side}`}
+                  onClick={() => vote(side)}
+                  onPointerEnter={() => play('hover')}
+                  disabled={state.phase !== 'voting'}
+                >
+                  <span className="vote-icon">
+                    {chosen ? <Check size={24} /> : <ArrowUpRight size={25} />}
+                  </span>
+                  <span className="vote-copy">
+                    <strong>
+                      {side === 'a' ? '我寻思这边能行' : '显然是这边厉害'}
+                    </strong>
+                    <small>
+                      {state.phase === 'intro' || state.phase === 'loading'
+                        ? 'AWAITING YOUR JUDGEMENT'
+                        : chosen
+                          ? 'CHOICE CONFIRMED'
+                          : 'TRUST YOUR INSTINCT'}
+                    </small>
+                  </span>
+                  <kbd>{side === 'a' ? 'A' : 'D'}</kbd>
+                </button>
+                {state.phase === 'result' && (
+                  <div className="side-result">
+                    <span>{chosen ? '你站在了这一边' : '另一种直觉'}</span>
+                    <strong>
+                      {Math.round(ratio * resultProgress)}
+                      <small>%</small>
+                    </strong>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <div className="versus-spine" aria-hidden="true">
+            <div className="spine-line" />
+            <div className="vs-emblem">
+              <span className="vs-orbit" />
+              <span className="vs-orbit second" />
+              <b>VS</b>
+            </div>
+            <span className="vs-sub">
+              MAKE
+              <br />
+              YOUR
+              <br />
+              CALL
+            </span>
+            <div className="spine-line" />
+          </div>
+          {state.phase === 'intro' && (
+            <div className="intro-label" key={state.run} aria-hidden="true">
+              <span>NEW ENCOUNTER</span>
+              <strong>
+                ROUND <b>{round.id}</b>
+              </strong>
+              <span>两种表达。一个选择。</span>
+            </div>
+          )}
+          {state.phase === 'loading' && (
+            <div className="loading-overlay">
+              <Mark />
+              <span>正在接入试验场</span>
+              <div className="load-track" />
+            </div>
+          )}
+          <div className="transition-shutter" aria-hidden="true">
+            <span>SWITCHING FREQUENCY</span>
+            <b>{String(state.pendingRound + 1).padStart(2, '0')}</b>
+          </div>
+          {state.phase === 'locking' && (
+            <div className="lock-announcement" aria-hidden="true">
+              <Crosshair size={28} />
+              <span>直觉已锁定</span>
+              <small>JUDGEMENT REGISTERED</small>
+            </div>
+          )}
+        </div>
+
+        <div
+          className={`round-console ${state.phase === 'result' ? 'show-result' : ''}`}
+        >
+          {state.phase === 'result' ? (
+            <div className="result-console">
+              <div className="result-caption">
+                <Check size={17} />
+                <strong>好，你有自己的答案。</strong>
+                <span>演示支持率 · 非真实投票数据</span>
+              </div>
+              <div className="support-track">
+                <div
+                  style={{
+                    width: `${50 + (round.ratio - 50) * resultProgress}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="sequence-steps">
+              <span
+                className={
+                  state.phase === 'intro' || state.phase === 'loading'
+                    ? 'current'
+                    : 'complete'
+                }
+              >
+                <b>01</b>作品入场
+              </span>
+              <i />
+              <span
+                className={
+                  state.phase === 'voting' || state.phase === 'locking'
+                    ? 'current'
+                    : ''
+                }
+              >
+                <b>02</b>直觉投票
+              </span>
+              <i />
+              <span>
+                <b>03</b>身份揭晓
+              </span>
+            </div>
+          )}
+          <div className="round-actions">
+            {state.phase === 'intro' ? (
+              <button
+                className="text-button"
+                onClick={() => dispatch({ type: 'READY' })}
+              >
+                <SkipForward size={15} />
+                跳过入场 <kbd>SPACE</kbd>
+              </button>
+            ) : (
+              <button
+                className="text-button"
+                onClick={() => dispatch({ type: 'REPLAY' })}
+                disabled={blocked}
+              >
+                <RotateCcw size={14} />
+                重播入场
+              </button>
+            )}
+            <button
+              className={`next-button ${state.phase === 'result' ? 'highlight' : ''}`}
+              onClick={() => switchRound(state.round + 1)}
+              disabled={blocked}
+            >
+              {state.phase === 'result' ? '下一场对决' : '换一组作品'}
+              <ArrowRight size={17} />
+            </button>
+          </div>
+        </div>
+
+        <section className="round-selector" aria-label="切换对决作品">
+          <div className="selector-heading">
+            <span className="section-code">SELECT ENCOUNTER</span>
+            <strong>
+              下一种可能
+              <ArrowDown size={13} />
+            </strong>
+          </div>
+          <div className="round-options">
+            {rounds.map((item, index) => (
+              <button
+                key={item.id}
+                className={`round-option ${state.round === index ? 'active' : ''}`}
+                disabled={blocked}
+                onClick={() => index !== state.round && switchRound(index)}
+                aria-pressed={state.round === index}
+              >
+                <span className="round-option-number">0{index + 1}</span>
+                <span className={`round-thumbnail thumb-${index}`}>
+                  {index === 0 ? (
+                    <NextImage
+                      src={ASSETS[0]}
+                      width={49}
+                      height={41}
+                      unoptimized
+                      alt=""
+                    />
+                  ) : index === 1 ? (
+                    <Type size={29} />
+                  ) : (
+                    <Code2 size={27} />
+                  )}
+                </span>
+                <span className="round-option-copy">
+                  <strong>{item.name}</strong>
+                  <small>
+                    {item.code} <span>/</span> {item.category}
+                  </small>
+                </span>
+                <span className="round-option-end">
+                  {state.round === index ? (
+                    <span className="equalizer">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  ) : (
+                    <ArrowUpRight size={17} />
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="selector-arrows">
+            <button
+              aria-label="上一组作品"
+              disabled={blocked}
+              onClick={() => switchRound(state.round - 1)}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              aria-label="下一组作品"
+              disabled={blocked}
+              onClick={() => switchRound(state.round + 1)}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer className="system-footer">
+        <span>
+          <span className="live-dot" /> SYSTEM ONLINE <i /> NO RIGHT ANSWER.
+        </span>
+        <span className="footer-keyboard">
+          <kbd>A</kbd> 左侧 <kbd>D</kbd> 右侧 <kbd>N</kbd> 换一组
+        </span>
+        <span>
+          仅供体验 <span className="footer-cross">＋</span> BIAS ARENA / 2026
+        </span>
+      </footer>
+
+      <Dialog
+        open={expanded !== null}
+        onOpenChange={(open) => {
+          if (!open) setExpanded(null);
+        }}
+      >
+        <DialogContent
+          className={`exhibit-dialog dialog-round-${state.round}`}
+          showCloseButton={false}
+        >
+          <div className="dialog-top">
+            <div>
+              <DialogTitle>
+                作品 {expanded?.toUpperCase()} <span>/ {round.category}</span>
+              </DialogTitle>
+              <DialogDescription>{round.prompt}</DialogDescription>
+            </div>
+            <button
+              className="icon-button"
+              onClick={() => setExpanded(null)}
+              aria-label="关闭作品预览"
+            >
+              <X size={22} />
+            </button>
+          </div>
+          <div className="expanded-work">
+            {expanded && (
+              <Work
+                round={state.round}
+                side={expanded}
+                expanded
+                imageFailed={failedAssets.includes(
+                  ASSETS[expanded === 'a' ? 0 : 1],
+                )}
+              />
+            )}
+          </div>
+          <div className="dialog-bottom">
+            <span>
+              {state.round === 2
+                ? '演示页面 · 可以试试预订与目的地按钮'
+                : 'ESC 返回对决'}
+            </span>
+            <span>
+              {revealed && expanded
+                ? round.models[expanded === 'a' ? 0 : 1]
+                : '身份隐藏中'}
+            </span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
