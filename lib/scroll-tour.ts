@@ -16,7 +16,7 @@ export function scrollWorkToBottom(
       return;
     }
 
-    const duration = Math.max(3500, (distance / pixelsPerSecond) * 1000);
+    const duration = Math.max(2800, (distance / pixelsPerSecond) * 1000);
     let frame = 0;
     let elapsed = 0;
     let previousTime: number | undefined;

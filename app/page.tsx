@@ -363,11 +363,13 @@ export default function Arena() {
         const scrollable =
           element.querySelector<HTMLElement>('[data-tour-scroll]');
         if (scrollable) {
-          await delay(1200, signal);
+          // Long-form work begins reading sooner; the first beat is still
+          // long enough to establish the enlarged frame before motion starts.
+          await delay(650, signal);
           await scrollWorkToBottom(
             scrollable,
             signal,
-            state.round === 1 ? 28 : 40,
+            state.round === 1 ? 42 : 54,
           );
           await delay(1300, signal);
         } else {
