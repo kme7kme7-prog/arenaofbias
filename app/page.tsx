@@ -47,6 +47,7 @@ import {
   stories,
   type Side,
 } from '@/lib/arena';
+import { scrollWorkToBottom } from '@/lib/scroll-tour';
 
 const ASSETS = ['/art/signal-a.webp', '/art/signal-b.webp'];
 const ABORTED = 'sequence-cancelled';
@@ -191,7 +192,7 @@ function Work({
   if (round === 2) return <WebWork side={side} interactive={expanded} />;
   const story = stories[side];
   return (
-    <article className={`story-work story-${side}`}>
+    <article className={`story-work story-${side}`} data-tour-scroll>
       <div className="story-meta">
         <span>一封未寄出的信</span>
         <span>23:59:59</span>
@@ -304,6 +305,13 @@ export default function Arena() {
     if (state.phase !== 'intro') return;
     const controller = new AbortController();
     const signal = controller.signal;
+    const resetScroll = () => {
+      stageRef.current
+        ?.querySelectorAll<HTMLElement>('[data-tour-scroll]')
+        .forEach((work) => {
+          work.scrollTop = 0;
+        });
+    };
     const animate = async (
       element: HTMLElement,
       frames: Keyframe[],
@@ -319,6 +327,7 @@ export default function Arena() {
       if (signal.aborted) throw new Error(ABORTED);
     };
     const sequence = async () => {
+      resetScroll();
       if (reducedMotion) {
         await delay(200, signal);
         dispatch({ type: 'READY' });
@@ -351,7 +360,19 @@ export default function Arena() {
           ],
           780,
         );
-        await delay(1550, signal);
+        const scrollable =
+          element.querySelector<HTMLElement>('[data-tour-scroll]');
+        if (scrollable) {
+          await delay(1200, signal);
+          await scrollWorkToBottom(
+            scrollable,
+            signal,
+            state.round === 1 ? 28 : 40,
+          );
+          await delay(1300, signal);
+        } else {
+          await delay(1550, signal);
+        }
         await animate(
           element,
           [
@@ -360,6 +381,7 @@ export default function Arena() {
           ],
           680,
         );
+        if (scrollable) scrollable.scrollTop = 0;
         setSpotlight(null);
         await delay(180, signal);
       }
@@ -374,9 +396,10 @@ export default function Arena() {
       controller.abort();
       animations.current.forEach((animation) => animation.cancel());
       animations.current = [];
+      resetScroll();
       setSpotlight(null);
     };
-  }, [state.phase, state.run, reducedMotion, play]);
+  }, [state.phase, state.run, state.round, reducedMotion, play]);
 
   useEffect(() => {
     const timeout =
@@ -653,14 +676,17 @@ export default function Arena() {
                   <div
                     className={`work-viewport ${state.round === 1 ? 'is-story' : ''}`}
                   >
-                    <div className="work-inner" key={`${state.round}-${side}`}>
+                    <div
+                      className="work-inner"
+                      key={`${state.round}-${side}`}
+                      data-tour-scroll={state.round === 2 ? true : undefined}
+                    >
                       <Work
                         round={state.round}
                         side={side}
                         imageFailed={failedAssets.includes(ASSETS[index])}
                       />
                     </div>
-                    <div className="scan-line" aria-hidden="true" />
                     <span className="image-corner tl" aria-hidden="true" />
                     <span className="image-corner br" aria-hidden="true" />
                     {state.round === 0 && (

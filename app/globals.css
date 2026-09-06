@@ -813,17 +813,6 @@ kbd {
   text-align: center;
   color: #7c8c6f;
 }
-.scan-line {
-  pointer-events: none;
-  opacity: 0;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  box-shadow: 0 2px 25px #ecffd9;
-  background: #ecffd9b3;
-}
 .spotlight-a .contender-a,
 .spotlight-b .contender-b {
   z-index: 20;
@@ -832,11 +821,6 @@ kbd {
 .spotlight-b .contender-a .work-panel {
   opacity: 0.18;
   filter: blur(2px) grayscale(0.7);
-}
-.spotlight-a .contender-a .scan-line,
-.spotlight-b .contender-b .scan-line {
-  opacity: 0.7;
-  animation: scan 2.4s linear both;
 }
 .spotlight-a .versus-spine,
 .spotlight-b .versus-spine {
@@ -1406,6 +1390,23 @@ kbd {
   height: 100%;
   background: #eff0e2;
 }
+.work-inner[data-tour-scroll] {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #819276 #1c2423;
+}
+.work-inner .web-work {
+  height: auto;
+  min-height: 100%;
+}
+.work-inner .web-hero {
+  flex: none;
+  min-height: 360px;
+}
+[data-tour-scroll] {
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
+}
 .web-work nav {
   height: 34px;
   flex-shrink: 0;
@@ -1650,14 +1651,6 @@ kbd {
 @keyframes status-pulse {
   50% {
     opacity: 0.4;
-  }
-}
-@keyframes scan {
-  from {
-    top: 0;
-  }
-  to {
-    top: 100%;
   }
 }
 @keyframes loading {
