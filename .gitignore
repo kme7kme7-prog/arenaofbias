@@ -28,6 +28,12 @@ yarn-error.log*
 
 # local environment
 .env*
+/data/
+tsconfig.tsbuildinfo
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # deployment and generated files
 .vercel

@@ -1,5 +1,11 @@
 # Bias Arena 交接文档
 
+> **⚠️ 本分支（`vps-node`）说明**：此分支已将项目从 Cloudflare Workers + D1
+> 改造为 **Vite 前端 + Express + SQLite** 的 VPS 可部署形态。文中的“发布说明 /
+> Sites 托管 / D1”等内容仅适用于 `main` 分支（Cloudflare 版）。
+> VPS 版的部署与维护请看 **`DEPLOY_VPS.md`**，代码结构见 **`README.md`**。
+> 下文“设计约束”对两个分支依然有效。
+
 ## 当前状态
 
 项目为“偏见试验场 / BIAS ARENA”：用户在两件匿名 AI 作品之间做盲测或娱乐站队，题目可在图像、文字创作和 HTML 网页设计三类内容之间切换。

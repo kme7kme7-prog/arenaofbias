@@ -8,7 +8,6 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import NextImage from 'next/image';
 import {
   ArrowDown,
   ArrowRight,
@@ -177,13 +176,11 @@ function Work({
         <span>可先切换至文字或网页对决</span>
       </div>
     ) : (
-      <NextImage
+      <img
         className="concept-image"
         src={ASSETS[side === 'a' ? 0 : 1]}
         width={1536}
         height={1024}
-        unoptimized
-        loading="eager"
         alt={
           side === 'a' ? '矗立于蓝色海岸的孤独信号塔' : '落日云海中的环形信号站'
         }
@@ -947,11 +944,10 @@ export default function Arena() {
                 <span className="round-option-number">0{index + 1}</span>
                 <span className={`round-thumbnail thumb-${index}`}>
                   {index === 0 ? (
-                    <NextImage
+                    <img
                       src={ASSETS[0]}
                       width={49}
                       height={41}
-                      unoptimized
                       alt=""
                     />
                   ) : index === 1 ? (

@@ -1,9 +1,19 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import Database from 'better-sqlite3';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// This integration check writes only to the local development database.
+// 集成检查：先启动 Node 后端（npm run dev:server 或 npm start，默认 3000），
+// 再运行本脚本。它只写本地 data/comments.db，结束后清掉自己产生的记录。
+
 const origin = 'http://localhost:3000';
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const dbPath =
+  process.env.DATA_DIR && process.env.DATA_DIR !== 'data'
+    ? path.join(process.env.DATA_DIR, 'comments.db')
+    : path.join(projectRoot, 'data', 'comments.db');
+
 const ids = [randomUUID(), randomUUID()];
 const post = (value, originHeader = origin) => fetch(`${origin}/api/comments`, {
   method: 'POST', headers: { 'Content-Type': 'application/json', Origin: originHeader }, body: JSON.stringify(value),
@@ -31,6 +41,9 @@ try {
   assert.equal((await post(first, 'https://unrelated.example')).status, 403);
   console.log('PASS empty, oversized, invalid-question and cross-origin submissions are rejected');
 } finally {
-  execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'execute', 'DB', '--local', '--config', 'dist/server/wrangler.json', '--persist-to', '.wrangler/state', '--command', `DELETE FROM comments WHERE id IN ('${ids[0]}', '${ids[1]}')`], { stdio: 'pipe' });
+  const db = new Database(dbPath);
+  const placeholders = ids.map(() => '?').join(', ');
+  db.prepare(`DELETE FROM comments WHERE id IN (${placeholders})`).run(...ids);
+  db.close();
   console.log('Local test comments removed. No production comments were posted.');
 }
