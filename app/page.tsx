@@ -333,7 +333,8 @@ export default function Arena() {
         dispatch({ type: 'READY' });
         return;
       }
-      await delay(650, signal);
+      // Let long-form work get into its reading motion a touch sooner.
+      await delay(state.round === 1 ? 500 : 600, signal);
       for (const side of ['a', 'b'] as const) {
         const element = side === 'a' ? cardA.current : cardB.current;
         const stage = stageRef.current;
@@ -365,11 +366,11 @@ export default function Arena() {
         if (scrollable) {
           // Long-form work begins reading sooner; the first beat is still
           // long enough to establish the enlarged frame before motion starts.
-          await delay(650, signal);
+          await delay(500, signal);
           await scrollWorkToBottom(
             scrollable,
             signal,
-            state.round === 1 ? 42 : 54,
+            state.round === 1 ? 48 : 62,
           );
           await delay(1300, signal);
         } else {
