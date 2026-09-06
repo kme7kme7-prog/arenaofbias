@@ -820,13 +820,13 @@ kbd {
 }
 .spotlight-a .contender-b .work-panel,
 .spotlight-b .contender-a .work-panel {
-  opacity: 1;
-  filter: none;
+  opacity: 0.34;
+  filter: blur(2.5px) grayscale(0.72);
 }
 .spotlight-a .contender-b,
 .spotlight-b .contender-a {
-  opacity: 0.34;
-  filter: blur(2.5px) grayscale(0.72);
+  opacity: 1;
+  filter: none;
   transition: opacity 0.4s, filter 0.4s;
 }
 .spotlight-a .versus-spine,
@@ -848,6 +848,11 @@ kbd {
 .spotlight-a .vote-a,
 .spotlight-b .vote-b {
   opacity: 1;
+}
+.spotlight-a .contender-b .vote-b,
+.spotlight-b .contender-a .vote-a {
+  opacity: 0.55;
+  filter: blur(1px) saturate(0.55);
 }
 .intro-label {
   position: absolute;
