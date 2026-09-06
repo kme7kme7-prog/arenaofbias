@@ -48,6 +48,7 @@ import {
   type Side,
 } from '@/lib/arena';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
+import { Afterparty } from '@/components/afterparty';
 
 const ASSETS = ['/art/signal-a.webp', '/art/signal-b.webp'];
 const ABORTED = 'sequence-cancelled';
@@ -627,6 +628,18 @@ export default function Arena() {
           <div className="briefing-corner" aria-hidden="true" />
         </section>
 
+        <aside
+          className="match-commentary"
+          key={`commentary-${round.id}`}
+          aria-label="本题旁白"
+        >
+          <span className="commentary-badge">
+            <Mark small />
+            场外旁白
+          </span>
+          <p>“{round.commentary}”</p>
+          <span className="commentary-id">FIELD NOTE / {round.id}</span>
+        </aside>
         <div className="field-meta">
           <span>
             <i /> LIVE COMPARISON <span className="meta-slash">/</span>{' '}
@@ -887,6 +900,18 @@ export default function Arena() {
             </button>
           </div>
         </div>
+
+        {state.phase === 'result' && state.choice && (
+          <div className="afterparty-reveal">
+            <div>
+              <Afterparty
+                key={`${round.id}-${state.run}`}
+                roundId={round.id}
+                side={state.choice}
+              />
+            </div>
+          </div>
+        )}
 
         <section className="round-selector" aria-label="切换对决作品">
           <div className="selector-heading">
