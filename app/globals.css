@@ -829,14 +829,19 @@ kbd {
 }
 .spotlight-a .contender-a .work-panel,
 .spotlight-b .contender-b .work-panel {
+  z-index: 30;
   box-shadow:
     0 25px 65px #101b3b40,
     0 0 0 1px #d9fb51;
 }
 .spotlight-a .vote-button,
 .spotlight-b .vote-button {
-  opacity: 0;
-  visibility: hidden;
+  opacity: 0.15;
+  visibility: visible;
+}
+.spotlight-a .vote-a,
+.spotlight-b .vote-b {
+  opacity: 1;
 }
 .intro-label {
   position: absolute;
@@ -1024,10 +1029,6 @@ kbd {
 .phase-locking .not-chosen .work-panel {
   filter: grayscale(0.6);
   opacity: 0.6;
-}
-.phase-locking .vote-button {
-  opacity: 0;
-  visibility: hidden;
 }
 .side-result {
   position: absolute;
