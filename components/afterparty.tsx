@@ -128,7 +128,7 @@ export function Afterparty({
           <div>
             <span className="section-code">POST-MATCH / OPEN CHANNEL</span>
             <h2>
-              胜负已分，嘴还没停<span>。</span>
+              票投完了，聊两句<span>。</span>
             </h2>
           </div>
         </div>
@@ -212,8 +212,8 @@ export function Afterparty({
             ) : comments.length === 0 ? (
               <div className="channel-empty">
                 <span className="empty-quote">“</span>
-                <strong>现场还很安静。</strong>
-                <span>第一句，交给你。</span>
+                <strong>还没有人开麦。</strong>
+                <span>好看在哪里，离谱在哪里？</span>
               </div>
             ) : (
               comments.map((comment) => (

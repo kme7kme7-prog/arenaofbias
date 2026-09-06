@@ -584,7 +584,7 @@ export default function Arena() {
           <div className="section-heading">
             <span className="section-code">{'// SUBJECTIVE JUDGEMENT'}</span>
             <h1>
-              直觉，即是答案<span>。</span>
+              {state.phase === 'result' ? '选择之后，才有好戏' : '直觉，即是答案'}<span>。</span>
             </h1>
           </div>
           <Tabs
@@ -693,7 +693,7 @@ export default function Arena() {
                     className={`work-viewport ${state.round === 1 ? 'is-story' : ''}`}
                   >
                     <div
-                      className="work-inner"
+                      className={`work-inner ${state.phase === 'result' && state.round !== 0 ? 'summary-hidden' : ''}`}
                       key={`${state.round}-${side}`}
                       data-tour-scroll={state.round === 2 ? true : undefined}
                     >
@@ -703,6 +703,12 @@ export default function Arena() {
                         imageFailed={failedAssets.includes(ASSETS[index])}
                       />
                     </div>
+                    {state.phase === 'result' && state.round !== 0 && <button className={`result-work-summary summary-${side}`} onClick={() => setExpanded(side)} aria-label={`回看作品 ${side.toUpperCase()}`}>
+                      <span className="summary-label">{state.round === 1 ? '一封未寄出的信 / STORY' : '月球旅行计划 / WEB DESIGN'}</span>
+                      <strong>{round.labels[index]}</strong>
+                      <p>{state.round === 1 ? stories[side].paragraphs[2] : side === 'a' ? 'LEAVE ORDINARY. 下一站，让地球成为风景。' : 'Somewhere beyond. 把日常留在地球。'}</p>
+                      <span className="summary-open">回看完整作品 <ArrowUpRight size={13} /></span>
+                    </button>}
                     <span className="image-corner tl" aria-hidden="true" />
                     <span className="image-corner br" aria-hidden="true" />
                     {state.round === 0 && (
