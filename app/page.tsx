@@ -843,14 +843,14 @@ export default function Arena() {
         </div>
 
         <div
-          className={`round-console ${state.phase === 'locking' || state.phase === 'result' ? 'show-result' : ''}`}
+          className={`round-console ${state.phase === 'result' ? 'show-result' : ''}`}
         >
-          {state.phase === 'locking' || state.phase === 'result' ? (
-            <div className={`result-console ${state.phase === 'locking' ? 'is-locking' : ''}`}>
+          {state.phase === 'result' ? (
+            <div className="result-console">
               <div className="result-caption">
                 <Check size={17} />
-                <strong>{state.phase === 'locking' ? '直觉已锁定，正在汇总意见。' : '好，你有自己的答案。'}</strong>
-                <span>{state.phase === 'locking' ? '支持率已解锁' : '演示支持率 · 非真实投票数据'}</span>
+                <strong>好，你有自己的答案。</strong>
+                <span>演示支持率 · 非真实投票数据</span>
               </div>
               <div className="support-track">
                 <div

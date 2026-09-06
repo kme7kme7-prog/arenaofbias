@@ -759,6 +759,7 @@ kbd {
   justify-content: center;
   gap: 24px;
   z-index: 12;
+  overflow: clip;
   pointer-events: none;
   transition: opacity 0.35s;
 }
@@ -834,7 +835,8 @@ kbd {
 }
 .spotlight-a .vote-button,
 .spotlight-b .vote-button {
-  opacity: 0.15;
+  opacity: 0;
+  visibility: hidden;
 }
 .intro-label {
   position: absolute;
@@ -935,57 +937,60 @@ kbd {
 .lock-announcement {
   position: absolute;
   left: 50%;
-  top: 34%;
+  top: 50%;
   transform: translate(-50%, -50%);
   z-index: 30;
-  color: var(--ink);
-  background: var(--acid);
-  padding: 20px 42px;
-  display: flex;
+  width: min(330px, 72vw);
+  padding: 15px 18px 13px;
+  display: grid;
+  grid-template-columns: 27px 1fr;
   align-items: center;
-  gap: 15px;
-  box-shadow: 0 10px 60px #0c1f2940;
-  white-space: nowrap;
+  column-gap: 10px;
+  color: #edf3e8;
+  background: #17251feF;
+  border: 1px solid #93a87c;
+  border-left: 4px solid var(--acid);
+  box-shadow: 0 14px 48px #0c1f2955;
   animation: lock-in 0.45s var(--ease-out) both;
 }
 .lock-announcement > span {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 4px;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: 2px;
 }
+.lock-announcement > svg { color: var(--acid); }
 .lock-announcement small {
-  position: absolute;
-  left: 0;
-  bottom: -28px;
-  width: 100%;
-  background: var(--ink);
-  color: var(--acid);
-  text-align: center;
-  padding: 7px;
+  position: static;
+  grid-column: 2;
+  width: auto;
+  background: transparent;
+  color: #a8ba98;
+  text-align: left;
+  padding: 2px 0 0;
   font: 10px var(--mono);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
 }
 .lock-support {
-  position: absolute;
-  top: calc(100% + 42px);
-  left: 50%;
-  width: min(370px, 84vw);
-  transform: translateX(-50%);
-  color: var(--ink);
+  position: static;
+  grid-column: 1 / -1;
+  width: 100%;
+  transform: none;
+  margin-top: 12px;
+  color: #edf3e8;
 }
 .lock-support > div {
   display: flex;
   justify-content: space-between;
   margin-bottom: 7px;
-  font: 800 13px var(--mono);
+  font: 700 11px var(--mono);
 }
-.lock-support > div b:last-child { color: #39798d; }
+.lock-support > div b:last-child { color: #8ed2e6; }
 .lock-support > i {
   display: block;
-  height: 7px;
+  height: 5px;
   overflow: hidden;
   background: var(--blue);
-  box-shadow: 0 0 0 1px #17261c55;
+  box-shadow: 0 0 0 1px #ffffff22;
 }
 .lock-support em {
   display: block;
@@ -1019,6 +1024,10 @@ kbd {
 .phase-locking .not-chosen .work-panel {
   filter: grayscale(0.6);
   opacity: 0.6;
+}
+.phase-locking .vote-button {
+  opacity: 0;
+  visibility: hidden;
 }
 .side-result {
   position: absolute;
@@ -1167,14 +1176,6 @@ kbd {
   height: 100%;
   background: var(--red);
   border-right: 3px solid var(--paper);
-}
-.round-console.show-result .support-track {
-  height: 8px;
-  margin-top: 11px;
-  box-shadow: 0 0 0 1px #24352b45, 0 5px 15px #334c3830;
-}
-.round-console.show-result .support-track > div {
-  border-right-width: 3px;
 }
 .round-selector {
   display: flex;
