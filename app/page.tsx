@@ -228,7 +228,10 @@ export default function Arena() {
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
   const [progress, setProgress] = useState({ run: -1, value: 0 });
   const resultProgress =
-    state.phase === 'result' && progress.run === state.run ? progress.value : 0;
+    (state.phase === 'locking' || state.phase === 'result') &&
+    progress.run === state.run
+      ? progress.value
+      : 0;
   const stageRef = useRef<HTMLDivElement>(null);
   const cardA = useRef<HTMLDivElement>(null);
   const cardB = useRef<HTMLDivElement>(null);
@@ -349,8 +352,8 @@ export default function Arena() {
           bounds.width / 2;
         const mobile = window.innerWidth < 700;
         const scale = mobile
-          ? Math.min(1.55, (window.innerHeight - 170) / bounds.height)
-          : Math.min(1.22, (window.innerHeight - 260) / bounds.height);
+          ? Math.min(1.8, (window.innerHeight - 150) / bounds.height)
+          : Math.min(1.5, (window.innerHeight - 220) / bounds.height);
         const focusTransform = `translate3d(${x}px,0,0) scale(${Math.max(scale, 1.03)})`;
         setSpotlight(side);
         play('move');
@@ -430,11 +433,11 @@ export default function Arena() {
   }, [state.phase, reducedMotion, play]);
 
   useEffect(() => {
-    if (state.phase !== 'result') return;
+    if (state.phase !== 'locking') return;
     let frame: number;
     const start = performance.now();
     const step = (now: number) => {
-      const elapsed = reducedMotion ? 1 : Math.min(1, (now - start) / 1100);
+      const elapsed = reducedMotion ? 1 : Math.min(1, (now - start) / 760);
       setProgress({ run: state.run, value: 1 - Math.pow(1 - elapsed, 3) });
       if (elapsed < 1) frame = requestAnimationFrame(step);
     };
@@ -524,7 +527,7 @@ export default function Arena() {
           ? `正在观测作品 ${spotlight.toUpperCase()}`
           : '作品入场'
         : state.phase === 'voting'
-          ? '轮到你的直觉了'
+          ? '做出选择'
           : state.phase === 'locking'
             ? '选择已锁定'
             : state.phase === 'result'
@@ -553,7 +556,7 @@ export default function Arena() {
         </div>
         <div className="header-divider" />
         <div className="terminal-label">
-          <span className="live-dot" /> 对决终端{' '}
+          <span className="live-dot" /> 评审席{' '}
           <span className="mono">/ 01</span>
         </div>
         <div className="header-right">
@@ -584,7 +587,7 @@ export default function Arena() {
           <div className="section-heading">
             <span className="section-code">{'// SUBJECTIVE JUDGEMENT'}</span>
             <h1>
-              {state.phase === 'result' ? '选择之后，才有好戏' : '直觉，即是答案'}<span>。</span>
+              直觉，即是答案<span>。</span>
             </h1>
           </div>
           <Tabs
@@ -617,7 +620,7 @@ export default function Arena() {
           <div className="round-tag">
             <Crosshair size={19} />
             <span>
-              ROUND <b>{round.id}</b>
+              Round Start <b>{round.id}</b>
             </span>
           </div>
           <div className="briefing-copy">
@@ -635,7 +638,7 @@ export default function Arena() {
         >
           <span className="commentary-badge">
             <Mark small />
-            场外旁白
+            评审附言
           </span>
           <p>“{round.commentary}”</p>
           <span className="commentary-id">FIELD NOTE / {round.id}</span>
@@ -693,7 +696,7 @@ export default function Arena() {
                     className={`work-viewport ${state.round === 1 ? 'is-story' : ''}`}
                   >
                     <div
-                      className={`work-inner ${state.phase === 'result' && state.round !== 0 ? 'summary-hidden' : ''}`}
+                      className="work-inner"
                       key={`${state.round}-${side}`}
                       data-tour-scroll={state.round === 2 ? true : undefined}
                     >
@@ -703,12 +706,6 @@ export default function Arena() {
                         imageFailed={failedAssets.includes(ASSETS[index])}
                       />
                     </div>
-                    {state.phase === 'result' && state.round !== 0 && <button className={`result-work-summary summary-${side}`} onClick={() => setExpanded(side)} aria-label={`回看作品 ${side.toUpperCase()}`}>
-                      <span className="summary-label">{state.round === 1 ? '一封未寄出的信 / STORY' : '月球旅行计划 / WEB DESIGN'}</span>
-                      <strong>{round.labels[index]}</strong>
-                      <p>{state.round === 1 ? stories[side].paragraphs[2] : side === 'a' ? 'LEAVE ORDINARY. 下一站，让地球成为风景。' : 'Somewhere beyond. 把日常留在地球。'}</p>
-                      <span className="summary-open">回看完整作品 <ArrowUpRight size={13} /></span>
-                    </button>}
                     <span className="image-corner tl" aria-hidden="true" />
                     <span className="image-corner br" aria-hidden="true" />
                     {state.round === 0 && (
@@ -807,7 +804,7 @@ export default function Arena() {
             <div className="intro-label" key={state.run} aria-hidden="true">
               <span>NEW ENCOUNTER</span>
               <strong>
-                ROUND <b>{round.id}</b>
+                Round Start <b>{round.id}</b>
               </strong>
               <span>两种表达。一个选择。</span>
             </div>
@@ -828,19 +825,32 @@ export default function Arena() {
               <Crosshair size={28} />
               <span>直觉已锁定</span>
               <small>JUDGEMENT REGISTERED</small>
+              <div className="lock-support">
+                <div>
+                  <b>{round.ratio}%</b>
+                  <b>{100 - round.ratio}%</b>
+                </div>
+                <i>
+                  <em
+                    style={{
+                      width: `${50 + (round.ratio - 50) * resultProgress}%`,
+                    }}
+                  />
+                </i>
+              </div>
             </div>
           )}
         </div>
 
         <div
-          className={`round-console ${state.phase === 'result' ? 'show-result' : ''}`}
+          className={`round-console ${state.phase === 'locking' || state.phase === 'result' ? 'show-result' : ''}`}
         >
-          {state.phase === 'result' ? (
-            <div className="result-console">
+          {state.phase === 'locking' || state.phase === 'result' ? (
+            <div className={`result-console ${state.phase === 'locking' ? 'is-locking' : ''}`}>
               <div className="result-caption">
                 <Check size={17} />
-                <strong>好，你有自己的答案。</strong>
-                <span>演示支持率 · 非真实投票数据</span>
+                <strong>{state.phase === 'locking' ? '直觉已锁定，正在汇总意见。' : '好，你有自己的答案。'}</strong>
+                <span>{state.phase === 'locking' ? '支持率已解锁' : '演示支持率 · 非真实投票数据'}</span>
               </div>
               <div className="support-track">
                 <div
@@ -864,9 +874,7 @@ export default function Arena() {
               <i />
               <span
                 className={
-                  state.phase === 'voting' || state.phase === 'locking'
-                    ? 'current'
-                    : ''
+                  state.phase === 'voting' ? 'current' : ''
                 }
               >
                 <b>02</b>直觉投票

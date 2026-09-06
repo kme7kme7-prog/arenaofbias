@@ -128,7 +128,7 @@ export function Afterparty({
           <div>
             <span className="section-code">POST-MATCH / OPEN CHANNEL</span>
             <h2>
-              场外频道<span>。</span>
+              赛后评论<span>。</span>
             </h2>
           </div>
         </div>
