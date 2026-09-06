@@ -820,8 +820,14 @@ kbd {
 }
 .spotlight-a .contender-b .work-panel,
 .spotlight-b .contender-a .work-panel {
-  opacity: 0.18;
-  filter: blur(2px) grayscale(0.7);
+  opacity: 1;
+  filter: none;
+}
+.spotlight-a .contender-b,
+.spotlight-b .contender-a {
+  opacity: 0.34;
+  filter: blur(2.5px) grayscale(0.72);
+  transition: opacity 0.4s, filter 0.4s;
 }
 .spotlight-a .versus-spine,
 .spotlight-b .versus-spine {
