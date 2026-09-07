@@ -1,6 +1,8 @@
 # 偏见试验场 / BIAS ARENA（VPS 版）
 后面估计要改名字 BIAS ARENA有人用了
 AI 作品对比演示，目前只有图像、文字、网页三种。
+当前交互以提示词为中心：**首页 → 随机竞技场 / 提示词库 → 同提示词的模型结果比较**。
+最新页面与数据规则见 [PRODUCT_LOGIC.md](PRODUCT_LOGIC.md)，旧 HANDOFF 中的三题切换流程已由此替代。
 本分支（`vps-node`）是把原 Cloudflare Workers + D1 版本改造成**任意 VPS 可部署**
 的形态：Vite 单页前端 + Express + SQLite（Node ≥ 22.12，无需外部数据库服务）。
 
@@ -54,7 +56,7 @@ npm run validate:comments
 
 ## 增加新对局（题库扩容）
 
-1. `lib/arena.ts` 的 `rounds` 数组加一题（`id` 为三位数字，如 `004`）；
+1. `lib/arena.ts` 的 `prompts` 数组加一题（`id` 为三位数字，如 `004`），在 `modelResults` 中为它添加至少两个不同模型的结果；结果使用同一个 `promptId`；
 2. `lib/comments.ts` 校验白名单 `['001','002','003']` 同步加 `'004'`；
 3. `server/index.js` 顶部 `ALLOWED_ROUNDS` 同步加 `'004'`；
 4. `npm run build` 后重启服务。

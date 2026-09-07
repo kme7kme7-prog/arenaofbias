@@ -1,5 +1,7 @@
 'use client';
 
+import { useAccount } from '@/components/account';
+
 import {
   useCallback,
   useEffect,
@@ -24,6 +26,12 @@ export function Afterparty({
   roundId: string;
   side: 'a' | 'b';
 }) {
+  const {
+    user,
+    loading: authLoading,
+    open: openAccount,
+    refresh: refreshAccount,
+  } = useAccount();
   const [comments, setComments] = useState<ArenaComment[]>([]);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
@@ -65,7 +73,9 @@ export function Afterparty({
   useEffect(() => {
     mounted.current = true;
     const controller = new AbortController();
-    const kickoff = setTimeout(() => { void load(controller.signal); }, 0);
+    const kickoff = setTimeout(() => {
+      void load(controller.signal);
+    }, 0);
     return () => {
       mounted.current = false;
       clearTimeout(kickoff);
@@ -76,6 +86,10 @@ export function Afterparty({
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const body = draft.trim();
+    if (!user) {
+      openAccount();
+      return;
+    }
     if (!body || posting.current) return;
     posting.current = true;
     setSending(true);
@@ -92,6 +106,10 @@ export function Afterparty({
         comment?: ArenaComment;
         error?: string;
       };
+      if (response.status === 401) {
+        await refreshAccount();
+        openAccount();
+      }
       if (!response.ok || !data.comment)
         throw new Error(data.error || '发送失败');
       const saved = data.comment;
@@ -140,12 +158,20 @@ export function Afterparty({
       <div className="afterparty-columns">
         <form className="comment-composer" onSubmit={submit}>
           <div className="composer-meta">
-            <span className={`team-chip team-${side}`}>
-              已站 {side.toUpperCase()} 方
-            </span>
+            <span className={`team-chip team-${side}`}>本提示词讨论</span>
             <span>有理有据，或者纯凭感觉。</span>
             <ArrowUpRight size={15} />
           </div>
+          {!user && (
+            <button
+              className="comment-login"
+              type="button"
+              onClick={openAccount}
+              disabled={authLoading}
+            >
+              登录后留下你的想法 ↗
+            </button>
+          )}
           <label htmlFor={`comment-${roundId}`} className="sr-only">
             留下你的吐槽
           </label>
@@ -154,7 +180,7 @@ export function Afterparty({
             className="comment-input"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            disabled={sending}
+            disabled={sending || authLoading || !user}
             maxLength={280}
             placeholder="刚才为什么选它？有什么槽点，展开讲讲。"
           />
@@ -164,7 +190,7 @@ export function Afterparty({
             <button
               type="submit"
               className="post-comment"
-              disabled={sending || !draft.trim()}
+              disabled={sending || authLoading || !user || !draft.trim()}
             >
               {sending ? '发送中' : '留下这句'}
               <Send size={14} />
@@ -218,13 +244,12 @@ export function Afterparty({
             ) : (
               comments.map((comment) => (
                 <article key={comment.id} className="comment-entry">
-                  <div className={`comment-avatar team-${comment.side}`}>
-                    {comment.side.toUpperCase()}
-                  </div>
+                  <div className="comment-avatar">评</div>
                   <div>
                     <header>
                       <span>
-                        观测员 <b>#{comment.id.slice(0, 4).toUpperCase()}</b>
+                        {comment.username ||
+                          `匿名观测员 #${comment.id.slice(0, 4).toUpperCase()}`}
                       </span>
                       <time
                         dateTime={new Date(comment.createdAt).toISOString()}

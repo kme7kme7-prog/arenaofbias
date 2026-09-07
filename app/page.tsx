@@ -1,5 +1,7 @@
 'use client';
 
+import { AccountButton } from '@/components/account';
+
 import {
   useCallback,
   useEffect,
@@ -9,14 +11,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import {
-  ArrowDown,
   ArrowRight,
   ArrowUpRight,
   AudioLines,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  Code2,
   Crosshair,
   Expand,
   Eye,
@@ -26,7 +24,6 @@ import {
   Maximize,
   RotateCcw,
   SkipForward,
-  Type,
   Volume2,
   VolumeX,
   X,
@@ -43,13 +40,18 @@ import {
   arenaReducer,
   initialState,
   rounds,
-  stories,
+  pickMatchup,
+  eligiblePairs,
+  resultsForPrompt,
+  randomArenaHash,
+  type ModelResult,
+  type Prompt,
+  type Matchup,
   type Side,
 } from '@/lib/arena';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { Afterparty } from '@/components/afterparty';
 
-const ASSETS = ['/art/signal-a.webp', '/art/signal-b.webp'];
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
 function subscribeMotion(callback: () => void) {
@@ -158,17 +160,17 @@ function WebWork({
 }
 
 function Work({
-  round,
+  result,
   side,
   expanded = false,
   imageFailed = false,
 }: {
-  round: number;
+  result: ModelResult;
   side: Side;
   expanded?: boolean;
   imageFailed?: boolean;
 }) {
-  if (round === 0)
+  if (result.content.kind === 'image')
     return imageFailed ? (
       <div className="asset-error">
         <ImageIcon />
@@ -178,17 +180,27 @@ function Work({
     ) : (
       <img
         className="concept-image"
-        src={ASSETS[side === 'a' ? 0 : 1]}
+        src={result.content.src}
         width={1536}
         height={1024}
-        alt={
-          side === 'a' ? '矗立于蓝色海岸的孤独信号塔' : '落日云海中的环形信号站'
-        }
+        alt={result.content.alt}
         draggable={false}
       />
     );
-  if (round === 2) return <WebWork side={side} interactive={expanded} />;
-  const story = stories[side];
+  if (result.content.kind === 'web')
+    return <WebWork side={result.content.template} interactive={expanded} />;
+  if (result.content.kind === 'html')
+    return (
+      <iframe
+        className="html-work"
+        title={result.title}
+        src={result.content.src}
+        sandbox="allow-scripts"
+        inert={!expanded}
+        style={{ pointerEvents: expanded ? 'auto' : 'none' }}
+      />
+    );
+  const story = result.content.story;
   return (
     <article className={`story-work story-${side}`} data-tour-scroll>
       <div className="story-meta">
@@ -212,8 +224,16 @@ function Work({
   );
 }
 
-export default function Arena() {
-  const [state, dispatch] = useReducer(arenaReducer, initialState);
+export default function Arena({ prompt }: { prompt: Prompt }) {
+  const promptIndex = rounds.findIndex((item) => item.id === prompt.id);
+  const [state, dispatch] = useReducer(arenaReducer, {
+    ...initialState,
+    round: promptIndex,
+    pendingRound: promptIndex,
+  });
+  const [pair, setPair] = useState<Matchup>(() => pickMatchup(prompt.id)!);
+  const pairCount = eligiblePairs(prompt.id).length;
+  const resultCount = resultsForPrompt(prompt.id).length;
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
@@ -223,19 +243,17 @@ export default function Arena() {
     getServerMotionPreference,
   );
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
-  const [progress, setProgress] = useState({ run: -1, value: 0 });
-  const resultProgress =
-    (state.phase === 'locking' || state.phase === 'result') &&
-    progress.run === state.run
-      ? progress.value
-      : 0;
   const stageRef = useRef<HTMLDivElement>(null);
   const cardA = useRef<HTMLDivElement>(null);
   const cardB = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
   const animations = useRef<Animation[]>([]);
-  const round = rounds[state.round];
+  const round = {
+    ...prompt,
+    models: pair.map((entry) => entry.modelName),
+    labels: pair.map((entry) => entry.title),
+  };
   const revealed = state.mode === 'party' || state.phase === 'result';
   const transitioning = state.phase === 'transition';
   const blocked = state.phase === 'loading' || transitioning;
@@ -275,7 +293,14 @@ export default function Arena() {
 
   useEffect(() => {
     let live = true;
-    const pending = [...ASSETS, '/art/lunar.webp'].map(
+    const assets = resultsForPrompt(prompt.id).flatMap((entry) =>
+      entry.content.kind === 'image'
+        ? [entry.content.src]
+        : entry.content.kind === 'web'
+          ? ['/art/lunar.webp']
+          : [],
+    );
+    const pending = [...new Set(assets)].map(
       (src) =>
         new Promise<void>((resolve) => {
           const img = new Image();
@@ -300,7 +325,7 @@ export default function Arena() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [prompt.id]);
 
   useEffect(() => {
     if (state.phase !== 'intro') return;
@@ -335,7 +360,7 @@ export default function Arena() {
         return;
       }
       // Let long-form work get into its reading motion a touch sooner.
-      await delay(state.round === 1 ? 500 : 600, signal);
+      await delay(prompt.kind === 'text' ? 500 : 600, signal);
       for (const side of ['a', 'b'] as const) {
         const element = side === 'a' ? cardA.current : cardB.current;
         const stage = stageRef.current;
@@ -371,7 +396,7 @@ export default function Arena() {
           await scrollWorkToBottom(
             scrollable,
             signal,
-            state.round === 1 ? 48 : 62,
+            prompt.kind === 'text' ? 48 : 62,
           );
           await delay(1300, signal);
         } else {
@@ -403,7 +428,7 @@ export default function Arena() {
       resetScroll();
       setSpotlight(null);
     };
-  }, [state.phase, state.run, state.round, reducedMotion, play]);
+  }, [state.phase, state.run, state.round, prompt.kind, reducedMotion, play]);
 
   useEffect(() => {
     const timeout =
@@ -429,19 +454,6 @@ export default function Arena() {
     };
   }, [state.phase, reducedMotion, play]);
 
-  useEffect(() => {
-    if (state.phase !== 'locking') return;
-    let frame: number;
-    const start = performance.now();
-    const step = (now: number) => {
-      const elapsed = reducedMotion ? 1 : Math.min(1, (now - start) / 760);
-      setProgress({ run: state.run, value: 1 - Math.pow(1 - elapsed, 3) });
-      if (elapsed < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [state.phase, state.run, reducedMotion]);
-
   const vote = useCallback(
     (side: Side) => {
       if (state.phase !== 'voting') return;
@@ -450,16 +462,12 @@ export default function Arena() {
     },
     [state.phase, play],
   );
-  const switchRound = useCallback(
-    (index: number) => {
-      play('move');
-      dispatch({
-        type: 'SWITCH',
-        round: (index + rounds.length) % rounds.length,
-      });
-    },
-    [play],
-  );
+  const nextMatchup = useCallback(() => {
+    if (state.phase === 'loading' || state.phase === 'transition') return;
+    play('move');
+    setPair((current) => pickMatchup(prompt.id, current)!);
+    dispatch({ type: 'REPLAY' });
+  }, [state.phase, prompt.id, play]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -479,7 +487,7 @@ export default function Arena() {
         return;
       if (event.key.toLowerCase() === 'a') vote('a');
       if (event.key.toLowerCase() === 'd') vote('b');
-      if (event.key.toLowerCase() === 'n') switchRound(state.round + 1);
+      if (event.key.toLowerCase() === 'n') nextMatchup();
       if (event.key === ' ' && state.phase === 'intro') {
         event.preventDefault();
         dispatch({ type: 'READY' });
@@ -487,7 +495,7 @@ export default function Arena() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [vote, switchRound, state.round, state.phase, expanded]);
+  }, [vote, nextMatchup, state.round, state.phase, expanded]);
 
   useEffect(
     () => () => {
@@ -553,10 +561,16 @@ export default function Arena() {
         </div>
         <div className="header-divider" />
         <div className="terminal-label">
-          <span className="live-dot" /> <a href="#home" className="arena-home-link">返回首页</a>{' '}
-          <span className="mono">/ 01</span>
+          <span className="live-dot" />{' '}
+          <a href="#home" className="arena-home-link">
+            返回首页
+          </a>{' '}
+          <a href="#prompts" className="arena-home-link">
+            / 提示词库
+          </a>
         </div>
         <div className="header-right">
+          <AccountButton />
           <span className="demo-label">
             DEMO BUILD <b>0.1</b>
           </span>
@@ -665,7 +679,7 @@ export default function Arena() {
           </div>
           {(['a', 'b'] as const).map((side, index) => {
             const chosen = state.choice === side;
-            const ratio = index === 0 ? round.ratio : 100 - round.ratio;
+            const result = pair[index];
             return (
               <div
                 key={side}
@@ -690,22 +704,27 @@ export default function Arena() {
                     </span>
                   </div>
                   <div
-                    className={`work-viewport ${state.round === 1 ? 'is-story' : ''}`}
+                    className={`work-viewport ${prompt.kind === 'text' ? 'is-story' : ''}`}
                   >
                     <div
                       className="work-inner"
                       key={`${state.round}-${side}`}
-                      data-tour-scroll={state.round === 2 ? true : undefined}
+                      data-tour-scroll={
+                        prompt.kind === 'web' ? true : undefined
+                      }
                     >
                       <Work
-                        round={state.round}
+                        result={result}
                         side={side}
-                        imageFailed={failedAssets.includes(ASSETS[index])}
+                        imageFailed={
+                          result.content.kind === 'image' &&
+                          failedAssets.includes(result.content.src)
+                        }
                       />
                     </div>
                     <span className="image-corner tl" aria-hidden="true" />
                     <span className="image-corner br" aria-hidden="true" />
-                    {state.round === 0 && (
+                    {prompt.kind === 'image' && (
                       <div className="image-caption">
                         <span>EXHIBIT {side.toUpperCase()}</span>
                         <strong>{round.labels[index]}</strong>
@@ -716,7 +735,9 @@ export default function Arena() {
                       onClick={() => setExpanded(side)}
                       disabled={state.phase === 'intro' || blocked}
                       aria-label={`放大查看作品 ${side.toUpperCase()}`}
-                      title={state.round === 2 ? '打开交互预览' : '放大查看'}
+                      title={
+                        prompt.kind === 'web' ? '打开交互预览' : '放大查看'
+                      }
                     >
                       <Expand size={17} />
                     </button>
@@ -732,9 +753,9 @@ export default function Arena() {
                       <i />
                       {state.phase === 'result'
                         ? '身份已揭晓'
-                        : state.round === 2
+                        : prompt.kind === 'web'
                           ? 'HTML / 可打开交互预览'
-                          : state.round === 1
+                          : prompt.kind === 'text'
                             ? 'TEXT / 短篇创作'
                             : 'IMAGE / 概念设计'}
                     </span>
@@ -772,10 +793,7 @@ export default function Arena() {
                 {state.phase === 'result' && (
                   <div className="side-result">
                     <span>{chosen ? '你站在了这一边' : '另一种直觉'}</span>
-                    <strong>
-                      {Math.round(ratio * resultProgress)}
-                      <small>%</small>
-                    </strong>
+                    <strong>{chosen ? '已选择' : '未选择'}</strong>
                   </div>
                 )}
               </div>
@@ -822,19 +840,6 @@ export default function Arena() {
               <Crosshair size={28} />
               <span>直觉已锁定</span>
               <small>JUDGEMENT REGISTERED</small>
-              <div className="lock-support">
-                <div>
-                  <b>{round.ratio}%</b>
-                  <b>{100 - round.ratio}%</b>
-                </div>
-                <i>
-                  <em
-                    style={{
-                      width: `${50 + (round.ratio - 50) * resultProgress}%`,
-                    }}
-                  />
-                </i>
-              </div>
             </div>
           )}
         </div>
@@ -847,14 +852,7 @@ export default function Arena() {
               <div className="result-caption">
                 <Check size={17} />
                 <strong>好，你有自己的答案。</strong>
-                <span>演示支持率 · 非真实投票数据</span>
-              </div>
-              <div className="support-track">
-                <div
-                  style={{
-                    width: `${50 + (round.ratio - 50) * resultProgress}%`,
-                  }}
-                />
+                <span>本次选择仅供体验 · 尚未计入统计</span>
               </div>
             </div>
           ) : (
@@ -869,11 +867,7 @@ export default function Arena() {
                 <b>01</b>作品入场
               </span>
               <i />
-              <span
-                className={
-                  state.phase === 'voting' ? 'current' : ''
-                }
-              >
+              <span className={state.phase === 'voting' ? 'current' : ''}>
                 <b>02</b>直觉投票
               </span>
               <i />
@@ -903,10 +897,10 @@ export default function Arena() {
             )}
             <button
               className={`next-button ${state.phase === 'result' ? 'highlight' : ''}`}
-              onClick={() => switchRound(state.round + 1)}
+              onClick={() => nextMatchup()}
               disabled={blocked}
             >
-              {state.phase === 'result' ? '下一场对决' : '换一组作品'}
+              {pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词'}
               <ArrowRight size={17} />
             </button>
           </div>
@@ -924,72 +918,37 @@ export default function Arena() {
           </div>
         )}
 
-        <section className="round-selector" aria-label="切换对决作品">
+        <section
+          className="round-selector prompt-context"
+          aria-label="当前提示词竞技场"
+        >
           <div className="selector-heading">
-            <span className="section-code">SELECT ENCOUNTER</span>
-            <strong>
-              下一种可能
-              <ArrowDown size={13} />
-            </strong>
+            <span className="section-code">ONE PROMPT / ONE ARENA</span>
+            <strong>{prompt.name}</strong>
           </div>
-          <div className="round-options">
-            {rounds.map((item, index) => (
-              <button
-                key={item.id}
-                className={`round-option ${state.round === index ? 'active' : ''}`}
-                disabled={blocked}
-                onClick={() => index !== state.round && switchRound(index)}
-                aria-pressed={state.round === index}
-              >
-                <span className="round-option-number">0{index + 1}</span>
-                <span className={`round-thumbnail thumb-${index}`}>
-                  {index === 0 ? (
-                    <img
-                      src={ASSETS[0]}
-                      width={49}
-                      height={41}
-                      alt=""
-                    />
-                  ) : index === 1 ? (
-                    <Type size={29} />
-                  ) : (
-                    <Code2 size={27} />
-                  )}
-                </span>
-                <span className="round-option-copy">
-                  <strong>{item.name}</strong>
-                  <small>
-                    {item.code} <span>/</span> {item.category}
-                  </small>
-                </span>
-                <span className="round-option-end">
-                  {state.round === index ? (
-                    <span className="equalizer">
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                  ) : (
-                    <ArrowUpRight size={17} />
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-          <div className="selector-arrows">
+          <p>
+            本场收录{' '}
+            {
+              new Set(resultsForPrompt(prompt.id).map((entry) => entry.modelId))
+                .size
+            }{' '}
+            个模型的 {resultCount} 份结果，只在这个提示词内比较。
+          </p>
+          <p>
+            {pairCount === 1
+              ? '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。'
+              : '换一组会优先抽取不同的作品组合。'}
+          </p>
+          <div className="prompt-context-links">
+            <a href="#prompts">
+              返回提示词库 <ArrowUpRight size={16} />
+            </a>
             <button
-              aria-label="上一组作品"
-              disabled={blocked}
-              onClick={() => switchRound(state.round - 1)}
+              onClick={() => {
+                window.location.hash = randomArenaHash(prompt.id);
+              }}
             >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              aria-label="下一组作品"
-              disabled={blocked}
-              onClick={() => switchRound(state.round + 1)}
-            >
-              <ChevronRight size={18} />
+              随机换个竞技场 <ArrowRight size={16} />
             </button>
           </div>
         </section>
@@ -1000,7 +959,7 @@ export default function Arena() {
           <span className="live-dot" /> SYSTEM ONLINE <i /> NO RIGHT ANSWER.
         </span>
         <span className="footer-keyboard">
-          <kbd>A</kbd> 左侧 <kbd>D</kbd> 右侧 <kbd>N</kbd> 换一组
+          <kbd>A</kbd> 左侧 <kbd>D</kbd> 右侧 <kbd>N</kbd> 同题换组
         </span>
         <span>
           仅供体验 <span className="footer-cross">＋</span> BIAS ARENA / 2026
@@ -1014,7 +973,7 @@ export default function Arena() {
         }}
       >
         <DialogContent
-          className={`exhibit-dialog dialog-round-${state.round}`}
+          className={`exhibit-dialog dialog-round-${prompt.kind === 'image' ? 0 : prompt.kind === 'text' ? 1 : 2}`}
           showCloseButton={false}
         >
           <div className="dialog-top">
@@ -1035,18 +994,22 @@ export default function Arena() {
           <div className="expanded-work">
             {expanded && (
               <Work
-                round={state.round}
+                result={pair[expanded === 'a' ? 0 : 1]}
                 side={expanded}
                 expanded
-                imageFailed={failedAssets.includes(
-                  ASSETS[expanded === 'a' ? 0 : 1],
-                )}
+                imageFailed={(() => {
+                  const content = pair[expanded === 'a' ? 0 : 1].content;
+                  return (
+                    content.kind === 'image' &&
+                    failedAssets.includes(content.src)
+                  );
+                })()}
               />
             )}
           </div>
           <div className="dialog-bottom">
             <span>
-              {state.round === 2
+              {prompt.kind === 'web'
                 ? '演示页面 · 可以试试预订与目的地按钮'
                 : 'ESC 返回对决'}
             </span>

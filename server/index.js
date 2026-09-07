@@ -13,6 +13,7 @@
 //   RATE_LIMIT_PER_MIN  每个 IP 每分钟可 POST 的条数，默认 10
 
 import express from 'express';
+import { installAuth } from './auth.js';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,6 +33,7 @@ const postsPerMinute = Number(process.env.RATE_LIMIT_PER_MIN || 10);
 fs.mkdirSync(dataDir, { recursive: true });
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 // 与 Cloudflare D1 版同一份表结构（见原 drizzle/0000_chunky_micromax.sql）。
 db.exec(`
   CREATE TABLE IF NOT EXISTS comments (
@@ -45,25 +47,28 @@ db.exec(`
     ON comments (round_id, created_at);
 `);
 
+if (
+  !db
+    .prepare('PRAGMA table_info(comments)')
+    .all()
+    .some((column) => column.name === 'user_id')
+)
+  db.exec('ALTER TABLE comments ADD COLUMN user_id TEXT');
+
 const insertComment = db.prepare(
-  `INSERT OR IGNORE INTO comments (id, round_id, side, body, created_at)
-   VALUES (?, ?, ?, ?, ?)`,
+  `INSERT OR IGNORE INTO comments (id, round_id, side, body, created_at, user_id)
+   VALUES (?, ?, ?, ?, ?, ?)`,
 );
 const selectById = db.prepare(
-  `SELECT id, round_id AS roundId, side, body, created_at AS createdAt
+  `SELECT id, round_id AS roundId, side, body, created_at AS createdAt, user_id AS userId
    FROM comments WHERE id = ? AND round_id = ?`,
 );
-const listByRound = db.prepare(
-  `SELECT id, round_id AS roundId, side, body, created_at AS createdAt
-   FROM comments WHERE round_id = ? ORDER BY created_at DESC, id DESC LIMIT 100`,
-);
-
 // ---------- 校验（与 lib/comments.ts 规则保持一致） ----------
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // 题目白名单，与界面侧 lib/comments.ts 保持一致；新增题目（如 '004'）时两处都要加。
-const ALLOWED_ROUNDS = ['001', '002', '003'];
+const ALLOWED_ROUNDS = ['001', '002', '003', '004', '005', '006', '007'];
 
 function validateComment(value) {
   if (!value || typeof value !== 'object') return null;
@@ -81,39 +86,34 @@ function validateComment(value) {
 
 const windows = new Map();
 const limiter = (req, res, next) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (forwarded ? String(forwarded).split(',')[0].trim() : null) ||
-    req.socket.remoteAddress ||
-    'unknown';
+  const ip = req.ip;
   const now = Date.now();
   const windowStart = now - 60_000;
   const hits = (windows.get(ip) || []).filter((t) => t > windowStart);
   if (hits.length >= postsPerMinute) {
-    return res
-      .status(429)
-      .json({ error: '发言太快了，歇一分钟再试。' });
+    return res.status(429).json({ error: '发言太快了，歇一分钟再试。' });
   }
   hits.push(now);
   windows.set(ip, hits);
   req.clientIp = ip;
   next();
 };
-setInterval(
-  () => {
-    const cutoff = Date.now() - 60_000;
-    for (const [ip, hits] of windows) {
-      const alive = hits.filter((t) => t > cutoff);
-      if (alive.length) windows.set(ip, alive);
-      else windows.delete(ip);
-    }
-  },
-  60_000,
-).unref();
+setInterval(() => {
+  const cutoff = Date.now() - 60_000;
+  for (const [ip, hits] of windows) {
+    const alive = hits.filter((t) => t > cutoff);
+    if (alive.length) windows.set(ip, alive);
+    else windows.delete(ip);
+  }
+}, 60_000).unref();
 
 // ---------- Express 应用 ----------
 
 const app = express();
 app.disable('x-powered-by');
+// Explicit proxy allowlist only, e.g. loopback when nginx runs on the same VPS.
+if (process.env.TRUST_PROXY)
+  app.set('trust proxy', process.env.TRUST_PROXY.split(','));
 app.use(
   express.json({
     limit: '4kb', // 原接口限制原始请求体 4000 字节
@@ -125,18 +125,16 @@ const noStore = { 'Cache-Control': 'no-store' };
 // 同源校验：在反代（Caddy/nginx）之后用 X-Forwarded-Proto/Host 还原真实来源，
 // 与原 Worker 版“请求来源必须等于站点来源”的语义一致。
 function sameOrigin(req) {
-  const origin = req.headers.origin;
-  if (!origin) return false;
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const forwardedHost = req.headers['x-forwarded-host'];
-  const proto = forwardedProto
-    ? String(forwardedProto).split(',')[0].trim()
-    : 'http';
-  const headerHost = forwardedHost
-    ? String(forwardedHost).split(',')[0].trim()
-    : req.headers.host;
-  return origin === `${proto}://${headerHost}`;
+  const expected =
+    process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`;
+  return req.headers.origin === expected;
 }
+installAuth(app, db, sameOrigin);
+const listByRound = db.prepare(
+  `SELECT comments.id, round_id AS roundId, side, body, comments.created_at AS createdAt, users.username
+   FROM comments LEFT JOIN users ON users.id = comments.user_id
+   WHERE round_id = ? ORDER BY comments.created_at DESC, comments.id DESC LIMIT 100`,
+);
 
 app.get('/api/comments', (req, res) => {
   const roundId = String(req.query.round || '');
@@ -154,13 +152,12 @@ app.get('/api/comments', (req, res) => {
 });
 
 app.post('/api/comments', limiter, (req, res) => {
-  if (!sameOrigin(req))
-    return res.status(403).json({ error: '请求来源无效' });
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
+  if (!req.user) return res.status(401).json({ error: '请先登录再留言。' });
   const comment = validateComment(req.body);
-  if (!comment)
-    return res.status(400).json({ error: '请输入 1–280 字的留言' });
+  if (!comment) return res.status(400).json({ error: '请输入 1–280 字的留言' });
   try {
     insertComment.run(
       comment.id,
@@ -168,11 +165,20 @@ app.post('/api/comments', limiter, (req, res) => {
       comment.side,
       comment.body,
       Date.now(),
+      req.user.id,
     );
     const saved = selectById.get(comment.id, comment.roundId);
-    if (!saved || saved.body !== comment.body || saved.side !== comment.side)
+    if (
+      !saved ||
+      saved.body !== comment.body ||
+      saved.side !== comment.side ||
+      saved.userId !== req.user.id
+    )
       return res.status(409).json({ error: '留言编号冲突，请重新提交' });
-    res.set(noStore).status(201).json({ comment: saved });
+    res
+      .set(noStore)
+      .status(201)
+      .json({ comment: { ...saved, username: req.user.username } });
   } catch {
     res
       .status(503)
@@ -191,7 +197,8 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
     express.static(distDir, {
       index: 'index.html',
       setHeaders(res, filePath) {
-        if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+        if (filePath.endsWith('index.html'))
+          res.setHeader('Cache-Control', 'no-cache');
         else if (/[\\/](assets|art)[\\/]/.test(filePath))
           res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
       },
@@ -212,7 +219,9 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
 app.use((error, _req, res, _next) => {
   if (error?.type === 'entity.too.large')
     return res.status(413).json({ error: '留言过长' });
-  console.error(error);
+  if (error?.type === 'entity.parse.failed')
+    return res.status(400).json({ error: '请求内容格式不正确。' });
+  console.error('[bias-arena] Request failed:', error.code || 'internal');
   res.status(500).json({ error: '服务暂时不可用' });
 });
 

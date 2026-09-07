@@ -1,4 +1,6 @@
+import { AccountButton } from '@/components/account';
 import { useEffect, useRef, useState } from 'react';
+import { randomArenaHash } from '@/lib/arena';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -49,7 +51,7 @@ export default function Home() {
     setLeaving(true);
     timer.current = setTimeout(
       () => {
-        window.location.hash = 'arena';
+        window.location.hash = randomArenaHash();
         window.scrollTo(0, 0);
       },
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 720,
@@ -76,8 +78,9 @@ export default function Home() {
           onClick={enter}
           disabled={leaving}
         >
-          进入评审席 <ArrowUpRight size={17} />
+          随机入场 <ArrowUpRight size={17} />
         </button>
+        <AccountButton />
       </header>
       <main className="lobby-main">
         <section className="lobby-copy">
@@ -93,7 +96,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="lobby-description">
-            两个 AI，两份作品。
+            同一个提示词，不同模型的答案。
             <br />
             先别看名字，把答案交给第一直觉。
           </p>
@@ -101,13 +104,16 @@ export default function Home() {
             <button className="lobby-entry" onClick={enter} disabled={leaving}>
               <Fingerprint size={27} />
               <span>
-                {leaving ? '你的席位已就绪' : '就位，做出选择'}
-                <small>TAKE YOUR SEAT</small>
+                {leaving ? '正在挑选竞技场' : '随机入场，凭直觉选'}
+                <small>QUICK MATCH / RANDOM ARENA</small>
               </span>
               <ArrowRight size={29} />
             </button>
+            <a className="lobby-library-entry" href="#prompts">
+              先逛逛提示词库 <ArrowUpRight size={20} />
+            </a>
             <span className="lobby-entry-note">
-              认真盲测 / 娱乐站队 · 入场后自由切换
+              随机选一个提示词，比较它的模型结果。
             </span>
           </div>
           <div className="lobby-format-switch" aria-label="预览作品类型">

@@ -16,6 +16,10 @@ const {
   arenaReducer: reduce,
   initialState,
   rounds,
+  modelResults,
+  eligiblePairs,
+  pickMatchup,
+  randomArenaHash,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
 );
@@ -87,7 +91,7 @@ check('Mode changes use the transition and clear a previous vote', () => {
   assert.equal(fresh.mode, 'party');
 });
 check(
-  'All three encounter choices are reachable; invalid indexes are ignored',
+  'Every encounter choice is reachable; invalid indexes are ignored',
   () => {
     for (let index = 0; index < rounds.length; index++) {
       const next = reduce(reduce(voting, { type: 'SWITCH', round: index }), {
@@ -96,7 +100,52 @@ check(
       assert.equal(next.round, index);
     }
     assert.equal(reduce(voting, { type: 'SWITCH', round: -1 }), voting);
-    assert.equal(reduce(voting, { type: 'SWITCH', round: 3 }), voting);
+    assert.equal(
+      reduce(voting, { type: 'SWITCH', round: rounds.length }),
+      voting,
+    );
+    assert.equal(reduce(voting, { type: 'SWITCH', round: NaN }), voting);
+  },
+);
+check('Matchups never cross prompts or compare a model with itself', () => {
+  for (const prompt of rounds) {
+    if (!eligiblePairs(prompt.id).length) {
+      assert.equal(pickMatchup(prompt.id), null);
+      continue;
+    }
+    for (let i = 0; i < 100; i++) {
+      const pair = pickMatchup(prompt.id);
+      assert.equal(pair.length, 2);
+      assert.ok(pair.every((entry) => entry.promptId === prompt.id));
+      assert.notEqual(pair[0].modelId, pair[1].modelId);
+    }
+  }
+  assert.equal(pickMatchup('missing'), null);
+});
+check(
+  'Multiple model results support new pairs, same-model exclusion and empty arenas',
+  () => {
+    const [first, second] = modelResults.filter((result) => !result.isDemo);
+    const third = { ...first, id: 'third-result', modelId: 'third-model' };
+    const sameModel = { ...first, id: 'same-model-second-result' };
+    const results = [first, second, third, sameModel, ...modelResults.filter((result) => result.promptId !== first.promptId)];
+    assert.equal(eligiblePairs(first.promptId, results).length, 5);
+    const next = pickMatchup(first.promptId, [first, second], () => 0, results);
+    assert.ok(next.some((entry) => entry.id === third.id));
+    assert.equal(
+      pickMatchup(first.promptId, undefined, Math.random, [first, sameModel]),
+      null,
+    );
+  },
+);
+check(
+  'Random navigation targets an eligible prompt and can avoid the current arena',
+  () => {
+    for (const prompt of rounds) {
+      const hash = randomArenaHash(prompt.id, () => 0);
+      assert.notEqual(hash, `#arena/${prompt.id}`);
+      assert.ok(eligiblePairs(hash.slice(7)).length > 0);
+    }
   },
 );
 for (const name of ['signal-a.webp', 'signal-b.webp', 'lunar.webp']) {

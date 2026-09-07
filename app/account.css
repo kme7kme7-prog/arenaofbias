@@ -1,0 +1,141 @@
+.account-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border: 1px solid #89977d;
+  color: inherit;
+  background: transparent;
+  flex-shrink: 0;
+  margin-left: 16px;
+  font-size: 13px;
+}
+.account-entry span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-entry:hover {
+  color: #728443;
+}
+.account-dialog {
+  background: #e3e8dc;
+  color: #1c2423;
+  padding: 32px;
+  width: calc(100% - 32px);
+  max-width: 470px;
+  max-height: calc(100svh - 32px);
+  overflow-y: auto;
+  border: 1px solid #91a27e;
+}
+.account-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #70814f;
+  margin-bottom: 12px;
+}
+.account-dialog h2 {
+  font-size: 26px;
+  line-height: 1.35;
+  padding-right: 20px;
+}
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.account-modes {
+  display: flex;
+  border-bottom: 1px solid #9daa8e;
+  margin-bottom: 8px;
+}
+.account-modes button {
+  flex: 1;
+  padding: 12px;
+}
+.account-modes button[aria-pressed='true'] {
+  background: #1c2423;
+  color: #d9fb51;
+}
+.account-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.account-form input {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  background: #f2f4ed;
+  border: 1px solid #97a58a;
+  font: inherit;
+  font-size: 16px;
+  border-radius: 0;
+}
+.account-form input:focus {
+  outline: 2px solid #718522;
+  outline-offset: 1px;
+}
+.account-form small {
+  color: #617056;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.password-field {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.password-field input {
+  padding-right: 48px;
+}
+.password-field button {
+  position: absolute;
+  right: 12px;
+  top: 21px;
+}
+.account-error {
+  color: #a23423;
+  font-size: 13px;
+  min-height: 18px;
+}
+.account-submit {
+  background: #1c2423;
+  color: #d9fb51;
+  padding: 15px;
+  font-weight: 700;
+}
+.account-submit:disabled {
+  opacity: 0.6;
+}
+.comment-login {
+  padding: 10px 0;
+  color: #4c613c;
+  text-align: left;
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .lobby-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 90px;
+    padding-block: 14px;
+    gap: 12px;
+  }
+  .lobby-header .account-entry {
+    margin-left: 0;
+  }
+  .account-dialog {
+    padding: 24px;
+  }
+  .header-right .account-entry {
+    margin-left: 0;
+    padding: 8px;
+  }
+  .account-entry span {
+    max-width: 110px;
+  }
+}

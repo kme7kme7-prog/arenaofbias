@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鹈鹕大挑战 · 海岸骑行</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4eedc;color:#263e3b;font-family:system-ui,sans-serif;min-height:100svh;display:flex;flex-direction:column}header,footer{padding:22px 6%;display:flex;align-items:center;justify-content:space-between;gap:16px}header small{font-size:10px;letter-spacing:.17em}h1{font-size:clamp(22px,5vw,40px);letter-spacing:-.04em;margin:8px 0}header>b{border:1px solid #9aaa8c;border-radius:50%;padding:15px;font-size:12px}main{flex:1;display:grid;place-items:center;overflow:hidden}svg{width:100%;max-height:70svh;min-height:220px}footer{font-size:12px;color:#63776a}button{font:inherit;padding:10px 18px;border:1px solid #758a78;border-radius:24px;background:transparent;color:#263e3b;cursor:pointer}button:hover{background:#dfe7d0}.wheel{animation:turn 1.5s linear infinite;transform-box:fill-box;transform-origin:center}.rider{animation:bob .75s ease-in-out infinite}.pedals{animation:turn 1.5s linear infinite;transform-origin:398px 353px}.leg-a{animation:legA 1.5s linear infinite}.leg-b{animation:legB 1.5s linear infinite}.scenery{animation:travel 5s linear infinite}.wing{animation:wing .75s ease-in-out infinite;transform-origin:345px 235px}.paused *{animation-play-state:paused!important}@keyframes turn{to{transform:rotate(360deg)}}@keyframes bob{50%{transform:translateY(-3px) rotate(.4deg)}}@keyframes travel{to{transform:translateX(-260px)}}@keyframes wing{50%{transform:rotate(-5deg)}}@keyframes legA{0%,100%{d:path('M365 265 L390 301 L422 353')}25%{d:path('M365 265 L357 318 L398 377')}50%{d:path('M365 265 L350 307 L374 353')}75%{d:path('M365 265 L385 291 L398 329')}}@keyframes legB{0%,100%{d:path('M356 266 L342 311 L374 353')}25%{d:path('M356 266 L379 293 L398 329')}50%{d:path('M356 266 L390 303 L422 353')}75%{d:path('M356 266 L355 318 L398 377')}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<header><div><small>THE PELICAN CYCLING CLUB</small><h1>今天，顺风。</h1></div><b>001<br>COAST</b></header>
+<main>
+<svg viewBox="0 0 800 480" role="img" aria-labelledby="scene-title scene-desc">
+<title id="scene-title">一只鹈鹕骑着自行车沿海岸前进</title><desc id="scene-desc">白色鹈鹕有长长的橙色喙和喉囊，双脚交替踩踏，自行车轮转动，海岸路面向后移动。</desc>
+<defs><pattern id="ocean" width="95" height="25" patternUnits="userSpaceOnUse"><path d="M5 12 Q25 3 45 12 T85 12" fill="none" stroke="#82b7ab" stroke-width="2"/></pattern></defs>
+<rect width="800" height="480" fill="#f4eedc"/><circle cx="620" cy="98" r="49" fill="#ecb660"/>
+<path d="M0 235 Q160 197 310 225 T620 204 T800 220 V380 H0Z" fill="#c3d9c9"/>
+<path d="M0 262 Q170 235 300 254 T600 242 T800 250 V385 H0Z" fill="#a4cbbb"/>
+<rect y="275" width="800" height="80" fill="url(#ocean)"/>
+<g stroke="#879f8e" fill="none" stroke-width="2"><path d="M140 100 q10 -12 20 0 q10 -12 20 0"/><path d="M207 129 q7 -8 14 0 q7 -8 14 0"/></g>
+<path d="M0 371 Q350 346 800 375 V480 H0Z" fill="#ded6b8"/>
+<path d="M0 410 H800" stroke="#b5b394" stroke-width="2"/>
+<g class="scenery" fill="none" stroke="#f6f1de" stroke-width="4"><path d="M0 434H90 M260 434H350 M520 434H610 M780 434H870 M1040 434H1130"/></g>
+<ellipse cx="403" cy="403" rx="183" ry="10" fill="#667461" opacity=".13"/>
+<g fill="#f4eedc" stroke="#304842" stroke-width="7"><circle cx="286" cy="347" r="57"/><circle cx="516" cy="347" r="57"/></g>
+<g stroke="#91a295" stroke-width="2"><g class="wheel"><circle cx="286" cy="347" r="48" fill="none"/><path d="M286 299V395 M238 347H334 M252 313L320 381 M252 381L320 313"/></g><g class="wheel"><circle cx="516" cy="347" r="48" fill="none"/><path d="M516 299V395 M468 347H564 M482 313L550 381 M482 381L550 313"/></g></g>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M286 347L354 268L398 353H286L348 294H476L398 353 M476 294L516 347 M476 294L463 250L490 244" stroke="#bb553d" stroke-width="8"/><path d="M354 268L349 251 M333 251H369 M490 244L501 247" stroke="#304842" stroke-width="7"/><circle cx="398" cy="353" r="13" stroke="#304842" stroke-width="5"/></g>
+<path class="leg-b" d="M356 266 L342 311 L374 353" fill="none" stroke="#c0803f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<g class="rider">
+<path d="M305 231L277 210L289 244L323 257" fill="#e7e6d6" stroke="#53665b" stroke-width="3"/>
+<path d="M307 227 C312 189 369 186 395 211 C414 224 410 255 380 268 C348 282 308 266 307 227Z" fill="#fffdf0" stroke="#53665b" stroke-width="3"/>
+<path d="M374 218 C414 213 382 171 396 138 C405 119 432 120 441 140 C455 173 422 206 411 237" fill="#fffdf0" stroke="#53665b" stroke-width="3"/>
+<path d="M437 147 L541 166 Q492 216 447 174Z" fill="#e9b269" stroke="#9e7240" stroke-width="2.5"/>
+<path d="M435 144 L551 164 L441 160Z" fill="#db894a" stroke="#9e7240" stroke-width="2"/>
+<circle cx="427" cy="141" r="4.5" fill="#263e3b"/><circle cx="428" cy="140" r="1.3" fill="white"/>
+<path d="M393 137 Q408 113 434 125 L444 136Z" fill="#758d6c"/><path d="M421 119L452 127" stroke="#758d6c" stroke-width="7" stroke-linecap="round"/>
+<path class="wing" d="M326 220 Q351 202 375 223 L391 239 Q349 252 326 220Z" fill="#e0e5d5" stroke="#829280" stroke-width="2.5"/>
+<path d="M397 205 Q426 214 459 243" fill="none" stroke="#53665b" stroke-width="7" stroke-linecap="round"/>
+<path d="M397 202L373 187L352 192L370 203Z" fill="#bb553d"/>
+</g>
+<path class="leg-a" d="M365 265 L390 301 L422 353" fill="none" stroke="#e3a252" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+<g class="pedals" stroke="#304842" stroke-width="4"><path d="M374 353H422"/><path d="M414 353H431 M365 353H383" stroke-width="7" stroke-linecap="round"/></g>
+<g fill="#72866a"><path d="M100 394q-18 -30 -18 -38q22 8 18 38M105 396q10 -31 22 -31q-1 24 -22 31"/><path d="M689 399q-8 -28 2 -38q13 24 -2 38"/></g>
+</svg>
+</main><footer><span>海风刚好，慢慢骑。</span><button id="pause" type="button" aria-pressed="false">暂停动画</button></footer>
+<script>const b=document.getElementById('pause');b.onclick=()=>{const paused=document.body.classList.toggle('paused');b.textContent=paused?'继续骑行':'暂停动画';b.setAttribute('aria-pressed',String(paused));};</script>
+</html>

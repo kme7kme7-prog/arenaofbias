@@ -109,7 +109,7 @@
   gap: 4%;
   align-items: center;
   width: 93%;
-  max-width: 1620px;
+  max-width: none;
   margin: 0 auto;
   padding: 62px 0 45px;
 }

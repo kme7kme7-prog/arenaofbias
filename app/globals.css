@@ -271,7 +271,7 @@ kbd {
 }
 .main-terminal {
   position: relative;
-  max-width: 1440px;
+  max-width: none;
   width: calc(100% - 128px);
   margin: 0 auto;
   padding: 22px 0 12px;
@@ -2448,7 +2448,7 @@ kbd {
 }
 .arena-stage {
   width: 100%;
-  max-width: 1440px;
+  max-width: 100%;
   margin-inline: auto;
   transition:
     max-width 0.95s var(--ease-out),

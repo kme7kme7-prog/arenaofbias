@@ -1,4 +1,5 @@
 export type ArenaComment = {
+  username?: string | null;
   id: string;
   roundId: string;
   side: 'a' | 'b';
@@ -19,7 +20,9 @@ export function validateComment(
     return null;
   if (
     typeof candidate.roundId !== 'string' ||
-    !['001', '002', '003'].includes(candidate.roundId)
+    !['001', '002', '003', '004', '005', '006', '007'].includes(
+      candidate.roundId,
+    )
   )
     return null;
   if (candidate.side !== 'a' && candidate.side !== 'b') return null;
