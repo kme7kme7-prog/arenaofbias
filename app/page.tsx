@@ -553,7 +553,7 @@ export default function Arena() {
         </div>
         <div className="header-divider" />
         <div className="terminal-label">
-          <span className="live-dot" /> 评审席{' '}
+          <span className="live-dot" /> <a href="#home" className="arena-home-link">返回首页</a>{' '}
           <span className="mono">/ 01</span>
         </div>
         <div className="header-right">
