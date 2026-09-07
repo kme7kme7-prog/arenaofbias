@@ -1,10 +1,10 @@
 # 偏见试验场 / BIAS ARENA（VPS 版）
-
-以游戏回合和动效为核心的 AI 作品对比演示，含图像、文字、网页三场对决。
+后面估计要改名字 BIAS ARENA有人用了
+AI 作品对比演示，目前只有图像、文字、网页三种。
 本分支（`vps-node`）是把原 Cloudflare Workers + D1 版本改造成**任意 VPS 可部署**
 的形态：Vite 单页前端 + Express + SQLite（Node ≥ 22.12，无需外部数据库服务）。
 
-> 原 Cloudflare/Sites 版本保存在 `main` 分支，两个分支互不影响。
+> 原 Cloudflare/Sites 版本保存在 `main` 分支，两个分支互不影响。你问我main分支呢 我也不知道 懒得拿上来了
 
 ## 架构
 
@@ -16,7 +16,7 @@
 
 ## 本地运行
 
-首页位于 `/`，点击“就位，做出选择”进入 `/#arena`；评审页顶部可返回首页。
+首页位于 `/`
 首页提供三类作品的动态预览，并遵循系统的减少动态效果设置。
 
 ```powershell
@@ -44,9 +44,6 @@ npm run validate:comments
 
 `validate:comments` 只访问 localhost，结束后会清掉自己写入 `data/comments.db` 的记录。
 
-## 服务器部署
-
-完整零基础步骤（买机、装 Node、systemd、HTTPS 等）见 **`DEPLOY_VPS.md`**。
 
 ## 资源
 
