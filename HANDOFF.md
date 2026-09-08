@@ -16,6 +16,16 @@
 - 2026-09-08 本轮完成文档体系改造：新增 `AGENTS.md` 与 `docs/`（PRODUCT / ARCHITECTURE / DECISIONS / handoff 模板）；原 `idea.md` 平移为 `docs/IDEAS.md`、原 `ARTWORK.md` 平移为 `docs/ARTWORK.md`；删除原 `PRODUCT_LOGIC.md`（内容并入 `docs/PRODUCT.md`）；部署指南不入库。
 - 2026-09-08 改名：对外英文名 BIAS ARENA 全站改为 arenaofbias；界面字标为 ARENA OF ＋ 酸底切角 BIAS 块（样张 08C-4），书面引用为小写连写；中文名"偏见试验场"不变；包名、日志前缀、浏览器标题同步。
 
+## 本轮待确认：账号弹窗稿纸样式（2026-09-08）
+
+- 修改 `components/account.tsx`、`app/account.css`：三层错位纸张、稿纸纹理与装订孔、印章、登录/注册页签；入场散纸、切页、按钮反馈和退出动效，支持 reduced-motion。账号请求、校验与会话逻辑未变。
+- 浏览器检查：1280×720 登录布局、390×844 注册布局；登录/注册切换、密码显隐、Esc 关闭与重新打开正常。未提交真实注册/登录请求，未进行后端回归。
+- 本轮 `npm run typecheck`、`npm run lint`、`npm run build`、`git diff --check` 通过。额外执行 `npx oxlint components/account.tsx` 报原有第 59 行 React EffectSetState；HEAD 原文件同样可复现，未越界修改。项目 lint 脚本当前不覆盖 components。
+- 当前改动未 commit、未 push，等待用户确认。未写归档日志。
+- 后续修订：纸色最终恢复原灰绿色；入场改为左侧铺展，移除中心缩放。内容容器经 ResizeObserver 测量后驱动纸面高度过渡；公共 DialogContent 仅新增可选 overlayClassName，账号弹窗独立使用同步透明度过渡，替换原先叠加的关键帧，避免退场闪现。
+- 修订验证：typecheck、build 通过；浏览器采样确认切回登录存在连续高度中间值（624→621.7→618.5→615.5→611.6），关闭时纸张/遮罩透明度同步递减，结束后两者均卸载。未进行真实账号提交。
+- 首页 `app/home.css`：主按钮使用与登录按钮一致的轻薄实体投影及悬停/按压反馈；VS 贴纸延迟 0.48 秒入场并轻微回弹归位，遵循现有 reduced-motion 降级。浏览器确认按钮投影、VS 动画属性和灰绿色登录框；typecheck、lint、build 通过。见决策 013。
+
 ## 待办（下一步候选，非约束）
 
 - 004–007 接入模型结果（操作步骤见 `docs/ARCHITECTURE.md` 扩充一节）。
@@ -24,7 +34,7 @@
 - 待用户拍板：002/003 虚构模型身份的长期取向。
 - `docs/IDEAS.md` 全部条目均为候选，未经确认不得开发。
 
-## 最近验证（2026-09-08）
+## 上轮验证（2026-09-08 改名阶段，本轮结果见上）
 
 - 通过：`npm run typecheck`、`npm run lint`（0 错误）、`npm run validate:arena`（11 项）、`npm run validate:scroll`。
 - 未跑：`npm run build`（AI 沙箱环境限制，需在本地终端复核）；`npm run validate:comments`（需先启动后端）。

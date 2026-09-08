@@ -42,6 +42,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const submitting = useRef(false);
   const [error, setError] = useState('');
   const revision = useRef(0);
+  const [sheetHeight, setSheetHeight] = useState<number>();
+  const measureSheet = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const observer = new ResizeObserver(() => {
+      setSheetHeight(node.getBoundingClientRect().height + 2);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const refresh = useCallback(async () => {
     const request = ++revision.current;
     try {
@@ -114,139 +123,186 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <Dialog open={opened} onOpenChange={close}>
-        <DialogContent className="account-dialog">
-          <div className="account-eyebrow">YOUR SEAT / ARENA OF BIAS</div>
-          <DialogTitle>
-            {user
-              ? '你的账号'
-              : mode === 'login'
-                ? '欢迎回到评审席。'
-                : '给你的直觉，一个席位。'}
-          </DialogTitle>
-          <DialogDescription>
-            {user
-              ? `当前登录：${user.username}`
-              : '登录后，用你的账号参与作品讨论。'}
-          </DialogDescription>
-          <form onSubmit={submit} className="account-form">
-            {!user && (
-              <>
-                <div className="account-modes">
-                  <button
-                    type="button"
-                    aria-pressed={mode === 'login'}
-                    disabled={busy}
-                    onClick={() => {
-                      setMode('login');
-                      setError('');
-                      setPassword('');
-                      setConfirm('');
-                    }}
-                  >
-                    登录
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={mode === 'register'}
-                    disabled={busy}
-                    onClick={() => {
-                      setMode('register');
-                      setError('');
-                      setPassword('');
-                      setConfirm('');
-                    }}
-                  >
-                    注册
-                  </button>
+        <DialogContent
+          className="account-dialog"
+          overlayClassName="account-overlay"
+          data-mode={user ? 'member' : mode}
+        >
+          <div className="account-paper account-paper-back" aria-hidden="true">
+            <span>ARENA OF BIAS / FIELD NOTES</span>
+          </div>
+          <div
+            className="account-paper account-paper-middle"
+            aria-hidden="true"
+          >
+            <span>每一种直觉，都值得留下。</span>
+          </div>
+          <div className="account-sheet" style={{ height: sheetHeight }}>
+            <div className="account-sheet-content" ref={measureSheet}>
+              <div className="account-paper-meta" aria-hidden="true">
+                <span>偏见试验场 / 评审手记</span>
+                <span>NO. {mode === 'register' && !user ? '02' : '01'}</span>
+              </div>
+              <div className="account-heading">
+                <div className="account-eyebrow">YOUR SEAT / ARENA OF BIAS</div>
+                <DialogTitle>
+                  {user
+                    ? '你的账号'
+                    : mode === 'login'
+                      ? '欢迎回到评审席。'
+                      : '给你的直觉，一个席位。'}
+                </DialogTitle>
+                <DialogDescription>
+                  {user
+                    ? `当前登录：${user.username}`
+                    : '登录后，用你的账号参与作品讨论。'}
+                </DialogDescription>
+                <div className="account-stamp" aria-hidden="true">
+                  <span>独立判断</span>
+                  <b>YOU DECIDE</b>
+                  <span>不必标准答案</span>
                 </div>
-                <label htmlFor="account-name">
-                  账号
-                  <input
-                    id="account-name"
-                    name="username"
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    required
-                    minLength={3}
-                    maxLength={24}
-                    pattern="[A-Za-z0-9_]{3,24}"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    disabled={busy}
-                    aria-describedby="account-name-help"
-                  />
-                </label>
-                <small id="account-name-help">
-                  3–24 位英文字母、数字或下划线，不区分大小写。
-                </small>
-                <label htmlFor="account-password">
-                  密码
-                  <div className="password-field">
-                    <input
-                      id="account-password"
-                      name="password"
-                      type={visible ? 'text' : 'password'}
-                      autoComplete={
-                        mode === 'login' ? 'current-password' : 'new-password'
-                      }
-                      required
-                      minLength={12}
-                      maxLength={128}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      disabled={busy}
-                      aria-describedby="account-password-help"
-                    />
-                    <button
-                      type="button"
-                      aria-label={visible ? '隐藏密码' : '显示密码'}
-                      onClick={() => setVisible(!visible)}
-                    >
-                      {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </label>
-                <small id="account-password-help">
-                  12–128 个字符，可使用较长的词组。
-                </small>
-                {mode === 'register' && (
-                  <label htmlFor="account-confirm">
-                    确认密码
-                    <input
-                      id="account-confirm"
-                      name="confirm-password"
-                      type={visible ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      required
-                      minLength={12}
-                      maxLength={128}
-                      value={confirm}
-                      onChange={(event) => setConfirm(event.target.value)}
-                      disabled={busy}
-                    />
-                  </label>
+              </div>
+              <form onSubmit={submit} className="account-form">
+                {!user && (
+                  <>
+                    <div className="account-modes">
+                      <button
+                        type="button"
+                        aria-pressed={mode === 'login'}
+                        disabled={busy}
+                        onClick={() => {
+                          setMode('login');
+                          setError('');
+                          setPassword('');
+                          setConfirm('');
+                        }}
+                      >
+                        <span>01</span> 登录 <small>RETURN</small>
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={mode === 'register'}
+                        disabled={busy}
+                        onClick={() => {
+                          setMode('register');
+                          setError('');
+                          setPassword('');
+                          setConfirm('');
+                        }}
+                      >
+                        <span>02</span> 注册 <small>JOIN IN</small>
+                      </button>
+                    </div>
+                    <div className="account-fields" key={mode}>
+                      <label htmlFor="account-name">
+                        <span className="account-label">
+                          账号 <small>YOUR NAME</small>
+                        </span>
+                        <input
+                          id="account-name"
+                          name="username"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          spellCheck={false}
+                          required
+                          minLength={3}
+                          maxLength={24}
+                          pattern="[A-Za-z0-9_]{3,24}"
+                          value={username}
+                          onChange={(event) => setUsername(event.target.value)}
+                          disabled={busy}
+                          aria-describedby="account-name-help"
+                          placeholder="在这里签下你的名字"
+                        />
+                      </label>
+                      <small id="account-name-help">
+                        3–24 位英文字母、数字或下划线，不区分大小写。
+                      </small>
+                      <label htmlFor="account-password">
+                        <span className="account-label">
+                          密码 <small>PRIVATE KEY</small>
+                        </span>
+                        <div className="password-field">
+                          <input
+                            id="account-password"
+                            name="password"
+                            type={visible ? 'text' : 'password'}
+                            autoComplete={
+                              mode === 'login'
+                                ? 'current-password'
+                                : 'new-password'
+                            }
+                            required
+                            minLength={12}
+                            maxLength={128}
+                            value={password}
+                            onChange={(event) =>
+                              setPassword(event.target.value)
+                            }
+                            disabled={busy}
+                            aria-describedby="account-password-help"
+                            placeholder="只属于你的通行暗号"
+                          />
+                          <button
+                            type="button"
+                            aria-label={visible ? '隐藏密码' : '显示密码'}
+                            onClick={() => setVisible(!visible)}
+                          >
+                            {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </label>
+                      <small id="account-password-help">
+                        12–128 个字符，可使用较长的词组。
+                      </small>
+                      {mode === 'register' && (
+                        <label htmlFor="account-confirm">
+                          确认密码
+                          <input
+                            id="account-confirm"
+                            name="confirm-password"
+                            type={visible ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            required
+                            minLength={12}
+                            maxLength={128}
+                            value={confirm}
+                            onChange={(event) => setConfirm(event.target.value)}
+                            disabled={busy}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </>
                 )}
-              </>
-            )}
-            <output className="account-error" aria-live="polite">
-              {error}
-            </output>
-            <button
-              className="account-submit"
-              disabled={busy || loading}
-              type="submit"
-            >
-              {busy
-                ? '请稍候…'
-                : user
-                  ? '退出登录'
-                  : mode === 'login'
-                    ? '登录，回到现场 ↗'
-                    : '注册并登录 ↗'}
-            </button>
-            {!user && <small>登录状态保留 7 天。公共设备使用后请退出。</small>}
-          </form>
+                <output className="account-error" aria-live="polite">
+                  {error}
+                </output>
+                <button
+                  className="account-submit"
+                  disabled={busy || loading}
+                  type="submit"
+                >
+                  {busy
+                    ? '请稍候…'
+                    : user
+                      ? '退出登录'
+                      : mode === 'login'
+                        ? '登录，回到现场 ↗'
+                        : '注册并登录 ↗'}
+                </button>
+                {!user && (
+                  <small>登录状态保留 7 天。公共设备使用后请退出。</small>
+                )}
+              </form>
+              <div className="account-paper-footer" aria-hidden="true">
+                <span className="account-barcode" />
+                <span>保留偏见 / 保持好奇</span>
+                <span>AOB — {mode === 'register' && !user ? '02' : '01'}</span>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </AccountContext.Provider>

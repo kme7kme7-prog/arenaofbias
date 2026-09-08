@@ -172,7 +172,7 @@
   background: var(--ink);
   color: var(--acid);
   border: 0;
-  clip-path: polygon(0 0, 100% 0, 100% 78%, 96% 100%, 0 100%);
+  box-shadow: 3px 3px 0 #a2ad87;
   text-align: left;
   transition:
     transform 0.3s,
@@ -189,8 +189,13 @@
 .lobby-entry:hover::before {
   transform: translateX(0) skew(-20deg);
 }
-.lobby-entry:hover {
-  transform: translateY(-4px);
+.lobby-entry:hover:not(:disabled) {
+  transform: translate(-1px, -2px);
+  box-shadow: 5px 6px 0 #a2ad87;
+}
+.lobby-entry:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 #a2ad87;
 }
 .lobby-entry > span {
   font-size: 19px;
@@ -379,6 +384,8 @@
   font: italic 850 34px var(--mono);
   box-shadow: 4px 5px var(--ink);
   z-index: 2;
+  animation: lobby-sticker 0.7s 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
 }
 .lobby-versus > span {
   display: block;
@@ -578,6 +585,24 @@
   to {
     opacity: 1;
     transform: translateY(28px) rotate(4deg);
+  }
+}
+@keyframes lobby-sticker {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + 45px), calc(-50% - 30px)) rotate(14deg)
+      scale(1.18);
+    box-shadow: 12px 16px 0 #1c242300;
+  }
+  65% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(0.96);
+    box-shadow: 2px 2px var(--ink);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1);
+    box-shadow: 4px 5px var(--ink);
   }
 }
 @keyframes lobby-image-drift {
