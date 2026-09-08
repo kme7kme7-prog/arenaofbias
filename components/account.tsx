@@ -115,7 +115,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       {children}
       <Dialog open={opened} onOpenChange={close}>
         <DialogContent className="account-dialog">
-          <div className="account-eyebrow">YOUR SEAT / BIAS ARENA</div>
+          <div className="account-eyebrow">YOUR SEAT / arenaofbias</div>
           <DialogTitle>
             {user
               ? '你的账号'

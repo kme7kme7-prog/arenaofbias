@@ -1,4 +1,4 @@
-# BIAS ARENA · Idea 记录
+# arenaofbias · Idea 记录
 
 更新日期：2026-09-08
 

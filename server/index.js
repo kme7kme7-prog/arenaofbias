@@ -1,4 +1,4 @@
-// BIAS ARENA —— VPS 后端（原 Cloudflare Workers + D1 版的 Node 等价实现）
+// arenaofbias —— VPS 后端（原 Cloudflare Workers + D1 版的 Node 等价实现）
 //
 // 职责：
 //   1. 托管 vite build 产物（dist/）下的静态文件；
@@ -211,7 +211,7 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
   });
 } else {
   console.warn(
-    '[bias-arena] 未找到 dist/index.html——请先执行 npm run build。静态页面暂不可用，仅 API 生效。',
+    '[arenaofbias] 未找到 dist/index.html——请先执行 npm run build。静态页面暂不可用，仅 API 生效。',
   );
 }
 
@@ -221,14 +221,14 @@ app.use((error, _req, res, _next) => {
     return res.status(413).json({ error: '留言过长' });
   if (error?.type === 'entity.parse.failed')
     return res.status(400).json({ error: '请求内容格式不正确。' });
-  console.error('[bias-arena] Request failed:', error.code || 'internal');
+  console.error('[arenaofbias] Request failed:', error.code || 'internal');
   res.status(500).json({ error: '服务暂时不可用' });
 });
 
 app.listen(port, host, () => {
-  console.log(`[bias-arena] http://${host}:${port}`);
-  console.log(`[bias-arena] SQLite: ${dbPath}`);
+  console.log(`[arenaofbias] http://${host}:${port}`);
+  console.log(`[arenaofbias] SQLite: ${dbPath}`);
   console.log(
-    `[bias-arena] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
+    `[arenaofbias] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
   );
 });

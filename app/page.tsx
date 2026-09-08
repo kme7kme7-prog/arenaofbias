@@ -552,7 +552,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
           <Mark />
           <div>
             <strong>
-              BIAS<span>ARENA</span>
+              arenaof<span>bias</span>
             </strong>
             <small>
               偏见试验场 <span>／</span> EST. 2026
@@ -962,7 +962,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
           <kbd>A</kbd> 左侧 <kbd>D</kbd> 右侧 <kbd>N</kbd> 同题换组
         </span>
         <span>
-          仅供体验 <span className="footer-cross">＋</span> BIAS ARENA / 2026
+          仅供体验 <span className="footer-cross">＋</span> arenaofbias / 2026
         </span>
       </footer>
 

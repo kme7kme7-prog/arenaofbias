@@ -66,7 +66,7 @@ export default function Home() {
             ≡
           </span>
           <span>
-            BIAS <b>ARENA</b>
+            arenaof<b>bias</b>
             <small>偏见试验场 / EST. 2026</small>
           </span>
         </a>
