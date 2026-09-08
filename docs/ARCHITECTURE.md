@@ -26,8 +26,7 @@
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
 | `components/account.tsx` | `AccountProvider` / `useAccount` / 登录注册 Dialog / `AccountButton`；窗口聚焦自动刷新会话 |
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
-| `components/ui/` | shadcn 全量安装（58 个组件）；业务代码实际只用到 dialog、tabs、textarea，其余未使用 |
-| `hooks/use-mobile.ts` | `useIsMobile`（768px 断点），仅被未使用的 `ui/sidebar.tsx` 引用 |
+| `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
 | `server/index.js` | Express：静态托管 dist/、评论 GET/POST、内存滑动窗口限流、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |

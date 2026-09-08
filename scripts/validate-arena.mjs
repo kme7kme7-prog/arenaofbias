@@ -132,6 +132,25 @@ check(
     assert.equal(eligiblePairs(first.promptId, results).length, 5);
     const next = pickMatchup(first.promptId, [first, second], () => 0, results);
     assert.ok(next.some((entry) => entry.id === third.id));
+    // 上一轮的作品不得再次出现：多次随机都必须与上一轮完全不相交
+    for (let i = 0; i < 50; i++) {
+      const fresh = pickMatchup(first.promptId, [first, second], Math.random, results);
+      assert.ok(
+        fresh.every(
+          (entry) => entry.id !== first.id && entry.id !== second.id,
+        ),
+      );
+    }
+    // 只剩一组可配时回退到该组合（左右位置可能随机交换），流程不断
+    const fallback = pickMatchup(first.promptId, [first, second], Math.random, [
+      first,
+      second,
+    ]);
+    assert.ok(fallback);
+    assert.deepEqual(
+      fallback.map((entry) => entry.id).sort((a, b) => a.localeCompare(b)),
+      [first.id, second.id].sort((a, b) => a.localeCompare(b)),
+    );
     assert.equal(
       pickMatchup(first.promptId, undefined, Math.random, [first, sameModel]),
       null,

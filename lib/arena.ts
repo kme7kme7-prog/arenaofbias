@@ -367,10 +367,13 @@ export function pickMatchup(
   results = modelResults,
 ): Matchup | null {
   const pairs = eligiblePairs(promptId, results);
+  // 上一轮亮相过的作品下一轮整体回避：已被揭晓身份的作品若再次出场，
+  // 参与者会凭记忆认出它，盲测就失去了意义。无可避开时（如仅剩一组）
+  // 回退到全量组合，保证流程不断。
   const fresh = previous
     ? pairs.filter(
         (pair) =>
-          !pair.every((entry) => previous.some((old) => old.id === entry.id)),
+          !pair.some((entry) => previous.some((old) => old.id === entry.id)),
       )
     : pairs;
   const candidates = fresh.length ? fresh : pairs;

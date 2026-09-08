@@ -10,20 +10,22 @@
 4. 按需查阅：产品行为 `docs/PRODUCT.md` ｜ 架构与运行 `docs/ARCHITECTURE.md` ｜ 决策 `docs/DECISIONS.md` ｜ 想法库 `docs/IDEAS.md`
 5. 首次接手先读 `README.md`（长期定位与原则）
 
-## 当前状态（2026-09-08）
+## 当前状态（2026-09-09）
 
-- 当前提交 `bc57b67`：Vite + React 前端、Express + SQLite 后端；提示词库 + 竞技场 + 账号评论体系；题库 7 题，其中仅 002/003 可配对（占位内容，虚构模型身份，见 `docs/PRODUCT.md` 内容真实性分级）。
-- 2026-09-08 本轮完成文档体系改造：新增 `AGENTS.md` 与 `docs/`（PRODUCT / ARCHITECTURE / DECISIONS / handoff 模板）；原 `idea.md` 平移为 `docs/IDEAS.md`、原 `ARTWORK.md` 平移为 `docs/ARTWORK.md`；删除原 `PRODUCT_LOGIC.md`（内容并入 `docs/PRODUCT.md`）；部署指南不入库。
-- 2026-09-08 改名：对外英文名 BIAS ARENA 全站改为 arenaofbias；界面字标为 ARENA OF ＋ 酸底切角 BIAS 块（样张 08C-4），书面引用为小写连写；中文名"偏见试验场"不变；包名、日志前缀、浏览器标题同步。
+- 当前提交：见 git。Vite + React 前端、Express + SQLite 后端；提示词库 + 竞技场 + 账号评论体系；题库 7 题，其中仅 002/003 可配对（占位内容，虚构模型身份，见 `docs/PRODUCT.md` 内容真实性分级）。
+- 2026-09-08 完成文档体系改造与全站改名 arenaofbias（字标 ARENA OF ＋ 酸底切角 BIAS 块）。
+- 2026-09-09 本轮：换组防泄漏（上一轮作品整体回避，决策 014）；作品 iframe 沙箱放行 `allow-same-origin` 修复 3D 黑屏（决策 015）；依赖瘦身 node_modules 365MB→230MB（决策 016）；本地接入 4 份真实模型作品测试 004 接口（样例与注册条目均不入库）。
 
 ## 最新交接
 
-- 本轮账号稿纸、首页按钮与 VS 动效已完成，产品改动已提交于 `bc57b67`。
-- 详细改动、验证边界和遗留事项见 [账号稿纸与首页动效归档](docs/handoff/2026-09-08-账号稿纸与首页动效-kme7kme7-prog.md)。
-- 最终 typecheck、lint、build 通过；额外组件 lint 的既有诊断见归档。本次仅补文档，未执行 commit / push。
+- 本轮改动已提交推送；004 的 4 份测试样例（`public/works/004/`，已 gitignore）和 `lib/arena.ts` 里对应的 4 条注册条目**只存在于本地工作区，未提交**——克隆仓库后 004 仍是预览页形态，这是有意为之。
+- 详细改动、验证边界和遗留事项见 [真实样例接入与防泄漏换组归档](docs/handoff/2026-09-09-真实样例接入与防泄漏换组-Atmeplz.md)。
+- 最终 typecheck、lint（0 错误）、validate:arena（11 项）、build 通过；浏览器回归首页、登录弹窗、004 竞技场全流程。
+- 遗留观察：IAB 自动化点击本站部分按钮会因持续动画卡在稳定性检查（真实用户点击正常），属测试环境问题非产品问题。
+
 ## 待办（下一步候选，非约束）
 
-- 004–007 接入模型结果（操作步骤见 `docs/ARCHITECTURE.md` 扩充一节）。
+- 004–007 接入模型结果（操作步骤见 `docs/ARCHITECTURE.md` 扩充一节；本轮已验证 `public/works/` + `kind:'html'` 路径可行，注意 dist 需相对路径或构建时 `--base=./`）。
 - 真实投票持久化与排行榜（当前投票不落库）。
 - 已知不一致：竞技场页"本场收录 N 个模型"未过滤 isDemo，与提示词库页口径不同（用户当前不可见，见 `docs/ARCHITECTURE.md` 技术备注）。
 - 待用户拍板：002/003 虚构模型身份的长期取向。

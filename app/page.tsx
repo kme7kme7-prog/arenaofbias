@@ -195,7 +195,7 @@ function Work({
         className="html-work"
         title={result.title}
         src={result.content.src}
-        sandbox="allow-scripts"
+        sandbox="allow-scripts allow-same-origin"
         inert={!expanded}
         style={{ pointerEvents: expanded ? 'auto' : 'none' }}
       />

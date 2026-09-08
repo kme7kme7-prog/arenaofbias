@@ -42,3 +42,6 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# local test samples (real model outputs, not for repo)
+/public/works/004/
