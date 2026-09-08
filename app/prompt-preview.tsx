@@ -12,7 +12,7 @@ export default function PromptPreview({ prompt }: { prompt: Prompt }) {
         <a className="lobby-brand" href="#home">
           <span className="lobby-mark">≡</span>
           <span>
-            arenaof<b>bias</b>
+            ARENA OF <b className="brand-tag">BIAS</b>
             <small>ONE PROMPT / ONE ARENA</small>
           </span>
         </a>

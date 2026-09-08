@@ -66,7 +66,7 @@ export default function Home() {
             ≡
           </span>
           <span>
-            arenaof<b>bias</b>
+            ARENA OF <b className="brand-tag">BIAS</b>
             <small>偏见试验场 / EST. 2026</small>
           </span>
         </a>

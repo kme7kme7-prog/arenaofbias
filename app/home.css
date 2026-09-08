@@ -55,9 +55,6 @@
   font: 700 23px var(--mono);
   white-space: nowrap;
 }
-.lobby-brand b {
-  font-weight: 350;
-}
 .lobby-brand small {
   display: block;
   font-size: 10px;

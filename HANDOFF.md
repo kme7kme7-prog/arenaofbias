@@ -14,7 +14,7 @@
 
 - 产品代码停留在 `3529204`：Vite + React 前端、Express + SQLite 后端；提示词库 + 竞技场 + 账号评论体系；题库 7 题，其中仅 002/003 可配对（占位内容，虚构模型身份，见 `docs/PRODUCT.md` 内容真实性分级）。
 - 2026-09-08 本轮完成文档体系改造：新增 `AGENTS.md` 与 `docs/`（PRODUCT / ARCHITECTURE / DECISIONS / handoff 模板）；原 `idea.md` 平移为 `docs/IDEAS.md`、原 `ARTWORK.md` 平移为 `docs/ARTWORK.md`；删除原 `PRODUCT_LOGIC.md`（内容并入 `docs/PRODUCT.md`）；部署指南不入库。
-- 2026-09-08 改名：对外英文名 BIAS ARENA 全站改为小写单词标 `arenaofbias`（决策 013），中文名"偏见试验场"不变；包名、日志前缀、浏览器标题同步。
+- 2026-09-08 改名：对外英文名 BIAS ARENA 全站改为 arenaofbias；界面字标为 ARENA OF ＋ 酸底切角 BIAS 块（样张 08C-4），书面引用为小写连写；中文名"偏见试验场"不变；包名、日志前缀、浏览器标题同步。
 
 ## 待办（下一步候选，非约束）
 
@@ -28,4 +28,4 @@
 
 - 通过：`npm run typecheck`、`npm run lint`（0 错误）、`npm run validate:arena`（11 项）、`npm run validate:scroll`。
 - 未跑：`npm run build`（AI 沙箱环境限制，需在本地终端复核）；`npm run validate:comments`（需先启动后端）。
-- 改名后建议本地 `npm run dev` 目视检查五处品牌位（首页、提示词库、预览页、竞技场顶栏、登录框）。
+- 改名后字标形态已经浏览器目视确认（首页、提示词库、竞技场顶栏、页脚、登录框）。

@@ -75,7 +75,7 @@ export default function PromptLibrary() {
         <a className="lobby-brand" href="#home">
           <span className="lobby-mark">≡</span>
           <span>
-            arenaof<b>bias</b>
+            ARENA OF <b className="brand-tag">BIAS</b>
             <small>偏见试验场 / PROMPT LIBRARY</small>
           </span>
         </a>
