@@ -421,3 +421,27 @@ export function clearPlaceholderVotes() {
     // 同上
   }
 }
+
+/**
+ * 竞技场内亲手投出的一票（占位模式）：写入本地占位投票，让榜单演示形成闭环。
+ * 去重口径与真实投票一致——同题同模型对（占位阵容每模型每题一份作品，
+ * 模型对即对局）只计一次；返回 false 表示这一对已经投过。
+ */
+export function appendPlaceholderVote(
+  vote: Omit<PlaceholderVote, 'ts'>,
+): boolean {
+  const existing = readPlaceholderVotes();
+  const pairOf = (v: Omit<PlaceholderVote, 'ts'>) =>
+    [v.winnerId, v.loserId].sort().join('+');
+  const incoming = pairOf(vote);
+  if (
+    existing.some(
+      (item) => item.promptId === vote.promptId && pairOf(item) === incoming,
+    )
+  )
+    return false;
+  existing.push({ ...vote, ts: Date.now() });
+  existing.sort((a, b) => a.ts - b.ts);
+  writePlaceholderVotes(existing);
+  return true;
+}

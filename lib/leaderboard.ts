@@ -1,6 +1,6 @@
 // 榜单数据层：把投票聚合成排行榜行。
-// 当前投票来源只有占位投票（localStorage，见 lib/placeholder.ts）；
-// 真实投票落库后在此并入同一聚合入口，按 scope 分流。
+// 投票来源：占位模式读 localStorage（lib/placeholder.ts），真实模式由页面从
+// /api/votes 拉取后传入（lib/votes.ts），本层不再关心来源。
 // 评分是占位口径的简易 Elo（基准 1200、K=32，按时间序迭代），
 // 仅用于演示榜单形态，正式算法待定（README 排名要表达什么一节）。
 
@@ -112,16 +112,31 @@ function modelMeta() {
   return meta;
 }
 
-/** 当前生效的投票：占位模式读 localStorage；真实投票落库前为空 */
-export function currentVotes() {
+/** 榜单聚合口径的一票：模型层面的胜负与时间（服务端流水经 voteToRecord 映射） */
+export type VoteRecord = {
+  promptId: string;
+  winnerId: string;
+  loserId: string;
+  ts: number;
+};
+
+/** 当前生效的投票：占位模式读 localStorage；真实模式由页面拉取服务端后传入 */
+export function currentVotes(): VoteRecord[] {
   return isPlaceholderMode() ? readPlaceholderVotes() : [];
 }
 
-export function leaderboardData(category: BoardCategory): BoardData {
-  const votes = currentVotes();
+export function leaderboardData(
+  category: BoardCategory,
+  votes: VoteRecord[] = currentVotes(),
+): BoardData {
   const kinds = promptKindMap();
   const meta = modelMeta();
-  const scoped = votes.filter((vote) =>
+  // 先过阵容：真实投票由服务端形态校验（不认识阵容），伪造或已下架模型的票
+  // 在此过滤；占位投票读入时已按当前阵容过滤
+  const known = votes.filter(
+    (vote) => meta.has(vote.winnerId) && meta.has(vote.loserId),
+  );
+  const scoped = known.filter((vote) =>
     matchesCategory(kinds.get(vote.promptId), category),
   );
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { AccountButton } from '@/components/account';
+import { AccountButton, useAccount } from '@/components/account';
 
 import {
   useCallback,
@@ -46,17 +46,28 @@ import {
   type Side,
 } from '@/lib/arena';
 import {
+  appendPlaceholderVote,
   currentMatchup,
   currentPairs,
   currentRandomArenaHash,
   currentResultsForPrompt,
   isPlaceholderMode,
 } from '@/lib/placeholder';
+import { submitVote } from '@/lib/votes';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { Afterparty } from '@/components/afterparty';
 
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
+
+/** 一票的落点反馈：真实模式写入服务端，占位模式写入本地（决策 018/019） */
+type VoteOutcome =
+  | { state: 'idle' }
+  | { state: 'saving' }
+  | { state: 'saved' }
+  | { state: 'auth' }
+  | { state: 'dup' }
+  | { state: 'failed'; message: string };
 function subscribeMotion(callback: () => void) {
   const media = window.matchMedia(motionQuery);
   media.addEventListener('change', callback);
@@ -462,13 +473,63 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
     };
   }, [state.phase, reducedMotion, play]);
 
+  const [voteOutcome, setVoteOutcome] = useState<VoteOutcome>({ state: 'idle' });
+  const { open: openAccount } = useAccount();
+
+  // 换组、重播、切模式都会走 REPLAY/ARRIVE 递增 run；用渲染期派生清掉上一票的反馈
+  const [lastRun, setLastRun] = useState(state.run);
+  if (state.run !== lastRun) {
+    setLastRun(state.run);
+    setVoteOutcome({ state: 'idle' });
+  }
+
+  const recordVote = useCallback(
+    (side: Side) => {
+      const winner = side === 'a' ? pair[0] : pair[1];
+      const loser = side === 'b' ? pair[0] : pair[1];
+      if (isPlaceholderMode()) {
+        const appended = appendPlaceholderVote({
+          promptId: prompt.id,
+          winnerId: winner.modelId,
+          loserId: loser.modelId,
+        });
+        setVoteOutcome({ state: appended ? 'saved' : 'dup' });
+        return;
+      }
+      setVoteOutcome({ state: 'saving' });
+      void submitVote({
+        id: crypto.randomUUID(),
+        promptId: prompt.id,
+        winnerRid: winner.id,
+        winnerMid: winner.modelId,
+        loserRid: loser.id,
+        loserMid: loser.modelId,
+        mode: state.mode,
+      }).then((result) => {
+        if (result.ok) {
+          setVoteOutcome({ state: 'saved' });
+          return;
+        }
+        setVoteOutcome(
+          result.issue === 'auth'
+            ? { state: 'auth' }
+            : result.issue === 'dup'
+              ? { state: 'dup' }
+              : { state: 'failed', message: result.error },
+        );
+      });
+    },
+    [pair, prompt.id, state.mode],
+  );
+
   const vote = useCallback(
     (side: Side) => {
       if (state.phase !== 'voting') return;
       play('vote');
       dispatch({ type: 'VOTE', side });
+      recordVote(side);
     },
-    [state.phase, play],
+    [state.phase, play, recordVote],
   );
   const nextMatchup = useCallback(() => {
     if (state.phase === 'loading' || state.phase === 'transition') return;
@@ -868,7 +929,30 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
               <div className="result-caption">
                 <Check size={17} />
                 <strong>好，你有自己的答案。</strong>
-                <span>本次选择仅供体验 · 尚未计入统计</span>
+                <span
+                  className="vote-note"
+                  data-state={voteOutcome.state}
+                >
+                  {voteOutcome.state === 'saved' &&
+                    (isPlaceholderMode()
+                      ? '已写入本地演示数据 · 占位模式'
+                      : '你的选择已计入偏好榜')}
+                  {voteOutcome.state === 'auth' && (
+                    <button
+                      type="button"
+                      className="vote-note-login"
+                      onClick={openAccount}
+                    >
+                      登录后，你的选择会计入偏好榜 ↗
+                    </button>
+                  )}
+                  {voteOutcome.state === 'dup' &&
+                    '这一对作品你已经投过票了'}
+                  {voteOutcome.state === 'failed' && voteOutcome.message}
+                  {(voteOutcome.state === 'idle' ||
+                    voteOutcome.state === 'saving') &&
+                    '正在记录你的选择…'}
+                </span>
                 <a className="result-board-link" href="#rank">
                   看看偏好榜 ↗
                 </a>

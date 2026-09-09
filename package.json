@@ -16,6 +16,7 @@
     "lint": "oxlint app src lib server scripts vite.config.ts",
     "format": "oxfmt",
     "validate:arena": "node scripts/validate-arena.mjs",
+    "validate:votes": "node scripts/validate-votes.mjs",
     "validate:placeholder": "node scripts/validate-placeholder.mjs",
     "validate:leaderboard": "node scripts/validate-leaderboard.mjs",
     "validate:scroll": "node scripts/validate-scroll-tour.mjs",

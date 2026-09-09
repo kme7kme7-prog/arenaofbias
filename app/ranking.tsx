@@ -7,11 +7,52 @@ import {
   radarAverage,
   radarProfile,
 } from '@/lib/leaderboard';
-import type { BoardCategory, BoardRow } from '@/lib/leaderboard';
-import { isPlaceholderMode } from '@/lib/placeholder';
+import type { BoardCategory, BoardRow, VoteRecord } from '@/lib/leaderboard';
+import { isPlaceholderMode, readPlaceholderVotes } from '@/lib/placeholder';
+import { fetchVotes, voteToRecord } from '@/lib/votes';
 
 const reduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------------------------------------------------------------------------
+// 投票装载：占位模式读 localStorage；真实模式拉 /api/votes。
+// 返回 null 表示加载失败（与「无票」区分，空态给不同指引）
+// ---------------------------------------------------------------------------
+
+function loadVotes(): Promise<VoteRecord[] | null> {
+  if (isPlaceholderMode()) {
+    return Promise.resolve(readPlaceholderVotes());
+  }
+  return fetchVotes().then((votes) =>
+    votes ? votes.map(voteToRecord) : null,
+  );
+}
+
+function useBoardVotes(replaySeed: number): {
+  votes: VoteRecord[] | null;
+  failed: boolean;
+  loading: boolean;
+} {
+  const [state, setState] = useState<{
+    votes: VoteRecord[] | null;
+    failed: boolean;
+  }>({ votes: null, failed: false });
+  useEffect(() => {
+    let live = true;
+    void loadVotes().then((result) => {
+      if (!live) return;
+      setState({ votes: result, failed: result === null });
+    });
+    return () => {
+      live = false;
+    };
+  }, [replaySeed]);
+  return {
+    votes: state.votes,
+    failed: state.failed,
+    loading: state.votes === null && !state.failed,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // 雷达图：外侧网格/标签静止，内侧图形与顶点在数值变化时平滑挪动
@@ -247,12 +288,19 @@ export default function Ranking() {
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const placeholder = isPlaceholderMode();
-  const data = useMemo(() => leaderboardData(category), [category]);
-  const allData = useMemo(() => leaderboardData('all'), []);
+  const { votes, failed, loading } = useBoardVotes(replaySeed);
+  const data = useMemo(
+    () => (votes ? leaderboardData(category, votes) : null),
+    [category, votes],
+  );
+  const allData = useMemo(
+    () => (votes ? leaderboardData('all', votes) : null),
+    [votes],
+  );
   const selected =
-    data.rows.find((row) => row.modelId === selectedId) ?? data.rows[0] ?? null;
+    data?.rows.find((row) => row.modelId === selectedId) ?? data?.rows[0] ?? null;
   const selectedRank = selected
-    ? data.rows.findIndex((row) => row.modelId === selected.modelId) + 1
+    ? (data?.rows.findIndex((row) => row.modelId === selected.modelId) ?? -1) + 1
     : 0;
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const activeTabIndex = BOARD_CATEGORIES.findIndex((c) => c.id === category);
@@ -299,16 +347,18 @@ export default function Ranking() {
             <p>没有标准答案。但每一次选择，都让偏好更清晰。</p>
           </div>
           <div className="rank-hero-note">
-            <small>{allData.totalVotes > 0 ? '参与比较' : '有效比较'}</small>
+            <small>{(allData?.totalVotes ?? 0) > 0 ? '参与比较' : '有效比较'}</small>
             <strong>
-              {allData.totalVotes > 0 ? allData.totalVotes.toLocaleString() : '—'}
-              {allData.totalVotes > 0 && (
+              {(allData?.totalVotes ?? 0) > 0
+                ? allData!.totalVotes.toLocaleString()
+                : '—'}
+              {(allData?.totalVotes ?? 0) > 0 && (
                 <span className="rank-note-arrow"> ↗</span>
               )}
             </strong>
             <p>
-              {allData.totalVotes > 0
-                ? `${allData.modelCount} 个模型 · ${allData.promptCount} 道题目`
+              {(allData?.totalVotes ?? 0) > 0
+                ? `${allData!.modelCount} 个模型 · ${allData!.promptCount} 道题目`
                 : '尚未形成排名'}
             </p>
           </div>
@@ -345,7 +395,37 @@ export default function Ranking() {
           </button>
         </div>
 
-        {allData.totalVotes === 0 ? (
+        {loading ? (
+          <section className="rank-empty" aria-live="polite">
+            <div>
+              <div className="rank-empty-code">LOADING THE VOTES</div>
+              <h2>
+                正在取回
+                <br />
+                每一次选择。
+              </h2>
+              <p>偏好榜由全部投票实时聚合，数据马上就到。</p>
+            </div>
+          </section>
+        ) : failed ? (
+          <section className="rank-empty" aria-live="polite">
+            <div>
+              <div className="rank-empty-code">SIGNAL LOST</div>
+              <h2>
+                投票数据
+                <br />
+                暂时取不回来。
+              </h2>
+              <p>网络或服务暂时不可用。稍后重试，或重新加载页面。</p>
+              <button
+                className="rank-empty-action"
+                onClick={() => setReplaySeed((seed) => seed + 1)}
+              >
+                重新拉取 <ArrowUpRight size={17} />
+              </button>
+            </div>
+          </section>
+        ) : (allData?.totalVotes ?? 0) === 0 ? (
           <section className="rank-empty" aria-live="polite">
             <div>
               <div className="rank-empty-code">AWAITING YOUR FIRST CHOICE</div>
@@ -362,8 +442,8 @@ export default function Ranking() {
               </a>
               <small className="rank-empty-hint">
                 {placeholder
-                  ? '占位符模式已开启：到开发者面板生成占位投票，即可预览榜单形态。'
-                  : '投票入口在各竞技场；当前选择尚未计入统计。'}
+                  ? '占位符模式已开启：到竞技场亲手投一票，或到开发者面板生成占位投票。'
+                  : '投票需要登录；到各竞技场看一组作品，选出你更喜欢的一边。'}
               </small>
             </div>
             <div className="rank-empty-art" aria-hidden="true">
@@ -372,7 +452,7 @@ export default function Ranking() {
               <div className="rank-sticker">YOUR CHOICE MATTERS</div>
             </div>
           </section>
-        ) : data.rows.length === 0 ? (
+        ) : data!.rows.length === 0 ? (
           <section className="rank-empty" aria-live="polite">
             <div>
               <div className="rank-empty-code">MORE PERSPECTIVES NEEDED</div>
@@ -407,7 +487,7 @@ export default function Ranking() {
                 key={`${category}-${replaySeed}`}
                 aria-label="模型偏好榜"
               >
-                {data.rows.map((row, index) => (
+                {data!.rows.map((row, index) => (
                   <article
                     key={row.modelId}
                     className={`rank-row${index === 0 ? ' first' : ''}${selected?.modelId === row.modelId ? ' selected' : ''}`}
@@ -470,7 +550,7 @@ export default function Ranking() {
                     row={selected}
                     rank={selectedRank}
                     category={category}
-                    totalTopics={data.promptCount}
+                    totalTopics={data!.promptCount}
                     wipeSeed={replaySeed}
                   />
                 </div>

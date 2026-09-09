@@ -18,7 +18,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://127.0.0.1:3000',
+      // changeOrigin 必须为 false：保留浏览器的 Host 头，服务端 sameOrigin 校验
+      // （origin === http://<host>）才能通过；改写 Host 会让评论/登录/投票在
+      // dev 代理下全部 403（生产不经 vite，不受影响）
+      '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false },
     },
   },
   build: {

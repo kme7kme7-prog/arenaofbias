@@ -2,8 +2,8 @@
 //
 // 职责：
 //   1. 托管 vite build 产物（dist/）下的静态文件；
-//   2. 提供 /api/comments GET/POST，数据存本地 SQLite（替代原 D1）；
-//   3. 保留原接口行为：同源校验、按轮次隔离、幂等插入、演示级限流。
+//   2. 提供 /api/comments GET/POST 与 /api/votes GET/POST，数据存本地 SQLite（替代原 D1）；
+//   3. 保留原接口行为：同源校验、按轮次/对局隔离、幂等插入、演示级限流。
 //
 // 运行：npm run build 之后执行 npm start（或 node server/index.js）。
 // 环境变量：
@@ -55,6 +55,28 @@ if (
 )
   db.exec('ALTER TABLE comments ADD COLUMN user_id TEXT');
 
+// 投票流水：一行 = 一次对局选择。去重单位是「对局」（两份作品，pair_key），
+// 同一对作品同一账号只计一票；同一对模型换作品（不同 rid）是新的对局，可以再投
+// （见 docs/DECISIONS.md 决策 019）。mode 记录投票发生的模式（blind/party），
+// 为将来「娱乐是否计入正式榜」的分流留位，当前两类都计入。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS votes (
+    id         TEXT PRIMARY KEY NOT NULL,
+    prompt_id  TEXT NOT NULL,
+    winner_rid TEXT NOT NULL,
+    winner_mid TEXT NOT NULL,
+    loser_rid  TEXT NOT NULL,
+    loser_mid  TEXT NOT NULL,
+    pair_key   TEXT NOT NULL,
+    mode       TEXT NOT NULL,
+    user_id    TEXT,
+    created_at INTEGER NOT NULL
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS votes_user_pair
+    ON votes (user_id, pair_key);
+  CREATE INDEX IF NOT EXISTS votes_created ON votes (created_at);
+`);
+
 const insertComment = db.prepare(
   `INSERT OR IGNORE INTO comments (id, round_id, side, body, created_at, user_id)
    VALUES (?, ?, ?, ?, ?, ?)`,
@@ -63,11 +85,30 @@ const selectById = db.prepare(
   `SELECT id, round_id AS roundId, side, body, created_at AS createdAt, user_id AS userId
    FROM comments WHERE id = ? AND round_id = ?`,
 );
+
+const insertVote = db.prepare(
+  `INSERT OR IGNORE INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+const selectVoteById = db.prepare(
+  `SELECT id, prompt_id AS promptId, winner_rid AS winnerRid, winner_mid AS winnerMid,
+          loser_rid AS loserRid, loser_mid AS loserMid, pair_key AS pairKey,
+          mode, created_at AS ts, user_id AS userId
+   FROM votes WHERE id = ?`,
+);
+const selectVoteIdByPair = db.prepare(
+  'SELECT id FROM votes WHERE user_id = ? AND pair_key = ?',
+);
+const listVotes = db.prepare(
+  `SELECT id, prompt_id AS promptId, winner_rid AS winnerRid, winner_mid AS winnerMid,
+          loser_rid AS loserRid, loser_mid AS loserMid, mode, created_at AS ts
+   FROM votes ORDER BY created_at ASC, id ASC`,
+);
 // ---------- 校验（与 lib/comments.ts 规则保持一致） ----------
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// 题目白名单，与界面侧 lib/comments.ts 保持一致；新增题目（如 '004'）时两处都要加。
+// 题目白名单，与界面侧 lib/comments.ts、lib/votes.ts 保持一致；新增题目（如 '004'）时各处都要加。
 const ALLOWED_ROUNDS = ['001', '002', '003', '004', '005', '006', '007'];
 
 function validateComment(value) {
@@ -80,6 +121,29 @@ function validateComment(value) {
   if (typeof body !== 'string' || !body.trim() || body.trim().length > 280)
     return null;
   return { id, roundId, side, body: body.trim() };
+}
+
+// ---------- 投票校验（与 lib/votes.ts 规则保持一致） ----------
+
+const VOTE_MODES = ['blind', 'party'];
+const pairKeyOf = (ridA, ridB) =>
+  [...[ridA, ridB].sort((a, b) => a.localeCompare(b))].join('+');
+
+function validateVote(value) {
+  if (!value || typeof value !== 'object') return null;
+  const { id, promptId, winnerRid, winnerMid, loserRid, loserMid, mode } = value;
+  if (typeof id !== 'string' || !UUID_PATTERN.test(id)) return null;
+  if (typeof promptId !== 'string' || !ALLOWED_ROUNDS.includes(promptId))
+    return null;
+  // 服务端不认识作品阵容（清单在前端），只做形态校验；
+  // 指向不存在模型的票在榜单聚合时会被阵容过滤掉（lib/leaderboard.ts）
+  for (const field of [winnerRid, winnerMid, loserRid, loserMid]) {
+    if (typeof field !== 'string' || !field.trim() || field.length > 64)
+      return null;
+  }
+  if (winnerRid === loserRid || winnerMid === loserMid) return null;
+  if (!VOTE_MODES.includes(mode)) return null;
+  return { id, promptId, winnerRid, winnerMid, loserRid, loserMid, mode };
 }
 
 // ---------- 演示级限流（内存滑动窗口，按真实客户端 IP） ----------
@@ -187,8 +251,64 @@ app.post('/api/comments', limiter, (req, res) => {
   }
 });
 
-app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }));
+// ---------- 投票：写入要求登录（决策 018），读取公开、不带用户信息 ----------
 
+app.get('/api/votes', (_req, res) => {
+  try {
+    // 全量流水，按时间升序；榜单在客户端重放 Elo（演示规模够用，
+    // 数据量上来后再换聚合接口，勿在此静默截断——截断会让 Elo 失真）
+    res.set(noStore).json({ votes: listVotes.all() });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '投票数据暂时无法加载，请稍后重试' });
+  }
+});
+
+app.post('/api/votes', limiter, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  if (!req.user) return res.status(401).json({ error: '请先登录再投票。' });
+  const vote = validateVote(req.body);
+  if (!vote) return res.status(400).json({ error: '投票内容无效' });
+  const pairKey = pairKeyOf(vote.winnerRid, vote.loserRid);
+  try {
+    const existing = selectVoteIdByPair.get(req.user.id, pairKey);
+    if (existing) {
+      // 同 UUID 重试视为成功（幂等）；换一个 UUID 重投同一对局才叫重复
+      if (existing.id === vote.id) {
+        const saved = selectVoteById.get(vote.id);
+        return res.set(noStore).json({ vote: saved });
+      }
+      return res.status(409).json({ error: '这一对作品你已经投过票了。' });
+    }
+    insertVote.run(
+      vote.id,
+      vote.promptId,
+      vote.winnerRid,
+      vote.winnerMid,
+      vote.loserRid,
+      vote.loserMid,
+      pairKey,
+      vote.mode,
+      req.user.id,
+      Date.now(),
+    );
+    const saved = selectVoteById.get(vote.id);
+    if (!saved || saved.userId !== req.user.id)
+      return res.status(409).json({ error: '投票编号冲突，请重新提交' });
+    res.set(noStore).status(201).json({ vote: saved });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '暂时没有记上这一票，稍后再试？' });
+  }
+});
+
+app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }));
 // ---------- 静态资源 ----------
 
 if (fs.existsSync(path.join(distDir, 'index.html'))) {

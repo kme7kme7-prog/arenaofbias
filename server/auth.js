@@ -179,4 +179,34 @@ export function installAuth(app, db, sameOrigin) {
     clearSession(req, res);
     res.json({ user: null });
   });
+  // 开发者免登录：开发者面板一键以固定 'dev' 账号登录（见决策 018）。
+  // 只在本机回环（本地 vite 代理 / 直接访问）或显式 ALLOW_DEV_LOGIN=1 时开放，
+  // 账号首次使用时创建，密码随机生成且不留存，无人能凭密码登录。
+  const isLoopback = (ip) =>
+    ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  app.post('/api/auth/dev', async (req, res) => {
+    if (!(isLoopback(req.ip) || process.env.ALLOW_DEV_LOGIN === '1'))
+      return res
+        .status(403)
+        .json({ error: '开发者登录未开放（仅本机回环或 ALLOW_DEV_LOGIN=1）。' });
+    let user = getUser.get('dev');
+    if (!user) {
+      const salt = randomBytes(16).toString('hex');
+      const hash = await derive(randomBytes(32).toString('hex'), salt);
+      const candidate = { id: randomUUID(), username: 'dev' };
+      try {
+        db.prepare('INSERT INTO users VALUES (?, ?, ?, ?)').run(
+          candidate.id,
+          'dev',
+          `scrypt:${salt}:${hash.toString('hex')}`,
+          Date.now(),
+        );
+        user = candidate;
+      } catch (error) {
+        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') user = getUser.get('dev');
+        else throw error;
+      }
+    }
+    res.status(201).json({ user: login(req, res, user) });
+  });
 }

@@ -1,6 +1,7 @@
 // 开发者面板：右下角低对比入口，仅本地使用，后期上线时删除挂载即可整体隐藏。
 // 功能与 lib/placeholder.ts 的存储一一对应：占位符模式开关、模型数量、占位投票。
 import { useEffect, useState } from 'react';
+import { useAccount } from '@/components/account';
 import {
   clearPlaceholderVotes,
   generatePlaceholderVotes,
@@ -21,6 +22,35 @@ export function DevPanel() {
     () => readPlaceholderVotes().length,
   );
   const [status, setStatus] = useState('');
+  const [devBusy, setDevBusy] = useState(false);
+  const { user, refresh: refreshAccount } = useAccount();
+
+  const devSignIn = async () => {
+    setDevBusy(true);
+    setStatus('');
+    try {
+      // 无 body 的 POST 会被 auth 中间件的 req.is() 判为非 JSON，需带空对象
+      const response = await fetch('/api/auth/dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || '开发者登录失败');
+      await refreshAccount();
+      setStatus('已以开发者身份（dev）登录，投票与评论都会计入。');
+    } catch (cause) {
+      setStatus(
+        cause instanceof Error && cause.message !== 'Failed to fetch'
+          ? cause.message
+          : '无法连接服务端（npm run dev 的 api 部分）。开发者登录需要服务端在线。',
+      );
+    } finally {
+      setDevBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +123,25 @@ export function DevPanel() {
               ×
             </button>
           </header>
+          <div className="dev-row">
+            <span>
+              开发者身份
+              <small>
+                {user
+                  ? user.username === 'dev'
+                    ? '当前已以 dev 身份登录'
+                    : `已登录账号 ${user.username}，无需开发者登录`
+                  : '一键以 dev 账号登录（投票计入），无需输密码'}
+              </small>
+            </span>
+            <button
+              type="button"
+              onClick={devSignIn}
+              disabled={devBusy || !!user}
+            >
+              {devBusy ? '登录中…' : '免登录进入'}
+            </button>
+          </div>
           <label className="dev-row">
             <span>
               占位符模式
@@ -139,7 +188,8 @@ export function DevPanel() {
           {status && <p className="dev-status">{status}</p>}
           <p className="dev-note">
             占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动
-            #rank 偏好榜演示，仅存本地不入库。
+            #rank 偏好榜演示，仅存本地不入库。开发者身份走
+            /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。
           </p>
         </div>
       )}

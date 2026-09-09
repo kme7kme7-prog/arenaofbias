@@ -23,19 +23,21 @@
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
 | `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
 | `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
-| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category)` 把投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场）；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 目前只有占位投票，真实投票落库后在此并入 |
+| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
+| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（与 `server/index.js` 规则镜像）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录 |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
 | `components/account.tsx` | `AccountProvider` / `useAccount` / 登录注册 Dialog / `AccountButton`；窗口聚焦自动刷新会话 |
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
-| `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；占位符模式开关、模型数量、生成/清空占位投票、占位模式徽标 |
+| `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；开发者身份免登录（`POST /api/auth/dev`）、占位符模式开关、模型数量、生成/清空占位投票、占位模式徽标 |
 | `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
-| `server/index.js` | Express：静态托管 dist/、评论 GET/POST、内存滑动窗口限流、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
-| `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
+| `server/index.js` | Express：静态托管 dist/、评论 GET/POST、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
+| `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
 | `scripts/validate-placeholder.mjs` | 占位符系统校验（9 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
 | `scripts/validate-leaderboard.mjs` | 榜单校验（7 项）：空票空榜、排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、雷达确定性与值域；三模块拼合，localStorage 以 shim 代替 |
+| `scripts/validate-votes.mjs` | 投票校验（9 项）：前端 `validateVote`/`pairKeyOf` 规则；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、换作品可再投、非法 payload 400、流水升序、服务端返回能通过前端校验 |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
@@ -61,8 +63,11 @@
 | `POST /api/auth/login` | 不存在的账号也用 dummySalt 做一次真 scrypt + timingSafeEqual 比较，防时序探测 |
 | `POST /api/auth/logout` | 删除当前 session 并清 cookie |
 | `GET /api/auth/me` | 会话查询，返回 `{ user }` |
+| `POST /api/auth/dev` | 开发者免登录（决策 018）：仅本机回环 IP 或 `ALLOW_DEV_LOGIN=1` 时开放；固定 `dev` 账号首次使用时创建，密码随机生成不留存 |
 | `GET /api/comments?round=xxx` | 按题取最新 100 条，联表 users 返回 username；无需登录 |
 | `POST /api/comments` | 需登录（401）、同源（403）、JSON（415）、校验（400）、幂等插入（id 冲突或内容不符 409） |
+| `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts），按时间升序，公开、不带用户信息 |
+| `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party）；同对局已投换 UUID 重投 409、同 UUID 重试幂等 200；服务端只做形态校验，指向不存在模型的票由榜单聚合按阵容过滤 |
 
 横切行为：
 
@@ -82,7 +87,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
 
 环境变量（均有默认值，本地开发可不设）：
 
@@ -110,4 +115,6 @@ npm start          # 生产形态：http://localhost:3000
 - 竞技场页"本场收录 N 个模型的 M 份结果"（`app/page.tsx`）统计未过滤 isDemo，与提示词库页口径不一致；当前可进竞技场的题都没有 demo 结果，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
 - `rounds = prompts` 为 legacy 别名，仅因状态机与旧代码引用保留。
-- 投票不写入任何存储（无对应 API），选择只存在于前端状态（见 `docs/PRODUCT.md` 场内状态一节）。
+- 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。
+- `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿在现接口上静默截断——截断会让客户端 Elo 重放失真（见 `server/index.js` 注释）。
+- vite dev 代理必须 `changeOrigin: false`（`vite.config.ts` 有注释）：否则服务端 sameOrigin 校验在 dev 下全部 403；生产不经 vite，不受影响。

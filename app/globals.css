@@ -1241,6 +1241,25 @@ kbd {
   font-size: 10px;
   color: #728366;
 }
+.vote-note[data-state='saved'] {
+  color: #1c2423;
+}
+.vote-note-login {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  color: #1c2423;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.vote-note-login:hover {
+  color: #4c6034;
+}
 .result-board-link {
   font-size: 10px;
   color: #4c6034;
