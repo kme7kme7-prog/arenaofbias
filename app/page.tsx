@@ -548,7 +548,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
         BIAS / OBSERVATION SYSTEM — 026
       </div>
       <header className="topbar">
-        <div className="brand">
+        <a className="brand" href="#home" aria-label="回到首页">
           <Mark />
           <div>
             <strong>
@@ -558,7 +558,10 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
               偏见试验场 <span>／</span> EST. 2026
             </small>
           </div>
-        </div>
+          <span className="brand-home-hint" aria-hidden="true">
+            ⌂ 回到首页
+          </span>
+        </a>
         <div className="header-divider" />
         <div className="terminal-label">
           <span className="live-dot" />{' '}

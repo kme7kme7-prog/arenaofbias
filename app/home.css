@@ -54,6 +54,51 @@
   color: inherit;
   font: 700 23px var(--mono);
   white-space: nowrap;
+  position: relative;
+  padding: 8px 14px 8px 11px;
+  border: 1px solid #8b9981;
+  box-shadow: 3px 3px 0 #a2ad87;
+  cursor: pointer;
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    background-color 0.25s;
+}
+.lobby-brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    #d9fb5140 50%,
+    transparent 58%
+  );
+  background-size: 280% 100%;
+  background-repeat: no-repeat;
+  background-position: 100% 0;
+  transition: background-position 0.55s;
+}
+.lobby-brand:hover {
+  transform: translate(-1px, -2px);
+  box-shadow: 5px 6px 0 #a2ad87;
+  background-color: #ffffff5e;
+}
+.lobby-brand:hover::before {
+  background-position: 0% 0;
+}
+.lobby-brand:active {
+  transform: translate(1px, 2px);
+  box-shadow: 0 0 0 #a2ad87;
+}
+.lobby-brand:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.lobby-brand .brand-home-hint {
+  background: var(--ink);
+  color: var(--acid);
 }
 .lobby-brand small {
   display: block;
@@ -70,6 +115,15 @@
   height: 43px;
   text-align: center;
   transform: skew(-12deg);
+  transition:
+    transform 0.3s,
+    background-color 0.3s,
+    color 0.3s;
+}
+.lobby-brand:hover .lobby-mark {
+  background: var(--acid);
+  color: var(--ink);
+  transform: skew(-12deg) rotate(-7deg);
 }
 .lobby-header-note {
   display: flex;
@@ -671,6 +725,7 @@
   }
   .lobby-brand {
     font-size: 18px;
+    padding: 6px 10px 6px 8px;
   }
   .lobby-brand small {
     font-size: 8px;

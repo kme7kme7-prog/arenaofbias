@@ -61,13 +61,16 @@ export default function Home() {
     <div className={`lobby ${leaving ? 'lobby-leaving' : ''}`}>
       <div className="lobby-grid" aria-hidden="true" />
       <header className="lobby-header">
-        <a className="lobby-brand" href="#home" aria-label="偏见试验场首页">
+        <a className="lobby-brand" href="#home" aria-label="回到首页">
           <span className="lobby-mark" aria-hidden="true">
             ≡
           </span>
           <span>
             ARENA OF <b className="brand-tag">BIAS</b>
             <small>偏见试验场 / EST. 2026</small>
+          </span>
+          <span className="brand-home-hint" aria-hidden="true">
+            ⌂ 回到首页
           </span>
         </a>
         <span className="lobby-header-note">

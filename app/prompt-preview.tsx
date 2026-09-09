@@ -9,11 +9,14 @@ export default function PromptPreview({ prompt }: { prompt: Prompt }) {
   return (
     <div className="lobby prompt-library">
       <header className="lobby-header">
-        <a className="lobby-brand" href="#home">
+        <a className="lobby-brand" href="#home" aria-label="回到首页">
           <span className="lobby-mark">≡</span>
           <span>
             ARENA OF <b className="brand-tag">BIAS</b>
             <small>ONE PROMPT / ONE ARENA</small>
+          </span>
+          <span className="brand-home-hint" aria-hidden="true">
+            ⌂ 回到首页
           </span>
         </a>
         <a className="lobby-small-entry" href="#prompts">
