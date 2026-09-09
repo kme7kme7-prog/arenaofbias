@@ -15,9 +15,6 @@ export default function PromptPreview({ prompt }: { prompt: Prompt }) {
             ARENA OF <b className="brand-tag">BIAS</b>
             <small>ONE PROMPT / ONE ARENA</small>
           </span>
-          <span className="brand-home-hint" aria-hidden="true">
-            ⌂ 回到首页
-          </span>
         </a>
         <a className="lobby-small-entry" href="#prompts">
           提示词库 <ArrowUpRight size={16} />

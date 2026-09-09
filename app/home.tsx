@@ -69,9 +69,6 @@ export default function Home() {
             ARENA OF <b className="brand-tag">BIAS</b>
             <small>偏见试验场 / EST. 2026</small>
           </span>
-          <span className="brand-home-hint" aria-hidden="true">
-            ⌂ 回到首页
-          </span>
         </a>
         <span className="lobby-header-note">
           <i /> 每一种直觉，都有一个席位。

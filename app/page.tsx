@@ -558,9 +558,6 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
               偏见试验场 <span>／</span> EST. 2026
             </small>
           </div>
-          <span className="brand-home-hint" aria-hidden="true">
-            ⌂ 回到首页
-          </span>
         </a>
         <div className="header-divider" />
         <div className="terminal-label">

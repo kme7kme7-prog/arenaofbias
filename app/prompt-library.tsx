@@ -78,9 +78,6 @@ export default function PromptLibrary() {
             ARENA OF <b className="brand-tag">BIAS</b>
             <small>偏见试验场 / PROMPT LIBRARY</small>
           </span>
-          <span className="brand-home-hint" aria-hidden="true">
-            ⌂ 回到首页
-          </span>
         </a>
         <a className="lobby-small-entry" href="#random">
           <Shuffle size={16} /> 随机入场

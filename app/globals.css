@@ -207,52 +207,11 @@ kbd {
   z-index: 40;
 }
 .brand {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 9px 16px 9px 13px;
-  border: 1px solid #455048;
-  box-shadow: 3px 3px 0 #59674c;
   text-decoration: none;
   color: inherit;
-  cursor: pointer;
-  transition:
-    transform 0.25s,
-    box-shadow 0.25s,
-    border-color 0.25s;
-}
-.brand::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    105deg,
-    transparent 42%,
-    #d9fb5124 50%,
-    transparent 58%
-  );
-  background-size: 280% 100%;
-  background-repeat: no-repeat;
-  background-position: 100% 0;
-  transition: background-position 0.55s;
-}
-.brand:hover {
-  transform: translate(-1px, -2px);
-  box-shadow: 5px 6px 0 #59674c;
-  border-color: #6b7a5e;
-}
-.brand:hover::before {
-  background-position: 0% 0;
-}
-.brand:active {
-  transform: translate(1px, 2px);
-  box-shadow: 0 0 0 #59674c;
-}
-.brand:focus-visible {
-  outline: 2px solid var(--acid);
-  outline-offset: 3px;
 }
 .brand strong {
   display: block;
@@ -287,10 +246,18 @@ kbd {
   position: relative;
   display: inline-block;
   transform: skew(-13deg);
-  transition: transform 0.3s;
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.42));
+  transition:
+    transform 0.25s,
+    filter 0.25s;
 }
 .brand:hover .arena-mark {
-  transform: skew(0deg);
+  transform: skew(-13deg) translate(-1px, -2px);
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, 0.5));
+}
+.brand:active .arena-mark {
+  transform: skew(-13deg) translate(1px, 1px);
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0.5));
 }
 .arena-mark i {
   position: absolute;
@@ -304,47 +271,6 @@ kbd {
 .brand:hover .arena-mark i:nth-child(1),
 .brand:hover .arena-mark i:nth-child(3) {
   transform: translateX(-10px);
-}
-.brand-home-hint {
-  position: absolute;
-  top: calc(100% + 12px);
-  left: 12px;
-  padding: 3px 9px;
-  font: 11px var(--mono);
-  letter-spacing: 1.5px;
-  white-space: nowrap;
-  background: var(--acid);
-  color: var(--ink);
-  box-shadow: 2px 2px 0 #00000038;
-  clip-path: polygon(0 0, calc(100% - 0.5em) 0, 100% 0.5em, 100% 100%, 0 100%);
-  opacity: 0;
-  transform: translateY(-5px);
-  transition:
-    opacity 0.22s 0.08s,
-    transform 0.22s 0.08s;
-  pointer-events: none;
-  z-index: 45;
-}
-.brand:hover .brand-home-hint,
-.brand:focus-visible .brand-home-hint,
-.lobby-brand:hover .brand-home-hint,
-.lobby-brand:focus-visible .brand-home-hint {
-  opacity: 1;
-  transform: translateY(0);
-}
-.brand:hover .brand-tag,
-.lobby-brand:hover .brand-tag {
-  animation: brand-tag-flash 0.45s steps(1);
-}
-@keyframes brand-tag-flash {
-  0%,
-  100% {
-    background: var(--acid);
-    color: var(--ink);
-  }
-  50% {
-    background: #ffffff;
-  }
 }
 .arena-mark i:nth-child(1) {
   top: 0;
@@ -2101,7 +2027,6 @@ kbd {
   }
   .brand {
     gap: 10px;
-    padding: 6px 10px;
   }
   .brand strong {
     font-size: 23px;
