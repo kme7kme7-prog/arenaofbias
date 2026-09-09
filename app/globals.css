@@ -1241,6 +1241,27 @@ kbd {
   font-size: 10px;
   color: #728366;
 }
+.result-board-link {
+  font-size: 10px;
+  color: #4c6034;
+  text-decoration: none;
+  border: 1px solid #b0c09e;
+  background: #e1e8d6;
+  box-shadow: 2px 2px 0 #aabc95;
+  padding: 4px 8px;
+  white-space: nowrap;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+.result-board-link:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #aabc95;
+}
+.result-board-link:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
 .support-track {
   background: var(--blue);
   height: 4px;

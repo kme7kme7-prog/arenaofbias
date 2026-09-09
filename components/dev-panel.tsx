@@ -138,8 +138,8 @@ export function DevPanel() {
           </div>
           {status && <p className="dev-status">{status}</p>}
           <p className="dev-note">
-            占位数据与真实数据严格隔离；切换开关会刷新页面。当前尚无榜单界面，
-            占位投票将在榜单完成后用于演示。
+            占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动
+            #rank 偏好榜演示，仅存本地不入库。
           </p>
         </div>
       )}

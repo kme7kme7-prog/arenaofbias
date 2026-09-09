@@ -112,6 +112,9 @@ export default function Home() {
             <a className="lobby-library-entry" href="#prompts">
               先逛逛提示词库 <ArrowUpRight size={20} />
             </a>
+            <a className="lobby-library-entry" href="#rank">
+              看看偏好榜 <ArrowUpRight size={20} />
+            </a>
             <span className="lobby-entry-note">
               随机选一个提示词，比较它的模型结果。
             </span>

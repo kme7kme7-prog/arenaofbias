@@ -75,7 +75,7 @@ export function isPlaceholderMode(): boolean {
 // 稳定伪随机（同一输入永远得到同一输出，刷新/重建后内容不变）
 // ---------------------------------------------------------------------------
 
-function hashSeed(...parts: string[]): number {
+export function hashSeed(...parts: string[]): number {
   let h = 2166136261;
   for (const part of parts) {
     for (let i = 0; i < part.length; i++) {
@@ -87,7 +87,7 @@ function hashSeed(...parts: string[]): number {
   return h >>> 0;
 }
 
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;

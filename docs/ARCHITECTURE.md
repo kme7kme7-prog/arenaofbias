@@ -13,15 +13,17 @@
 
 | 文件 / 目录 | 职责 |
 | --- | --- |
-| `src/main.tsx` | 入口与 hash 路由分发；`AccountProvider` 包裹全站；挂载 `DevPanel`；统一样式导入顺序；不启用 StrictMode（文件内注释：避免入场动画 effect 在开发模式重复执行）；`#arena` / `#random` 重定向到随机竞技场 |
+| `src/main.tsx` | 入口与 hash 路由分发；`AccountProvider` 包裹全站；挂载 `DevPanel`；统一样式导入顺序；不启用 StrictMode（文件内注释：避免入场动画 effect 在开发模式重复执行）；`#arena` / `#random` 重定向到随机竞技场；`#rank` 渲染偏好榜 |
 | `app/home.tsx` + `home.css` | 首页 Hero、三类型预览切换、随机入场转场 |
 | `app/prompt-library.tsx` + `library.css` | 提示词库：搜索、类型筛选、每题模型数/结果数（过滤 isDemo）、入口 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页：提示词全文 + isDemo HTML 样例 iframe（sandbox） |
+| `app/ranking.tsx` + `ranking.css` | 偏好榜 `#rank`：综合/写作/网页三赛道 tab、Elo 排行表（暂定徽章、领奖台层次）、右侧模型档案卡（头部染模型主题色，决策 017；切模型走色块横推过场、名字在抹片掩护下更换、雷达外侧静止内侧插值挪动）、空态（无投票 / 分类数据不足）；`prototypes/ranking.html` 是其视觉定稿原型 |
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
 | `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
-| `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释 |
+| `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
+| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category)` 把投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场）；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 目前只有占位投票，真实投票落库后在此并入 |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
@@ -33,6 +35,7 @@
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
 | `scripts/validate-placeholder.mjs` | 占位符系统校验（9 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
+| `scripts/validate-leaderboard.mjs` | 榜单校验（7 项）：空票空榜、排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、雷达确定性与值域；三模块拼合，localStorage 以 shim 代替 |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
@@ -79,7 +82,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
 
 环境变量（均有默认值，本地开发可不设）：
 

@@ -6,6 +6,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
+import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { prompts } from '@/lib/arena';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
@@ -13,6 +14,7 @@ import '@/app/globals.css';
 import '@/app/home.css';
 import '@/app/library.css';
 import '@/app/dev.css';
+import '@/app/ranking.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root mount point');
@@ -36,6 +38,7 @@ function App() {
   }, [route]);
   if (route === '#arena' || route === '#random') return null;
   if (route === '#prompts') return <PromptLibrary />;
+  if (route === '#rank') return <Ranking />;
   if (route.startsWith('#arena/')) {
     const prompt = prompts.find((item) => item.id === route.slice(7));
     if (prompt && currentPairs(prompt.id).length > 0)

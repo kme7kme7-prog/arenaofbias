@@ -116,3 +116,10 @@
 - 决定：`components/ui/` 只保留实际使用的 button / dialog / tabs / textarea 四个组件；从依赖中移除 shadcn CLI、@shadcn/react 及仅服务未使用组件的包（cmdk、embla-carousel-react、input-otp、react-day-picker、react-resizable-panels、recharts、date-fns）；新增组件用 `npx shadcn@latest add` 按需添加；原 `shadcn/tailwind.css` 用到的 data-* 状态变体内联在 `app/globals.css` 顶部
 - 理由/被否方案：全量安装 58 个组件但只用 4 个，node_modules 白白多出约 135MB；被否方案：保留全量组件"以备不时之需"（用到再装，npm 缓存秒级恢复）
 - 来源：本轮对话用户要求瘦身当前项目
+
+## 017 · 榜单档案卡用模型主题色，只染头部深色块
+
+- 日期：2026-09-09 ｜ 状态：生效
+- 决定：榜单页右侧模型档案卡的头部深色块使用各模型主题色表达身份——角部光晕、斜纹理、底部刻线、名次数字与顶边线着色；雷达图与数据区保持统一中性色，不染主题色
+- 理由/被否方案：用户在 ranking 原型评审中明确肯定了头部主题色渐变与刻线的效果，要求固化为设计规范；主题色若扩散到数据区会干扰图表可读性。未来接入真实模型时主题色取各公司品牌色
+- 来源：本轮用户对 `prototypes/ranking.html` 的评审反馈

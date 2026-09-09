@@ -869,6 +869,9 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
                 <Check size={17} />
                 <strong>好，你有自己的答案。</strong>
                 <span>本次选择仅供体验 · 尚未计入统计</span>
+                <a className="result-board-link" href="#rank">
+                  看看偏好榜 ↗
+                </a>
               </div>
             </div>
           ) : (
