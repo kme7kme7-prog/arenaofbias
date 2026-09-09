@@ -1,7 +1,12 @@
 import { AccountButton } from '@/components/account';
 import { useState, type ReactNode } from 'react';
 import { ArrowUpRight, ArrowRight, Search, Shuffle } from 'lucide-react';
-import { prompts, resultsForPrompt, eligiblePairs } from '@/lib/arena';
+import { prompts } from '@/lib/arena';
+import {
+  currentPairs,
+  currentResultsForPrompt,
+  isPlaceholderMode,
+} from '@/lib/placeholder';
 
 const cardArt: Record<string, ReactNode> = {
   '001': (
@@ -132,12 +137,17 @@ export default function PromptLibrary() {
           </label>
         </div>
         <output className="library-count">
-          {visible.length} 个提示词 <span>当前内容为演示样例</span>
+          {visible.length} 个提示词{' '}
+          <span>
+            {isPlaceholderMode()
+              ? '占位符模式 · 开发者预览'
+              : '当前内容为演示样例'}
+          </span>
         </output>
         <div className="prompt-grid">
           {visible.map((prompt) => {
-            const results = resultsForPrompt(prompt.id);
-            const ready = eligiblePairs(prompt.id).length > 0;
+            const results = currentResultsForPrompt(prompt.id);
+            const ready = currentPairs(prompt.id).length > 0;
             const hasSample = results.some((result) => result.isDemo);
             return (
               <article

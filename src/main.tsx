@@ -6,10 +6,13 @@ import { useEffect, useSyncExternalStore } from 'react';
 import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
-import { prompts, eligiblePairs, randomArenaHash } from '@/lib/arena';
+import { DevPanel } from '@/components/dev-panel';
+import { prompts } from '@/lib/arena';
+import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
 import '@/app/globals.css';
 import '@/app/home.css';
 import '@/app/library.css';
+import '@/app/dev.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root mount point');
@@ -28,14 +31,14 @@ function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
-      window.location.replace(randomArenaHash());
+      window.location.replace(currentRandomArenaHash());
     }
   }, [route]);
   if (route === '#arena' || route === '#random') return null;
   if (route === '#prompts') return <PromptLibrary />;
   if (route.startsWith('#arena/')) {
     const prompt = prompts.find((item) => item.id === route.slice(7));
-    if (prompt && eligiblePairs(prompt.id).length > 0)
+    if (prompt && currentPairs(prompt.id).length > 0)
       return <Arena key={prompt.id} prompt={prompt} />;
     if (prompt) return <PromptPreview key={prompt.id} prompt={prompt} />;
     return (
@@ -51,5 +54,6 @@ function App() {
 createRoot(container).render(
   <AccountProvider>
     <App />
+    <DevPanel />
   </AccountProvider>,
 );

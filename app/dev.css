@@ -1,0 +1,174 @@
+/* 开发者面板与占位符模式专用样式。
+   与 lib/placeholder.ts、components/dev-panel.tsx 同生同灭，整体剥离时一并删除。 */
+
+.dev-entry {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  z-index: 45;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #1d2423;
+  opacity: 0.22;
+  font: 700 10px/1.7 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.dev-entry:hover,
+.dev-entry:focus-visible,
+.dev-entry[aria-expanded='true'] {
+  opacity: 0.8;
+}
+
+.dev-mode-badge {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  z-index: 45;
+  padding: 3px 9px;
+  background: #d9fb51;
+  color: #192020;
+  font: 700 10px/1.5 ui-monospace, Consolas, monospace;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.dev-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 34px;
+  z-index: 45;
+  width: 308px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #1c2423;
+  color: #edf3e8;
+  border: 1px solid #3a453f;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.35);
+  font: 12px/1.6 ui-monospace, Consolas, monospace;
+}
+
+.dev-panel header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a453f;
+}
+
+.dev-panel header strong {
+  font-size: 13px;
+}
+
+.dev-panel header span {
+  flex: 1;
+  color: #788773;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.dev-panel header button {
+  border: 0;
+  background: transparent;
+  color: #788773;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dev-panel header button:hover {
+  color: #edf3e8;
+}
+
+.dev-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dev-row > span {
+  flex: 1;
+}
+
+.dev-row small {
+  display: block;
+  color: #788773;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.dev-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #d9fb51;
+  cursor: pointer;
+}
+
+.dev-row select {
+  padding: 3px 6px;
+  background: #141814;
+  color: #edf3e8;
+  border: 1px solid #3a453f;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dev-row button {
+  padding: 4px 10px;
+  background: #d9fb51;
+  color: #192020;
+  border: 1px solid #192020;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dev-row button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dev-row button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dev-status {
+  margin: 0;
+  color: #d9fb51;
+  font-size: 11px;
+}
+
+.dev-note {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid #3a453f;
+  color: #788773;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+/* 占位符模式下替代评论区的提示条（app/page.tsx） */
+.placeholder-note {
+  padding: 14px 18px;
+  border: 1px dashed #3a453f;
+  color: #788773;
+  font: 12px/1.6 ui-monospace, Consolas, monospace;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dev-row button:hover:not(:disabled) {
+    transform: none;
+  }
+}

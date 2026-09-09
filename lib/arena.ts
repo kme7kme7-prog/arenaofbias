@@ -282,7 +282,8 @@ export type ResultContent =
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'text'; story: typeof stories.a }
   | { kind: 'web'; template: Side }
-  | { kind: 'html'; src: string };
+  | { kind: 'html'; src: string }
+  | { kind: 'html'; html: string };
 
 export type ModelResult = {
   id: string;
@@ -382,9 +383,13 @@ export function pickMatchup(
   return random() < 0.5 ? pair : [pair[1], pair[0]];
 }
 
-export function randomArenaHash(excludeId?: string, random = Math.random) {
+export function randomArenaHash(
+  excludeId?: string,
+  random = Math.random,
+  results = modelResults,
+) {
   const available = prompts.filter(
-    (prompt) => eligiblePairs(prompt.id).length > 0,
+    (prompt) => eligiblePairs(prompt.id, results).length > 0,
   );
   const other = available.filter((prompt) => prompt.id !== excludeId);
   const pool = other.length ? other : available;

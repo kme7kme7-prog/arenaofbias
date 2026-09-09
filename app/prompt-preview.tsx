@@ -1,10 +1,17 @@
 import { AccountButton } from '@/components/account';
 import { ArrowUpRight } from 'lucide-react';
-import { type Prompt, resultsForPrompt } from '@/lib/arena';
+import {
+  type ModelResult,
+  type Prompt,
+  resultsForPrompt,
+} from '@/lib/arena';
 
 export default function PromptPreview({ prompt }: { prompt: Prompt }) {
   const example = resultsForPrompt(prompt.id).find(
-    (result) => result.isDemo && result.content.kind === 'html',
+    (result): result is ModelResult & { content: { kind: 'html'; src: string } } =>
+      result.isDemo === true &&
+      result.content.kind === 'html' &&
+      'src' in result.content,
   );
   return (
     <div className="lobby prompt-library">

@@ -13,23 +13,26 @@
 
 | 文件 / 目录 | 职责 |
 | --- | --- |
-| `src/main.tsx` | 入口与 hash 路由分发；`AccountProvider` 包裹全站；统一样式导入顺序；不启用 StrictMode（文件内注释：避免入场动画 effect 在开发模式重复执行）；`#arena` / `#random` 重定向到随机竞技场 |
+| `src/main.tsx` | 入口与 hash 路由分发；`AccountProvider` 包裹全站；挂载 `DevPanel`；统一样式导入顺序；不启用 StrictMode（文件内注释：避免入场动画 effect 在开发模式重复执行）；`#arena` / `#random` 重定向到随机竞技场 |
 | `app/home.tsx` + `home.css` | 首页 Hero、三类型预览切换、随机入场转场 |
 | `app/prompt-library.tsx` + `library.css` | 提示词库：搜索、类型筛选、每题模型数/结果数（过滤 isDemo）、入口 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页：提示词全文 + isDemo HTML 样例 iframe（sandbox） |
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
-| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节 |
+| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
+| `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释 |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
 | `components/account.tsx` | `AccountProvider` / `useAccount` / 登录注册 Dialog / `AccountButton`；窗口聚焦自动刷新会话 |
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
+| `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；占位符模式开关、模型数量、生成/清空占位投票、占位模式徽标 |
 | `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
 | `server/index.js` | Express：静态托管 dist/、评论 GET/POST、内存滑动窗口限流、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
+| `scripts/validate-placeholder.mjs` | 占位符系统校验（9 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
@@ -76,7 +79,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
 
 环境变量（均有默认值，本地开发可不设）：
 

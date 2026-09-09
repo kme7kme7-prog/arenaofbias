@@ -40,15 +40,18 @@ import {
   arenaReducer,
   initialState,
   rounds,
-  pickMatchup,
-  eligiblePairs,
-  resultsForPrompt,
-  randomArenaHash,
   type ModelResult,
   type Prompt,
   type Matchup,
   type Side,
 } from '@/lib/arena';
+import {
+  currentMatchup,
+  currentPairs,
+  currentRandomArenaHash,
+  currentResultsForPrompt,
+  isPlaceholderMode,
+} from '@/lib/placeholder';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { Afterparty } from '@/components/afterparty';
 
@@ -189,17 +192,22 @@ function Work({
     );
   if (result.content.kind === 'web')
     return <WebWork side={result.content.template} interactive={expanded} />;
-  if (result.content.kind === 'html')
+  if (result.content.kind === 'html') {
+    const { content } = result;
+    // 内联占位作品（srcDoc）不加载外部资源，沙箱保持最小权限
+    const inline = 'html' in content;
     return (
       <iframe
         className="html-work"
         title={result.title}
-        src={result.content.src}
-        sandbox="allow-scripts allow-same-origin"
+        src={inline ? undefined : content.src}
+        srcDoc={inline ? content.html : undefined}
+        sandbox={inline ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
         inert={!expanded}
         style={{ pointerEvents: expanded ? 'auto' : 'none' }}
       />
     );
+  }
   const story = result.content.story;
   return (
     <article className={`story-work story-${side}`} data-tour-scroll>
@@ -231,9 +239,9 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
     round: promptIndex,
     pendingRound: promptIndex,
   });
-  const [pair, setPair] = useState<Matchup>(() => pickMatchup(prompt.id)!);
-  const pairCount = eligiblePairs(prompt.id).length;
-  const resultCount = resultsForPrompt(prompt.id).length;
+  const [pair, setPair] = useState<Matchup>(() => currentMatchup(prompt.id)!);
+  const pairCount = currentPairs(prompt.id).length;
+  const resultCount = currentResultsForPrompt(prompt.id).length;
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
@@ -293,7 +301,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
 
   useEffect(() => {
     let live = true;
-    const assets = resultsForPrompt(prompt.id).flatMap((entry) =>
+    const assets = currentResultsForPrompt(prompt.id).flatMap((entry) =>
       entry.content.kind === 'image'
         ? [entry.content.src]
         : entry.content.kind === 'web'
@@ -465,7 +473,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
   const nextMatchup = useCallback(() => {
     if (state.phase === 'loading' || state.phase === 'transition') return;
     play('move');
-    setPair((current) => pickMatchup(prompt.id, current)!);
+    setPair((current) => currentMatchup(prompt.id, current)!);
     dispatch({ type: 'REPLAY' });
   }, [state.phase, prompt.id, play]);
 
@@ -572,7 +580,15 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
         <div className="header-right">
           <AccountButton />
           <span className="demo-label">
-            DEMO BUILD <b>0.1</b>
+            {isPlaceholderMode() ? (
+              <>
+                PLACEHOLDER <b>DATA</b>
+              </>
+            ) : (
+              <>
+                DEMO BUILD <b>0.1</b>
+              </>
+            )}
           </span>
           <button
             className={`icon-button ${sound ? 'on' : ''}`}
@@ -908,13 +924,19 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
 
         {state.phase === 'result' && state.choice && (
           <div className="afterparty-reveal">
-            <div>
-              <Afterparty
-                key={`${round.id}-${state.run}`}
-                roundId={round.id}
-                side={state.choice}
-              />
-            </div>
+            {isPlaceholderMode() ? (
+              <div className="placeholder-note">
+                占位符模式：评论区停用，占位数据不入库。
+              </div>
+            ) : (
+              <div>
+                <Afterparty
+                  key={`${round.id}-${state.run}`}
+                  roundId={round.id}
+                  side={state.choice}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -929,8 +951,11 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
           <p>
             本场收录{' '}
             {
-              new Set(resultsForPrompt(prompt.id).map((entry) => entry.modelId))
-                .size
+              new Set(
+                currentResultsForPrompt(prompt.id).map(
+                  (entry) => entry.modelId,
+                ),
+              ).size
             }{' '}
             个模型的 {resultCount} 份结果，只在这个提示词内比较。
           </p>
@@ -945,7 +970,7 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
             </a>
             <button
               onClick={() => {
-                window.location.hash = randomArenaHash(prompt.id);
+                window.location.hash = currentRandomArenaHash(prompt.id);
               }}
             >
               随机换个竞技场 <ArrowRight size={16} />
