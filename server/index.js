@@ -57,7 +57,7 @@ if (
 
 // 投票流水：一行 = 一次对局选择。去重单位是「对局」（两份作品，pair_key），
 // 同一对作品同一账号只计一票；同一对模型换作品（不同 rid）是新的对局，可以再投
-// （见 docs/DECISIONS.md 决策 019）。mode 记录投票发生的模式（blind/party），
+// （见 docs/DECISIONS.md 决策 021）。mode 记录投票发生的模式（blind/party），
 // 为将来「娱乐是否计入正式榜」的分流留位，当前两类都计入。
 db.exec(`
   CREATE TABLE IF NOT EXISTS votes (
@@ -72,6 +72,8 @@ db.exec(`
     user_id    TEXT,
     created_at INTEGER NOT NULL
   );
+  -- 唯一索引按 (user_id, pair_key) 去重；user_id 为 NULL 的行不受唯一约束
+  --（SQLite 的 NULL 互不相等），但 API 层写票必先登录，不会写入 NULL
   CREATE UNIQUE INDEX IF NOT EXISTS votes_user_pair
     ON votes (user_id, pair_key);
   CREATE INDEX IF NOT EXISTS votes_created ON votes (created_at);
@@ -137,13 +139,23 @@ function validateVote(value) {
     return null;
   // 服务端不认识作品阵容（清单在前端），只做形态校验；
   // 指向不存在模型的票在榜单聚合时会被阵容过滤掉（lib/leaderboard.ts）
-  for (const field of [winnerRid, winnerMid, loserRid, loserMid]) {
-    if (typeof field !== 'string' || !field.trim() || field.length > 64)
+  // rid/mid 与评论 body 一样 trim 后再入库，避免两端空格口径不一
+  const trimmed = {};
+  for (const [field, value] of Object.entries({
+    winnerRid,
+    winnerMid,
+    loserRid,
+    loserMid,
+  })) {
+    if (typeof value !== 'string' || !value.trim() || value.length > 64)
       return null;
+    trimmed[field] = value.trim();
   }
-  if (winnerRid === loserRid || winnerMid === loserMid) return null;
+  const vote = { id, promptId, ...trimmed };
+  if (vote.winnerRid === vote.loserRid || vote.winnerMid === vote.loserMid)
+    return null;
   if (!VOTE_MODES.includes(mode)) return null;
-  return { id, promptId, winnerRid, winnerMid, loserRid, loserMid, mode };
+  return { ...vote, mode };
 }
 
 // ---------- 演示级限流（内存滑动窗口，按真实客户端 IP） ----------
@@ -251,7 +263,7 @@ app.post('/api/comments', limiter, (req, res) => {
   }
 });
 
-// ---------- 投票：写入要求登录（决策 018），读取公开、不带用户信息 ----------
+// ---------- 投票：写入要求登录（决策 020），读取公开、不带用户信息 ----------
 
 app.get('/api/votes', (_req, res) => {
   try {
@@ -282,7 +294,10 @@ app.post('/api/votes', limiter, (req, res) => {
         const saved = selectVoteById.get(vote.id);
         return res.set(noStore).json({ vote: saved });
       }
-      return res.status(409).json({ error: '这一对作品你已经投过票了。' });
+      // code 字段给前端区分 409 语义：pair = 对局已投过；id = 编号冲突
+      return res
+        .status(409)
+        .json({ code: 'pair', error: '这一对作品你已经投过票了。' });
     }
     insertVote.run(
       vote.id,
@@ -298,7 +313,10 @@ app.post('/api/votes', limiter, (req, res) => {
     );
     const saved = selectVoteById.get(vote.id);
     if (!saved || saved.userId !== req.user.id)
-      return res.status(409).json({ error: '投票编号冲突，请重新提交' });
+      return res.status(409).json({
+        code: 'id',
+        error: '投票编号冲突，请重新提交',
+      });
     res.set(noStore).status(201).json({ vote: saved });
   } catch {
     res

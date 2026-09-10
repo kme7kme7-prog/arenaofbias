@@ -34,11 +34,12 @@ const votesCode = transpile(
 const module = await import(
   `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${votesCode}`).toString('base64')}`
 );
-const { validateVote, pairKeyOf, voteToRecord, prompts } = module;
+const { validateVote, pairKeyOf, voteToRecord } = module;
 
 let tests = 0;
-function check(name, test) {
-  test();
+// 异步检查必须 await 断言跑完后才算 PASS；抛错让脚本以非零码退出
+async function check(name, test) {
+  await test();
   tests++;
   console.log(`PASS ${name}`);
 }
@@ -53,20 +54,26 @@ const validVote = {
   mode: 'blind',
 };
 
-check('合法票通过校验，题号白名单拦截未知题', () => {
+await check('合法票通过校验，题号白名单拦截未知题', () => {
   assert.deepEqual(validateVote(validVote), validVote);
   assert.equal(validateVote({ ...validVote, promptId: '999' }), null);
 });
 
-check('UUID、胜负同体、未知 mode 全部拦截', () => {
+await check('UUID、胜负同体、未知 mode 全部拦截', () => {
   assert.equal(validateVote({ ...validVote, id: 'not-a-uuid' }), null);
-  assert.equal(validateVote({ ...validVote, winnerRid: 'x', loserRid: 'x' }), null);
-  assert.equal(validateVote({ ...validVote, winnerMid: 'm', loserMid: 'm' }), null);
+  assert.equal(
+    validateVote({ ...validVote, winnerRid: 'x', loserRid: 'x' }),
+    null,
+  );
+  assert.equal(
+    validateVote({ ...validVote, winnerMid: 'm', loserMid: 'm' }),
+    null,
+  );
   assert.equal(validateVote({ ...validVote, mode: 'ranked' }), null);
   assert.equal(validateVote(null), null);
 });
 
-check('pairKey 与胜负、左右顺序无关（同对局同键）', () => {
+await check('pairKey 与胜负、左右顺序无关（同对局同键）', () => {
   assert.equal(
     pairKeyOf('002-ph-01', '002-ph-02'),
     pairKeyOf('002-ph-02', '002-ph-01'),
@@ -82,13 +89,13 @@ check('pairKey 与胜负、左右顺序无关（同对局同键）', () => {
   );
 });
 
-check('voteToRecord 降到模型层（榜单聚合口径）', () => {
-  const record = voteToRecord(validVote);
+await check('voteToRecord 降到模型层（榜单聚合口径）', () => {
+  const record = voteToRecord({ ...validVote, ts: 1725900000000 });
   assert.deepEqual(record, {
     promptId: '002',
     winnerId: 'ph-01',
     loserId: 'ph-02',
-    ts: validVote.ts,
+    ts: 1725900000000,
   });
 });
 
@@ -104,13 +111,30 @@ const dataDir = await mkdtemp(path.join(tmpdir(), 'aob-votes-'));
 const port = 20000 + Math.floor(Math.random() * 20000);
 const child = spawn(process.execPath, ['server/index.js'], {
   cwd: new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
-  env: { ...process.env, DATA_DIR: dataDir, PORT: String(port), HOST: '127.0.0.1' },
+  // 放宽限流：本脚本约 9 次 POST 会逼近默认 10 条/分钟的 per-IP 限流
+  //（400/401/403 等失败请求同样计数），限流本身不是本脚本的断言对象
+  env: {
+    ...process.env,
+    DATA_DIR: dataDir,
+    PORT: String(port),
+    HOST: '127.0.0.1',
+    RATE_LIMIT_PER_MIN: '60',
+  },
   stdio: ['ignore', 'inherit', 'inherit'],
+});
+// 端口被占用等启动失败要快速失败，而不是干等 10 秒超时
+let exitCode = -1; // -1 = 仍在运行
+child.on('exit', (code) => {
+  exitCode = code ?? -1;
 });
 
 const base = `http://127.0.0.1:${port}`;
 // 等服务端就绪（端口可连）
 for (let attempt = 0; ; attempt++) {
+  if (exitCode >= 0)
+    throw new Error(
+      `测试服务端提前退出（code ${exitCode}，端口 ${port} 可能被占用）`,
+    );
   if (attempt > 100) throw new Error('测试服务端未就绪');
   const ok = await fetch(`${base}/api/votes`)
     .then(() => true)
@@ -131,7 +155,9 @@ const robustFetch = async (url, options, tries = 3) => {
 const login = async () => {
   const response = await robustFetch(`${base}/api/auth/dev`, {
     method: 'POST',
-    headers: { origin: base },
+    // auth 中间件用 req.is() 判 JSON：无 Content-Type 的无 body POST 会被 415
+    headers: { 'Content-Type': 'application/json', origin: base },
+    body: '{}',
   });
   assert.equal(response.status, 201);
   return response.headers.get('set-cookie').split(';')[0];
@@ -148,82 +174,96 @@ const post = async (cookie, body) =>
     body: JSON.stringify(body),
   });
 
-check('未登录投票 401；跨源 403', async () => {
-  const anonymous = await post(null, validVote);
-  assert.equal(anonymous.status, 401);
-  const wrongOrigin = await fetch(`${base}/api/votes`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      cookie: await login(),
-      origin: 'https://evil.example',
-    },
-    body: JSON.stringify(validVote),
+try {
+  await check('未登录投票 401；跨源 403', async () => {
+    const anonymous = await post(null, validVote);
+    assert.equal(anonymous.status, 401);
+    const wrongOrigin = await robustFetch(`${base}/api/votes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: await login(),
+        origin: 'https://evil.example',
+      },
+      body: JSON.stringify(validVote),
+    });
+    assert.equal(wrongOrigin.status, 403);
   });
-  assert.equal(wrongOrigin.status, 403);
-});
-check('登录后写入 201；读取公开且不带 user_id', async () => {
-  const cookie = await login();
-  const response = await post(cookie, validVote);
-  assert.equal(response.status, 201);
-  const listed = await (await fetch(`${base}/api/votes`)).json();
-  assert.equal(listed.votes.length, 1);
-  assert.ok(!('userId' in listed.votes[0]));
-  assert.equal(listed.votes[0].winnerMid, 'ph-01');
-  // 流水必须能通过前端校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
-  for (const vote of listed.votes) {
-    assert.ok(validateVote(vote), `vote failed client validation: ${JSON.stringify(vote)}`);
-  }
-  // 交换左右 = 同一对局，客户端换 UUID 重投 → 409
-  const swapped = await post(cookie, {
-    ...validVote,
-    id: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
-    winnerRid: '002-ph-02',
-    winnerMid: 'ph-02',
-    loserRid: '002-ph-01',
-    loserMid: 'ph-01',
+  await check('登录后写入 201；读取公开且不带 user_id', async () => {
+    const cookie = await login();
+    const response = await post(cookie, validVote);
+    assert.equal(response.status, 201);
+    const listed = await (await robustFetch(`${base}/api/votes`)).json();
+    assert.equal(listed.votes.length, 1);
+    assert.ok(!('userId' in listed.votes[0]));
+    assert.equal(listed.votes[0].winnerMid, 'ph-01');
+    // 流水必须能通过前端校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
+    for (const vote of listed.votes) {
+      assert.ok(
+        validateVote(vote),
+        `vote failed client validation: ${JSON.stringify(vote)}`,
+      );
+    }
+    // 交换左右 = 同一对局，客户端换 UUID 重投 → 409
+    const swapped = await post(cookie, {
+      ...validVote,
+      id: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+      winnerRid: '002-ph-02',
+      winnerMid: 'ph-02',
+      loserRid: '002-ph-01',
+      loserMid: 'ph-01',
+    });
+    assert.equal(swapped.status, 409);
+    // 同 UUID 重试（网络重试场景）→ 幂等成功
+    const retry = await post(cookie, validVote);
+    assert.equal(retry.status, 200);
   });
-  assert.equal(swapped.status, 409);
-  // 同 UUID 重试（网络重试场景）→ 幂等成功
-  const retry = await post(cookie, validVote);
-  assert.equal(retry.status, 200);
-});
 
-check('同模型换作品是新的对局，可以再投（决策 019）', async () => {
-  const cookie = await login();
-  const response = await post(cookie, {
-    ...validVote,
-    id: '3f2504e0-4f89-41d3-9a0c-0305e82c3303',
-    winnerRid: '002-ph-01b',
+  await check('同模型换作品是新的对局，可以再投（决策 021）', async () => {
+    const cookie = await login();
+    const response = await post(cookie, {
+      ...validVote,
+      id: '3f2504e0-4f89-41d3-9a0c-0305e82c3303',
+      winnerRid: '002-ph-01b',
+    });
+    assert.equal(response.status, 201);
+    const listed = await (await robustFetch(`${base}/api/votes`)).json();
+    assert.equal(listed.votes.length, 2);
   });
-  assert.equal(response.status, 201);
-  const listed = await (await fetch(`${base}/api/votes`)).json();
-  assert.equal(listed.votes.length, 2);
-});
 
-check('非法 payload 400：坏 UUID / 未知题号 / mode 缺失', async () => {
-  const cookie = await login();
-  for (const body of [
-    { ...validVote, id: 'bad' },
-    { ...validVote, id: '3f2504e0-4f89-41d3-9a0c-0305e82c3304', promptId: '999' },
-    { ...validVote, id: '3f2504e0-4f89-41d3-9a0c-0305e82c3305', mode: undefined },
-  ]) {
-    const response = await post(cookie, body);
-    assert.equal(response.status, 400, JSON.stringify(body));
-  }
-});
+  await check('非法 payload 400：坏 UUID / 未知题号 / mode 缺失', async () => {
+    const cookie = await login();
+    for (const body of [
+      { ...validVote, id: 'bad' },
+      {
+        ...validVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3304',
+        promptId: '999',
+      },
+      {
+        ...validVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3305',
+        mode: undefined,
+      },
+    ]) {
+      const response = await post(cookie, body);
+      assert.equal(response.status, 400, JSON.stringify(body));
+    }
+  });
 
-check('全量流水按时间升序返回（Elo 重放顺序依赖）', async () => {
-  const listed = await (await fetch(`${base}/api/votes`)).json();
-  const times = listed.votes.map((vote) => vote.ts);
-  assert.deepEqual(times, [...times].sort((a, b) => a - b));
-});
-
-child.kill();
-// Windows：SQLite WAL 文件要等子进程完全退出才能删
-await new Promise((resolve) => {
-  child.on('exit', resolve);
-  setTimeout(resolve, 3000);
-});
-await rm(dataDir, { recursive: true, force: true });
+  await check('全量流水按时间升序返回（Elo 重放顺序依赖）', async () => {
+    const listed = await (await robustFetch(`${base}/api/votes`)).json();
+    const times = listed.votes.map((vote) => vote.ts);
+    assert.deepEqual(times, [...times].sort((a, b) => a - b));
+  });
+} finally {
+  // 无论断言成败都回收子进程与临时库；检查串行跑完后才 kill，避免竞态
+  child.kill();
+  // Windows：SQLite WAL 文件要等子进程完全退出才能删
+  await new Promise((resolve) => {
+    child.on('exit', resolve);
+    setTimeout(resolve, 3000);
+  });
+  await rm(dataDir, { recursive: true, force: true });
+}
 console.log(`${tests} votes checks passed.`);

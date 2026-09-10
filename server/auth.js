@@ -179,7 +179,7 @@ export function installAuth(app, db, sameOrigin) {
     clearSession(req, res);
     res.json({ user: null });
   });
-  // 开发者免登录：开发者面板一键以固定 'dev' 账号登录（见决策 018）。
+  // 开发者免登录：开发者面板一键以固定 'dev' 账号登录（见决策 020）。
   // 只在本机回环（本地 vite 代理 / 直接访问）或显式 ALLOW_DEV_LOGIN=1 时开放，
   // 账号首次使用时创建，密码随机生成且不留存，无人能凭密码登录。
   const isLoopback = (ip) =>

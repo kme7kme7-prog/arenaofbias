@@ -60,7 +60,7 @@ import { Afterparty } from '@/components/afterparty';
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
 
-/** 一票的落点反馈：真实模式写入服务端，占位模式写入本地（决策 018/019） */
+/** 一票的落点反馈：真实模式写入服务端，占位模式写入本地（决策 020/021） */
 type VoteOutcome =
   | { state: 'idle' }
   | { state: 'saving' }
@@ -473,15 +473,15 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
     };
   }, [state.phase, reducedMotion, play]);
 
-  const [voteOutcome, setVoteOutcome] = useState<VoteOutcome>({ state: 'idle' });
+  // 反馈与提交时所属的对局（run）绑定：换组、重播、切模式都会递增 run，
+  // 旧 run 的提交结果——包括网络晚到的响应——不会再覆盖新一轮的反馈
+  const [voteRecord, setVoteRecord] = useState<{
+    run: number;
+    outcome: VoteOutcome;
+  }>({ run: state.run, outcome: { state: 'idle' } });
+  const voteOutcome: VoteOutcome =
+    voteRecord.run === state.run ? voteRecord.outcome : { state: 'idle' };
   const { open: openAccount } = useAccount();
-
-  // 换组、重播、切模式都会走 REPLAY/ARRIVE 递增 run；用渲染期派生清掉上一票的反馈
-  const [lastRun, setLastRun] = useState(state.run);
-  if (state.run !== lastRun) {
-    setLastRun(state.run);
-    setVoteOutcome({ state: 'idle' });
-  }
 
   const recordVote = useCallback(
     (side: Side) => {
@@ -493,10 +493,13 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
           winnerId: winner.modelId,
           loserId: loser.modelId,
         });
-        setVoteOutcome({ state: appended ? 'saved' : 'dup' });
+        setVoteRecord({
+          run: state.run,
+          outcome: { state: appended ? 'saved' : 'dup' },
+        });
         return;
       }
-      setVoteOutcome({ state: 'saving' });
+      setVoteRecord({ run: state.run, outcome: { state: 'saving' } });
       void submitVote({
         id: crypto.randomUUID(),
         promptId: prompt.id,
@@ -506,20 +509,19 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
         loserMid: loser.modelId,
         mode: state.mode,
       }).then((result) => {
-        if (result.ok) {
-          setVoteOutcome({ state: 'saved' });
-          return;
-        }
-        setVoteOutcome(
-          result.issue === 'auth'
-            ? { state: 'auth' }
-            : result.issue === 'dup'
-              ? { state: 'dup' }
-              : { state: 'failed', message: result.error },
-        );
+        setVoteRecord({
+          run: state.run,
+          outcome: result.ok
+            ? { state: 'saved' }
+            : result.issue === 'auth'
+              ? { state: 'auth' }
+              : result.issue === 'dup'
+                ? { state: 'dup' }
+                : { state: 'failed', message: result.error },
+        });
       });
     },
-    [pair, prompt.id, state.mode],
+    [pair, prompt.id, state.mode, state.run],
   );
 
   const vote = useCallback(

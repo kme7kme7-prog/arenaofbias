@@ -63,11 +63,11 @@
 | `POST /api/auth/login` | 不存在的账号也用 dummySalt 做一次真 scrypt + timingSafeEqual 比较，防时序探测 |
 | `POST /api/auth/logout` | 删除当前 session 并清 cookie |
 | `GET /api/auth/me` | 会话查询，返回 `{ user }` |
-| `POST /api/auth/dev` | 开发者免登录（决策 018）：仅本机回环 IP 或 `ALLOW_DEV_LOGIN=1` 时开放；固定 `dev` 账号首次使用时创建，密码随机生成不留存 |
+| `POST /api/auth/dev` | 开发者免登录（决策 020）：仅本机回环 IP 或 `ALLOW_DEV_LOGIN=1` 时开放；固定 `dev` 账号首次使用时创建，密码随机生成不留存 |
 | `GET /api/comments?round=xxx` | 按题取最新 100 条，联表 users 返回 username；无需登录 |
 | `POST /api/comments` | 需登录（401）、同源（403）、JSON（415）、校验（400）、幂等插入（id 冲突或内容不符 409） |
 | `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts），按时间升序，公开、不带用户信息 |
-| `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party）；同对局已投换 UUID 重投 409、同 UUID 重试幂等 200；服务端只做形态校验，指向不存在模型的票由榜单聚合按阵容过滤 |
+| `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party）；同对局已投换 UUID 重投 409、同 UUID 重试幂等 200（409 响应带 `code: pair/id` 区分对局重复与编号冲突）；rid/mid trim 后入库；服务端只做形态校验，指向不存在模型的票由榜单聚合按阵容过滤 |
 
 横切行为：
 

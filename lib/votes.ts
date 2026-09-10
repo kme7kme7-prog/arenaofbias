@@ -3,11 +3,9 @@
 // 占位模式的投票不经过本文件，走 lib/placeholder.ts 的本地占位投票。
 
 import { prompts } from '@/lib/arena';
+import type { Mode } from '@/lib/arena';
 
-/** 投票发生的模式：blind 认真盲测 / party 娱乐站队（当前都计分，见决策 018） */
-export type ArenaMode = 'blind' | 'party';
-
-/** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 019） */
+/** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 021） */
 export type ArenaVote = {
   id: string;
   promptId: string;
@@ -15,7 +13,7 @@ export type ArenaVote = {
   winnerMid: string;
   loserRid: string;
   loserMid: string;
-  mode: ArenaMode;
+  mode: Mode;
   ts: number;
 };
 
@@ -59,13 +57,17 @@ export function validateVote(value: unknown): ArenaVoteDraft | null {
     winnerMid: candidate.winnerMid as string,
     loserRid: candidate.loserRid as string,
     loserMid: candidate.loserMid as string,
-    mode: candidate.mode as ArenaMode,
+    mode: candidate.mode as Mode,
   };
 }
 
-/** 对局去重键：两份作品 id 与胜负无关的排序拼接（与服务端同一口径） */
+/**
+ * 对局去重键：两份作品 id 与胜负无关的排序拼接。
+ * 排序口径与服务端 pairKeyOf 一致（localeCompare）——当前 pair_key 只在服务端计算，
+ * 但两边保持同口径，将来客户端预判去重时不会踩坑。
+ */
 export function pairKeyOf(ridA: string, ridB: string): string {
-  return [ridA, ridB].sort().join('+');
+  return [ridA, ridB].sort((a, b) => a.localeCompare(b)).join('+');
 }
 
 export type VoteIssue = 'auth' | 'dup' | 'offline';
@@ -84,15 +86,24 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
     if (response.ok) return { ok: true };
     const data = (await response.json().catch(() => ({}))) as {
       error?: string;
+      code?: string;
     };
     if (response.status === 401)
       return { ok: false, issue: 'auth', error: '登录后，你的选择会计入偏好榜。' };
-    if (response.status === 409)
+    if (response.status === 409) {
+      // 服务端 409 有两种：pair = 同对局已投过；id = 投票编号冲突（可重新提交）
+      if (data.code === 'id')
+        return {
+          ok: false,
+          issue: 'offline',
+          error: data.error ?? '投票编号冲突，请重新提交。',
+        };
       return {
         ok: false,
         issue: 'dup',
         error: data.error ?? '这一对作品你已经投过票了。',
       };
+    }
     return {
       ok: false,
       issue: 'offline',
