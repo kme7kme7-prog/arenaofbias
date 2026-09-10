@@ -502,7 +502,8 @@ export default function Arena({
   // 反馈与提交时所属的对局（run）绑定：换组、重播、切模式都会递增 run，
   // 旧 run 的提交结果——包括网络晚到的响应——不会再覆盖新一轮的反馈
   const [voteRecord, setVoteRecord] = useState<{
-    run: number;    outcome: VoteOutcome;
+    run: number;
+    outcome: VoteOutcome;
   }>({ run: state.run, outcome: { state: 'idle' } });
   const voteOutcome: VoteOutcome =
     voteRecord.run === state.run ? voteRecord.outcome : { state: 'idle' };

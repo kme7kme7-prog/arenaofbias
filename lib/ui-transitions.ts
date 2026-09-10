@@ -82,25 +82,3 @@ export class SurfaceTransition {
     void fade.finished.then(complete).catch(() => {});
   }
 }
-
-export class ContentTransition {
-  private animation?: Animation;
-
-  reveal(element: HTMLElement, reduced: boolean) {
-    const opacity =
-      this.animation?.playState === "running"
-        ? getComputedStyle(element).opacity
-        : "0.35";
-    this.cancel();
-    if (!reduced)
-      this.animation = element.animate([{ opacity }, { opacity: 1 }], {
-        duration: 150,
-        easing: enterEase,
-      });
-  }
-
-  cancel() {
-    this.animation?.cancel();
-    this.animation = undefined;
-  }
-}

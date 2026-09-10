@@ -23,6 +23,7 @@
 - 2026-09-10 本轮（未提交）：代码审查 + 修复——审查发现 `validate:votes` 假绿（check 未 await、login 缺 Content-Type、kill 竞态，此前 HTTP 断言从未真正执行）并修复；随后修复次要问题（409 加 code 区分 pair/id、晚到提交响应不再覆盖新一轮反馈、pairKeyOf 两端统一 localeCompare、ArenaMode 并入 arena 的 Mode、服务端 rid/mid trim）。遗留 B1/B2 两个已知 bug 未修（见待办）。
 - 2026-09-10 本轮（未提交）：偏好榜赛道切换动画对齐原型——榜单不再按赛道重挂载（`key` 只留 replaySeed），切换走原型同款 FLIP 换位（offsetTop 记位、translateY 差值 1200ms、错峰 28ms、计分淡入、首行扫光 WAAPI 重放）；补上行底色 0.65s 过渡（榜首深底交叉淡化）、tab 滑块 0.8s、sigil 底色随名次过渡。**关键坑**：入场动画不能用常驻 CSS + 随名次变化的内联 animation-delay——delay 一变动画整段重播，换赛道时行会"消失后重新插入"；入场（重播）也改走 WAAPI，与原型同一机制。已在浏览器逐项实测：切换时行无 opacity/translateX 动画、纯 FLIP；重播仍整板入场。
 - 2026-09-10 本轮（未提交）：开发者面板新增「随机强弱」开关——默认关闭时占位投票的模型强弱固定（ph-03 种子强度 1.400 顶格，所以老是第一，这是设计不是 bug）；开启后 `generatePlaceholderVotes` 的强弱种子掺入随机盐，每次生成的名次格局都不同（用户要看榜单换位动画）。同时修复生成/清空占位投票后榜单不刷新的问题：面板广播 `aob:placeholder-votes-changed`，榜单页监听后自动重读并重播入场（storage 事件同页不触发）。`validate:placeholder` 扩至 10 项。
+- 2026-09-10 本轮（未提交）：代码审查 + 修复落地——审查发现三处：决策 026「只看正式」榜单切换缺失（已补）、page.tsx 一处类型声明挤行（已修）、ui-transitions.ts 的 ContentTransition 死代码（已删）。「只看正式」实现：VoteRecord/voteToRecord 带 mode → leaderboardData 加 scope 口径（mixed/formal，无 mode 的占位票只在混入计入）→ 榜单页 rank-actions 加切换按钮（占位模式隐藏）。验证：typecheck / lint（0 错误）/ build / validate:arena（11）/ placeholder（10）/ leaderboard（扩至 8）/ scroll（5）/ votes（9，voteToRecord 断言随新结构更新）全过；浏览器端到端实测：dev 登录 → #formal/003 投票落库 mode=formal → 榜单只看正式显示该票（2 行）、混入 4 行、formal+网页赛道 2 行、formal+写作空态；切换可逆。截图存 gui-test-screenshots/。测试产生的 formal 票已从本地库清除。注意：先在 #formal/002 试投时被 409 对局去重挡下（用户凌晨的 blind 票占了同对局，mode 不分流去重——决策 021 语义，不是 bug）。
 
 ## 最新交接
 

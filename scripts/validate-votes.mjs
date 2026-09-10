@@ -96,6 +96,8 @@ await check('voteToRecord 降到模型层（榜单聚合口径）', () => {
     winnerId: 'ph-01',
     loserId: 'ph-02',
     ts: 1725900000000,
+    // mode 随记录保留，供「只看正式」口径过滤（决策 026）
+    mode: 'blind',
   });
 });
 

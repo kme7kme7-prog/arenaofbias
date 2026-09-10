@@ -115,6 +115,37 @@ check('分类过滤：写作榜只计入 text 题（002）的票', () => {
   assert.ok(webData.promptCount < textData.promptCount + webData.promptCount);
 });
 
+check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', () => {
+  // 手工构造带 mode 的票（真实流水经 voteToRecord 映射后同构）。
+  // 用 001 题：占位生成的 200 票覆盖全部阵容，001 必然让任意两个模型进 meta
+  const models = leaderboardData('all').rows.map((row) => row.modelId);
+  assert.ok(models.length >= 2, '占位阵容至少两个模型');
+  const vote = (winner, loser, mode, ts) => ({
+    promptId: '001',
+    winnerId: winner,
+    loserId: loser,
+    ts,
+    mode,
+  });
+  const mixedVotes = [
+    vote(models[0], models[1], 'formal', 1),
+    vote(models[1], models[0], 'party', 2),
+    vote(models[0], models[1], 'blind', 3),
+  ];
+  assert.equal(leaderboardData('all', mixedVotes, 'mixed').totalVotes, 3);
+  const formalData = leaderboardData('all', mixedVotes, 'formal');
+  assert.equal(formalData.totalVotes, 1);
+  // 只有 formal 那一票：模型 0 一胜、模型 1 一负
+  const winner = formalData.rows.find((row) => row.modelId === models[0]);
+  const loser = formalData.rows.find((row) => row.modelId === models[1]);
+  assert.equal(winner?.wins, 1);
+  assert.equal(loser?.losses, 1);
+  // 无 mode 的票（占位口径）在混入时计入、只看正式时排除
+  const legacyVotes = [vote(models[0], models[1], undefined, 4)];
+  assert.equal(leaderboardData('all', legacyVotes, 'mixed').totalVotes, 1);
+  assert.equal(leaderboardData('all', legacyVotes, 'formal').totalVotes, 0);
+});
+
 check('雷达维度：同一模型同一赛道两次生成完全一致，值域 60–100', () => {
   const data = leaderboardData('all');
   const id = data.rows[0].modelId;

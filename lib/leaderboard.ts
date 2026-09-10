@@ -4,7 +4,7 @@
 // 评分是占位口径的简易 Elo（基准 1200、K=32，按时间序迭代），
 // 仅用于演示榜单形态，正式算法待定（README 排名要表达什么一节）。
 
-import { prompts } from '@/lib/arena';
+import { prompts, type Mode } from '@/lib/arena';
 import {
   currentResults,
   hashSeed,
@@ -118,7 +118,12 @@ export type VoteRecord = {
   winnerId: string;
   loserId: string;
   ts: number;
+  /** 这票产生的模式（决策 026：混榜可切换只看正式）；占位投票无此字段，只在混入口径计入 */
+  mode?: Mode;
 };
+
+/** 榜单口径（决策 026）：mixed = 正式与娱乐混入；formal = 只看正式测评的票 */
+export type BoardScope = 'mixed' | 'formal';
 
 /** 当前生效的投票：占位模式读 localStorage；真实模式由页面拉取服务端后传入 */
 export function currentVotes(): VoteRecord[] {
@@ -128,6 +133,7 @@ export function currentVotes(): VoteRecord[] {
 export function leaderboardData(
   category: BoardCategory,
   votes: VoteRecord[] = currentVotes(),
+  scope: BoardScope = 'mixed',
 ): BoardData {
   const kinds = promptKindMap();
   const meta = modelMeta();
@@ -136,8 +142,10 @@ export function leaderboardData(
   const known = votes.filter(
     (vote) => meta.has(vote.winnerId) && meta.has(vote.loserId),
   );
-  const scoped = known.filter((vote) =>
-    matchesCategory(kinds.get(vote.promptId), category),
+  const scoped = known.filter(
+    (vote) =>
+      matchesCategory(kinds.get(vote.promptId), category) &&
+      (scope === 'mixed' || vote.mode === 'formal'),
   );
 
   const rating = new Map<string, number>();

@@ -10,7 +10,12 @@ import {
   radarAverage,
   radarProfile,
 } from '@/lib/leaderboard';
-import type { BoardCategory, BoardRow, VoteRecord } from '@/lib/leaderboard';
+import type {
+  BoardCategory,
+  BoardRow,
+  BoardScope,
+  VoteRecord,
+} from '@/lib/leaderboard';
 import { isPlaceholderMode, readPlaceholderVotes } from '@/lib/placeholder';
 import { fetchVotes, voteToRecord } from '@/lib/votes';
 
@@ -319,6 +324,8 @@ export default function Ranking() {
   const [category, setCategory] = useState<BoardCategory>('all');
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 榜单口径（决策 026）：混榜 / 只看正式。占位投票无模式之分，开关只对真实数据出现
+  const [scope, setScope] = useState<BoardScope>('mixed');
   const placeholder = isPlaceholderMode();
   // 开发者面板生成/清空占位投票后立即重读并重播入场（storage 事件同页不触发）
   useEffect(() => {
@@ -328,12 +335,12 @@ export default function Ranking() {
   }, []);
   const { votes, failed, loading } = useBoardVotes(replaySeed);
   const data = useMemo(
-    () => (votes ? leaderboardData(category, votes) : null),
-    [category, votes],
+    () => (votes ? leaderboardData(category, votes, scope) : null),
+    [category, scope, votes],
   );
   const allData = useMemo(
-    () => (votes ? leaderboardData('all', votes) : null),
-    [votes],
+    () => (votes ? leaderboardData('all', votes, scope) : null),
+    [scope, votes],
   );
   const selected =
     data?.rows.find((row) => row.modelId === selectedId) ?? data?.rows[0] ?? null;
@@ -559,12 +566,26 @@ export default function Ranking() {
               </button>
             ))}
           </div>
-          <button
-            className="rank-replay"
-            onClick={() => setReplaySeed((seed) => seed + 1)}
-          >
-            <RotateCcw size={13} /> 重播入场
-          </button>
+          <div className="rank-actions">
+            {!placeholder && (
+              <button
+                className={`rank-scope${scope === 'formal' ? ' active' : ''}`}
+                aria-pressed={scope === 'formal'}
+                onClick={() =>
+                  setScope((value) => (value === 'mixed' ? 'formal' : 'mixed'))
+                }
+                title="正式与娱乐混榜，或只看正式测评的票（决策 026）"
+              >
+                <i aria-hidden="true" /> 只看正式
+              </button>
+            )}
+            <button
+              className="rank-replay"
+              onClick={() => setReplaySeed((seed) => seed + 1)}
+            >
+              <RotateCcw size={13} /> 重播入场
+            </button>
+          </div>
         </div>
 
         {loading ? (

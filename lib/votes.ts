@@ -138,17 +138,19 @@ export async function fetchVotes(): Promise<ArenaVote[] | null> {
   }
 }
 
-/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构） */
+/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供「只看正式」口径过滤） */
 export function voteToRecord(vote: ArenaVote): {
   promptId: string;
   winnerId: string;
   loserId: string;
   ts: number;
+  mode: Mode;
 } {
   return {
     promptId: vote.promptId,
     winnerId: vote.winnerMid,
     loserId: vote.loserMid,
     ts: vote.ts,
+    mode: vote.mode,
   };
 }
