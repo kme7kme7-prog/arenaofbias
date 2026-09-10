@@ -150,6 +150,30 @@ kbd {
 .mono {
   font-family: var(--mono);
 }
+/* 页面级横扫过渡层（lib/ui-transitions.ts 的 wipeNavigate 动态创建，挂在 body 上
+   独立于路由存活）：色块扫入盖满 → 遮挡下换路由 → 扫出露出新页面。动画只动
+   transform（合成器驱动），不走会整屏重绘的 clip-path。 */
+.page-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--acid);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  pointer-events: auto;
+  will-change: transform;
+}
+.page-wipe > span {
+  font: 11px var(--mono);
+  letter-spacing: 4px;
+}
+.page-wipe > b {
+  font: 600 clamp(40px, 7vw, 90px) var(--mono);
+}
 .arena-shell {
   position: relative;
   min-height: 100svh;

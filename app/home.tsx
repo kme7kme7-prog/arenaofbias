@@ -1,6 +1,7 @@
 import { AccountButton } from '@/components/account';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { randomArenaHash } from '@/lib/arena';
+import { wipeNavigate, type PageWipeCopy } from '@/lib/ui-transitions';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -38,30 +39,20 @@ const formats = [
 export default function Home() {
   const [format, setFormat] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stage = useRef<HTMLElement>(null);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-  const go = (hash: string) => {
+  // 全屏横扫过渡由 lib/ui-transitions.ts 的 wipeNavigate 接管：
+  // 盖满整屏时换路由、扫出露出新页面，文案随目的地变化
+  const go = (hash: string, copy: PageWipeCopy) => {
     if (leaving) return;
     setLeaving(true);
-    timer.current = setTimeout(
-      () => {
-        window.location.hash = hash;
-        window.scrollTo(0, 0);
-      },
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 720,
-    );
+    wipeNavigate(hash, copy);
   };
   // 决策 023：主按钮进入玩法菜单；页眉保留「随机入场」快速入口
-  const enter = () => go('#play');
-  const enterRandom = () => go(randomArenaHash());
+  const enter = () => go('#play', { note: 'SELECT YOUR GAME.', title: 'Play Menu' });
+  const enterRandom = () =>
+    go(randomArenaHash(), { note: 'YOUR INSTINCT MATTERS.', title: 'Round Start' });
   return (
-    <div className={`lobby ${leaving ? 'lobby-leaving' : ''}`}>
+    <div className="lobby">
       <div className="lobby-grid" aria-hidden="true" />
       <header className="lobby-header">
         <a className="lobby-brand" href="#home" aria-label="回到首页">
@@ -267,10 +258,6 @@ export default function Home() {
           答案之外，还想听听你的理由。 <ArrowUpRight size={15} />
         </span>
       </footer>
-      <div className="lobby-wipe" aria-hidden="true">
-        <span>YOUR INSTINCT MATTERS.</span>
-        <b>Round Start</b>
-      </div>
     </div>
   );
 }

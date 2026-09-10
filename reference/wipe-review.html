@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page Wipe · 对照调试页</title>
+    <!-- 决策 029 的对照工具：改 wipe 动效前先在这里调，定了再改
+         lib/ui-transitions.ts 的 defaultWipeTiming。本页 import 的是真实模块，
+         不是复制品——看到什么线上就是什么。仅 dev server 下使用：
+         http://localhost:5173/reference/wipe-review.html -->
+    <style>
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--mono);
+        padding: 28px clamp(16px, 4vw, 56px) 60px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 14px;
+        border-bottom: 3px solid var(--ink);
+        padding-bottom: 14px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: -1px;
+      }
+      header span {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: var(--muted-foreground);
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(300px, 420px) 1fr;
+        gap: 28px;
+        margin-top: 26px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+      fieldset {
+        border: 2px solid var(--ink);
+        padding: 16px 18px 18px;
+        margin: 0 0 18px;
+      }
+      legend {
+        padding: 0 8px;
+        font-size: 11px;
+        letter-spacing: 3px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+      label > span {
+        display: flex;
+        justify-content: space-between;
+      }
+      output {
+        font-weight: 700;
+      }
+      input[type='range'] {
+        accent-color: var(--ink);
+      }
+      input[type='text'] {
+        font: inherit;
+        border: 2px solid var(--ink);
+        background: transparent;
+        padding: 6px 8px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      button {
+        font: inherit;
+        font-size: 12px;
+        letter-spacing: 1px;
+        border: 2px solid var(--ink);
+        background: var(--ink);
+        color: var(--acid);
+        padding: 10px 16px;
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--ink);
+      }
+      button:active {
+        transform: translate(1px, 1px);
+      }
+      .demo {
+        border: 2px solid var(--ink);
+        min-height: 340px;
+        position: relative;
+        overflow: clip;
+        background: var(--paper);
+      }
+      .demo-page {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 8px;
+        text-align: center;
+      }
+      .demo-page b {
+        font-size: clamp(30px, 5vw, 54px);
+        letter-spacing: -2px;
+      }
+      .demo-page span {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: var(--muted-foreground);
+      }
+      .demo-hint {
+        position: absolute;
+        inset: auto 12px 10px auto;
+        font-size: 11px;
+        letter-spacing: 2px;
+        color: var(--muted-foreground);
+      }
+      .invariants {
+        margin-top: 22px;
+        border-top: 2px dashed var(--ink);
+        padding-top: 14px;
+        font-size: 12px;
+        line-height: 1.9;
+      }
+      .invariants h2 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        letter-spacing: 3px;
+      }
+      .invariants code {
+        background: var(--ink);
+        color: var(--acid);
+        padding: 1px 6px;
+      }
+      .note {
+        margin-top: 18px;
+        font-size: 11px;
+        letter-spacing: 1px;
+        line-height: 1.8;
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Page Wipe</h1>
+      <span>横扫过渡 · 对照调试页 · DECISION 029</span>
+      <span>import 真实 lib/ui-transitions.ts</span>
+    </header>
+
+    <main>
+      <div>
+        <fieldset>
+          <legend>节奏 RHYTHM</legend>
+          <label>
+            <span>扫入 cover <output id="cover-out">360</output> ms</span>
+            <input type="range" id="cover" min="60" max="900" step="10" value="360" />
+          </label>
+          <label>
+            <span>停顿 hold <output id="hold-out">150</output> ms</span>
+            <input type="range" id="hold" min="0" max="600" step="10" value="150" />
+          </label>
+          <label>
+            <span>扫出 exit <output id="exit-out">400</output> ms</span>
+            <input type="range" id="exit" min="60" max="900" step="10" value="400" />
+          </label>
+          <label>
+            <span>缓动 easing</span>
+            <select id="ease" style="font: inherit; border: 2px solid var(--ink); background: transparent; padding: 6px">
+              <option value="cubic-bezier(0.76, 0, 0.24, 1)">线上：快进快出（0.76 0 0.24 1）</option>
+              <option value="cubic-bezier(0.22, 1, 0.36, 1)">入场同款（0.22 1 0.36 1）</option>
+              <option value="cubic-bezier(0.65, 0, 0.35, 1)">对称缓入缓出</option>
+              <option value="cubic-bezier(0.85, 0, 0.15, 1)">更陡（戏剧感）</option>
+              <option value="linear">linear</option>
+            </select>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>文案 COPY</legend>
+          <label>
+            顶部小字 note
+            <input type="text" id="note" value="SELECT YOUR GAME." />
+          </label>
+          <label>
+            主文案 title
+            <input type="text" id="title" value="Play Menu" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>触发 TRIGGER</legend>
+          <div class="actions">
+            <button id="to-a">扫到 A 页</button>
+            <button id="to-b">扫到 B 页</button>
+            <button id="old" class="ghost">复刻旧版（clip-path · 无退场）</button>
+            <button id="reset" class="ghost">重置为线上参数</button>
+          </div>
+          <p class="note">
+            总时长 <output id="total">910</output> ms。
+            <label style="display: inline-flex; gap: 6px; margin: 0 0 0 10px">
+              <input type="checkbox" id="reduce" /> 模拟 prefers-reduced-motion（直达，不出层）
+            </label>
+          </p>
+        </fieldset>
+
+        <div class="invariants">
+          <h2>受保护的不变量 · check-wipe</h2>
+          层挂 body 且 aria-hidden、盖满那一刻才换路由、关键帧只动 transform、
+          结束必移除层、运行中防重入、reduced-motion 直达。<br />
+          改完参数跑 <code>npm run check:wipe</code>，节奏数值定稿后回写
+          <code>lib/ui-transitions.ts</code> 的 <code>defaultWipeTiming</code>。
+        </div>
+      </div>
+
+      <div class="demo" id="demo">
+        <div class="demo-page" id="page-a">
+          <b>PAGE A</b>
+          <span>演示目的地 · #review-a</span>
+        </div>
+        <div class="demo-page" id="page-b" hidden>
+          <b>PAGE B</b>
+          <span>演示目的地 · #review-b</span>
+        </div>
+        <span class="demo-hint">当前：<output id="current">A</output></span>
+      </div>
+    </main>
+
+    <script type="module">
+      import { wipeNavigate, defaultWipeTiming } from '/lib/ui-transitions.ts';
+      import '/app/globals.css';
+
+      const $ = (id) => document.getElementById(id);
+      const read = () => ({
+        cover: Number($('cover').value),
+        hold: Number($('hold').value),
+        exit: Number($('exit').value),
+        ease: $('ease').value,
+      });
+      const syncOutputs = () => {
+        const t = read();
+        $('cover-out').value = t.cover;
+        $('hold-out').value = t.hold;
+        $('exit-out').value = t.exit;
+        $('total').value = t.cover + t.hold + t.exit;
+      };
+      ['cover', 'hold', 'exit', 'ease'].forEach((id) =>
+        $(id).addEventListener('input', syncOutputs),
+      );
+      syncOutputs();
+
+      // 模拟 prefers-reduced-motion：wipeNavigate 在调用时读取 matchMedia
+      const realMatchMedia = window.matchMedia.bind(window);
+      window.matchMedia = (query) =>
+        query.includes('prefers-reduced-motion')
+          ? { matches: $('reduce').checked }
+          : realMatchMedia(query);
+
+      const pages = { '#review-a': 'A', '#review-b': 'B' };
+      const showPage = () => {
+        const which = pages[location.hash] ?? 'A';
+        $('page-a').hidden = which !== 'A';
+        $('page-b').hidden = which !== 'B';
+        $('current').value = which;
+      };
+      window.addEventListener('hashchange', showPage);
+      if (!pages[location.hash]) history.replaceState(null, '', '#review-a');
+      showPage();
+
+      const copy = () => ({ note: $('note').value, title: $('title').value });
+      $('to-a').onclick = () => wipeNavigate('#review-a', copy(), read());
+      $('to-b').onclick = () => wipeNavigate('#review-b', copy(), read());
+      $('reset').onclick = () => {
+        $('cover').value = defaultWipeTiming.cover;
+        $('hold').value = defaultWipeTiming.hold;
+        $('exit').value = defaultWipeTiming.exit;
+        $('ease').value = defaultWipeTiming.ease;
+        syncOutputs();
+      };
+
+      // 旧版复刻：clip-path 整屏重绘 + 盖满即卸载（无退场），仅作手感对照
+      $('old').onclick = () => {
+        const { cover } = read();
+        const layer = document.createElement('div');
+        layer.className = 'page-wipe';
+        layer.style.clipPath = 'inset(0 0 100% 0)';
+        layer.innerHTML = `<span>${copy().note}</span><b>${copy().title}</b>`;
+        document.body.append(layer);
+        const anim = layer.animate(
+          [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)' }],
+          { duration: cover, fill: 'forwards', easing: 'ease-in' },
+        );
+        anim.finished.then(() => {
+          layer.remove(); // 旧实现：路由一换组件卸载，色块瞬间消失
+          history.replaceState(null, '', location.hash === '#review-a' ? '#review-b' : '#review-a');
+          showPage();
+        });
+      };
+    </script>
+  </body>
+</html>

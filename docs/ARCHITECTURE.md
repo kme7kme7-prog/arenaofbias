@@ -21,16 +21,16 @@
 | `app/play-menu.tsx` | 玩法菜单 `#play`（仪器档案风列表）：`MODES` 数据 + dev 资格判定（决策 028），正式测评入口指向 `#formal/{id}` |
 | `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位：起源题 001 入口；复用 observatory.css 的 2D 仪器排版） |
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
-| `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等） |
+| `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等）、页面横扫过渡层 `.page-wipe`（`wipeNavigate` 动态创建） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
 | `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
 | `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变；「随机强弱」开关开启后投票强弱掺随机盐、每次生成名次格局不同，默认关闭保持可复现）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
-| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
-| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（与 `server/index.js` 规则镜像）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录 |
+| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes, scope)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；口径 `BoardScope`（决策 026）：mixed 混入全部票，formal 只计 mode=formal 的票，无 mode 的占位票只在混入口径计入；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
+| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（与 `server/index.js` 规则镜像）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录（带 mode，供只看正式口径过滤） |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/decryption.ts` | 盲测揭晓的「文档解密」：逐行测量身份文字、遮黑条错峰退开；`reveal()` 自起 rAF，减少动态效果直接落终态 |
-| `lib/ui-transitions.ts` | 可打断的界面过渡：`SurfaceTransition`（进出可从当前透明度/位移接续反向）；当前用于开发者面板 |
+| `lib/ui-transitions.ts` | 可打断的界面过渡与页面级横扫：`SurfaceTransition`（进出可从当前透明度/位移接续反向，开发者面板在用）；`wipeNavigate(hash, copy, timing?)` 全屏横扫换页——色块挂 body 独立于路由存活，transform 驱动扫入盖满时切路由、新页在遮挡下挂载、再扫出露出（首页主按钮与随机入场在用，文案随目的地）；默认节奏在 `defaultWipeTiming`（360/150/400），timing 覆盖仅供 reference 对照页调参 |
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
 | `components/account.tsx` | `AccountProvider` / `useAccount` / 登录注册 Dialog / `AccountButton`；窗口聚焦自动刷新会话 |
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
@@ -39,11 +39,14 @@
 | `server/index.js` | Express：静态托管 dist/、评论 GET/POST、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
-| `scripts/validate-placeholder.mjs` | 占位符系统校验（9 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
-| `scripts/validate-leaderboard.mjs` | 榜单校验（7 项）：空票空榜、排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、雷达确定性与值域；三模块拼合，localStorage 以 shim 代替 |
-| `scripts/validate-votes.mjs` | 投票校验（9 项）：前端 `validateVote`/`pairKeyOf` 规则；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、换作品可再投、非法 payload 400、流水升序、服务端返回能通过前端校验 |
+| `scripts/validate-placeholder.mjs` | 占位符系统校验（10 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤、随机强弱开关（开启后格局变化、关闭时可复现）；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
+| `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
+| `scripts/validate-votes.mjs` | 投票校验（9 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、换作品可再投、非法 payload 400、流水升序、服务端返回能通过前端校验 |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
+| `scripts/check-wipe.mjs` | 页面横扫过渡不变量断言（决策 029，8 项）：层挂 body、盖满才换路由、关键帧只动 transform、结束必清理、防重入、reduced-motion 直达、timing 覆盖生效；手写时钟 + 假 DOM，无需浏览器 |
+| `scripts/check-surface.mjs` | SurfaceTransition 不变量断言（决策 029，7 项）：开/关中途反向从当前透明度/位移接续（不跳变）、状态机与 hidden 托管、已隐藏时 hide 空操作、reduced 直达、dispose 可复用；假 getComputedStyle 会采样动画进行中的值 |
+| `reference/` | 动效对照调试页（决策 029）：`wipe-review.html`、`surface-review.html`，dev server 下访问 `/reference/*.html`；import 真实 `lib/ui-transitions.ts`（非复制品），调参滑杆 + 新旧对照 + 不变量清单，改动效前先在此调，定稿回写源码 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
 | `public/art/` | webp 素材（lunar、signal-a/b，首页预览与 WebWork 背景） |
 | `data/` | SQLite 本地库（comments.db），gitignored，勿手改 |
@@ -91,7 +94,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion`（或分开跑 `check:wipe` / `check:surface`）校验两个界面过渡的不变量，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
 
 环境变量（均有默认值，本地开发可不设）：
 

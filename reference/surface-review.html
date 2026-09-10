@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Surface Transition · 对照调试页</title>
+    <!-- 决策 029 的对照工具：SurfaceTransition（可打断过渡，开发者面板在用）
+         的调参沙盒。本页 import 真实 lib/ui-transitions.ts，不是复制品。
+         仅 dev server 下使用：http://localhost:5173/reference/surface-review.html -->
+    <style>
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--mono);
+        padding: 28px clamp(16px, 4vw, 56px) 60px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 14px;
+        border-bottom: 3px solid var(--ink);
+        padding-bottom: 14px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: -1px;
+      }
+      header span {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: var(--muted-foreground);
+      }
+      main {
+        max-width: 720px;
+        margin-top: 26px;
+      }
+      fieldset {
+        border: 2px solid var(--ink);
+        padding: 16px 18px 18px;
+        margin: 0 0 18px;
+      }
+      legend {
+        padding: 0 8px;
+        font-size: 11px;
+        letter-spacing: 3px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+      label > span {
+        display: flex;
+        justify-content: space-between;
+      }
+      output {
+        font-weight: 700;
+      }
+      input[type='range'] {
+        accent-color: var(--ink);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      button {
+        font: inherit;
+        font-size: 12px;
+        letter-spacing: 1px;
+        border: 2px solid var(--ink);
+        background: var(--ink);
+        color: var(--acid);
+        padding: 10px 16px;
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--ink);
+      }
+      button:active {
+        transform: translate(1px, 1px);
+      }
+      .readout {
+        font-size: 12px;
+        letter-spacing: 1px;
+        line-height: 2;
+        border: 2px dashed var(--ink);
+        padding: 12px 16px;
+        margin-bottom: 18px;
+      }
+      .readout b {
+        background: var(--ink);
+        color: var(--acid);
+        padding: 1px 8px;
+      }
+      .invariants {
+        border-top: 2px dashed var(--ink);
+        padding-top: 14px;
+        font-size: 12px;
+        line-height: 1.9;
+      }
+      .invariants h2 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        letter-spacing: 3px;
+      }
+      .invariants code {
+        background: var(--ink);
+        color: var(--acid);
+        padding: 1px 6px;
+      }
+      .note {
+        margin-top: 14px;
+        font-size: 11px;
+        letter-spacing: 1px;
+        line-height: 1.8;
+        color: var(--muted-foreground);
+      }
+
+      /* 面板本体：开发者面板同款结构（root 遮罩 + panel 抽屉） */
+      .demo-surface {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        background: #1c242399;
+      }
+      .demo-surface[hidden] {
+        display: none; /* class 的 display 会盖掉 UA 的 hidden 规则，须显式恢复 */
+      }
+      .demo-panel {
+        position: absolute;
+        inset: 0 0 0 auto;
+        width: min(420px, 88vw);
+        background: var(--ink);
+        color: var(--acid);
+        padding: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .demo-panel h2 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -1px;
+      }
+      .demo-panel p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.9;
+        letter-spacing: 1px;
+        color: var(--muted);
+      }
+      .demo-panel .actions button {
+        background: transparent;
+        color: var(--acid);
+        border-color: var(--acid);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Surface Transition</h1>
+      <span>可打断过渡 · 对照调试页 · DECISION 029</span>
+      <span>import 真实 lib/ui-transitions.ts</span>
+    </header>
+
+    <main>
+      <div class="readout">
+        state <b id="state">closed</b> ｜ hidden <b id="hidden">true</b> ｜ 活动动画
+        <b id="anims">0</b>
+      </div>
+
+      <fieldset>
+        <legend>节奏 RHYTHM</legend>
+        <label>
+          <span>进入 enter <output id="enter-out">300</output> ms</span>
+          <input type="range" id="enter" min="100" max="800" step="10" value="300" />
+        </label>
+        <label>
+          <span>退出 exit <output id="exit-out">200</output> ms</span>
+          <input type="range" id="exit" min="100" max="800" step="10" value="200" />
+        </label>
+        <p class="note">
+          时长是构造参数，改滑杆会重建实例。线上默认 300/200（开发者面板）。
+          <label style="display: inline-flex; gap: 6px; margin: 0">
+            <input type="checkbox" id="reduce" /> 模拟 prefers-reduced-motion
+          </label>
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend>触发 TRIGGER</legend>
+        <div class="actions">
+          <button id="open">打开</button>
+          <button id="close" class="ghost">关闭</button>
+          <button id="interrupt">开到一半立即关（核心不变量）</button>
+          <button id="finish" class="ghost">finish()</button>
+          <button id="dispose" class="ghost">dispose()</button>
+        </div>
+      </fieldset>
+
+      <div class="invariants">
+        <h2>受保护的不变量 · check-surface</h2>
+        中途反向必须从当前透明度/位移接续（不跳变）、opening/open/closing/closed
+        状态机与 hidden 托管、已隐藏时 hide 是空操作、reduced-motion 直达、
+        dispose 取消动画且可复用。<br />
+        改完跑 <code>npm run check:surface</code>；进出场时长定稿后回写调用处
+        的构造参数（线上：开发者面板 <code>components/dev-panel.tsx</code>）。
+      </div>
+    </main>
+
+    <div class="demo-surface" id="surface" hidden>
+      <div class="demo-panel" id="panel">
+        <h2>SURFACE PANEL</h2>
+        <p>
+          开到一半点「关闭」：面板应从当前透明度与位移接续反向，而不是闪回起点再退场。
+          这就是 SurfaceTransition 存在的理由。
+        </p>
+        <div class="actions">
+          <button id="close-in-panel">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { SurfaceTransition } from '/lib/ui-transitions.ts';
+      import '/app/globals.css';
+
+      const $ = (id) => document.getElementById(id);
+      const surface = $('surface');
+      const panel = $('panel');
+      let transition;
+
+      const rebuild = () => {
+        transition?.dispose();
+        transition = new SurfaceTransition(
+          surface,
+          panel,
+          Number($('enter').value),
+          Number($('exit').value),
+        );
+      };
+      ['enter', 'exit'].forEach((id) =>
+        $(id).addEventListener('input', () => {
+          $(`${id}-out`).value = $(id).value;
+          rebuild();
+        }),
+      );
+      rebuild();
+
+      const reduced = () => $('reduce').checked;
+      $('open').onclick = () => transition.show(reduced());
+      $('close').onclick = () => transition.hide(reduced());
+      $('close-in-panel').onclick = () => transition.hide(reduced());
+      $('interrupt').onclick = async () => {
+        // 先归位到关闭态，保证演示的是「从隐藏开到一半再反向」而不是从打开态重复 show
+        if (!surface.hidden) {
+          await new Promise((resolve) => transition.hide(reduced(), resolve));
+        }
+        transition.show(reduced());
+        setTimeout(() => transition.hide(reduced()), Number($('enter').value) / 2);
+      };
+      $('finish').onclick = () => transition.finish();
+      $('dispose').onclick = () => transition.dispose();
+
+      // 实时读出状态机（rAF 循环，页面隐藏时自动暂停）
+      const tick = () => {
+        $('state').textContent = surface.dataset.transition ?? '—';
+        $('hidden').textContent = String(surface.hidden);
+        $('anims').textContent = String(document.getAnimations().length);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

@@ -20,7 +20,10 @@
     "validate:placeholder": "node scripts/validate-placeholder.mjs",
     "validate:leaderboard": "node scripts/validate-leaderboard.mjs",
     "validate:scroll": "node scripts/validate-scroll-tour.mjs",
-    "validate:comments": "node scripts/validate-comments.mjs"
+    "validate:comments": "node scripts/validate-comments.mjs",
+    "check:wipe": "node scripts/check-wipe.mjs",
+    "check:surface": "node scripts/check-surface.mjs",
+    "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
