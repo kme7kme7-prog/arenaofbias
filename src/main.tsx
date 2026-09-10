@@ -3,6 +3,8 @@ import '@/app/account.css';
 import { createRoot } from 'react-dom/client';
 import Arena from '@/app/page';
 import { useEffect, useSyncExternalStore } from 'react';
+import PlayMenu from '@/app/play-menu';
+import Event from '@/app/event';
 import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
@@ -10,6 +12,9 @@ import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { prompts } from '@/lib/arena';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+// observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
+// 其 @import 的 spatial-fonts.css 同时为经典版移植的品牌字体供字体
+import '@/app/observatory.css';
 import '@/app/globals.css';
 import '@/app/home.css';
 import '@/app/library.css';
@@ -24,7 +29,7 @@ function subscribeRoute(callback: () => void) {
   window.addEventListener('hashchange', callback);
   return () => window.removeEventListener('hashchange', callback);
 }
-function App() {
+function Routes() {
   const route = useSyncExternalStore(
     subscribeRoute,
     () => window.location.hash,
@@ -37,8 +42,24 @@ function App() {
     }
   }, [route]);
   if (route === '#arena' || route === '#random') return null;
+  if (route === '#play') return <PlayMenu />;
+  if (route === '#event') return <Event />;
   if (route === '#prompts') return <PromptLibrary />;
   if (route === '#rank') return <Ranking />;
+  if (route.startsWith('#formal/')) {
+    const prompt = prompts.find((item) => item.id === route.slice(8));
+    if (prompt && currentPairs(prompt.id).length > 0)
+      return <Arena key={`formal-${prompt.id}`} prompt={prompt} formal />;
+    if (prompt)
+      return <PromptPreview key={`formal-${prompt.id}`} prompt={prompt} />;
+    return (
+      <div className="route-empty">
+        <h1>这个竞技场还未就绪。</h1>
+        <p>请从提示词库选择一个可比较的提示词。</p>
+        <a href="#prompts">前往提示词库 ↗</a>
+      </div>
+    );
+  }
   if (route.startsWith('#arena/')) {
     const prompt = prompts.find((item) => item.id === route.slice(7));
     if (prompt && currentPairs(prompt.id).length > 0)
@@ -54,9 +75,11 @@ function App() {
   }
   return <Home />;
 }
-createRoot(container).render(
+const reactRoot = createRoot(container);
+if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
+reactRoot.render(
   <AccountProvider>
-    <App />
+    <Routes />
     <DevPanel />
   </AccountProvider>,
 );

@@ -215,11 +215,21 @@ kbd {
 }
 .brand strong {
   display: block;
+  /* 字标移植自空间版 obs-brand：MiSans、普通字重 + BIAS 800，不再用酸底切角块 */
   font:
-    850 27px/1 'Bahnschrift',
-    'Arial Black',
+    400 26px/1 'MiSans',
+    'Bahnschrift',
+    'Microsoft YaHei',
     sans-serif;
-  letter-spacing: -0.8px;
+  letter-spacing: -0.7px;
+}
+.brand strong .brand-tag {
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  padding: 0;
+  margin-left: 0.14em;
+  clip-path: none;
 }
 .brand-tag {
   background: var(--acid);
@@ -3076,4 +3086,20 @@ kbd {
   background-size: 100% 7px, 100% 4px;
   background-position: bottom left, bottom left;
   background-repeat: no-repeat;
+}
+
+/* 娱乐测评静态模式牌（决策 024：废除全程公开的娱乐站队，不再可切换） */
+.mode-static-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #9ea999;
+  background: var(--ink);
+  color: #edf1e8;
+  font-size: 14px;
+  height: 40px;
+  padding: 0 17px;
+}
+.mode-static-label svg {
+  color: var(--acid);
 }

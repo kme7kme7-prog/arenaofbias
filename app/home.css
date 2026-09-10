@@ -49,18 +49,33 @@
 .lobby-brand {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 13px;
   text-decoration: none;
   color: inherit;
-  font: 700 23px var(--mono);
+  /* 字标移植自空间版 obs-brand：MiSans、400/800 双字重 */
+  font:
+    400 22px 'MiSans',
+    'Bahnschrift',
+    'Microsoft YaHei',
+    sans-serif;
+  letter-spacing: -0.7px;
   white-space: nowrap;
+}
+.lobby-brand .brand-tag {
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  padding: 0;
+  margin-left: 0.14em;
+  clip-path: none;
 }
 .lobby-brand small {
   display: block;
-  font-size: 10px;
-  letter-spacing: 2px;
-  margin-top: 5px;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  margin-top: 7px;
   color: #667361;
+  font-family: 'MiSans', 'Bahnschrift', 'Microsoft YaHei', sans-serif;
 }
 .lobby-mark {
   background: var(--ink);
@@ -876,4 +891,81 @@
   .lobby-leaving .lobby-wipe {
     clip-path: inset(0);
   }
+}
+
+/* 经典版玩法菜单（决策 023 备选形态：仪器档案风二维列表） */
+.play-classic-main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 70px 24px 90px;
+}
+.play-classic-main h1 {
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: -1px;
+  margin: 0 0 34px;
+}
+.play-classic-main h1 em {
+  font-style: normal;
+  color: #6b7a62;
+  font-weight: 400;
+}
+.play-classic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.play-classic-item {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  padding: 22px 6px;
+  border-top: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.25s;
+}
+.play-classic-list li:last-child .play-classic-item {
+  border-bottom: 1px solid var(--border);
+}
+a.play-classic-item:hover {
+  background: #d0d6cd;
+}
+.play-classic-item.locked {
+  opacity: 0.55;
+}
+.play-classic-idx {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #7c887b;
+}
+.play-classic-name b {
+  display: block;
+  font-size: 19px;
+}
+.play-classic-name small {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #7c887b;
+}
+.play-classic-desc {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #5b655f;
+}
+.play-classic-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.play-classic-note {
+  margin-top: 18px;
+  font-size: 11px;
+  color: #7c887b;
 }

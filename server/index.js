@@ -127,7 +127,7 @@ function validateComment(value) {
 
 // ---------- 投票校验（与 lib/votes.ts 规则保持一致） ----------
 
-const VOTE_MODES = ['blind', 'party'];
+const VOTE_MODES = ['blind', 'party', 'formal'];
 const pairKeyOf = (ridA, ridB) =>
   [...[ridA, ridB].sort((a, b) => a.localeCompare(b))].join('+');
 

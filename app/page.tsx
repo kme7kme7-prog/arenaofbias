@@ -28,9 +28,7 @@ import {
   Volume2,
   VolumeX,
   X,
-  Zap,
 } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -245,10 +243,18 @@ function Work({
   );
 }
 
-export default function Arena({ prompt }: { prompt: Prompt }) {
+export default function Arena({
+  prompt,
+  formal = false,
+}: {
+  prompt: Prompt;
+  // 正式测评（决策 024）：全程匿名、无评论区；地址 #formal/{promptId}
+  formal?: boolean;
+}) {
   const promptIndex = rounds.findIndex((item) => item.id === prompt.id);
   const [state, dispatch] = useReducer(arenaReducer, {
     ...initialState,
+    mode: formal ? 'formal' : 'blind',
     round: promptIndex,
     pendingRound: promptIndex,
   });
@@ -275,7 +281,9 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
     models: pair.map((entry) => entry.modelName),
     labels: pair.map((entry) => entry.title),
   };
-  const revealed = state.mode === 'party' || state.phase === 'result';
+  const revealed =
+    state.mode === 'party' ||
+    (state.phase === 'result' && state.mode !== 'formal');
   const transitioning = state.phase === 'transition';
   const blocked = state.phase === 'loading' || transitioning;
 
@@ -690,6 +698,13 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
       </header>
 
       <main className="main-terminal">
+        <div className="spatial-session" aria-label="评审进度">
+          <span>OBSERVATION / {round.id}</span>
+          {['观看作品', '做出选择', '身份揭晓'].map((label, index) => {
+            const active = index === (state.phase === 'result' ? 2 : state.phase === 'voting' || state.phase === 'locking' ? 1 : 0);
+            return <span key={label} className={active ? 'active' : ''}><i />0{index + 1} / {label}</span>;
+          })}
+        </div>
         <section className="command-row">
           <div className="section-heading">
             <span className="section-code">{'// SUBJECTIVE JUDGEMENT'}</span>
@@ -697,30 +712,17 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
               直觉，即是答案<span>。</span>
             </h1>
           </div>
-          <Tabs
-            value={state.mode}
-            onValueChange={(value) =>
-              dispatch({ type: 'MODE', mode: value as 'blind' | 'party' })
-            }
-            className="mode-tabs"
-            aria-label="评审模式"
-          >
-            <TabsList>
-              <TabsTrigger value="blind" disabled={blocked}>
-                <Fingerprint size={17} />
-                <span>认真盲测</span>
-              </TabsTrigger>
-              <TabsTrigger value="party" disabled={blocked}>
-                <Zap size={17} />
-                <span>娱乐站队</span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="mode-tabs mode-static" aria-label="评审模式">
+            <span className="mode-static-label">
+              <Fingerprint size={17} />
+              <span>{state.mode === 'formal' ? '正式测评' : '娱乐测评'}</span>
+            </span>
             <p>
-              {state.mode === 'blind'
-                ? '隐藏名字，只看作品。'
-                : '阵营已公开，喜欢就站这边。'}
+              {state.mode === 'formal'
+                ? '全程匿名：任何环节都不揭示模型名称，也没有评论区。'
+                : '隐藏名字，只看作品；做出选择后揭晓身份。'}
             </p>
-          </Tabs>
+          </div>
         </section>
 
         <section className="briefing" aria-label="本轮创作要求">
@@ -1030,7 +1032,11 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
 
         {state.phase === 'result' && state.choice && (
           <div className="afterparty-reveal">
-            {isPlaceholderMode() ? (
+            {state.mode === 'formal' ? (
+              <div className="placeholder-note">
+                正式测评：全程匿名，本模式不开放评论区。
+              </div>
+            ) : isPlaceholderMode() ? (
               <div className="placeholder-note">
                 占位符模式：评论区停用，占位数据不入库。
               </div>

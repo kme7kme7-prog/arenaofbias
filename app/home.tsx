@@ -46,17 +46,20 @@ export default function Home() {
     },
     [],
   );
-  const enter = () => {
+  const go = (hash: string) => {
     if (leaving) return;
     setLeaving(true);
     timer.current = setTimeout(
       () => {
-        window.location.hash = randomArenaHash();
+        window.location.hash = hash;
         window.scrollTo(0, 0);
       },
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 720,
     );
   };
+  // 决策 023：主按钮进入玩法菜单；页眉保留「随机入场」快速入口
+  const enter = () => go('#play');
+  const enterRandom = () => go(randomArenaHash());
   return (
     <div className={`lobby ${leaving ? 'lobby-leaving' : ''}`}>
       <div className="lobby-grid" aria-hidden="true" />
@@ -75,7 +78,7 @@ export default function Home() {
         </span>
         <button
           className="lobby-small-entry"
-          onClick={enter}
+          onClick={enterRandom}
           disabled={leaving}
         >
           随机入场 <ArrowUpRight size={17} />
@@ -104,8 +107,8 @@ export default function Home() {
             <button className="lobby-entry" onClick={enter} disabled={leaving}>
               <Fingerprint size={27} />
               <span>
-                {leaving ? '正在挑选竞技场' : '随机入场，凭直觉选'}
-                <small>QUICK MATCH / RANDOM ARENA</small>
+                {leaving ? '正在进入' : '进入评测，凭直觉选'}
+                <small>SELECT YOUR GAME / PLAY MENU</small>
               </span>
               <ArrowRight size={29} />
             </button>
@@ -116,7 +119,7 @@ export default function Home() {
               看看偏好榜 <ArrowUpRight size={20} />
             </a>
             <span className="lobby-entry-note">
-              随机选一个提示词，比较它的模型结果。
+              进入玩法菜单：正式测评、娱乐测评或特别赛。
             </span>
           </div>
           <div className="lobby-format-switch" aria-label="预览作品类型">

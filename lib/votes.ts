@@ -49,7 +49,8 @@ export function validateVote(value: unknown): ArenaVoteDraft | null {
   }
   if (candidate.winnerRid === candidate.loserRid) return null;
   if (candidate.winnerMid === candidate.loserMid) return null;
-  if (candidate.mode !== 'blind' && candidate.mode !== 'party') return null;
+  if (candidate.mode !== 'blind' && candidate.mode !== 'party' && candidate.mode !== 'formal')
+    return null;
   return {
     id: candidate.id as string,
     promptId: candidate.promptId as string,

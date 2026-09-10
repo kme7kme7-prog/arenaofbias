@@ -18,6 +18,8 @@
 | `app/prompt-library.tsx` + `library.css` | 提示词库：搜索、类型筛选、每题模型数/结果数（过滤 isDemo）、入口 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页：提示词全文 + isDemo HTML 样例 iframe（sandbox） |
 | `app/ranking.tsx` + `ranking.css` | 偏好榜 `#rank`：综合/写作/网页三赛道 tab、Elo 排行表（暂定徽章、领奖台层次）、右侧模型档案卡（头部染模型主题色，决策 017；切模型走色块横推过场、名字在抹片掩护下更换、雷达外侧静止内侧插值挪动）、空态（无投票 / 分类数据不足）；`prototypes/ranking.html` 是其视觉定稿原型 |
+| `app/play-menu.tsx` | 玩法菜单 `#play`（仪器档案风列表）：`MODES` 数据 + dev 资格判定（决策 028），正式测评入口指向 `#formal/{id}` |
+| `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位：起源题 001 入口；复用 observatory.css 的 2D 仪器排版） |
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
@@ -120,3 +122,9 @@ npm start          # 生产形态：http://localhost:3000
 - 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。
 - `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿在现接口上静默截断——截断会让客户端 Elo 重放失真（见 `server/index.js` 注释）。
 - vite dev 代理必须 `changeOrigin: false`（`vite.config.ts` 有注释）：否则服务端 sameOrigin 校验在 dev 下全部 403；生产不经 vite，不受影响。
+
+## 品牌与 2D 仪器排版（2026-09-10）
+
+- 空间版已整体移除（决策 027）：Three.js 场景、空间/经典切换、`app/observatory.tsx`/`home-spatial.tsx`/`archive-stage`/`spatial-motion`/`archive-audio` 均已删除，three 依赖已卸载。
+- 保留部分：`app/observatory.css`（Event 页与 2D 仪器排版仍在用，含大量已无引用的历史规则，待清理）与 `app/spatial-fonts.css` + `public/fonts/`（MiSans 分包，全站页头字标使用）；`components/rolling-label.tsx`（榜单标题滚动）。
+- `#formal/{promptId}` 路由进入正式测评：Arena 组件 `formal` prop → reducer 初始 mode='formal'，永不揭晓、无评论区；mode 全链路（lib/arena.ts Mode / lib/votes.ts / server VOTE_MODES）已放行 formal。

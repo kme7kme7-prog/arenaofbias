@@ -6,7 +6,7 @@ export type Phase =
   | 'locking'
   | 'result'
   | 'transition';
-export type Mode = 'blind' | 'party';
+export type Mode = 'blind' | 'party' | 'formal';
 export type ArenaState = {
   phase: Phase;
   round: number;

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, RotateCcw } from 'lucide-react';
+import { RollingLabel } from '@/components/rolling-label';
 import { RollingNumber } from '@kitlangton/rolling-number/react';
 import '@kitlangton/rolling-number/styles.css';
 import {
@@ -88,7 +89,7 @@ function Radar({
   const [display, setDisplay] = useState(values);
   const previous = useRef(values);
   useEffect(() => {
-    const from = previous.current;
+    const from = [...previous.current];
     if (reduced() || from.every((v, i) => v === values[i])) {
       previous.current = values;
       setDisplay(values);
@@ -99,7 +100,9 @@ function Radar({
     const tick = (now: number) => {
       const t = Math.max(0, Math.min(1, (now - start) / 620));
       const ease = t * t * (3 - 2 * t);
-      setDisplay(from.map((v, i) => v + (values[i] - v) * ease));
+      const next = from.map((v, i) => v + (values[i] - v) * ease);
+      previous.current = next;
+      setDisplay(next);
       if (t < 1) frame = requestAnimationFrame(tick);
       else previous.current = values;
     };
@@ -242,7 +245,7 @@ function ProfilePanel({
       </div>
       <div className="rank-panel-name">
         <div>
-          <h2>{shown.name}</h2>
+          <h2><RollingLabel text={shown.name} reduced={reduced()} /></h2>
           <small>{shown.sub}</small>
         </div>
         <div className="rank-panel-rank">
