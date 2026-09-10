@@ -16,6 +16,7 @@ import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
 // 其 @import 的 spatial-fonts.css 同时为经典版移植的品牌字体供字体
 import '@/app/observatory.css';
 import '@/app/globals.css';
+import '@/app/game-transitions.css';
 import '@/app/home.css';
 import '@/app/library.css';
 import '@/app/dev.css';

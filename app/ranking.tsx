@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, RotateCcw } from 'lucide-react';
+import { bandsNavigate } from '@/lib/game-transitions';
 import { RollingLabel } from '@/components/rolling-label';
 import { RollingNumber } from '@kitlangton/rolling-number/react';
 import '@kitlangton/rolling-number/styles.css';
@@ -483,7 +484,15 @@ export default function Ranking() {
   return (
     <div className="rank-page">
       <header className="rank-header">
-        <a className="lobby-brand" href="#home" aria-label="回到首页">
+        <a
+          className="lobby-brand"
+          href="#home"
+          aria-label="回到首页"
+          onClick={(e) => {
+            e.preventDefault();
+            bandsNavigate('#home');
+          }}
+        >
           <span className="lobby-mark" aria-hidden="true">
             ≡
           </span>

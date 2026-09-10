@@ -23,7 +23,8 @@
     "validate:comments": "node scripts/validate-comments.mjs",
     "check:wipe": "node scripts/check-wipe.mjs",
     "check:surface": "node scripts/check-surface.mjs",
-    "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs"
+    "check:game": "node scripts/check-game-transitions.mjs",
+    "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

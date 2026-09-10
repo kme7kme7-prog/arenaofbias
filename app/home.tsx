@@ -1,6 +1,7 @@
 import { AccountButton } from '@/components/account';
 import { useRef, useState } from 'react';
 import { randomArenaHash } from '@/lib/arena';
+import { createGameTransition, bandsNavigate } from '@/lib/game-transitions';
 import { wipeNavigate, type PageWipeCopy } from '@/lib/ui-transitions';
 import {
   ArrowUpRight,
@@ -36,6 +37,10 @@ const formats = [
   },
 ];
 
+// 档案锁定过场的跨实例防重入：模块自身没有全局锁（对照页需要多实例预览），
+// 接入侧负责——过渡进行中（含盖满后返回首页重挂载的窗口期）不允许再触发
+let frameTransitionRunning = false;
+
 export default function Home() {
   const [format, setFormat] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -47,8 +52,23 @@ export default function Home() {
     setLeaving(true);
     wipeNavigate(hash, copy);
   };
-  // 决策 023：主按钮进入玩法菜单；页眉保留「随机入场」快速入口
-  const enter = () => go('#play', { note: 'SELECT YOUR GAME.', title: 'Play Menu' });
+  // 决策 023：主按钮进入玩法菜单；页眉保留「随机入场」快速入口。
+  // 决策 032：主按钮改走档案锁定过场（lib/game-transitions.ts 的 frame），
+  // 盖满时经 onCovered 切路由；随机入场仍走 wipeNavigate 横扫
+  const enter = () => {
+    if (leaving || frameTransitionRunning) return;
+    setLeaving(true);
+    frameTransitionRunning = true;
+    const transition = createGameTransition('frame', {
+      onCovered: () => {
+        window.location.hash = '#play';
+      },
+      onFinish: () => {
+        frameTransitionRunning = false;
+      },
+    });
+    transition.play();
+  };
   const enterRandom = () =>
     go(randomArenaHash(), { note: 'YOUR INSTINCT MATTERS.', title: 'Round Start' });
   return (
@@ -103,10 +123,24 @@ export default function Home() {
               </span>
               <ArrowRight size={29} />
             </button>
-            <a className="lobby-library-entry" href="#prompts">
+            <a
+              className="lobby-library-entry"
+              href="#prompts"
+              onClick={(e) => {
+                e.preventDefault();
+                bandsNavigate('#prompts');
+              }}
+            >
               先逛逛提示词库 <ArrowUpRight size={20} />
             </a>
-            <a className="lobby-library-entry" href="#rank">
+            <a
+              className="lobby-library-entry"
+              href="#rank"
+              onClick={(e) => {
+                e.preventDefault();
+                bandsNavigate('#rank');
+              }}
+            >
               看看偏好榜 <ArrowUpRight size={20} />
             </a>
             <span className="lobby-entry-note">

@@ -1,6 +1,7 @@
 import { AccountButton } from '@/components/account';
 import { useState, type ReactNode } from 'react';
 import { ArrowUpRight, ArrowRight, Search, Shuffle } from 'lucide-react';
+import { bandsNavigate } from '@/lib/game-transitions';
 import { prompts } from '@/lib/arena';
 import {
   currentPairs,
@@ -77,7 +78,15 @@ export default function PromptLibrary() {
     <div className="lobby prompt-library">
       <div className="lobby-grid" aria-hidden="true" />
       <header className="lobby-header">
-        <a className="lobby-brand" href="#home" aria-label="回到首页">
+        <a
+          className="lobby-brand"
+          href="#home"
+          aria-label="回到首页"
+          onClick={(e) => {
+            e.preventDefault();
+            bandsNavigate('#home');
+          }}
+        >
           <span className="lobby-mark">≡</span>
           <span>
             ARENA OF <b className="brand-tag">BIAS</b>
@@ -215,7 +224,15 @@ export default function PromptLibrary() {
       </main>
       <footer className="lobby-footer">
         <span>ONE PROMPT. DIFFERENT ANSWERS.</span>
-        <a href="#home">返回首页 ↗</a>
+        <a
+          href="#home"
+          onClick={(e) => {
+            e.preventDefault();
+            bandsNavigate('#home');
+          }}
+        >
+          返回首页 ↗
+        </a>
       </footer>
     </div>
   );

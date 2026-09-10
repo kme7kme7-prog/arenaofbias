@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>过场研究室 · ARENA OF BIAS</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8ebe1;
+        color: #262c25;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      header {
+        padding: 28px 4vw 20px;
+        border-bottom: 1px solid #aab2a3;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+      }
+      header b {
+        font-size: 24px;
+        letter-spacing: -1px;
+      }
+      header span,
+      .eyebrow {
+        font: 11px monospace;
+        letter-spacing: 2px;
+      }
+      a {
+        color: inherit;
+      }
+      main {
+        max-width: 1500px;
+        margin: auto;
+        padding: 28px 4vw;
+      }
+      .intro {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 52px);
+        letter-spacing: -2px;
+        margin: 12px 0;
+      }
+      p {
+        font-size: 13px;
+        line-height: 1.8;
+        color: #5d6657;
+        margin: 8px 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+      }
+      .tabs button {
+        padding: 14px 24px;
+        border: 1px solid #333d2b;
+        background: transparent;
+      }
+      .tabs button[aria-selected='true'] {
+        background: #273024;
+        color: #deef7d;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 24px;
+      }
+      .screen {
+        position: relative;
+        aspect-ratio: 16/9;
+        overflow: hidden;
+        background: #29342d;
+        border: 1px solid #273024;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        padding: 5%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: #f4f6e8;
+        background:
+          radial-gradient(ellipse at 80% 30%, #8a9a7280, transparent 50%),
+          linear-gradient(125deg, #1e302b, #52614b);
+      }
+      .scene:after {
+        content: '';
+        position: absolute;
+        right: 10%;
+        top: 18%;
+        width: 29%;
+        height: 66%;
+        border: 1px solid #e8f3ca70;
+        transform: rotate(24deg);
+        box-shadow:
+          20px 20px 0 #b4d39315,
+          40px 40px 0 #b4d39310;
+      }
+      .scene.destination {
+        background:
+          radial-gradient(ellipse at 80% 20%, #d7ed87, transparent 50%), #c3ceb2;
+        color: #283024;
+      }
+      .scene small {
+        letter-spacing: 3px;
+        font: 11px monospace;
+      }
+      .scene h2 {
+        font-size: clamp(32px, 5vw, 72px);
+        letter-spacing: -3px;
+        line-height: 0.98;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .scene footer {
+        font: 10px monospace;
+        letter-spacing: 2px;
+      }
+      .transport {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .transport button {
+        padding: 10px 16px;
+        background: #283024;
+        color: #e7eecc;
+        border: 0;
+      }
+      .transport button.secondary {
+        background: transparent;
+        border: 1px solid #8b9680;
+        color: #283024;
+      }
+      .transport output {
+        margin-left: auto;
+        font: 12px monospace;
+      }
+      .timeline {
+        width: 100%;
+        accent-color: #333e2d;
+      }
+      .stages {
+        display: flex;
+        justify-content: space-between;
+        font: 10px monospace;
+        margin: 7px 0 24px;
+        color: #68735d;
+      }
+      .panel {
+        border-top: 3px solid #303a2a;
+        padding-top: 16px;
+      }
+      .panel label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 24px;
+      }
+      .panel input[type='text'],
+      .panel select {
+        width: 100%;
+        padding: 10px;
+        margin-top: 9px;
+        background: transparent;
+        border: 1px solid #a2ac97;
+      }
+      .panel input[type='range'] {
+        width: 100%;
+        accent-color: #39482d;
+        margin-top: 10px;
+      }
+      .panel h3 {
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin: 4px 0 25px;
+      }
+      .steps {
+        border-top: 1px solid #aab2a3;
+        padding-top: 15px;
+      }
+      .steps b {
+        font-size: 13px;
+      }
+      .links {
+        font: 11px monospace;
+        line-height: 2;
+        margin-top: 24px;
+      }
+      @media (max-width: 850px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .intro {
+          display: block;
+        }
+        .tabs {
+          margin-top: 20px;
+        }
+        .panel {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .panel h3 {
+          grid-column: 1/-1;
+        }
+        .transport {
+          flex-wrap: wrap;
+        }
+        header span {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>ARENA OF BIAS</b><span>MOTION STUDIES / 001—002</span
+      ><a href="/reference/wipe-review.html">原横扫对照 ↗</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <div class="eyebrow">REFERENCE / GAME TRANSITIONS</div>
+          <h1>让切换成为一次入场。</h1>
+          <p>
+            两套本站风格过场。拖动时间轴看构图，播放看节奏；全屏查看实际过场尺度。
+          </p>
+        </div>
+        <div class="tabs">
+          <button id="frame" aria-selected="true">01 档案锁定</button
+          ><button id="bands" aria-selected="false">02 斜向切片</button>
+        </div>
+      </div>
+      <div class="workspace">
+        <div>
+          <div class="screen" id="screen">
+            <div class="scene" id="scene">
+              <small>ARENA OF BIAS / 001</small>
+              <h2 id="scene-title">TRUST YOUR<br />INSTINCT.</h2>
+              <footer id="scene-footer">出发画面 / BEFORE TRANSITION</footer>
+            </div>
+          </div>
+          <div class="transport">
+            <button id="play">播放过场 ↗</button
+            ><button class="secondary" id="pause">暂停</button
+            ><button class="secondary" id="full">全屏播放</button
+            ><button class="secondary" id="reset">复位</button
+            ><output id="clock">0 / 2700 ms</output>
+          </div>
+          <input
+            aria-label="逐帧时间轴"
+            class="timeline"
+            id="timeline"
+            type="range"
+            min="0"
+            max="2700"
+            value="0"
+            step="1"
+          />
+          <div class="stages" id="stages"></div>
+          <div class="steps">
+            <b id="description-title"></b>
+            <p id="description"></p>
+          </div>
+        </div>
+        <aside class="panel">
+          <h3>PLAYBACK SETTINGS</h3>
+          <label
+            >播放速度<select id="speed">
+              <option value="1">1× 正常</option>
+              <option value="0.5">0.5× 慢放</option>
+              <option value="0.25">0.25× 逐段观察</option>
+              <option value="1.5">1.5× 紧凑</option>
+            </select></label
+          >
+          <label
+            >中段节奏 <output id="hold-value">650</output> ms<input
+              id="hold"
+              type="range"
+              min="200"
+              max="1800"
+              value="650"
+              step="50"
+          /></label>
+          <label
+            >品牌文字<input
+              id="title"
+              type="text"
+              maxlength="24"
+              value="ARENA OF BIAS"
+          /></label>
+          <label><input type="checkbox" id="reduced" /> 模拟减少动态效果</label>
+          <p>
+            纸灰绿、深墨与酸黄。方形档案锁定与斜向索引切片；保留阶段节奏，重新设计图形、排版与退场方向。
+          </p>
+          <div class="links">
+            检查：node scripts/check-game-transitions.mjs<br />模块：lib/game-transitions.ts<br /><a
+              href="/reference/surface-review.html"
+              >面板动效对照 ↗</a
+            >
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script type="module">
+      import {
+        createGameTransition,
+        gameTransitionTiming,
+      } from '/lib/game-transitions.ts';
+      import '/app/game-transitions.css';
+      const $ = (id) => document.getElementById(id);
+      let kind = 'frame',
+        controller,
+        completed = false,
+        fullscreen = false;
+      const scene = (after) => {
+        $('scene').classList.toggle('destination', after);
+        $('scene-title').innerHTML = after
+          ? 'SELECT YOUR<br>GAME.'
+          : 'TRUST YOUR<br>INSTINCT.';
+        $('scene-footer').textContent = after
+          ? '目的画面 / AFTER TRANSITION'
+          : '出发画面 / BEFORE TRANSITION';
+      };
+      function build(full = false) {
+        controller?.dispose();
+        completed = false;
+        $('pause').textContent = '继续';
+        fullscreen = full;
+        scene(false);
+        const timing = gameTransitionTiming(kind, Number($('hold').value));
+        $('timeline').max = timing.duration;
+        controller = createGameTransition(kind, {
+          parent: full ? undefined : $('screen'),
+          title: $('title').value,
+          hold: Number($('hold').value),
+          speed: Number($('speed').value),
+          reduced:
+            $('reduced').checked ||
+            matchMedia('(prefers-reduced-motion: reduce)').matches,
+          onFrame(time, duration) {
+            $('timeline').value = time;
+            $('clock').value = `${Math.round(time)} / ${duration} ms`;
+            scene(time >= timing.covered);
+          },
+          onCovered: () => scene(true),
+          onFinish: () => {
+            completed = true;
+            $('pause').textContent = '重播';
+            $('timeline').value = timing.duration;
+            $('clock').value = `${timing.duration} / ${timing.duration} ms`;
+            fullscreen = false;
+          },
+        });
+        controller.seek(0);
+        $('stages').innerHTML =
+          `<span>0 / ${kind === 'frame' ? '方框锁定' : '深墨铺屏'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
+      }
+      const descriptions = {
+        frame: [
+          '01 / ARCHIVE LOCK',
+          '纸页快速上推盖住旧画面 → 方框锁定、字标从细线后滑入 → 整张档案继续向上抽离，清楚露出新画面。',
+        ],
+        bands: [
+          '02 / DIAGONAL INDEX',
+          '酸黄前锋、纸色夹层与深墨幕片组成一个整体，同向斜切推进；盖满时轻微前移，随后加速带出新页面。',
+        ],
+      };
+      function select(next) {
+        kind = next;
+        for (const name of ['frame', 'bands'])
+          $(name).setAttribute('aria-selected', String(kind === name));
+        $('description-title').textContent = descriptions[kind][0];
+        $('description').textContent = descriptions[kind][1];
+        build();
+      }
+      $('frame').onclick = () => select('frame');
+      $('bands').onclick = () => select('bands');
+      $('play').onclick = () => {
+        build();
+        $('pause').textContent = '暂停';
+        controller.play();
+      };
+      $('full').onclick = () => {
+        build(true);
+        $('pause').textContent = '暂停';
+        controller.play();
+      };
+      $('pause').onclick = () => {
+        if (completed) build();
+        if ($('pause').textContent === '继续') {
+          $('pause').textContent = '暂停';
+          controller.play();
+        } else {
+          controller.pause();
+          $('pause').textContent = '继续';
+        }
+      };
+      $('reset').onclick = () => {
+        $('pause').textContent = '暂停';
+        build();
+      };
+      $('timeline').oninput = () => {
+        const time = Number($('timeline').value);
+        if (completed || fullscreen) build();
+        controller.pause();
+        controller.seek(time);
+        $('pause').textContent = '继续';
+      };
+      for (const id of ['speed', 'hold', 'title', 'reduced'])
+        $(id).onchange = () => {
+          $('hold-value').value = $('hold').value;
+          build();
+        };
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && fullscreen) build();
+      });
+      select('frame');
+    </script>
+  </body>
+</html>

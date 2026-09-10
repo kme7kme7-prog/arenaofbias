@@ -885,13 +885,23 @@
   border-top: 1px solid var(--border);
   text-decoration: none;
   color: inherit;
-  transition: background 0.25s;
+  transition:
+    background 0.25s,
+    transform 0.25s,
+    box-shadow 0.25s;
 }
 .play-classic-list li:last-child .play-classic-item {
   border-bottom: 1px solid var(--border);
 }
+/* 行悬停浮起（决策 036 用户点名加回）：lobby-mark 同款硬投影动作 */
 a.play-classic-item:hover {
-  background: #d0d6cd;
+  background: var(--paper);
+  transform: translate(-2px, -3px);
+  box-shadow: 4px 5px 0 #a2ad87;
+}
+a.play-classic-item:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 #a2ad87;
 }
 .play-classic-item.locked {
   opacity: 0.55;

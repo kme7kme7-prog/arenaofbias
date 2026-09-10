@@ -46,7 +46,8 @@
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `scripts/check-wipe.mjs` | 页面横扫过渡不变量断言（决策 029，8 项）：层挂 body、盖满才换路由、关键帧只动 transform、结束必清理、防重入、reduced-motion 直达、timing 覆盖生效；手写时钟 + 假 DOM，无需浏览器 |
 | `scripts/check-surface.mjs` | SurfaceTransition 不变量断言（决策 029，7 项）：开/关中途反向从当前透明度/位移接续（不跳变）、状态机与 hidden 托管、已隐藏时 hide 空操作、reduced 直达、dispose 可复用；假 getComputedStyle 会采样动画进行中的值 |
-| `reference/` | 动效对照调试页（决策 029）：`wipe-review.html`、`surface-review.html`，dev server 下访问 `/reference/*.html`；import 真实 `lib/ui-transitions.ts`（非复制品），调参滑杆 + 新旧对照 + 不变量清单，改动效前先在此调，定稿回写源码 |
+| `lib/game-transitions.ts` + `app/game-transitions.css` | 新过场（决策 031–034）：`createGameTransition('frame'/'bands')`，rAF 推进共享 WAAPI 轨道、盖满才回调 `onCovered`、支持 play/pause/seek/dispose；frame 接首页主按钮（进 `#play`，防重入锁在 home.tsx），bands 经 `bandsNavigate` 接首页↔题库/偏好榜 |
+| `reference/` | 动效对照调试页（决策 029）：`wipe-review.html`、`surface-review.html`、`game-transitions-review.html`，dev server 下访问 `/reference/*.html`；import 真实 `lib/` 模块（非复制品），调参控件 + 新旧对照 + 不变量清单，改动效前先在此调，定稿回写源码 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
 | `public/art/` | webp 素材（lunar、signal-a/b，首页预览与 WebWork 背景） |
 | `data/` | SQLite 本地库（comments.db），gitignored，勿手改 |
@@ -94,7 +95,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion`（或分开跑 `check:wipe` / `check:surface`）校验两个界面过渡的不变量，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion` 校验三个界面过渡（wipe / surface / game）的不变量，或分开跑 `check:wipe` / `check:surface` / `check:game`，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
 
 环境变量（均有默认值，本地开发可不设）：
 
@@ -131,3 +132,25 @@ npm start          # 生产形态：http://localhost:3000
 - 空间版已整体移除（决策 027）：Three.js 场景、空间/经典切换、`app/observatory.tsx`/`home-spatial.tsx`/`archive-stage`/`spatial-motion`/`archive-audio` 均已删除，three 依赖已卸载。
 - 保留部分：`app/observatory.css`（Event 页与 2D 仪器排版仍在用，含大量已无引用的历史规则，待清理）与 `app/spatial-fonts.css` + `public/fonts/`（MiSans 分包，全站页头字标使用）；`components/rolling-label.tsx`（榜单标题滚动）。
 - `#formal/{promptId}` 路由进入正式测评：Arena 组件 `formal` prop → reducer 初始 mode='formal'，永不揭晓、无评论区；mode 全链路（lib/arena.ts Mode / lib/votes.ts / server VOTE_MODES）已放行 formal。
+
+## 新过场（2026-09-11；frame 与 bands 均已接入主站，决策 032/033）
+
+**两套均已接入生产**：档案锁定（frame）——首页主按钮（进玩法菜单 `#play`）；一体斜幕（bands）——首页→提示词库 / 偏好榜，及两页返回首页，走 `bandsNavigate`（1.25× 播放，决策 036：总长约 1120ms、盖满约 416ms）。两者均为盖满时切路由、接入侧模块级锁防重入（home.tsx 的 `frameTransitionRunning` 与 lib 内 `bandsNavRunning`）。页眉「随机入场」仍走 `wipeNavigate`。竞技场返回、特别赛页内链接等入口未接入（决策 033 边界）。视觉定稿见决策 034：网格维持 Codex 原版密度，frame 中央组件锁定框 22cqw / 字标 3.2cqw / 残影 27cqw。
+
+- `lib/game-transitions.ts`：`createGameTransition(kind, options)`（kind 为 `frame` / `bands`；`gameTransitionTiming` 是时间轴来源）与导航封装 `bandsNavigate(hash)`。
+- `app/game-transitions.css`：两套过场专用样式（纸灰绿 / 深墨 / 酸黄），生产与对照页共用的唯一来源，main.tsx 已挂载。
+- `reference/game-transitions-review.html`：开发服务下打开同路径；直接导入上述模块与 `app/game-transitions.css`，支持播放、暂停/继续、重播、时间轴拖动、全屏层、速度、中段节奏、品牌文字和 reduced-motion 模拟。不是主站生产构建入口。
+- `scripts/check-game-transitions.mjs`：22 项契约检查，`npm run check:game`（已并入 `check:motion`）。
+
+### 最终视觉与节奏
+
+- **档案锁定（frame）**：不透明纸页 420ms 上推盖满；四角方框收拢，字标从细线后滑入；整页继续向上退出 650ms。默认 hold=650ms，总长 1720ms。背景无长时间交叉渐变，中央无黑底 logo 牌。
+- **斜向切片（bands，当前为一体斜幕）**：酸黄 / 纸色边缘与深墨主体嵌套在同一运动组件；斜边 -14°，同向横推。520ms 到达覆盖点，中段按 hold×0.35 计算并从 translateX(0%) 持续前移到 3%，随后 650ms 加速退出；默认总长 1397.5ms。已废弃三条独立飘带及其匀速/S 曲线方案。
+
+### 生命周期与验证边界
+
+控制器提供 `play / pause / seek / dispose`，播放与拖动使用同一组暂停的 WAAPI 轨道，由 rAF 统一推进；`seek` 不触发 `onCovered` 导航回调。完整覆盖时才回调，延迟帧跨过覆盖点时先钳到覆盖时刻，避免直接跳到露出阶段。结束或 dispose 清理动画与层；reduced 模式播放直接执行覆盖回调并清理。
+
+默认层挂 body；对照页内嵌预览传 parent。接主站的调用者需接线 `onCovered` 与目标路由，并处理重复触发——模块自身**有意**不设跨实例全局锁（对照页需要多实例预览），首处接入（首页主按钮）以 home.tsx 的模块级 `frameTransitionRunning` 锁补齐；后续再接入其他入口时照此模式处理，或经用户拍板后把锁下沉进模块。
+
+断言涵盖生命周期、覆盖回调、拖动隔离、暂停恢复、取消、reduced、不透明纸页覆盖点，以及一体幕片共享轨道和持续前移。视觉实测依赖浏览器；假 DOM 检查不证明任意屏幕比例下的像素覆盖。
