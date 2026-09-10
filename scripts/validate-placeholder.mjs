@@ -183,4 +183,45 @@ check('切换模型数量后，旧阵容的占位投票被自动过滤', () => {
   clearPlaceholderVotes();
 });
 
+check('随机强弱：开启后每次生成的名次格局不同，关闭时榜首稳定', () => {
+  const winCounts = (votes) => {
+    const wins = new Map();
+    for (const vote of votes)
+      wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
+    return [...wins.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([id, n]) => `${id}:${n}`);
+  };
+  const topOf = (votes) => {
+    const wins = new Map();
+    for (const vote of votes)
+      wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
+    return [...wins.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  };
+  localStorage.setItem(
+    'arenaofbias:dev',
+    JSON.stringify({
+      placeholderMode: true,
+      placeholderModelCount: 8,
+      randomStrength: true,
+    }),
+  );
+  // 开启后掺入随机盐：两次生成的胜场分布不应相同（同分布概率可忽略）
+  assert.notDeepEqual(
+    winCounts(generatePlaceholderVotes(300)),
+    winCounts(generatePlaceholderVotes(300)),
+  );
+  localStorage.setItem(
+    'arenaofbias:dev',
+    JSON.stringify({
+      placeholderMode: true,
+      placeholderModelCount: 8,
+      randomStrength: false,
+    }),
+  );
+  // 关闭时强弱固定：两次生成虽然对阵随机，但榜首都应是种子最强的 ph-03
+  assert.equal(topOf(generatePlaceholderVotes(300)), 'ph-03');
+  assert.equal(topOf(generatePlaceholderVotes(300)), 'ph-03');
+});
+
 console.log(`${tests} placeholder checks passed.`);

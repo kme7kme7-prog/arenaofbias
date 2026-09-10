@@ -148,8 +148,8 @@
   bottom: 4px;
   background: #1c2423;
   transition:
-    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   pointer-events: none;
 }
 .rank-replay {
@@ -208,21 +208,15 @@
   background: #f2f4ea;
   border-bottom: 1px solid #cdd6c1;
   isolation: isolate;
+  /* 与原型一致：换位时榜首深底、选中底色、名次投影都缓慢过渡，不瞬变 */
+  transition:
+    background 0.65s,
+    box-shadow 0.65s;
 }
-@keyframes rank-row-in {
-  from {
-    opacity: 0;
-    transform: translateX(-35px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-.rank-board .rank-row {
-  animation: rank-row-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-/* 首行入场后的酸色扫光（原型 row-flash） */
+/* 行的入场（含计分淡入）由 ranking.tsx 的 WAAPI 播放，不再用常驻 CSS 动画：
+   常驻动画的内联 animation-delay 随名次变化会在换赛道时整段重播 */
+/* 首行的酸色扫光（原型 row-flash）：入场/重播由 CSS 类变化触发，
+   赛道切换时若首行未易主则由 ranking.tsx 的 WAAPI 重放 */
 @keyframes rank-row-flash {
   to {
     transform: translateX(110%);
@@ -231,31 +225,19 @@
 .rank-board .rank-row.first {
   overflow: hidden;
 }
-.rank-board .rank-row.first::after {
+.rank-row-flash {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, #d9fb512c, transparent);
   transform: translateX(-100%);
-  animation: rank-row-flash 1.1s 0.4s ease-in-out;
   pointer-events: none;
   z-index: 2;
 }
-/* 每行评分数字的上浮淡入，延迟继承所在行的入场延迟 */
-@keyframes rank-score-in {
-  from {
-    opacity: 0.25;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.rank-board .rank-row.first .rank-row-flash {
+  animation: rank-row-flash 1.1s 0.4s ease-in-out;
 }
-.rank-board .rank-score {
-  animation: rank-score-in 0.5s backwards;
-  animation-delay: inherit;
-}
+/* 每行评分数字的上浮淡入同样走 WAAPI（入场与换位两处），CSS 不再挂动画 */
 .rank-row.first {
   background: #26382f;
   color: #edf1e4;
@@ -343,7 +325,11 @@
   background: #e6eadc;
   border: 1px solid #b9c8a550;
   border-radius: 2px;
-  transition: transform 0.4s;
+  transition:
+    transform 0.4s,
+    background 0.65s,
+    border-color 0.65s,
+    box-shadow 0.65s;
 }
 .rank-row:nth-child(2) .rank-sigil,
 .rank-row:nth-child(3) .rank-sigil {
@@ -1063,4 +1049,21 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* 终端索引细节：tab 编号与榜单上方刻度尺 */
+.rank-tab-idx {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #8b9789;
+  margin-right: 7px;
+  vertical-align: 1px;
+  transition: color 0.3s;
+}
+.rank-tab[aria-selected='true'] .rank-tab-idx {
+  color: #d9fb51;
+}
+.rank-board-ticks {
+  margin-bottom: 6px;
 }

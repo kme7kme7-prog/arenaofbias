@@ -144,6 +144,7 @@ export default function PromptLibrary() {
               : '当前内容为演示样例'}
           </span>
         </output>
+        <div className="term-ticks library-ticks" aria-hidden="true" />
         <div className="prompt-grid">
           {visible.map((prompt) => {
             const results = currentResultsForPrompt(prompt.id);

@@ -56,6 +56,12 @@
   font: 12px/1.6 ui-monospace, Consolas, monospace;
 }
 
+/* hidden 的 UA display:none 会被上面的 display:flex 盖掉，需显式补回
+   （SurfaceTransition 用 hidden 托管显隐） */
+.dev-panel[hidden] {
+  display: none;
+}
+
 .dev-panel header {
   display: flex;
   align-items: baseline;

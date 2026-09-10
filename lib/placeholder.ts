@@ -29,11 +29,14 @@ const PLACEHOLDER_VOTES_KEY = 'arenaofbias:placeholder-votes';
 export type DevSettings = {
   placeholderMode: boolean;
   placeholderModelCount: number;
+  /** 随机强弱：开启后每次生成占位投票都重新随机名次格局（观察榜单换位动画用） */
+  randomStrength: boolean;
 };
 
 const DEFAULT_SETTINGS: DevSettings = {
   placeholderMode: false,
   placeholderModelCount: 8,
+  randomStrength: false,
 };
 
 function clampModelCount(value: unknown): number {
@@ -53,6 +56,7 @@ export function readDevSettings(): DevSettings {
     return {
       placeholderMode: parsed.placeholderMode === true,
       placeholderModelCount: clampModelCount(parsed.placeholderModelCount),
+      randomStrength: parsed.randomStrength === true,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -347,10 +351,22 @@ export type PlaceholderVote = {
 export function generatePlaceholderVotes(count = 200): PlaceholderVote[] {
   const settings = readDevSettings();
   const models = placeholderModels(settings.placeholderModelCount);
+  // 随机强弱：掺入生成时间与随机盐，每次生成重掷整套强弱（名次格局会变，
+  // 便于观察榜单换位动画）。默认关闭，走固定种子，同一阵容名次可复现。
+  // 注意关闭分支的种子必须保持原样，否则会悄悄改变既有稳定名次。
+  const generationSalt = settings.randomStrength
+    ? `${Date.now()}:${Math.random()}`
+    : '';
   const strength = new Map(
     models.map((model) => [
       model.id,
-      0.6 + mulberry32(hashSeed('strength', model.id))() * 0.8,
+      0.6 +
+        mulberry32(
+          generationSalt
+            ? hashSeed('strength', model.id, generationSalt)
+            : hashSeed('strength', model.id),
+        )() *
+          0.8,
     ]),
   );
   const rng = mulberry32(hashSeed('votes', String(Date.now())));

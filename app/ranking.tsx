@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, RotateCcw } from 'lucide-react';
+import { RollingNumber } from '@kitlangton/rolling-number/react';
+import '@kitlangton/rolling-number/styles.css';
 import {
   BOARD_CATEGORIES,
   leaderboardData,
@@ -13,6 +15,13 @@ import { fetchVotes, voteToRecord } from '@/lib/votes';
 
 const reduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 滚动数字的运动参数：460ms、低强度纵向运动模糊。
+// 库自身不读系统减少动态设置，每个使用处需显式传 animated。
+const ROLLING_MOTION = {
+  duration: 460,
+  motionBlur: true,
+} as const;
 
 // ---------------------------------------------------------------------------
 // 投票装载：占位模式读 localStorage；真实模式拉 /api/votes。
@@ -238,7 +247,14 @@ function ProfilePanel({
         </div>
         <div className="rank-panel-rank">
           <span>当前名次</span>
-          <b>{String(shownRank).padStart(2, '0')}</b>
+          <b>
+            <RollingNumber
+              value={shownRank}
+              format={{ minimumIntegerDigits: 2, useGrouping: false }}
+              animated={!reduced()}
+              {...ROLLING_MOTION}
+            />
+          </b>
         </div>
       </div>
       <div className="rank-radar-wrap">
@@ -256,11 +272,24 @@ function ProfilePanel({
       </div>
       <div className="rank-panel-foot">
         <div>
-          <b>{shown.rating}</b>
+          <b>
+            <RollingNumber
+              value={shown.rating}
+              format={{ useGrouping: false }}
+              animated={!reduced()}
+              {...ROLLING_MOTION}
+            />
+          </b>
           <span>偏好评分</span>
         </div>
         <div>
-          <b>{shown.games.toLocaleString()}</b>
+          <b>
+            <RollingNumber
+              value={shown.games}
+              animated={!reduced()}
+              {...ROLLING_MOTION}
+            />
+          </b>
           <span>参与比较</span>
         </div>
         <div>
@@ -288,6 +317,12 @@ export default function Ranking() {
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const placeholder = isPlaceholderMode();
+  // 开发者面板生成/清空占位投票后立即重读并重播入场（storage 事件同页不触发）
+  useEffect(() => {
+    const refresh = () => setReplaySeed((seed) => seed + 1);
+    window.addEventListener('aob:placeholder-votes-changed', refresh);
+    return () => window.removeEventListener('aob:placeholder-votes-changed', refresh);
+  }, []);
   const { votes, failed, loading } = useBoardVotes(replaySeed);
   const data = useMemo(
     () => (votes ? leaderboardData(category, votes) : null),
@@ -309,6 +344,131 @@ export default function Ranking() {
     const tab = tabRefs.current[activeTabIndex];
     if (tab) setIndicator({ left: tab.offsetLeft, width: tab.offsetWidth });
   }, [activeTabIndex]);
+
+  // 赛道切换的换位动画与原型 setMode 一致：榜单行不按赛道重挂载，
+  // 而是取消进行中的动画后，从上一赛道的旧位置滑向新位置（FLIP），
+  // 并附带计分淡入与首行扫光；重播入场仍靠 key={replaySeed} 重挂载。
+  //
+  // 入场与换位都走 WAAPI 而不是常驻 CSS 动画：行的入场延迟跟名次挂钩，
+  // 若用 CSS 动画 + 内联 animation-delay，换赛道时名次的延迟值变化会触发
+  // 动画整段重播（行消失后从左侧重新插入）——这正是与原型不一致的根因。
+  const boardRef = useRef<HTMLDivElement>(null);
+  const rowTops = useRef<Map<string, number> | null>(null);
+  const rowMotions = useRef<Animation[]>([]);
+  const entranceSeed = useRef(-1);
+
+  // 入场/重播：榜单首次出现或 replaySeed 变化（整板重挂载）后播放一次。
+  // 无依赖数组，每次提交都检查——榜单可能在 votes 异步到达后才挂载。
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board || entranceSeed.current === replaySeed) return;
+    entranceSeed.current = replaySeed;
+    if (reduced()) return;
+    rowMotions.current.forEach((motion) => motion.cancel());
+    rowMotions.current = [];
+    [...board.querySelectorAll<HTMLElement>('.rank-row')].forEach((el, i) => {
+      rowMotions.current.push(
+        el.animate(
+          [
+            { opacity: 0, transform: 'translateX(-35px)' },
+            { opacity: 1, transform: 'translateX(0)' },
+          ],
+          {
+            duration: 950,
+            delay: i * 90,
+            easing: 'cubic-bezier(.22,1,.36,1)',
+            fill: 'backwards',
+          },
+        ),
+      );
+      const score = el.querySelector('.rank-score');
+      if (score)
+        rowMotions.current.push(
+          score.animate(
+            [
+              { opacity: 0.25, transform: 'translateY(5px)' },
+              { opacity: 1, transform: 'translateY(0)' },
+            ],
+            { duration: 500, delay: i * 65 + 180, fill: 'backwards' },
+          ),
+        );
+    });
+  });
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    const previous = rowTops.current;
+    if (!board || !previous || reduced()) return;
+    rowMotions.current.forEach((motion) => motion.cancel());
+    rowMotions.current = [];
+    [...board.querySelectorAll<HTMLElement>('.rank-row')].forEach((el, i) => {
+      const old = previous.get(el.dataset.mid ?? '');
+      // offsetTop 是布局值，不受进行中的变换动画污染
+      const delta = old === undefined ? 0 : old - el.offsetTop;
+      if (delta !== 0) {
+        rowMotions.current.push(
+          el.animate(
+            [
+              { transform: `translateY(${delta}px)` },
+              { transform: 'translateY(0)' },
+            ],
+            {
+              duration: 1200,
+              delay: i * 28,
+              easing: 'cubic-bezier(.22,1,.36,1)',
+              fill: 'backwards',
+            },
+          ),
+        );
+      } else if (old === undefined) {
+        // 该赛道新进入榜单的行没有旧位置，轻量淡入
+        rowMotions.current.push(
+          el.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 500,
+            delay: i * 28,
+            fill: 'backwards',
+          }),
+        );
+      }
+      const score = el.querySelector('.rank-score');
+      if (score)
+        rowMotions.current.push(
+          score.animate(
+            [
+              { opacity: 0.25, transform: 'translateY(5px)' },
+              { opacity: 1, transform: 'translateY(0)' },
+            ],
+            { duration: 500, delay: 250, fill: 'backwards' },
+          ),
+        );
+      if (i === 0) {
+        const flash = el.querySelector('.rank-row-flash');
+        if (flash)
+          rowMotions.current.push(
+            flash.animate(
+              [
+                { transform: 'translateX(-100%)' },
+                { transform: 'translateX(110%)' },
+              ],
+              { duration: 1100, delay: 400, easing: 'ease-in-out' },
+            ),
+          );
+      }
+    });
+  }, [category]);
+  // 每次提交后记录各行布局位置，供下一次赛道切换计算位移。
+  // 声明在 FLIP 之后：同一提交内 FLIP 先读到上一轮的值，再由这里覆盖。
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) {
+      rowTops.current = null;
+      return;
+    }
+    const map = new Map<string, number>();
+    board.querySelectorAll<HTMLElement>('.rank-row').forEach((el) => {
+      if (el.dataset.mid) map.set(el.dataset.mid, el.offsetTop);
+    });
+    rowTops.current = map;
+  });
 
   return (
     <div className="rank-page">
@@ -349,9 +509,15 @@ export default function Ranking() {
           <div className="rank-hero-note">
             <small>{(allData?.totalVotes ?? 0) > 0 ? '参与比较' : '有效比较'}</small>
             <strong>
-              {(allData?.totalVotes ?? 0) > 0
-                ? allData!.totalVotes.toLocaleString()
-                : '—'}
+              {(allData?.totalVotes ?? 0) > 0 ? (
+                <RollingNumber
+                  value={allData!.totalVotes}
+                  animated={!reduced()}
+                  {...ROLLING_MOTION}
+                />
+              ) : (
+                '—'
+              )}
               {(allData?.totalVotes ?? 0) > 0 && (
                 <span className="rank-note-arrow"> ↗</span>
               )}
@@ -383,6 +549,9 @@ export default function Ranking() {
                 aria-selected={category === item.id}
                 onClick={() => setCategory(item.id)}
               >
+                <span className="rank-tab-idx" aria-hidden="true">
+                  0{index + 1}
+                </span>
                 {item.label}
               </button>
             ))}
@@ -475,6 +644,7 @@ export default function Ranking() {
         ) : (
           <div className="rank-workspace">
             <section>
+              <div className="term-ticks rank-board-ticks" aria-hidden="true" />
               <div className="rank-columns">
                 <span>名次</span>
                 <span>模型 / MODEL</span>
@@ -484,25 +654,28 @@ export default function Ranking() {
               </div>
               <div
                 className="rank-board"
-                key={`${category}-${replaySeed}`}
+                key={replaySeed}
+                ref={boardRef}
                 aria-label="模型偏好榜"
               >
                 {data!.rows.map((row, index) => (
                   <article
                     key={row.modelId}
+                    data-mid={row.modelId}
                     className={`rank-row${index === 0 ? ' first' : ''}${selected?.modelId === row.modelId ? ' selected' : ''}`}
-                    style={
-                      reduced()
-                        ? undefined
-                        : { animationDelay: `${index * 90}ms` }
-                    }
                   >
+                    <span className="rank-row-flash" aria-hidden="true" />
                     <button
                       className="rank-row-top"
                       onClick={() => setSelectedId(row.modelId)}
                     >
                       <span className="rank-num">
-                        {String(index + 1).padStart(2, '0')}
+                        <RollingNumber
+                          value={index + 1}
+                          format={{ minimumIntegerDigits: 2, useGrouping: false }}
+                          animated={!reduced()}
+                          {...ROLLING_MOTION}
+                        />
                       </span>
                       <span className="rank-identity">
                         <span
@@ -522,10 +695,19 @@ export default function Ranking() {
                           <span className="rank-sub">{row.sub}</span>
                         </span>
                       </span>
-                      <span className="rank-score">{row.rating}</span>
-                      <span className="rank-count">
-                        {row.games.toLocaleString()}
-                      </span>
+                      <RollingNumber
+                        className="rank-score"
+                        value={row.rating}
+                        format={{ useGrouping: false }}
+                        animated={!reduced()}
+                        {...ROLLING_MOTION}
+                      />
+                      <RollingNumber
+                        className="rank-count"
+                        value={row.games}
+                        animated={!reduced()}
+                        {...ROLLING_MOTION}
+                      />
                       <span className="rank-plus">↗</span>
                     </button>
                   </article>

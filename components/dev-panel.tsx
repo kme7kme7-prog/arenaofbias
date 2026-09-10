@@ -1,7 +1,8 @@
 // 开发者面板：右下角低对比入口，仅本地使用，后期上线时删除挂载即可整体隐藏。
 // 功能与 lib/placeholder.ts 的存储一一对应：占位符模式开关、模型数量、占位投票。
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/account';
+import { SurfaceTransition } from '@/lib/ui-transitions';
 import {
   clearPlaceholderVotes,
   generatePlaceholderVotes,
@@ -61,6 +62,22 @@ export function DevPanel() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  // 面板开合走 SurfaceTransition：进入中途关闭会从当前
+  // 透明度/位移接续退出，不跳变。hidden 属性由它托管，JSX 里保持常量 true，
+  // React 不会覆盖（prop 不变不写 DOM）。
+  const panelRef = useRef<HTMLDivElement>(null);
+  const transitionRef = useRef<SurfaceTransition | null>(null);
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (!transitionRef.current)
+      transitionRef.current = new SurfaceTransition(panel, panel);
+    const transition = transitionRef.current;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (open) transition.show(reduced);
+    else transition.hide(reduced);
+  }, [open]);
+
   const persist = (next: DevSettings, reload: boolean) => {
     writeDevSettings(next);
     setSettings(next);
@@ -71,6 +88,17 @@ export function DevPanel() {
     const next = { ...settings, placeholderMode: !settings.placeholderMode };
     // 占位数据决定路由、配对与计数，切换必须整页重载，避免两套数据混流
     persist(next, true);
+  };
+
+  const toggleRandomStrength = () => {
+    const next = { ...settings, randomStrength: !settings.randomStrength };
+    // 只影响之后生成的投票，不需要重载；既有占位投票保持不变
+    persist(next, false);
+    setStatus(
+      next.randomStrength
+        ? '已开启随机强弱：之后每次「生成占位投票」都会重新随机名次格局'
+        : '已关闭随机强弱：恢复固定的模型强弱设定（名次可复现）',
+    );
   };
 
   const changeCount = (count: number) => {
@@ -89,12 +117,20 @@ export function DevPanel() {
     writePlaceholderVotes(generatePlaceholderVotes(GENERATED_VOTE_COUNT));
     setVoteCount(readPlaceholderVotes().length);
     setStatus(`已生成 ${GENERATED_VOTE_COUNT} 条占位投票（仅存本地）`);
+    notifyVotesChanged();
   };
 
   const clearVotes = () => {
     clearPlaceholderVotes();
     setVoteCount(0);
     setStatus('已清空占位投票');
+    notifyVotesChanged();
+  };
+
+  // 同一页面内 localStorage 写入不会触发 storage 事件，
+  // 榜单页靠这个自定义事件立即重读占位投票（否则要手动「重播入场」）
+  const notifyVotesChanged = () => {
+    window.dispatchEvent(new CustomEvent('aob:placeholder-votes-changed'));
   };
 
   return (
@@ -114,8 +150,13 @@ export function DevPanel() {
       >
         dev
       </button>
-      {open && (
-        <div className="dev-panel" role="dialog" aria-label="开发者面板">
+      <div
+        className="dev-panel"
+        role="dialog"
+        aria-label="开发者面板"
+        ref={panelRef}
+        hidden
+      >
           <header>
             <strong>开发者面板</strong>
             <span>DEV / LOCAL ONLY</span>
@@ -168,6 +209,19 @@ export function DevPanel() {
           </label>
           <div className="dev-row">
             <span>
+              随机强弱
+              <small>
+                开启后每次生成的名次格局都不同，适合观察榜单换位动画
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.randomStrength}
+              onChange={toggleRandomStrength}
+            />
+          </div>
+          <div className="dev-row">
+            <span>
               占位投票
               <small>随机生成榜单数据，仅存本地，不入库</small>
             </span>
@@ -192,7 +246,6 @@ export function DevPanel() {
             /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。
           </p>
         </div>
-      )}
     </>
   );
 }

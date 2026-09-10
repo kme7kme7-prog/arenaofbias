@@ -385,3 +385,8 @@
   width: 100%;
   height: 560px;
 }
+
+/* 终端索引细节：计数行下方刻度尺 */
+.library-ticks {
+  margin: 10px 0 18px;
+}

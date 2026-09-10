@@ -3039,3 +3039,41 @@ kbd {
   }
 }
 
+
+/* 解密遮黑条：逐行盖住、错峰退开 */
+.document-redacted {
+  position: relative;
+}
+
+.document-redaction-window {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+.document-redaction-ink {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: #20221d;
+  will-change: transform;
+}
+
+.reduced-motion .document-redaction-window {
+  display: none;
+}
+
+/* 终端索引细节：刻度尺细线（仪器式排版）
+   主刻度每 72px 全高，次刻度每 12px 半高 */
+.term-ticks {
+  height: 7px;
+  background-image:
+    repeating-linear-gradient(90deg, #8f9b91 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, #b4beb5 0 1px, transparent 1px 12px);
+  background-size: 100% 7px, 100% 4px;
+  background-position: bottom left, bottom left;
+  background-repeat: no-repeat;
+}

@@ -5,6 +5,7 @@ import { AccountButton, useAccount } from '@/components/account';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useReducer,
   useRef,
   useState,
@@ -54,6 +55,7 @@ import {
   isPlaceholderMode,
 } from '@/lib/placeholder';
 import { submitVote } from '@/lib/votes';
+import { DocumentDecryption } from '@/lib/decryption';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { Afterparty } from '@/components/afterparty';
 
@@ -473,11 +475,26 @@ export default function Arena({ prompt }: { prompt: Prompt }) {
     };
   }, [state.phase, reducedMotion, play]);
 
+  // 盲测揭晓时的身份解密：真实身份一挂载就用遮黑条盖住（layout effect 保证
+  // 用户看不到未遮盖的名字），再按行错峰退开。娱乐模式身份全程公开不解密。
+  const decryptionRef = useRef<DocumentDecryption | null>(null);
+  useLayoutEffect(() => {
+    if (!decryptionRef.current)
+      decryptionRef.current = new DocumentDecryption('.model-identity');
+    const decryption = decryptionRef.current;
+    if (revealed && state.mode === 'blind' && stageRef.current) {
+      decryption.reset(stageRef.current, false);
+      decryption.reveal(reducedMotion);
+    } else {
+      decryption.dispose();
+    }
+    return () => decryption.dispose();
+  }, [revealed, state.mode, reducedMotion]);
+
   // 反馈与提交时所属的对局（run）绑定：换组、重播、切模式都会递增 run，
   // 旧 run 的提交结果——包括网络晚到的响应——不会再覆盖新一轮的反馈
   const [voteRecord, setVoteRecord] = useState<{
-    run: number;
-    outcome: VoteOutcome;
+    run: number;    outcome: VoteOutcome;
   }>({ run: state.run, outcome: { state: 'idle' } });
   const voteOutcome: VoteOutcome =
     voteRecord.run === state.run ? voteRecord.outcome : { state: 'idle' };
