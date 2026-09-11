@@ -1,0 +1,128 @@
+// 远端作品清单：从服务端 GET /api/works 拉取已发布作品（works 表，决策 040），
+// 拉到后全站以它为准（lib/placeholder.ts 的 currentResults 会优先使用）；
+// 拉不到时调用方回退到 lib/arena.ts 的内置花名册，站点行为与改造前一致。
+// 后台内容管理（登记/发布开关）落地后，这里就是「后台点了、前台即刻生效」的通道。
+
+import { modelResults } from '@/lib/arena';
+import type { ModelResult } from '@/lib/arena';
+
+// /api/works 返回的行：身份字段与 ModelResult 同构，content 是 JSON 字符串
+type WorkRow = Omit<ModelResult, 'content' | 'isDemo'> & {
+  isDemo: 0 | 1;
+  content: string;
+};
+
+function parseWorkRow(row: unknown): ModelResult | null {
+  if (!row || typeof row !== 'object') return null;
+  const candidate = row as Record<string, unknown>;
+  for (const field of [
+    'id',
+    'promptId',
+    'modelId',
+    'modelName',
+    'title',
+    'content',
+  ] as const) {
+    if (typeof candidate[field] !== 'string' || !candidate[field]) return null;
+  }
+  if (typeof candidate.isDemo !== 'number') return null;
+  let content: unknown;
+  try {
+    content = JSON.parse(candidate.content as string);
+  } catch {
+    return null;
+  }
+  if (
+    !content ||
+    typeof content !== 'object' ||
+    typeof (content as Record<string, unknown>).kind !== 'string'
+  )
+    return null;
+  return {
+    id: candidate.id as string,
+    promptId: candidate.promptId as string,
+    modelId: candidate.modelId as string,
+    modelName: candidate.modelName as string,
+    title: candidate.title as string,
+    ...(candidate.isDemo ? { isDemo: true } : {}),
+    content: content as ModelResult['content'],
+  };
+}
+
+/** 拉已发布作品清单；失败返回 null（调用方回退内置花名册） */
+export async function fetchWorks(): Promise<ModelResult[] | null> {
+  try {
+    const response = await fetch('/api/works');
+    if (!response.ok) return null;
+    const data = (await response.json()) as { works?: unknown };
+    if (!Array.isArray(data.works)) return null;
+    const parsed = data.works.map(parseWorkRow);
+    // 单行损坏不该让整站回退；跳过坏行，其余照常使用
+    if (parsed.some((work) => work === null)) {
+      console.warn('[arenaofbias] /api/works 返回了无法解析的作品行，已跳过');
+    }
+    const works = parsed.filter(
+      (work): work is ModelResult => work !== null,
+    );
+    // 全部损坏或空表：与拉取失败同等对待（回退内置清单，站点可用）
+    return works.length > 0 ? works : null;
+  } catch {
+    return null;
+  }
+}
+
+export type WorksState =
+  | { status: 'loading' }
+  | { status: 'ready'; source: 'remote' | 'builtin'; works: ModelResult[] };
+
+type Listener = () => void;
+
+let state: WorksState = { status: 'loading' };
+let started = false;
+const listeners = new Set<Listener>();
+
+function emit() {
+  for (const listener of listeners) listener();
+}
+
+/** 订阅清单变化；返回取消订阅函数 */
+export function subscribeWorks(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function getWorksState(): WorksState {
+  return state;
+}
+
+/** 是否已拉到过远端清单（getWorksState 的便捷判断，语义见 WorksState.source） */
+export function worksReady(): boolean {
+  return state.status === 'ready';
+}
+
+/** 启动拉取（幂等）。失败时落到 builtin，站点用内置花名册继续运行。 */
+export function loadWorks(): void {
+  if (started) return;
+  started = true;
+  void (async () => {
+    const works = await fetchWorks();
+    state =
+      works === null
+        ? { status: 'ready', source: 'builtin', works: modelResults }
+        : { status: 'ready', source: 'remote', works };
+    emit();
+  })();
+}
+
+/** 测试/调试用：重置回未加载状态（生产代码不调用） */
+export function resetWorksForTest(): void {
+  started = false;
+  state = { status: 'loading' };
+}
+
+export function currentWorks(): ModelResult[] {
+  return state.status === 'ready' ? state.works : modelResults;
+}
+
+// 未使用类型导出占位：WorkRow 供将来管理后台读取接口复用
+export type { WorkRow };

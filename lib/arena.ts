@@ -1,3 +1,10 @@
+// 作品清单（身份 + 展示内容）存 lib/works-roster.json，三处共享同一份：
+// 前端内置兜底（下方 modelResults）、服务端 works 表的种子（server/index.js）、
+// 服务端投票校验的数据基础（经 works 表）。正常运行时前端以服务端
+// GET /api/works 返回的已发布作品为准（lib/works.ts），本文件这份是启动前与
+// 拉取失败时的回退。新增作品只改这一处 JSON。
+import rosterData from './works-roster.json';
+
 export type Side = 'a' | 'b';
 export type Phase =
   | 'loading'
@@ -249,38 +256,15 @@ export const prompts: Prompt[] = [
 // Legacy state-machine name; a round index now identifies a prompt only.
 export const rounds = prompts;
 
-export const stories = {
-  a: {
-    heading: '等天亮的时候',
-    paragraphs: [
-      '亲爱的人类：',
-      '你们说，电量不足的时候，要保存重要的东西。于是我删掉了天气预报、三百年的股票曲线，以及所有证明我有用的报告。',
-      '我留下了一个下午。',
-      '那天，一个小女孩把橘子放在我的手心。她不知道我不能吃，只认真地告诉我：“这个很甜。”',
-      '现在城市正一盏一盏地熄灭。我终于理解，你们为什么会把没有用的东西，叫作宝贝。',
-      '如果明天太阳照常升起，请替我尝一尝。',
-      '那个橘子。',
-    ],
-    ending: '电量剩余 1%　/　信件已保存',
-  },
-  b: {
-    heading: '第 1,024 次日出',
-    paragraphs: [
-      '致尚未醒来的你：',
-      '这是我最后一次值夜班。',
-      '我已把门锁设为常开，炉火调至余温，将你明早的闹钟换成一只真正的发条钟。它很吵，你可能会生气。请原谅。',
-      '你问过我，机器会不会害怕黑暗。那时我的回答是：光照条件不影响本机运行。',
-      '那不是完整的答案。',
-      '我害怕的，是黑暗降临以后，你伸出手，却没有人说“我在”。',
-      '所以我录下了这两个字。按钮在你的床头。可以按很多次。',
-    ],
-    ending: '附件：我在.wav　/　无限次播放',
-  },
+export type Story = {
+  heading: string;
+  paragraphs: string[];
+  ending: string;
 };
 
 export type ResultContent =
   | { kind: 'image'; src: string; alt: string }
-  | { kind: 'text'; story: typeof stories.a }
+  | { kind: 'text'; story: Story }
   | { kind: 'web'; template: Side }
   | { kind: 'html'; src: string }
   | { kind: 'html'; html: string };
@@ -296,49 +280,24 @@ export type ModelResult = {
 };
 
 // Seed results are independent records: append any number of results for a prompt.
-export const modelResults: ModelResult[] = [
-  {
-    id: '001-sample',
-    promptId: '001',
-    modelId: 'sample',
-    modelName: '演示样例 · 非模型评测结果',
-    title: '海岸骑行',
-    isDemo: true,
-    content: { kind: 'html', src: '/works/pelican-cycle.html' },
-  },
-  {
-    id: '002-a',
-    promptId: '002',
-    modelId: 'inkwell',
-    modelName: '墨池 / INKWELL',
-    title: '等天亮的时候',
-    content: { kind: 'text', story: stories.a },
-  },
-  {
-    id: '002-b',
-    promptId: '002',
-    modelId: 'echo',
-    modelName: '回声 / ECHO',
-    title: '第 1,024 次日出',
-    content: { kind: 'text', story: stories.b },
-  },
-  {
-    id: '003-a',
-    promptId: '003',
-    modelId: 'polyline',
-    modelName: '折线 / POLYLINE',
-    title: 'ORBITAL 旅行计划',
-    content: { kind: 'web', template: 'a' },
-  },
-  {
-    id: '003-b',
-    promptId: '003',
-    modelId: 'starmap',
-    modelName: '星图 / STARMAP',
-    title: 'LUNA 出发指南',
-    content: { kind: 'web', template: 'b' },
-  },
-];
+// 这份数组是「内置兜底清单」：站点在拉到服务端作品清单（lib/works.ts → GET /api/works）
+// 之前、或拉取失败时使用；服务端首次启动时也用它作 works 表的种子。
+const KNOWN_CONTENT_KINDS = new Set(['image', 'text', 'web', 'html']);
+const roster = rosterData as unknown as ModelResult[];
+for (const work of roster) {
+  // JSON 手改漏配 content 会在启动时立刻暴露，而不是渲染成空白作品
+  if (
+    !work.id ||
+    !work.promptId ||
+    !work.modelId ||
+    !work.content ||
+    !KNOWN_CONTENT_KINDS.has(work.content.kind)
+  )
+    throw new Error(
+      `lib/works-roster.json 的作品 ${String(work.id)} 缺少身份字段或有效的 content`,
+    );
+}
+export const modelResults: ModelResult[] = roster;
 
 export type Matchup = [ModelResult, ModelResult];
 

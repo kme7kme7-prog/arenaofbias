@@ -1,23 +1,24 @@
 // 开发者占位符系统 —— 仅在开发者面板手动开启后生效。
 // 用途：真实模型作品体积过大无法入库时，按题库自动生成可区分的占位作品，
 // 演示配对、投票、榜单等机制。与真实数据严格隔离：
-//   - 不写入 lib/arena.ts 的 modelResults，开启时作为独立数据源读取；
+//   - 不写入作品数据源，开启时作为独立数据源读取（真实数据 = 服务端已发布
+//     清单 lib/works.ts，未拉到时回退 lib/arena.ts 的内置花名册，决策 040）；
 //   - 占位投票只存 localStorage，永不进入后端；
 //   - 后期剥离：删除本文件、components/dev-panel.tsx、app/dev.css 与
 //     scripts/validate-placeholder.mjs，并把各调用点的 current* 帮助函数
-//     还原为 lib/arena.ts 的默认调用即可。
-// 本文件除 lib/arena.ts 外不依赖任何模块，纯函数不触碰 localStorage 的部分
-// 可在 Node 校验脚本（scripts/validate-placeholder.mjs）中直接运行。
+//     还原为对应数据源的默认调用即可。
+// 本文件除 lib/arena.ts 与 lib/works.ts 外不依赖任何模块，纯函数不触碰
+// localStorage 的部分可在 Node 校验脚本（scripts/validate-placeholder.mjs）中直接运行。
 
 import {
   eligiblePairs,
-  modelResults,
   pickMatchup,
   prompts,
   randomArenaHash,
   resultsForPrompt,
 } from '@/lib/arena';
 import type { Matchup, ModelResult, Prompt } from '@/lib/arena';
+import { currentWorks } from '@/lib/works';
 
 // ---------------------------------------------------------------------------
 // 设置与存储
@@ -302,19 +303,21 @@ export function buildPlaceholderResults(modelCount: number): ModelResult[] {
 }
 
 // ---------------------------------------------------------------------------
-// 当前生效数据源：占位模式关闭时原样返回真实数据（同一引用，零开销）
+// 当前生效数据源：占位模式关闭时返回真实数据，真实数据优先用服务端已发布清单
+// （lib/works.ts，决策 040），未拉到时回退 arena.ts 的内置花名册——两份清单
+// 同构，站点行为不因加载失败而变化
 // ---------------------------------------------------------------------------
 
 let placeholderCache: { key: string; results: ModelResult[] } | null = null;
 
 export function currentResults(): ModelResult[] {
   const settings = readDevSettings();
-  if (!settings.placeholderMode) return modelResults;
+  if (!settings.placeholderMode) return currentWorks();
   const key = `ph:${settings.placeholderModelCount}`;
   if (placeholderCache?.key === key) return placeholderCache.results;
   const results = buildPlaceholderResults(settings.placeholderModelCount);
   placeholderCache = { key, results };
-  return results;
+  return placeholderCache.results;
 }
 
 export function currentResultsForPrompt(promptId: string): ModelResult[] {

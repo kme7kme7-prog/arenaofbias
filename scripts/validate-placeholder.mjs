@@ -1,6 +1,7 @@
 // 占位符系统校验：生成器结构、与竞技场配对函数的集成、以及与真实数据的严格隔离。
-// 做法：lib/arena.ts 与 lib/placeholder.ts 转译后拼入同一个模块（去掉后者对前者的导入），
-// 并 shim localStorage，使 currentResults / 占位投票的读写路径可以在 Node 中直接断言。
+// 做法：lib/arena.ts + lib/works.ts + lib/placeholder.ts 转译后拼入同一个模块
+// （去掉跨文件导入），并 shim localStorage 与 fetch，使 currentResults /
+// 占位投票的读写路径可以在 Node 中直接断言。
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
@@ -12,6 +13,10 @@ globalThis.localStorage = {
   setItem: (key, value) => void store.set(key, String(value)),
   removeItem: (key) => void store.delete(key),
 };
+// --- fetch shim：lib/works.ts 的 loadWorks 不被本脚本调用，但 import 顶层
+// 引用了 fetch（软引用，不触发即可）；currentResults 在 works 未就绪时回退
+// 内置清单，正是本脚本要断言的真实数据路径 ---
+globalThis.fetch = globalThis.fetch ?? (() => Promise.reject(new Error('no fetch in test')));
 
 const transpile = (source) =>
   ts.transpileModule(source, {
@@ -21,20 +26,38 @@ const transpile = (source) =>
     },
   }).outputText;
 
-const arenaCode = transpile(
-  await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
+// 转译后把清单内联成同名常量注入
+const rosterJson = await readFile(
+  new URL('../lib/works-roster.json', import.meta.url),
+  'utf8',
 );
+const injectRoster = (code) =>
+  code.replace(
+    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+    `const rosterData = ${rosterJson};`,
+  );
+const arenaCode = injectRoster(
+  transpile(
+    await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+  ),
+);
+// works.ts 合并进同一模块：去掉对 arena 的导入后，currentWorks 在
+// 未加载状态返回内置 modelResults——与浏览器拉取失败时的回退一致
+const worksCode = transpile(
+  await readFile(new URL('../lib/works.ts', import.meta.url), 'utf8'),
+).replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm, '');
 let placeholderCode = transpile(
   await readFile(new URL('../lib/placeholder.ts', import.meta.url), 'utf8'),
 );
-// 两份代码合并为一个模块：去掉 placeholder 对 arena 的值导入
+// 三份代码合并为一个模块：去掉 placeholder 对 arena / works 的值导入
 placeholderCode = placeholderCode.replace(
-  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm,
+  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|works)['"];?\s*$/gm,
   '',
 );
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${placeholderCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${worksCode}\n${placeholderCode}`).toString('base64')}`
 );
 const {
   prompts,

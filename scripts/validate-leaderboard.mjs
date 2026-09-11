@@ -1,6 +1,6 @@
 // 榜单数据层校验：Elo 聚合、分类过滤、暂定判定、雷达生成的确定性。
-// 做法与 validate-placeholder.mjs 相同：arena / placeholder / leaderboard
-// 三个模块转译后拼为一个模块（去掉跨文件导入），localStorage 以 shim 代替。
+// 做法与 validate-placeholder.mjs 相同：arena / works / placeholder / leaderboard
+// 四个模块转译后拼为一个模块（去掉跨文件导入），localStorage 以 shim 代替。
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
@@ -11,6 +11,8 @@ globalThis.localStorage = {
   setItem: (key, value) => void store.set(key, String(value)),
   removeItem: (key) => void store.delete(key),
 };
+// lib/works.ts 顶层软引用 fetch；本脚本不触发 loadWorks，给个占位即可
+globalThis.fetch = globalThis.fetch ?? (() => Promise.reject(new Error('no fetch in test')));
 
 const transpile = (source) =>
   ts.transpileModule(source, {
@@ -23,8 +25,27 @@ const transpile = (source) =>
 const stripImports = (code) =>
   code.replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*['"];?\s*$/gm, '');
 
-const arenaCode = transpile(
-  await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
+// 转译后把清单内联成同名常量注入
+const rosterJson = await readFile(
+  new URL('../lib/works-roster.json', import.meta.url),
+  'utf8',
+);
+const injectRoster = (code) =>
+  code.replace(
+    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+    `const rosterData = ${rosterJson};`,
+  );
+const arenaCode = injectRoster(
+  transpile(
+    await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+  ),
+);
+// works.ts 合并进同一模块：未加载状态 currentWorks 回退内置清单（浏览器拉取失败的同一回退）
+const worksCode = stripImports(
+  transpile(
+    await readFile(new URL('../lib/works.ts', import.meta.url), 'utf8'),
+  ),
 );
 const placeholderCode = stripImports(
   transpile(
@@ -38,7 +59,7 @@ const leaderboardCode = stripImports(
 );
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${placeholderCode}\n${leaderboardCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${worksCode}\n${placeholderCode}\n${leaderboardCode}`).toString('base64')}`
 );
 const {
   prompts,

@@ -79,6 +79,75 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS votes_created ON votes (created_at);
 `);
 
+// ---------- 结构迁移（PRAGMA user_version 驱动） ----------
+// 加字段/加表时在 MIGRATIONS 末尾追加一项、内容用幂等 SQL（CREATE ... IF NOT EXISTS /
+// 先查列再 ALTER），已有线上库启动时自动补齐，不动存量数据。
+
+const MIGRATIONS = [
+  {
+    // 001 · 作品表：后台内容管理的数据基础（决策 040）。
+    // content 存 ResultContent 同构的 JSON（四种 kind 都装得下，以后加字段不用动表）；
+    // published 是发布开关——新登记的作品默认未发布，前端 /api/works 只吐已发布的。
+    up() {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS works (
+          id         TEXT PRIMARY KEY NOT NULL,
+          prompt_id  TEXT NOT NULL,
+          model_id   TEXT NOT NULL,
+          model_name TEXT NOT NULL,
+          title      TEXT NOT NULL,
+          is_demo    INTEGER NOT NULL DEFAULT 0,
+          content    TEXT NOT NULL,
+          published  INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS works_prompt ON works (prompt_id);
+      `);
+      // 种子：仅当 works 表为空时，把内置花名册（与前端共享的 lib/works-roster.json）
+      // 全量种入并置为已发布——不覆盖库里已有的任何行，重复启动无副作用。
+      const count = db.prepare('SELECT COUNT(*) AS n FROM works').get();
+      if (count.n === 0) {
+        const roster = JSON.parse(
+          fs.readFileSync(
+            path.join(projectRoot, 'lib', 'works-roster.json'),
+            'utf8',
+          ),
+        );
+        const seed = db.prepare(
+          `INSERT INTO works (id, prompt_id, model_id, model_name, title, is_demo, content, published, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        );
+        const now = Date.now();
+        const insertAll = db.transaction(() => {
+          for (const work of roster) {
+            seed.run(
+              work.id,
+              work.promptId,
+              work.modelId,
+              work.modelName,
+              work.title,
+              work.isDemo ? 1 : 0,
+              JSON.stringify(work.content),
+              now,
+            );
+          }
+        });
+        insertAll();
+        console.log(`[arenaofbias] works 表已播种 ${roster.length} 条内置作品`);
+      }
+    },
+  },
+];
+
+{
+  const applied = db.pragma('user_version', { simple: true });
+  for (let v = applied; v < MIGRATIONS.length; v++) {
+    MIGRATIONS[v].up();
+    db.pragma(`user_version = ${v + 1}`);
+    console.log(`[arenaofbias] 数据库迁移 ${String(v + 1).padStart(3, '0')} 已应用`);
+  }
+}
+
 const insertComment = db.prepare(
   `INSERT OR IGNORE INTO comments (id, round_id, side, body, created_at, user_id)
    VALUES (?, ?, ?, ?, ?, ?)`,
@@ -113,6 +182,19 @@ const UUID_PATTERN =
 // 题目白名单，与界面侧 lib/comments.ts、lib/votes.ts 保持一致；新增题目（如 '004'）时各处都要加。
 const ALLOWED_ROUNDS = ['001', '002', '003', '004', '005', '006', '007'];
 
+// ---------- 作品表查询（迁移 001 建立，种子来自 lib/works-roster.json） ----------
+
+const selectPublishedWorks = db.prepare(
+  `SELECT id, prompt_id AS promptId, model_id AS modelId, model_name AS modelName,
+          title, is_demo AS isDemo, content
+   FROM works WHERE published = 1 ORDER BY created_at ASC, id ASC`,
+);
+// 票面核对（B2）用：rid → 该作品的题号/模型/发布与演示状态
+const selectWorkForVote = db.prepare(
+  `SELECT prompt_id AS promptId, model_id AS modelId, is_demo AS isDemo, published
+   FROM works WHERE id = ?`,
+);
+
 function validateComment(value) {
   if (!value || typeof value !== 'object') return null;
   const { id, roundId, side, body } = value;
@@ -137,8 +219,6 @@ function validateVote(value) {
   if (typeof id !== 'string' || !UUID_PATTERN.test(id)) return null;
   if (typeof promptId !== 'string' || !ALLOWED_ROUNDS.includes(promptId))
     return null;
-  // 服务端不认识作品阵容（清单在前端），只做形态校验；
-  // 指向不存在模型的票在榜单聚合时会被阵容过滤掉（lib/leaderboard.ts）
   // rid/mid 与评论 body 一样 trim 后再入库，避免两端空格口径不一
   const trimmed = {};
   for (const [field, value] of Object.entries({
@@ -155,8 +235,29 @@ function validateVote(value) {
   if (vote.winnerRid === vote.loserRid || vote.winnerMid === vote.loserMid)
     return null;
   if (!VOTE_MODES.includes(mode)) return null;
+  // 票面与作品表核对（B2）：rid 必须真实存在、已发布、非演示、属于本题，并与 mid 一致
+  const winner = selectWorkForVote.get(vote.winnerRid);
+  const loser = selectWorkForVote.get(vote.loserRid);
+  if (!winner || !winner.published || winner.isDemo) return null;
+  if (!loser || !loser.published || loser.isDemo) return null;
+  if (winner.promptId !== vote.promptId || loser.promptId !== vote.promptId)
+    return null;
+  if (winner.modelId !== vote.winnerMid || loser.modelId !== vote.loserMid)
+    return null;
   return { ...vote, mode };
 }
+
+// 回读比对：同 UUID 必须是同一笔票——用户、题号、双方 rid/mid、模式全一致。
+// INSERT OR IGNORE 被旧票忽略后回读到的是旧记录，不比对就会跨对局回显旧票（B1）。
+const isSameVote = (saved, vote, userId) =>
+  !!saved &&
+  saved.userId === userId &&
+  saved.promptId === vote.promptId &&
+  saved.winnerRid === vote.winnerRid &&
+  saved.winnerMid === vote.winnerMid &&
+  saved.loserRid === vote.loserRid &&
+  saved.loserMid === vote.loserMid &&
+  saved.mode === vote.mode;
 
 // ---------- 演示级限流（内存滑动窗口，按真实客户端 IP） ----------
 
@@ -263,6 +364,20 @@ app.post('/api/comments', limiter, (req, res) => {
   }
 });
 
+// ---------- 作品：读取公开（只吐已发布），写入留给后台（未建） ----------
+
+app.get('/api/works', (_req, res) => {
+  try {
+    // 全量已发布作品，按登记时间升序；content 是 JSON 字符串，原样返回由前端解析
+    res.set(noStore).json({ works: selectPublishedWorks.all() });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '作品数据暂时无法加载，请稍后重试' });
+  }
+});
+
 // ---------- 投票：写入要求登录（决策 020），读取公开、不带用户信息 ----------
 
 app.get('/api/votes', (_req, res) => {
@@ -289,9 +404,13 @@ app.post('/api/votes', limiter, (req, res) => {
   try {
     const existing = selectVoteIdByPair.get(req.user.id, pairKey);
     if (existing) {
-      // 同 UUID 重试视为成功（幂等）；换一个 UUID 重投同一对局才叫重复
+      // 同 UUID 重试视为成功（幂等，但票面必须完全一致）；换一个 UUID 重投同一对局才叫重复
       if (existing.id === vote.id) {
         const saved = selectVoteById.get(vote.id);
+        if (!isSameVote(saved, vote, req.user.id))
+          return res
+            .status(409)
+            .json({ code: 'id', error: '投票编号冲突，请重新提交' });
         return res.set(noStore).json({ vote: saved });
       }
       // code 字段给前端区分 409 语义：pair = 对局已投过；id = 编号冲突
@@ -312,7 +431,7 @@ app.post('/api/votes', limiter, (req, res) => {
       Date.now(),
     );
     const saved = selectVoteById.get(vote.id);
-    if (!saved || saved.userId !== req.user.id)
+    if (!isSameVote(saved, vote, req.user.id))
       return res.status(409).json({
         code: 'id',
         error: '投票编号冲突，请重新提交',

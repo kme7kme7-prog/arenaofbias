@@ -12,6 +12,7 @@ import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { prompts } from '@/lib/arena';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 // observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
 // 其 @import 的 spatial-fonts.css 同时为经典版移植的品牌字体供字体
 import '@/app/observatory.css';
@@ -30,12 +31,15 @@ function subscribeRoute(callback: () => void) {
   window.addEventListener('hashchange', callback);
   return () => window.removeEventListener('hashchange', callback);
 }
+// 作品清单（服务端 works 表）就绪后重渲染，让 currentPairs 等
+// 数据消费方从内置花名册切到远端清单（决策 040）
 function Routes() {
   const route = useSyncExternalStore(
     subscribeRoute,
     () => window.location.hash,
     () => '',
   );
+  useSyncExternalStore(subscribeWorks, getWorksState);
   useEffect(() => {
     window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
@@ -78,6 +82,8 @@ function Routes() {
 }
 const reactRoot = createRoot(container);
 if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
+// 应用启动即拉取服务端作品清单；拉不到时 lib/works.ts 会回退内置花名册
+loadWorks();
 reactRoot.render(
   <AccountProvider>
     <Routes />

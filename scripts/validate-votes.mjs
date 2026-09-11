@@ -1,5 +1,6 @@
 // 投票系统校验：lib/votes.ts 的校验规则、对局去重口径，以及服务端 votes 接口
-// 的真实 HTTP 行为（登录门控、409 重复、幂等重试、未登录 401）。
+// 的真实 HTTP 行为（登录门控、409 重复、幂等重试、未登录 401、
+// 票面与作品清单核对、同 UUID 跨对局重放拒绝）。
 // 做法：lib/arena.ts + lib/votes.ts 转译后拼入同一模块（Node 直跑前端代码），
 // 服务端部分在临时目录起真实 SQLite + Express 实例。
 import assert from 'node:assert/strict';
@@ -24,8 +25,21 @@ const transpile = (source) =>
     },
   }).outputText;
 
-const arenaCode = transpile(
-  await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
+// 转译后把清单内联成同名常量注入
+const rosterJson = await readFile(
+  new URL('../lib/works-roster.json', import.meta.url),
+  'utf8',
+);
+const injectRoster = (code) =>
+  code.replace(
+    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+    `const rosterData = ${rosterJson};`,
+  );
+const arenaCode = injectRoster(
+  transpile(
+    await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
+  ),
 );
 const votesCode = transpile(
   await readFile(new URL('../lib/votes.ts', import.meta.url), 'utf8'),
@@ -51,6 +65,19 @@ const validVote = {
   winnerMid: 'ph-01',
   loserRid: '002-ph-02',
   loserMid: 'ph-02',
+  mode: 'blind',
+};
+
+// 服务端用例必须用真实清单里的作品：票面要与 lib/works-roster.json 核对（B2 修复），
+// 伪造 rid 一律 400。「同模型换作品可再投」（决策 021）当前清单没有多作品的模型，
+// 服务端无法演练，由上方 pairKey 单测覆盖；清单扩容后可在此补服务端用例。
+const realVote = {
+  id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  promptId: '002',
+  winnerRid: '002-a',
+  winnerMid: 'inkwell',
+  loserRid: '002-b',
+  loserMid: 'echo',
   mode: 'blind',
 };
 
@@ -113,7 +140,7 @@ const dataDir = await mkdtemp(path.join(tmpdir(), 'aob-votes-'));
 const port = 20000 + Math.floor(Math.random() * 20000);
 const child = spawn(process.execPath, ['server/index.js'], {
   cwd: new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
-  // 放宽限流：本脚本约 9 次 POST 会逼近默认 10 条/分钟的 per-IP 限流
+  // 放宽限流：本脚本约 14 次 POST 会超过默认 10 条/分钟的 per-IP 限流
   //（400/401/403 等失败请求同样计数），限流本身不是本脚本的断言对象
   env: {
     ...process.env,
@@ -178,7 +205,7 @@ const post = async (cookie, body) =>
 
 try {
   await check('未登录投票 401；跨源 403', async () => {
-    const anonymous = await post(null, validVote);
+    const anonymous = await post(null, realVote);
     assert.equal(anonymous.status, 401);
     const wrongOrigin = await robustFetch(`${base}/api/votes`, {
       method: 'POST',
@@ -187,18 +214,18 @@ try {
         cookie: await login(),
         origin: 'https://evil.example',
       },
-      body: JSON.stringify(validVote),
+      body: JSON.stringify(realVote),
     });
     assert.equal(wrongOrigin.status, 403);
   });
   await check('登录后写入 201；读取公开且不带 user_id', async () => {
     const cookie = await login();
-    const response = await post(cookie, validVote);
+    const response = await post(cookie, realVote);
     assert.equal(response.status, 201);
     const listed = await (await robustFetch(`${base}/api/votes`)).json();
     assert.equal(listed.votes.length, 1);
     assert.ok(!('userId' in listed.votes[0]));
-    assert.equal(listed.votes[0].winnerMid, 'ph-01');
+    assert.equal(listed.votes[0].winnerMid, 'inkwell');
     // 流水必须能通过前端校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
     for (const vote of listed.votes) {
       assert.ok(
@@ -208,30 +235,89 @@ try {
     }
     // 交换左右 = 同一对局，客户端换 UUID 重投 → 409
     const swapped = await post(cookie, {
-      ...validVote,
+      ...realVote,
       id: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
-      winnerRid: '002-ph-02',
-      winnerMid: 'ph-02',
-      loserRid: '002-ph-01',
-      loserMid: 'ph-01',
+      winnerRid: '002-b',
+      winnerMid: 'echo',
+      loserRid: '002-a',
+      loserMid: 'inkwell',
     });
     assert.equal(swapped.status, 409);
     // 同 UUID 重试（网络重试场景）→ 幂等成功
-    const retry = await post(cookie, validVote);
+    const retry = await post(cookie, realVote);
     assert.equal(retry.status, 200);
   });
 
-  await check('同模型换作品是新的对局，可以再投（决策 021）', async () => {
-    const cookie = await login();
-    const response = await post(cookie, {
-      ...validVote,
-      id: '3f2504e0-4f89-41d3-9a0c-0305e82c3303',
-      winnerRid: '002-ph-01b',
-    });
-    assert.equal(response.status, 201);
-    const listed = await (await robustFetch(`${base}/api/votes`)).json();
-    assert.equal(listed.votes.length, 2);
-  });
+  await check(
+    '票面与作品清单核对（B2）：伪造 rid / rid 与题号不符 / mid 与 rid 不符 / 演示作品 → 400',
+    async () => {
+      const cookie = await login();
+      for (const body of [
+        // 清单里不存在的 rid
+        { ...realVote, id: '3f2504e0-4f89-41d3-9a0c-0305e82c3311', winnerRid: '002-ph-01', winnerMid: 'inkwell' },
+        // rid 真实但不属于本题（002 的作品投成 003）
+        { ...realVote, id: '3f2504e0-4f89-41d3-9a0c-0305e82c3312', promptId: '003' },
+        // rid 真实但 mid 对不上
+        { ...realVote, id: '3f2504e0-4f89-41d3-9a0c-0305e82c3313', winnerMid: 'echo' },
+        // 演示样例不可投票
+        {
+          ...realVote,
+          id: '3f2504e0-4f89-41d3-9a0c-0305e82c3314',
+          promptId: '001',
+          winnerRid: '001-sample',
+          winnerMid: 'sample',
+        },
+      ]) {
+        const response = await post(cookie, body);
+        assert.equal(response.status, 400, JSON.stringify(body));
+      }
+      const listed = await (await robustFetch(`${base}/api/votes`)).json();
+      assert.equal(listed.votes.length, 1); // 一张都没写进去
+    },
+  );
+
+  await check(
+    '同 UUID 跨对局重放被拒（B1）：回显旧票返回 409 而不是 201',
+    async () => {
+      const cookie = await login();
+      // realVote 的 UUID 已投过 002；拿同一 UUID 投未投过的 003 对局——
+      // 对局去重拦不住（003 没投过），INSERT OR IGNORE 会被旧 id 忽略，
+      // 修复前这里回读只比对 userId，会 201 回显 002 的旧票
+      const crossPair = await post(cookie, {
+        ...realVote,
+        promptId: '003',
+        winnerRid: '003-a',
+        winnerMid: 'polyline',
+        loserRid: '003-b',
+        loserMid: 'starmap',
+      });
+      assert.equal(crossPair.status, 409);
+      assert.equal((await crossPair.json()).code, 'id');
+      // 同 UUID 同对局但票面不同（翻转胜负）→ 幂等路径也要按冲突拒
+      const flipped = await post(cookie, {
+        ...realVote,
+        winnerRid: '002-b',
+        winnerMid: 'echo',
+        loserRid: '002-a',
+        loserMid: 'inkwell',
+      });
+      assert.equal(flipped.status, 409);
+      assert.equal((await flipped.json()).code, 'id');
+      // 被拒的 003 重放不能占坑：新 UUID 投 003 仍然成功
+      const fresh = await post(cookie, {
+        ...realVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3303',
+        promptId: '003',
+        winnerRid: '003-a',
+        winnerMid: 'polyline',
+        loserRid: '003-b',
+        loserMid: 'starmap',
+      });
+      assert.equal(fresh.status, 201);
+      const listed = await (await robustFetch(`${base}/api/votes`)).json();
+      assert.equal(listed.votes.length, 2);
+    },
+  );
 
   await check('非法 payload 400：坏 UUID / 未知题号 / mode 缺失', async () => {
     const cookie = await login();
@@ -258,6 +344,29 @@ try {
     const times = listed.votes.map((vote) => vote.ts);
     assert.deepEqual(times, [...times].sort((a, b) => a - b));
   });
+
+  await check(
+    'GET /api/works 迁移种子：5 条内置作品、已发布、content 为合法 JSON（决策 040）',
+    async () => {
+      const listed = await (await robustFetch(`${base}/api/works`)).json();
+      assert.equal(listed.works.length, 5);
+      assert.deepEqual(
+        listed.works.map((work) => work.id),
+        ['001-sample', '002-a', '002-b', '003-a', '003-b'],
+      );
+      for (const work of listed.works) {
+        assert.equal(typeof work.content, 'string');
+        const content = JSON.parse(work.content);
+        assert.ok(['image', 'text', 'web', 'html'].includes(content.kind));
+        // 身份字段与共享花名册一致——前端解析（parseWorkRow）依赖这些形态
+        assert.equal(typeof work.modelId, 'string');
+        assert.equal(typeof work.promptId, 'string');
+      }
+      // isDemo 转成 0/1 数字形态
+      assert.equal(listed.works.find((work) => work.id === '001-sample').isDemo, 1);
+      assert.equal(listed.works.find((work) => work.id === '002-a').isDemo, 0);
+    },
+  );
 } finally {
   // 无论断言成败都回收子进程与临时库；检查串行跑完后才 kill，避免竞态
   child.kill();

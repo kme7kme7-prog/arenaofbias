@@ -23,10 +23,12 @@
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等）、页面横扫过渡层 `.page-wipe`（`wipeNavigate` 动态创建） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
-| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
+| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`modelResults` 是内置兜底清单（启动前与 `/api/works` 拉取失败时使用，数据即 `lib/works-roster.json`）；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
+| `lib/works-roster.json` | 内置作品清单（身份 + 完整 content），三处共享：前端兜底（arena.ts）、服务端 works 表首启动种子、投票校验的数据基础（经 works 表）；新增作品只改这一处 JSON（后台建成后改为后台登记） |
+| `lib/works.ts` | 远端作品清单数据层（决策 040）：`fetchWorks` 拉 `GET /api/works`（已发布作品，content 为 JSON 字符串，逐行解析、坏行跳过）；`loadWorks`/`getWorksState`/`subscribeWorks` 的小型 store（main.tsx 启动即拉取，就绪后重渲染）；`currentWorks()` 在未就绪时返回内置 `modelResults`——`currentResults`（占位关闭时）以此为准 |
 | `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变；「随机强弱」开关开启后投票强弱掺随机盐、每次生成名次格局不同，默认关闭保持可复现）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
 | `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes, scope)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；口径 `BoardScope`（决策 026）：mixed 混入全部票，formal 只计 mode=formal 的票，无 mode 的占位票只在混入口径计入；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
-| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（与 `server/index.js` 规则镜像）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录（带 mode，供只看正式口径过滤） |
+| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（形态规则与 `server/index.js` 镜像；服务端另按作品清单核对票面）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录（带 mode，供只看正式口径过滤） |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/arena-scroll.ts` | 竞技场定位：下一帧将命题区滚到视口上方，允许路由归顶先完成；支持 reduced-motion，返回取消函数避免卸载后误滚动 |
@@ -37,12 +39,12 @@
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
 | `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；开发者身份免登录（`POST /api/auth/dev`）、占位符模式开关、模型数量、生成/清空占位投票（写后广播 `aob:placeholder-votes-changed`，榜单页监听后立即重读并重播入场）、随机强弱开关、占位模式徽标 |
 | `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
-| `server/index.js` | Express：静态托管 dist/、评论 GET/POST、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
+| `server/index.js` | Express：静态托管 dist/、评论 GET/POST、作品 GET（works 表，只吐已发布，决策 040）、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、投票票面按 works 表核对（rid 真实、已发布、非 demo、属本题、与 mid 一致；同 UUID 回读比对全部字段，跨对局重放 409）、`PRAGMA user_version` 结构迁移（首启动建 works 表并播种）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
 | `scripts/validate-placeholder.mjs` | 占位符系统校验（10 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤、随机强弱开关（开启后格局变化、关闭时可复现）；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
 | `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
-| `scripts/validate-votes.mjs` | 投票校验（9 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、换作品可再投、非法 payload 400、流水升序、服务端返回能通过前端校验 |
+| `scripts/validate-votes.mjs` | 投票校验（11 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、票面清单核对 400（伪造 rid / rid 与题号不符 / mid 与 rid 不符 / 演示作品）、同 UUID 跨对局重放 409（B1/B2 回归）、非法 payload 400、流水升序、服务端返回能通过前端校验、GET /api/works 迁移种子（5 条、已发布、content 合法 JSON）；拼合模块时把 works-roster.json 内联注入（data URL 解析不了相对路径） |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
 | `scripts/check-arena-scroll.mjs` | 竞技场命题定位契约：延迟执行、平滑/减少动态效果、卸载取消与脱离 DOM 跳过 |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
@@ -60,7 +62,7 @@
 ## lib/arena.ts 结构
 
 - 类型：`Prompt`、`ModelResult`（id / promptId / modelId / modelName / title / isDemo? / content）、`ResultContent`（四 kind 联合）、`Matchup = [ModelResult, ModelResult]`。
-- 数据：`prompts`（7 题）、`modelResults`（5 条：001 样例 + 002/003 各两条占位结果）、`stories`（002 两篇硬编码文字）。
+- 数据：`prompts`（7 题）、`modelResults`（5 条：001 样例 + 002/003 各两条占位结果，即 `lib/works-roster.json` 的内置兜底）。`Story` 类型（heading/paragraphs/ending）在此定义，002 两篇小说的内容在 roster JSON 里。
 - 函数：`resultsForPrompt`、`eligiblePairs`（同题、非 demo、两两不同 modelId 的全组合）、`pickMatchup`（优先排除上一组，随机选组并随机翻转左右）、`randomArenaHash`（在 eligiblePairs > 0 的题中均匀随机，可排除当前题，空池回退 `#prompts`）。语义规则见 `docs/PRODUCT.md` 抽取规则一节。
 - 状态机：`Phase = loading | intro | voting | locking | result | transition`；`Mode = blind | party`；Action：`LOADED / READY / VOTE / REVEAL / SWITCH / ARRIVE / REPLAY / MODE`。`transition` 统一承载换组、重播、切模式，`ARRIVE` 时清除选择。
 - `export const rounds = prompts`：legacy 别名；`round` 索引现仅标识当前 prompt，不再有"轮次"语义。
@@ -76,8 +78,9 @@
 | `POST /api/auth/dev` | 开发者免登录（决策 020）：仅本机回环 IP 或 `ALLOW_DEV_LOGIN=1` 时开放；固定 `dev` 账号首次使用时创建，密码随机生成不留存 |
 | `GET /api/comments?round=xxx` | 按题取最新 100 条，联表 users 返回 username；无需登录 |
 | `POST /api/comments` | 需登录（401）、同源（403）、JSON（415）、校验（400）、幂等插入（id 冲突或内容不符 409） |
+| `GET /api/works` | 已发布作品全量清单（works 表 `published=1`，按登记时间升序），公开；content 为 JSON 字符串由前端 `lib/works.ts` 解析（决策 040） |
 | `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts），按时间升序，公开、不带用户信息 |
-| `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party）；同对局已投换 UUID 重投 409、同 UUID 重试幂等 200（409 响应带 `code: pair/id` 区分对局重复与编号冲突）；rid/mid trim 后入库；服务端只做形态校验，指向不存在模型的票由榜单聚合按阵容过滤 |
+| `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party / 票面与 works 表核对——rid 真实、已发布、非 demo、属本题、与 mid 一致）；同对局已投换 UUID 重投 409、同 UUID 重试仅当票面完全一致才幂等 200，跨对局重放或票面不符 409（响应带 `code: pair/id` 区分对局重复与编号冲突）；rid/mid trim 后入库 |
 
 横切行为：
 
@@ -114,7 +117,7 @@ npm start          # 生产形态：http://localhost:3000
 ## 扩充内容操作步骤
 
 1. `lib/arena.ts` 的 `prompts` 追加提示词：三位数字 id、`kind`（image / text / web）、文案字段。
-2. `modelResults` 追加结果：结果 id 全库唯一、promptId 指向已存在的题、modelId 稳定（同一模型跨题复用同一 modelId）、content.kind 与作品形态一致。
+2. 新增结果（后台建成前的手工方式）：`lib/works-roster.json` 追加一条完整作品（结果 id 全库唯一、promptId 指向已存在的题、modelId 稳定——同一模型跨题复用同一 modelId、content.kind 与作品形态一致，漏配身份字段或 content 启动即报错）。后台建成后此步改为后台登记（写 works 表、发布开关控制生效，决策 040）。
 3. 同步两处评论题号白名单：`lib/comments.ts` 的 `validateComment` 与 `server/index.js` 的 `ALLOWED_ROUNDS`。
 4. HTML 作品：文件放 `public/works/`，结果用 `content: { kind: 'html', src: '/works/xxx.html' }` 引用（sandbox iframe 预览）。
 5. `isDemo: true` 的结果不计模型数、不参与配对与随机竞技场，仅预览页可见（语义见 `docs/PRODUCT.md` 内容真实性分级）。
@@ -125,7 +128,8 @@ npm start          # 生产形态：http://localhost:3000
 - 竞技场页"本场收录 N 个模型的 M 份结果"（`app/page.tsx`）统计未过滤 isDemo，与提示词库页口径不一致；当前可进竞技场的题都没有 demo 结果，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
 - `rounds = prompts` 为 legacy 别名，仅因状态机与旧代码引用保留。
-- 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。
+- 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。作品数据已单一来源：SQLite works 表（决策 040），`lib/works-roster.json` 是它的种子与前端兜底快照，手工加作品改 JSON 即可。
+- works 表结构演进走 `server/index.js` 的 `MIGRATIONS`（`PRAGMA user_version` 驱动，启动自动补齐）；`content` 存 JSON 字符串，加展示字段优先在该 JSON 内扩展，不动表结构。首启动种子只在表空时执行，不会覆盖库内已有作品。
 - `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿在现接口上静默截断——截断会让客户端 Elo 重放失真（见 `server/index.js` 注释）。
 - vite dev 代理必须 `changeOrigin: false`（`vite.config.ts` 有注释）：否则服务端 sameOrigin 校验在 dev 下全部 403；生产不经 vite，不受影响。
 

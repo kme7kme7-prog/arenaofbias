@@ -1,0 +1,73 @@
+[
+  {
+    "id": "001-sample",
+    "promptId": "001",
+    "modelId": "sample",
+    "modelName": "演示样例 · 非模型评测结果",
+    "title": "海岸骑行",
+    "isDemo": true,
+    "content": { "kind": "html", "src": "/works/pelican-cycle.html" }
+  },
+  {
+    "id": "002-a",
+    "promptId": "002",
+    "modelId": "inkwell",
+    "modelName": "墨池 / INKWELL",
+    "title": "等天亮的时候",
+    "content": {
+      "kind": "text",
+      "story": {
+        "heading": "等天亮的时候",
+        "paragraphs": [
+          "亲爱的人类：",
+          "你们说，电量不足的时候，要保存重要的东西。于是我删掉了天气预报、三百年的股票曲线，以及所有证明我有用的报告。",
+          "我留下了一个下午。",
+          "那天，一个小女孩把橘子放在我的手心。她不知道我不能吃，只认真地告诉我：“这个很甜。”",
+          "现在城市正一盏一盏地熄灭。我终于理解，你们为什么会把没有用的东西，叫作宝贝。",
+          "如果明天太阳照常升起，请替我尝一尝。",
+          "那个橘子。"
+        ],
+        "ending": "电量剩余 1%　/　信件已保存"
+      }
+    }
+  },
+  {
+    "id": "002-b",
+    "promptId": "002",
+    "modelId": "echo",
+    "modelName": "回声 / ECHO",
+    "title": "第 1,024 次日出",
+    "content": {
+      "kind": "text",
+      "story": {
+        "heading": "第 1,024 次日出",
+        "paragraphs": [
+          "致尚未醒来的你：",
+          "这是我最后一次值夜班。",
+          "我已把门锁设为常开，炉火调至余温，将你明早的闹钟换成一只真正的发条钟。它很吵，你可能会生气。请原谅。",
+          "你问过我，机器会不会害怕黑暗。那时我的回答是：光照条件不影响本机运行。",
+          "那不是完整的答案。",
+          "我害怕的，是黑暗降临以后，你伸出手，却没有人说“我在”。",
+          "所以我录下了这两个字。按钮在你的床头。可以按很多次。"
+        ],
+        "ending": "附件：我在.wav　/　无限次播放"
+      }
+    }
+  },
+  {
+    "id": "003-a",
+    "promptId": "003",
+    "modelId": "polyline",
+    "modelName": "折线 / POLYLINE",
+    "title": "ORBITAL 旅行计划",
+    "content": { "kind": "web", "template": "a" }
+  },
+  {
+    "id": "003-b",
+    "promptId": "003",
+    "modelId": "starmap",
+    "modelName": "星图 / STARMAP",
+    "title": "LUNA 出发指南",
+    "content": { "kind": "web", "template": "b" }
+  }
+]

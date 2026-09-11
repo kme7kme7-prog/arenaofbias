@@ -1,13 +1,10 @@
 import { AccountButton } from '@/components/account';
 import { ArrowUpRight } from 'lucide-react';
-import {
-  type ModelResult,
-  type Prompt,
-  resultsForPrompt,
-} from '@/lib/arena';
+import type { ModelResult, Prompt } from '@/lib/arena';
+import { currentResultsForPrompt } from '@/lib/placeholder';
 
 export default function PromptPreview({ prompt }: { prompt: Prompt }) {
-  const example = resultsForPrompt(prompt.id).find(
+  const example = currentResultsForPrompt(prompt.id).find(
     (result): result is ModelResult & { content: { kind: 'html'; src: string } } =>
       result.isDemo === true &&
       result.content.kind === 'html' &&
