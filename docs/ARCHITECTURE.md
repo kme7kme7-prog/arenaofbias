@@ -29,6 +29,7 @@
 | `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（与 `server/index.js` 规则镜像）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录（带 mode，供只看正式口径过滤） |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
+| `lib/arena-scroll.ts` | 竞技场定位：下一帧将命题区滚到视口上方，允许路由归顶先完成；支持 reduced-motion，返回取消函数避免卸载后误滚动 |
 | `lib/decryption.ts` | 盲测揭晓的「文档解密」：逐行测量身份文字、遮黑条错峰退开；`reveal()` 自起 rAF，减少动态效果直接落终态 |
 | `lib/ui-transitions.ts` | 可打断的界面过渡与页面级横扫：`SurfaceTransition`（进出可从当前透明度/位移接续反向，开发者面板在用）；`wipeNavigate(hash, copy, timing?)` 全屏横扫换页——色块挂 body 独立于路由存活，transform 驱动扫入盖满时切路由、新页在遮挡下挂载、再扫出露出（首页主按钮与随机入场在用，文案随目的地）；默认节奏在 `defaultWipeTiming`（360/150/400），timing 覆盖仅供 reference 对照页调参 |
 | `lib/utils.ts` | `cn()`（clsx + tailwind-merge） |
@@ -43,11 +44,12 @@
 | `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
 | `scripts/validate-votes.mjs` | 投票校验（9 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、换作品可再投、非法 payload 400、流水升序、服务端返回能通过前端校验 |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
+| `scripts/check-arena-scroll.mjs` | 竞技场命题定位契约：延迟执行、平滑/减少动态效果、卸载取消与脱离 DOM 跳过 |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `scripts/check-wipe.mjs` | 页面横扫过渡不变量断言（决策 029，8 项）：层挂 body、盖满才换路由、关键帧只动 transform、结束必清理、防重入、reduced-motion 直达、timing 覆盖生效；手写时钟 + 假 DOM，无需浏览器 |
 | `scripts/check-surface.mjs` | SurfaceTransition 不变量断言（决策 029，7 项）：开/关中途反向从当前透明度/位移接续（不跳变）、状态机与 hidden 托管、已隐藏时 hide 空操作、reduced 直达、dispose 可复用；假 getComputedStyle 会采样动画进行中的值 |
 | `lib/game-transitions.ts` + `app/game-transitions.css` | 新过场（决策 031–034）：`createGameTransition('frame'/'bands')`，rAF 推进共享 WAAPI 轨道、盖满才回调 `onCovered`、支持 play/pause/seek/dispose；frame 接首页主按钮（进 `#play`，防重入锁在 home.tsx），bands 经 `bandsNavigate` 接首页↔题库/偏好榜 |
-| `reference/` | 动效对照调试页（决策 029）：`wipe-review.html`、`surface-review.html`、`game-transitions-review.html`，dev server 下访问 `/reference/*.html`；import 真实 `lib/` 模块（非复制品），调参控件 + 新旧对照 + 不变量清单，改动效前先在此调，定稿回写源码 |
+| `reference/` | 动效与比例对照页（决策 029）：`wipe-review.html`、`surface-review.html`、`game-transitions-review.html`、`arena-layout-review.html`，dev server 下访问 `/reference/*.html`；后者以 iframe 载入真实竞技场并提供可用视口档位，调赛后布局、提示词展开和入场定位。 |
 | `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
 | `public/art/` | webp 素材（lunar、signal-a/b，首页预览与 WebWork 背景） |
 | `data/` | SQLite 本地库（comments.db），gitignored，勿手改 |
@@ -95,7 +97,7 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion` 校验三个界面过渡（wipe / surface / game）的不变量，或分开跑 `check:wipe` / `check:surface` / `check:game`，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion` 校验四类界面行为（wipe / surface / game / arena-scroll）的不变量，或分开跑 `check:wipe` / `check:surface` / `check:game` / `check:arena-scroll`，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
 
 环境变量（均有默认值，本地开发可不设）：
 

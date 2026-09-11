@@ -55,6 +55,7 @@ import {
 import { submitVote } from '@/lib/votes';
 import { DocumentDecryption } from '@/lib/decryption';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
+import { schedulePromptScroll } from '@/lib/arena-scroll';
 import { Afterparty } from '@/components/afterparty';
 
 const ABORTED = 'sequence-cancelled';
@@ -271,6 +272,7 @@ export default function Arena({
   );
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const briefingRef = useRef<HTMLElement>(null);
   const cardA = useRef<HTMLDivElement>(null);
   const cardB = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
@@ -319,6 +321,11 @@ export default function Arena({
       };
     });
   }, []);
+
+  useEffect(() => {
+    if (!briefingRef.current) return;
+    return schedulePromptScroll(briefingRef.current, getMotionPreference());
+  }, [prompt.id, state.run]);
 
   useEffect(() => {
     let live = true;
@@ -726,7 +733,7 @@ export default function Arena({
           </div>
         </section>
 
-        <section className="briefing" aria-label="本轮创作要求">
+        <section className="briefing" ref={briefingRef} aria-label="本轮创作要求">
           <div className="round-tag">
             <Crosshair size={19} />
             <span>
@@ -735,7 +742,17 @@ export default function Arena({
           </div>
           <div className="briefing-copy">
             <span className="prompt-label">本轮命题</span>
-            <h2 key={round.id}>{round.prompt}</h2>
+            {round.prompt.length > 90 ? (
+              <details className="prompt-disclosure" key={round.id}>
+                <summary>
+                  <span>{round.name}</span>
+                  <span className="prompt-disclosure-label">查看完整提示词</span>
+                </summary>
+                <p>{round.prompt}</p>
+              </details>
+            ) : (
+              <h2 key={round.id}>{round.prompt}</h2>
+            )}
           </div>
           <span className="briefing-detail">{round.detail}</span>
           <div className="briefing-corner" aria-hidden="true" />

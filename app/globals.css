@@ -446,6 +446,7 @@ kbd {
   color: #6b7668;
 }
 .briefing {
+  scroll-margin-top: 12px;
   position: relative;
   display: flex;
   align-items: center;
@@ -2608,13 +2609,7 @@ kbd {
 .work-viewport {
   transition: height 0.95s var(--ease-out);
 }
-.phase-result .arena-stage {
-  max-width: 940px;
-  gap: 60px;
-}
-.phase-result .work-viewport {
-  height: 145px;
-}
+/* 揭晓沿用作品原尺寸，评论通过页面文档流向下展开。 */
 .phase-result .vote-button {
   height: 0;
   opacity: 0;
@@ -2665,11 +2660,10 @@ kbd {
   overflow: hidden;
 }
 .afterparty {
-  padding: 19px 23px 20px;
-  margin-bottom: 22px;
-  border: 1px solid #9daa94;
+  padding: 28px 0 30px;
+  margin: 20px 0 28px;
   border-top: 3px solid var(--ink);
-  background: #e8ece1;
+  border-bottom: 1px solid #9daa94;
   position: relative;
 }
 .afterparty::after {
@@ -2730,8 +2724,9 @@ kbd {
 }
 .afterparty-columns {
   display: grid;
-  grid-template-columns: 1.08fr 1fr;
-  gap: 30px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 40px;
 }
 .comment-composer {
   min-width: 0;
@@ -2860,12 +2855,8 @@ kbd {
   animation: refresh-spin 1.3s linear infinite;
 }
 .comment-list {
-  max-height: 204px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #aebd9a transparent;
-  padding-right: 6px;
-  overscroll-behavior: contain;
+  /* 使用整页滚动，长讨论不再塞进独立的小滚动窗。 */
+  min-width: 0;
 }
 .channel-empty {
   min-height: 160px;
@@ -2980,12 +2971,6 @@ kbd {
   .commentary-id {
     display: none;
   }
-  .phase-result .arena-stage {
-    gap: 16px;
-  }
-  .phase-result .work-viewport {
-    height: 110px;
-  }
   .phase-result .side-result {
     bottom: 28px;
     right: 4px;
@@ -3006,8 +2991,8 @@ kbd {
     left: 7px;
   }
   .afterparty {
-    padding: 16px 13px 10px;
-    margin-bottom: 18px;
+    padding: 22px 0 18px;
+    margin: 18px 0;
   }
   .afterparty-heading {
     margin-bottom: 15px;
@@ -3061,6 +3046,58 @@ kbd {
   .channel-empty {
     min-height: 120px;
   }
+}
+/* 比例由作品宽度决定；矮窗口让文档下延，不挤压预览。 */
+.arena-stage { container-type: inline-size; }
+.briefing-copy { min-width: 0; flex: 1; }
+.prompt-disclosure { width: 100%; min-width: 0; }
+.prompt-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 650;
+  list-style: none;
+}
+.prompt-disclosure summary::-webkit-details-marker { display: none; }
+.prompt-disclosure summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 5px; }
+.prompt-disclosure-label { flex-shrink: 0; font-size: 11px; font-weight: 400; color: #526347; }
+.prompt-disclosure-label::after { content: '+'; display: inline-block; margin-left: 10px; transition: transform .25s; }
+.prompt-disclosure[open] .prompt-disclosure-label::after { transform: rotate(45deg); }
+.prompt-disclosure p { margin: 16px 0 5px; font-size: 14px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.prompt-disclosure[open] p { animation: text-enter .3s var(--ease-out) both; }
+.phase-result .is-chosen .work-panel::after {
+  width: 100%;
+  transform-origin: left;
+  animation: verdict-line .65s var(--ease-out) both;
+}
+.phase-result .side-result { animation: text-enter .5s .12s var(--ease-out) both; }
+@keyframes verdict-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (min-width: 700px) {
+  .arena-shell .work-viewport { height: clamp(340px, 30cqw, 540px); }
+  .arena-shell .arena-stage { gap: clamp(32px, 4vw, 72px); }
+  .arena-shell .round-console.show-result { flex-wrap: wrap; padding-block: 14px; }
+  .arena-shell .result-caption { flex-wrap: wrap; row-gap: 10px; }
+}
+@media (min-width: 700px) and (max-height: 850px) {
+  .arena-shell .topbar { height: 60px; }
+  .arena-shell .main-terminal { padding-top: 12px; }
+  .arena-shell .command-row { min-height: 44px; margin-bottom: 10px; }
+  .arena-shell .section-heading h1 { font-size: 26px; margin-top: 4px; }
+  .arena-shell .section-heading > .section-code { font-size: 8px; }
+  .arena-shell .mode-tabs p { font-size: 10px; margin-top: 4px; }
+  .arena-shell .briefing { min-height: 48px; padding-block: 8px; }
+  .arena-shell .match-commentary { min-height: 32px; margin-block: 7px; padding-block: 6px; }
+  .arena-shell .field-meta { height: 29px; }
+  .arena-shell .panel-heading { height: 40px; }
+  .arena-shell .vote-button { height: 58px; }
+  .arena-shell.phase-result .vote-button { height: 0; }
+}
+@media (max-width: 699px) {
+  .prompt-disclosure summary { align-items: flex-start; flex-direction: column; gap: 4px; font-size: 13px; }
+  .prompt-disclosure p { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *,

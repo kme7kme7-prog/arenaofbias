@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>竞技场比例与揭晓对照</title>
+<style>body{margin:0;background:#dfe3dd;color:#20221d;font:14px system-ui}header{padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}button,select{padding:8px;background:#eef0e9;border:1px solid #879780}iframe{display:block;border:1px solid #879780;margin:0 auto;max-width:none}p{margin:0 16px 16px}</style>
+<header><b>竞技场 / 比例与动效对照</b><select id="size"><option value="1366,650">笔记本可用视口 1366×650</option><option value="1536,760">桌面可用视口 1536×760</option><option value="1920,900">大屏可用视口 1920×900</option><option value="390,700">手机 390×700</option></select><button id="replay">重新加载</button></header>
+<p>使用真实页面：检查长提示词展开、左右选择后的确认线与信息入场、揭晓前后作品尺寸、评论下延。减少动态效果由浏览器系统设置模拟；此页不注入投票或身份数据。</p>
+<iframe title="竞技场实际页面" src="/#arena/003" width="1366" height="650"></iframe>
+<script>const frame=document.querySelector('iframe'),size=document.querySelector('#size');size.onchange=()=>{const [w,h]=size.value.split(',');frame.width=w;frame.height=h};document.querySelector('#replay').onclick=()=>{frame.src=frame.src};</script>
+</html>
