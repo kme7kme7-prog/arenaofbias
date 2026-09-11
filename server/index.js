@@ -26,6 +26,9 @@ const projectRoot = path.resolve(serverDir, '..');
 const distDir = path.join(projectRoot, 'dist');
 const dataDir = process.env.DATA_DIR || path.join(projectRoot, 'data');
 const dbPath = path.join(dataDir, 'comments.db');
+// 作品文件目录（决策 043）：大文件不入 git，住 data/works（与库同级的本地数据）。
+// VPS 上通过 WORKS_DIR 指到固定位置，宝塔直接往里传文件。
+const worksDir = process.env.WORKS_DIR || path.join(dataDir, 'works');
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 const postsPerMinute = Number(process.env.RATE_LIMIT_PER_MIN || 10);
@@ -625,6 +628,18 @@ app.post('/api/dev/clear-my-votes', (req, res) => {
 app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }));
 // ---------- 静态资源 ----------
 
+// 作品文件目录（决策 043）：data/works 优先（后台登记的作品在这里），
+// 找不到时回落到 dist 里 public/works 的小型演示样例（pelican-cycle）。
+// 两个来源共用 /works 前缀，沙盒 iframe 引用 /works/xxx.html 不区分来源。
+// 无条件挂载——目录可能在本进程启动后才被登记脚本/宝塔创建
+app.use(
+  '/works',
+  express.static(worksDir, {
+    // 作品文件按 id 唯一，重登记即换新文件——允许短缓存 + etag 协商即可
+    setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=3600'),
+  }),
+);
+
 if (fs.existsSync(path.join(distDir, 'index.html'))) {
   // 带内容哈希的构建产物与图片可长缓存；index.html 始终即时更新。
   app.use(
@@ -662,6 +677,9 @@ app.use((error, _req, res, _next) => {
 app.listen(port, host, () => {
   console.log(`[arenaofbias] http://${host}:${port}`);
   console.log(`[arenaofbias] SQLite: ${dbPath}`);
+  console.log(
+    `[arenaofbias] 作品目录: ${fs.existsSync(worksDir) ? worksDir : '(未创建，仅用内置演示样例)'}`,
+  );
   console.log(
     `[arenaofbias] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
   );

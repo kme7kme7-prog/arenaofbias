@@ -47,14 +47,15 @@
 | `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
 | `scripts/validate-votes.mjs` | 投票校验（11 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、票面清单核对 400（伪造 rid / rid 与题号不符 / mid 与 rid 不符 / 演示作品）、同 UUID 跨对局重放 409（B1/B2 回归）、非法 payload 400、流水升序、服务端返回能通过前端校验、GET /api/works 迁移种子（5 条、已发布、content 合法 JSON）；拼合模块时把 works-roster.json 内联注入（data URL 解析不了相对路径） |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
-| `scripts/validate-admin.mjs` | 管理后台校验（6 项，决策 041）：起真实 server + 临时 SQLite（带 `ADMIN_OWNER`），覆盖管理员标记（ADMIN_OWNER 账号 role=admin、普通账号 null）、admin 门禁（未登录 401 / 普通用户 404 / 管理员 200）、访客统计（页面访问记录、API/资产不记录、stats 字段自洽、体检形态）、数据流水（投票/评论/注册记录、关键字过滤、未知类型 400）、双入口构建产物存在 |
+| `scripts/validate-admin.mjs` | 管理后台校验（7 项，决策 041/042）：起真实 server + 临时 SQLite（带 `ADMIN_OWNER`），覆盖管理员标记（ADMIN_OWNER 账号 role=admin、普通账号 null）、admin 门禁（未登录 401 / 普通用户 404 / 管理员 200）、访客统计（/api/track 上报记录、跨源 403、stats 字段自洽、体检形态）、数据流水（投票/评论/注册记录、关键字过滤、未知类型 400）、dev 登录即管理员 + 清票接口（普通用户 403、清后重投 201、他人票不受影响）、评论按内容可搜、双入口构建产物存在 |
+| `scripts/register-works.mjs` | 作品批量登记（决策 043，后台第二期的雏形）：`npm run register:works -- --source <目录> --prompt <题号> [--draft]`，解析「标题，模型名.html」→ 复制进 `data/works/<题号>/` → works 表入库（默认已发布）；文件名排序生成稳定 id，幂等可重跑；中文模型名掺短哈希防塌缩 |
 | `scripts/check-arena-scroll.mjs` | 竞技场命题定位契约：延迟执行、平滑/减少动态效果、卸载取消与脱离 DOM 跳过 |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `scripts/check-wipe.mjs` | 页面横扫过渡不变量断言（决策 029，8 项）：层挂 body、盖满才换路由、关键帧只动 transform、结束必清理、防重入、reduced-motion 直达、timing 覆盖生效；手写时钟 + 假 DOM，无需浏览器 |
 | `scripts/check-surface.mjs` | SurfaceTransition 不变量断言（决策 029，7 项）：开/关中途反向从当前透明度/位移接续（不跳变）、状态机与 hidden 托管、已隐藏时 hide 空操作、reduced 直达、dispose 可复用；假 getComputedStyle 会采样动画进行中的值 |
 | `lib/game-transitions.ts` + `app/game-transitions.css` | 新过场（决策 031–034）：`createGameTransition('frame'/'bands')`，rAF 推进共享 WAAPI 轨道、盖满才回调 `onCovered`、支持 play/pause/seek/dispose；frame 接首页主按钮（进 `#play`，防重入锁在 home.tsx），bands 经 `bandsNavigate` 接首页↔题库/偏好榜 |
 | `reference/` | 动效与比例对照页（决策 029）：`wipe-review.html`、`surface-review.html`、`game-transitions-review.html`、`arena-layout-review.html`，dev server 下访问 `/reference/*.html`；后者以 iframe 载入真实竞技场并提供可用视口档位，调赛后布局、提示词展开和入场定位。 |
-| `public/works/` | HTML 作品文件（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用 |
+| `public/works/` | 内置演示样例 HTML（当前 `pelican-cycle.html`），由 kind:'html' 结果以 sandbox iframe 引用；**新作品不走这里**——后台/脚本登记的作品在 data/works（见 WORKS_DIR），/works 请求优先 data/works、回落此处 |
 | `public/art/` | webp 素材（lunar、signal-a/b，首页预览与 WebWork 背景） |
 | `data/` | SQLite 本地库（comments.db），gitignored，勿手改 |
 | `dist/` | `vite build` 产物，gitignored |
@@ -120,13 +121,14 @@ npm start          # 生产形态：http://localhost:3000
 | `ADMIN_OWNER` | 后台管理员引导（决策 041，已被 042 的「dev 即管理员」大幅弱化）：该用户名的账号在启动时与登录时被标为 admin（幂等）。本地开发用 dev 面板一键登录即管理员，无需此变量；生产给其他账号授权直接改库 `UPDATE users SET role='admin' WHERE username='xxx'` |
 | `APP_ORIGIN` | 站点完整来源（如 `https://域名`），用于同源校验与 secure cookie |
 | `TRUST_PROXY` | 逗号分隔的可信代理 IP（如 nginx 同机部署时 `127.0.0.1`） |
+| `WORKS_DIR` | 作品文件目录（决策 043，默认 `<DATA_DIR>/works`）：登记脚本与后台写入、Express 以 `/works/` 优先供给（回落 dist 内 public/works 的小型演示样例）；VPS 上指向固定位置，宝塔直接往里传文件。**大文件不入 git** |
 
 已知环境限制：AI 沙箱内 `vite build` 可能因原生二进制加载与子进程限制失败（`spawn EPERM`、oxide / lightningcss 的 .node 文件无法加载），属环境限制而非代码问题，需在本地终端复核。
 
 ## 扩充内容操作步骤
 
 1. `lib/arena.ts` 的 `prompts` 追加提示词：三位数字 id、`kind`（image / text / web）、文案字段。
-2. 新增结果（后台建成前的手工方式）：`lib/works-roster.json` 追加一条完整作品（结果 id 全库唯一、promptId 指向已存在的题、modelId 稳定——同一模型跨题复用同一 modelId、content.kind 与作品形态一致，漏配身份字段或 content 启动即报错）。后台建成后此步改为后台登记（写 works 表、发布开关控制生效，决策 040）。
+2. 新增结果（后台/脚本路线，推荐）：`npm run register:works -- --source <目录> --prompt <题号>` 批量登记——文件名按「标题，模型名.html」命名，脚本复制进 data/works 并写 works 表（决策 043，详见该脚本说明）；`--draft` 可登记为未发布。手工路线：改 `lib/works-roster.json`（种子，仅空表时种入）+ 重启。HTML 作品多文件（index.html + assets/ 相对路径）同样支持：整目录放 `data/works/<题号>/<作品id>/`，content.src 指到其 index.html。
 3. 同步两处评论题号白名单：`lib/comments.ts` 的 `validateComment` 与 `server/index.js` 的 `ALLOWED_ROUNDS`。
 4. HTML 作品：文件放 `public/works/`，结果用 `content: { kind: 'html', src: '/works/xxx.html' }` 引用（sandbox iframe 预览）。
 5. `isDemo: true` 的结果不计模型数、不参与配对与随机竞技场，仅预览页可见（语义见 `docs/PRODUCT.md` 内容真实性分级）。

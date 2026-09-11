@@ -23,6 +23,9 @@ export default defineConfig({
       // （origin === http://<host>）才能通过；改写 Host 会让评论/登录/投票在
       // dev 代理下全部 403（生产不经 vite，不受影响）
       '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false },
+      // 作品文件由 Express 从 data/works 提供（决策 043），dev 下同样代理过去；
+      // public/works 里的小文件 vite 自己直接返回，不冲突
+      '/works': { target: 'http://127.0.0.1:3000', changeOrigin: false },
     },
   },
   build: {
