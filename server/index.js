@@ -14,6 +14,13 @@
 
 import express from 'express';
 import { installAuth } from './auth.js';
+import {
+  insertWork,
+  modelIdOf,
+  nextFreeWorkId,
+  parseWorkFilename,
+  transferPath,
+} from './works-register.js';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -29,6 +36,10 @@ const dbPath = path.join(dataDir, 'comments.db');
 // 作品文件目录（决策 043）：大文件不入 git，住 data/works（与库同级的本地数据）。
 // VPS 上通过 WORKS_DIR 指到固定位置，宝塔直接往里传文件。
 const worksDir = process.env.WORKS_DIR || path.join(dataDir, 'works');
+// 收件箱（决策 044）：宝塔/本机把待登记文件丢这里，后台「收件箱」页逐个登记进
+// 作品库；登记即把文件搬进 worksDir——收件箱里只留待处理件。
+const inboxDir = process.env.WORKS_INBOX_DIR || path.join(dataDir, 'inbox');
+fs.mkdirSync(inboxDir, { recursive: true });
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 const postsPerMinute = Number(process.env.RATE_LIMIT_PER_MIN || 10);
@@ -573,6 +584,281 @@ app.get('/api/admin/log', requireAdmin, (req, res) => {
   }
 });
 
+// ---------- 管理后台：作品管理（决策 044） ----------
+//
+// 约束：不提供删除——投票流水引用作品（winner_rid/loser_rid），删除会打断历史，
+// 只允许「下架」（关发布开关）。model_id 不可改——榜单统计按它归组（票面存 mid），
+// 改模型名只动显示名。content JSON 损坏的作品照常列出，仅预览地址留空。
+
+const selectWorkById = db.prepare(
+  `SELECT id, prompt_id AS promptId, model_id AS modelId, model_name AS modelName,
+          title, is_demo AS isDemo, published, created_at AS createdAt, content
+   FROM works WHERE id = ?`,
+);
+
+// 后台作品视图：从 content JSON 里摘出预览地址（html/image 有 src；text/web 没有）
+const adminWorkView = (row) => {
+  if (!row) return null;
+  let src = null;
+  try {
+    const content = JSON.parse(row.content);
+    if (content && typeof content.src === 'string') src = content.src;
+  } catch {
+    // content 损坏时预览留空，不影响列表与管理
+  }
+  return {
+    id: row.id,
+    promptId: row.promptId,
+    modelId: row.modelId,
+    modelName: row.modelName,
+    title: row.title,
+    isDemo: !!row.isDemo,
+    published: !!row.published,
+    createdAt: row.createdAt,
+    src,
+  };
+};
+
+// 作品全量清单（含未发布），按题号/状态/关键字筛选，倒序分页
+app.get('/api/admin/works', requireAdmin, (req, res) => {
+  const prompt = req.query.prompt ? String(req.query.prompt) : '';
+  if (prompt && !ALLOWED_ROUNDS.includes(prompt))
+    return res.status(400).json({ error: '未知题号' });
+  const status = String(req.query.status || 'all');
+  if (!['all', 'published', 'draft'].includes(status))
+    return res.status(400).json({ error: '未知状态筛选' });
+  const q = String(req.query.q || '').trim().slice(0, 64);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const where = [];
+  const params = [];
+  if (prompt) {
+    where.push('prompt_id = ?');
+    params.push(prompt);
+  }
+  if (status === 'published') where.push('published = 1');
+  if (status === 'draft') where.push('published = 0');
+  if (q) {
+    where.push('(title LIKE ? OR model_name LIKE ? OR model_id LIKE ? OR id LIKE ?)');
+    params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  try {
+    const total = db
+      .prepare(`SELECT COUNT(*) AS n FROM works ${whereSql}`)
+      .get(...params).n;
+    const rows = db
+      .prepare(
+        `SELECT id, prompt_id AS promptId, model_id AS modelId, model_name AS modelName,
+                title, is_demo AS isDemo, published, created_at AS createdAt, content
+         FROM works ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset);
+    res.set(noStore).json({ total, works: rows.map(adminWorkView) });
+  } catch {
+    res.status(503).set(noStore).json({ error: '作品清单暂时无法加载' });
+  }
+});
+
+// 编辑作品：标题 / 模型名（显示名）/ 发布开关。发布切换即时生效——
+// /api/works 只吐已发布作品，前台拉取时自然多出或少了这一件。
+app.patch('/api/admin/works/:id', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const row = db.prepare('SELECT id FROM works WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: '作品不存在' });
+  const body = req.body || {};
+  const updates = {};
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 120)
+      return res.status(400).json({ error: '标题须为 1–120 字' });
+    updates.title = body.title.trim();
+  }
+  if (body.modelName !== undefined) {
+    const modelName = String(body.modelName).trim();
+    if (!modelName || modelName.length > 64)
+      return res.status(400).json({ error: '模型名须为 1–64 字' });
+    updates.model_name = modelName;
+  }
+  if (body.published !== undefined) {
+    if (typeof body.published !== 'boolean')
+      return res.status(400).json({ error: 'published 须为布尔值' });
+    updates.published = body.published ? 1 : 0;
+  }
+  if (Object.keys(updates).length === 0)
+    return res.status(400).json({ error: '没有要修改的内容' });
+  try {
+    const setSql = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    db.prepare(`UPDATE works SET ${setSql} WHERE id = ?`).run(
+      ...Object.values(updates),
+      row.id,
+    );
+    res.set(noStore).json({ work: adminWorkView(selectWorkById.get(row.id)) });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没保存上，稍后再试' });
+  }
+});
+
+// ---------- 管理后台：收件箱（决策 044） ----------
+//
+// 宝塔/本机把待登记文件放进 inboxDir，这里列出、登记、清理。
+// 登记 = 文件搬进 worksDir/<题号>/ + works 表入库（默认草稿）。
+
+// 收件箱条目名只接受单段路径——防路径穿越（../、分隔符、盘符都进不来）
+const safeEntryName = (value) => {
+  if (typeof value !== 'string' || !value || value.length > 255) return null;
+  if (/[\\/]/.test(value) || value.includes('\0') || value === '.' || value === '..')
+    return null;
+  return value;
+};
+
+app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
+  try {
+    const entries = fs
+      .readdirSync(inboxDir, { withFileTypes: true })
+      .flatMap((entry) => {
+        const full = path.join(inboxDir, entry.name);
+        if (entry.isDirectory()) {
+          const hasIndex = fs.existsSync(path.join(full, 'index.html'));
+          return [
+            {
+              name: entry.name,
+              type: 'dir',
+              size: null,
+              registerable: hasIndex,
+              reason: hasIndex ? null : '文件夹里没有 index.html，无法作为作品登记',
+              suggest: { title: entry.name, model: '' },
+            },
+          ];
+        }
+        if (!entry.isFile()) return []; // 符号链接等非常规条目不进清单
+        const isHtml = entry.name.toLowerCase().endsWith('.html');
+        const parsed = isHtml
+          ? parseWorkFilename(entry.name.replace(/\.html$/i, ''))
+          : null;
+        return [
+          {
+            name: entry.name,
+            type: 'file',
+            size: fs.statSync(full).size,
+            registerable: isHtml,
+            reason: isHtml
+              ? null
+              : '只登记 .html 文件；多文件作品请整个文件夹放进收件箱',
+            suggest: parsed
+              ? { title: parsed.title, model: parsed.model }
+              : null,
+          },
+        ];
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    res.set(noStore).json({ dir: inboxDir, entries });
+  } catch {
+    res.status(503).set(noStore).json({ error: '收件箱暂时无法读取' });
+  }
+});
+
+// 登记一件收件箱作品：单文件或含 index.html 的文件夹（多文件作品）。
+// 同模型重复登记自动让位（-2、-3……），库与磁盘遗留文件都避开。
+app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const name = safeEntryName(req.body?.name);
+  if (!name) return res.status(400).json({ error: '文件名不合法' });
+  const promptId = String(req.body?.promptId || '');
+  if (!ALLOWED_ROUNDS.includes(promptId))
+    return res.status(400).json({ error: '未知题号' });
+  const modelName = String(req.body?.modelName || '').trim();
+  if (!modelName || modelName.length > 64)
+    return res.status(400).json({ error: '请填写 1–64 字的模型名' });
+  const publish = req.body?.publish === true;
+
+  const source = path.join(inboxDir, name);
+  let stats;
+  try {
+    stats = fs.statSync(source);
+  } catch {
+    return res.status(404).json({ error: '收件箱里已经没有这个文件了，刷新看看' });
+  }
+  const isDir = stats.isDirectory();
+  if (!isDir && !(stats.isFile() && name.toLowerCase().endsWith('.html')))
+    return res
+      .status(400)
+      .json({ error: '只能登记 .html 文件或包含 index.html 的文件夹' });
+  if (isDir && !fs.existsSync(path.join(source, 'index.html')))
+    return res.status(400).json({ error: '文件夹里没有 index.html，无法作为作品登记' });
+
+  // 标题：调用方给了用调用方的，否则按文件名解析（文件夹用目录名）
+  let title = String(req.body?.title || '').trim().slice(0, 120);
+  if (!title)
+    title = isDir
+      ? name
+      : parseWorkFilename(name.replace(/\.html$/i, '')).title ||
+        name.replace(/\.html$/i, '');
+
+  const modelId = modelIdOf(modelName);
+  const workId = nextFreeWorkId({ db, worksDir, promptId, modelId });
+  const dest = isDir
+    ? path.join(worksDir, promptId, workId)
+    : path.join(worksDir, promptId, `${workId}.html`);
+  try {
+    transferPath(source, dest, { move: true });
+  } catch {
+    return res.status(503).set(noStore).json({ error: '文件搬移失败，稍后再试' });
+  }
+  try {
+    insertWork(db, {
+      id: workId,
+      promptId,
+      modelId,
+      modelName,
+      title,
+      content: {
+        kind: 'html',
+        src: isDir
+          ? `/works/${promptId}/${workId}/index.html`
+          : `/works/${promptId}/${workId}.html`,
+      },
+      published: publish,
+    });
+  } catch (error) {
+    // 落库失败把文件退回收件箱——收件箱不吞件（best effort）
+    console.error('[arenaofbias] inbox register failed:', error?.code || 'internal');
+    try {
+      transferPath(dest, source, { move: true });
+    } catch {}
+    return res
+      .status(503)
+      .set(noStore)
+      .json({ error: '登记没写进数据库，文件已退回收件箱' });
+  }
+  res.set(noStore).status(201).json({ work: adminWorkView(selectWorkById.get(workId)) });
+});
+
+// 清理收件箱：不认识或不要的文件直接删除（不进作品库）
+app.delete('/api/admin/inbox', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  const name = safeEntryName(String(req.query.name || ''));
+  if (!name) return res.status(400).json({ error: '文件名不合法' });
+  const target = path.join(inboxDir, name);
+  let stats;
+  try {
+    stats = fs.statSync(target);
+  } catch {
+    return res.status(404).json({ error: '收件箱里没有这个文件' });
+  }
+  try {
+    fs.rmSync(target, { recursive: stats.isDirectory() });
+    res.set(noStore).status(204).end();
+  } catch {
+    res.status(503).set(noStore).json({ error: '删除失败，稍后再试' });
+  }
+});
+
 // 页面浏览记录（后台访客统计，决策 040）：由前端在文档加载时 POST /api/track
 // 上报（服务端中间件方案在 dev 下失效——vite 自己发页面，Express 看不到请求；
 // 上报方案 dev 与生产行为一致）。前端每加载一次文档报一次，hash 路由切换不计。
@@ -680,6 +966,7 @@ app.listen(port, host, () => {
   console.log(
     `[arenaofbias] 作品目录: ${fs.existsSync(worksDir) ? worksDir : '(未创建，仅用内置演示样例)'}`,
   );
+  console.log(`[arenaofbias] 收件箱目录: ${inboxDir}`);
   console.log(
     `[arenaofbias] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
   );

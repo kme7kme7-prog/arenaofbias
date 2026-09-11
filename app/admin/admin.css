@@ -276,6 +276,193 @@ body {
   margin-bottom: 8px;
 }
 
+/* 作品管理 & 收件箱（决策 044） */
+.admin-toolbar select {
+  border: 1px solid #cfd4c8;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  background: #fff;
+}
+.admin-main code {
+  background: #e7eae2;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+}
+.admin-ok {
+  background: #eef4ec;
+  border: 1px solid #bcd2b8;
+  color: #2c5f2d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.admin-badge {
+  font-style: normal;
+  font-size: 10px;
+  color: #7c8474;
+  border: 1px solid #c4cabd;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+}
+.admin-table input,
+.admin-table select {
+  border: 1px solid #cfd4c8;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+  background: #fff;
+}
+.admin-table input {
+  width: 100%;
+  min-width: 160px;
+}
+/* 发布开关：设置式左右滑块（决策 044 后的视觉修正——药丸按钮看着不像能点） */
+.admin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-toggle i {
+  font-style: normal;
+  font-size: 12px;
+  color: #6a716a;
+}
+.admin-toggle i.on {
+  color: #2c5f2d;
+  font-weight: 600;
+}
+.admin-table .admin-switch {
+  all: unset;
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: #c3cab9;
+  transition: background 0.15s ease;
+  vertical-align: middle;
+}
+.admin-table .admin-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(31, 34, 29, 0.25);
+  transition: transform 0.15s ease;
+}
+.admin-table .admin-switch.on {
+  background: #2c5f2d;
+}
+.admin-table .admin-switch.on::after {
+  transform: translateX(14px);
+}
+.admin-table .admin-switch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-table .admin-switch,
+  .admin-table .admin-switch::after {
+    transition: none;
+  }
+}
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.admin-link {
+  color: #2c5f2d;
+  text-decoration: underline;
+}
+.admin-mini {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #cfd4c8;
+  border-radius: 6px;
+  background: #fff;
+}
+.admin-mini:hover {
+  background: #f2f4ef;
+}
+.admin-mini.primary {
+  background: #3a4032;
+  border-color: #3a4032;
+  color: #fff;
+}
+.admin-mini.primary:hover {
+  background: #2e332a;
+}
+.admin-mini.danger {
+  color: #8c3b33;
+  border-color: #d8b0ab;
+}
+.admin-inbox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.admin-inbox-item {
+  background: #fff;
+  border: 1px solid #dfe2da;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-inbox-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.admin-inbox-name .size {
+  color: #8a9184;
+  font-size: 12px;
+}
+.admin-inbox-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admin-inbox-form label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #556054;
+}
+.admin-inbox-form label input[type='text'],
+.admin-inbox-form label select {
+  border: 1px solid #cfd4c8;
+  border-radius: 6px;
+  padding: 6px 9px;
+  font: inherit;
+  font-size: 13px;
+  background: #fff;
+}
+.admin-inbox-form label input[type='text'] {
+  width: 220px;
+}
+.admin-inbox-form .reason {
+  color: #8a9184;
+  font-size: 12px;
+}
+
 @media (max-width: 720px) {
   .admin-shell {
     grid-template-columns: 1fr;

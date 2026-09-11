@@ -4,10 +4,12 @@
 //   ② /api/admin/* 门禁：未登录 401、普通用户 404（不泄露后台存在）、管理员放行；
 //   ③ 访客统计：页面访问被记录、/api/admin/stats 的今日/趋势/累计字段自洽；
 //   ④ 数据流水：投票/评论/注册三类的过滤与形态；
-//   ⑤ 后台构建产物存在（admin.html 双入口）。
+//   ⑤ 后台构建产物存在（admin.html 双入口）；
+//   ⑥ 作品管理（决策 044）：全量清单/筛选、编辑与发布开关（含下架后投票核对收紧）；
+//   ⑦ 收件箱（决策 044）：清单建议、单文件与文件夹登记、同模型让位、路径穿越防护。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -249,6 +251,224 @@ try {
     })).json();
     assert.equal(rows.rows.length, 1);
     assert.equal(rows.rows[0].username, 'plainuser');
+  });
+
+  await check('作品管理：门禁、全量清单（含草稿）、筛选与搜索', async () => {
+    const anonymous = await robustFetch(`${base}/api/admin/works`);
+    assert.equal(anonymous.status, 401);
+    const forbidden = await robustFetch(`${base}/api/admin/works`, {
+      headers: { cookie: userCookie },
+    });
+    assert.equal(forbidden.status, 404);
+    const list = await (await robustFetch(`${base}/api/admin/works`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    // 种子 5 件：001-sample、002-a/b、003-a/b，全部已发布
+    assert.equal(list.total, 5, `total = ${list.total}`);
+    assert.equal(list.works.length, 5);
+    for (const work of list.works) {
+      assert.ok(work.id && work.promptId && work.modelId && work.modelName);
+      assert.equal(work.published, true);
+    }
+    // html 类种子作品带预览地址
+    assert.ok(list.works.some((work) => work.src?.startsWith('/works/')));
+    // 未知题号筛选 400
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/works?prompt=999`, { headers: { cookie: ownerCookie } })).status,
+      400,
+    );
+    // 题号筛选
+    const only001 = await (await robustFetch(`${base}/api/admin/works?prompt=001`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(only001.total, 1);
+    assert.equal(only001.works[0].promptId, '001');
+    // 草稿筛选（种子全为已发布 → 空）
+    const drafts = await (await robustFetch(`${base}/api/admin/works?status=draft`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(drafts.total, 0);
+    // 关键字命中模型（002-a 的 Inkwell；002-b 是 Echo）
+    const hit = await (await robustFetch(`${base}/api/admin/works?q=inkwell`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(hit.total, 1);
+    assert.equal(hit.works[0].id, '002-a');
+  });
+
+  await check('作品编辑与发布开关：下架即从 /api/works 消失，投票核对同步收紧', async () => {
+    const patch = (body, extra = {}) =>
+      robustFetch(`${base}/api/admin/works/002-a`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', origin: base, cookie: ownerCookie, ...extra.headers },
+        body: JSON.stringify(body),
+      });
+    // 非管理员 404 / 未带来源 403 / 非 JSON 415
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/works/002-a`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', cookie: userCookie },
+        body: JSON.stringify({ published: false }),
+      })).status,
+      404,
+    );
+    assert.equal(
+      (await patch({ published: false }, { headers: { origin: 'https://evil.example' } })).status,
+      403,
+    );
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/works/002-a`, {
+        method: 'PATCH',
+        headers: { origin: base, cookie: ownerCookie },
+        body: JSON.stringify({ published: false }),
+      })).status,
+      415,
+    );
+    // 空改动 400、非法值 400、未知作品 404
+    assert.equal((await patch({})).status, 400);
+    assert.equal((await patch({ published: 'yes' })).status, 400);
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/works/no-such-work`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', origin: base, cookie: ownerCookie },
+        body: JSON.stringify({ published: false }),
+      })).status,
+      404,
+    );
+    // 下架 → 公开清单不再吐它；B2 票面核对（published）同步拒绝对它的票
+    let response = await patch({ published: false });
+    assert.equal(response.status, 200);
+    let work = (await response.json()).work;
+    assert.equal(work.published, false);
+    let publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.ok(!publicWorks.works.some((item) => item.id === '002-a'));
+    const blockedVote = await robustFetch(`${base}/api/votes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', origin: base, cookie: userCookie },
+      body: JSON.stringify({
+        id: '88888888-8888-4888-8888-888888888888',
+        promptId: '002',
+        winnerRid: '002-a',
+        winnerMid: 'inkwell',
+        loserRid: '002-b',
+        loserMid: 'echo',
+        mode: 'blind',
+      }),
+    });
+    assert.equal(blockedVote.status, 400);
+    // 重新发布 → 回到公开清单
+    response = await patch({ published: true });
+    assert.equal(response.status, 200);
+    publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.ok(publicWorks.works.some((item) => item.id === '002-a'));
+    // 标题/模型名可改；model_id 不随显示名变（榜单归组键）
+    response = await patch({ title: '  改后的标题  ', modelName: 'Inkwell 2.0' });
+    work = (await response.json()).work;
+    assert.equal(work.title, '改后的标题');
+    assert.equal(work.modelName, 'Inkwell 2.0');
+    assert.equal(work.modelId, 'inkwell');
+  });
+
+  await check('收件箱：门禁、清单建议、单文件与文件夹登记、路径穿越防护', async () => {
+    const inbox = path.join(dataDir, 'inbox');
+    await writeFile(path.join(inbox, '测试作品，test-model.html'), '<html>test</html>');
+    await writeFile(path.join(inbox, '另一个，test-model.html'), '<html>test-2</html>');
+    await writeFile(path.join(inbox, 'junk.txt'), 'not a work');
+    await mkdir(path.join(inbox, 'dirwork', 'assets'), { recursive: true });
+    await writeFile(
+      path.join(inbox, 'dirwork', 'index.html'),
+      '<html><link rel="stylesheet" href="./assets/style.css">dir work</html>',
+    );
+    await writeFile(path.join(inbox, 'dirwork', 'assets', 'style.css'), 'body{}');
+
+    // 门禁
+    assert.equal((await robustFetch(`${base}/api/admin/inbox`)).status, 401);
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/inbox`, { headers: { cookie: userCookie } })).status,
+      404,
+    );
+
+    // 清单：建议字段与可登记性
+    const list = await (await robustFetch(`${base}/api/admin/inbox`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(list.entries.length, 4);
+    const file = list.entries.find((entry) => entry.name === '测试作品，test-model.html');
+    assert.equal(file.registerable, true);
+    assert.equal(file.suggest.title, '测试作品');
+    assert.equal(file.suggest.model, 'test-model');
+    const dir = list.entries.find((entry) => entry.name === 'dirwork');
+    assert.equal(dir.registerable, true); // 目录含 index.html
+    const junk = list.entries.find((entry) => entry.name === 'junk.txt');
+    assert.equal(junk.registerable, false);
+
+    // 单文件登记（发布）→ 文件搬走、可直访、出现在公开清单
+    const register = (body) =>
+      robustFetch(`${base}/api/admin/inbox/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', origin: base, cookie: ownerCookie },
+        body: JSON.stringify(body),
+      });
+    let response = await register({
+      name: '测试作品，test-model.html',
+      promptId: '001',
+      modelName: 'test-model',
+      publish: true,
+    });
+    assert.equal(response.status, 201);
+    let work = (await response.json()).work;
+    assert.equal(work.id, '001-test-model');
+    assert.equal(work.src, '/works/001/001-test-model.html');
+    assert.equal(work.published, true);
+    assert.equal((await robustFetch(`${base}/works/001/001-test-model.html`)).status, 200);
+    let publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.ok(publicWorks.works.some((item) => item.id === '001-test-model'));
+
+    // 同模型第二件自动让位 -2（modelName 必填——UI 表单会带出建议值）
+    response = await register({
+      name: '另一个，test-model.html',
+      promptId: '001',
+      modelName: 'test-model',
+      publish: false,
+    });
+    assert.equal(response.status, 201);
+    work = (await response.json()).work;
+    assert.equal(work.id, '001-test-model-2');
+    assert.equal(work.published, false);
+    publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.ok(!publicWorks.works.some((item) => item.id === '001-test-model-2'));
+
+    // 文件夹登记为草稿 → index.html 与资产可经 /works 访问
+    response = await register({ name: 'dirwork', promptId: '005', modelName: 'web-model' });
+    assert.equal(response.status, 201);
+    work = (await response.json()).work;
+    assert.equal(work.id, '005-web-model');
+    assert.equal(work.src, '/works/005/005-web-model/index.html');
+    assert.equal((await robustFetch(`${base}/works/005/005-web-model/index.html`)).status, 200);
+    assert.equal((await robustFetch(`${base}/works/005/005-web-model/assets/style.css`)).status, 200);
+
+    // 登记校验：未知题号 / 缺模型名 / 路径穿越（登记与删除两条路）
+    assert.equal((await register({ name: 'junk.txt', promptId: '999', modelName: 'x' })).status, 400);
+    assert.equal((await register({ name: 'junk.txt', promptId: '001' })).status, 400);
+    assert.equal((await register({ name: '../evil.html', promptId: '001', modelName: 'x' })).status, 400);
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/inbox?name=../secret`, {
+        method: 'DELETE',
+        headers: { origin: base, cookie: ownerCookie },
+      })).status,
+      400,
+    );
+
+    // 清理 junk.txt → 收件箱已空
+    const removed = await robustFetch(`${base}/api/admin/inbox?name=${encodeURIComponent('junk.txt')}`, {
+      method: 'DELETE',
+      headers: { origin: base, cookie: ownerCookie },
+    });
+    assert.equal(removed.status, 204);
+    const finalList = await (await robustFetch(`${base}/api/admin/inbox`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(finalList.entries.length, 0);
   });
 
   await check('双入口构建产物：dist/admin.html 存在', async () => {

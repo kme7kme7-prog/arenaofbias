@@ -5,8 +5,10 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AdminDashboard } from '@/app/admin/dashboard';
+import { AdminInbox } from '@/app/admin/inbox';
 import { AdminLog } from '@/app/admin/log';
 import { AdminPlaceholder } from '@/app/admin/placeholder';
+import { AdminWorks } from '@/app/admin/works';
 import { trackPageView } from '@/lib/track';
 import '@/app/admin/admin.css';
 
@@ -15,9 +17,9 @@ type User = { id: string; username: string; role: string | null };
 const SECTIONS = [
   { key: 'dashboard', label: '仪表盘', ready: true },
   { key: 'log', label: '数据流水', ready: true },
-  { key: 'works', label: '作品管理', ready: false },
+  { key: 'works', label: '作品管理', ready: true },
   { key: 'prompts', label: '题目管理', ready: false },
-  { key: 'inbox', label: '收件箱', ready: false },
+  { key: 'inbox', label: '收件箱', ready: true },
   { key: 'events', label: '活动管理', ready: false },
 ] as const;
 
@@ -85,22 +87,12 @@ function AdminShell({ user, section, onSection }: {
       <main className="admin-main">
         {section === 'dashboard' && <AdminDashboard />}
         {section === 'log' && <AdminLog />}
-        {section === 'works' && (
-          <AdminPlaceholder
-            title="作品管理"
-            note="作品登记、发布开关与下架。当前阶段请直接编辑 lib/works-roster.json 并提交；此页将在后台第二期实现。"
-          />
-        )}
+        {section === 'works' && <AdminWorks />}
+        {section === 'inbox' && <AdminInbox />}
         {section === 'prompts' && (
           <AdminPlaceholder
             title="题目管理"
             note="新增/编辑提示词。当前阶段请直接编辑 lib/arena.ts 的 prompts 数组；此页将与题目的数据库化同期实现。"
-          />
-        )}
-        {section === 'inbox' && (
-          <AdminPlaceholder
-            title="收件箱"
-            note="浏览服务器收件箱文件夹并登记作品。文件请先通过宝塔上传到收件箱目录；此页将在后台第二期实现。"
           />
         )}
         {section === 'events' && (
