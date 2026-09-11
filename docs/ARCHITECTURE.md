@@ -25,6 +25,7 @@
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
 | `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`modelResults` 是内置兜底清单（启动前与 `/api/works` 拉取失败时使用，数据即 `lib/works-roster.json`）；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
 | `lib/works-roster.json` | 内置作品清单（身份 + 完整 content），三处共享：前端兜底（arena.ts）、服务端 works 表首启动种子、投票校验的数据基础（经 works 表）；新增作品只改这一处 JSON（后台建成后改为后台登记） |
+| `lib/track.ts` | 访客统计上报（决策 042）：页面加载时 POST /api/track 一次（主站带初始 hash 路由，admin 报 /admin.html），失败静默；服务端中间件方案在 dev 下失效（vite 发页面，Express 看不到请求）故改此方案 |
 | `lib/works.ts` | 远端作品清单数据层（决策 040）：`fetchWorks` 拉 `GET /api/works`（已发布作品，content 为 JSON 字符串，逐行解析、坏行跳过）；`loadWorks`/`getWorksState`/`subscribeWorks` 的小型 store（main.tsx 启动即拉取，就绪后重渲染）；`currentWorks()` 在未就绪时返回内置 `modelResults`——`currentResults`（占位关闭时）以此为准 |
 | `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变；「随机强弱」开关开启后投票强弱掺随机盐、每次生成名次格局不同，默认关闭保持可复现）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
 | `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes, scope)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；口径 `BoardScope`（决策 026）：mixed 混入全部票，formal 只计 mode=formal 的票，无 mode 的占位票只在混入口径计入；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
@@ -39,13 +40,14 @@
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
 | `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；开发者身份免登录（`POST /api/auth/dev`）、占位符模式开关、模型数量、生成/清空占位投票（写后广播 `aob:placeholder-votes-changed`，榜单页监听后立即重读并重播入场）、随机强弱开关、占位模式徽标 |
 | `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
-| `server/index.js` | Express：静态托管 dist/、评论 GET/POST、作品 GET（works 表，只吐已发布，决策 040）、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、投票票面按 works 表核对（rid 真实、已发布、非 demo、属本题、与 mid 一致；同 UUID 回读比对全部字段，跨对局重放 409）、`PRAGMA user_version` 结构迁移（首启动建 works 表并播种）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
-| `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4 |
+| `server/index.js` | Express：静态托管 dist/（主站 + admin 双入口）、评论 GET/POST、作品 GET（works 表，只吐已发布，决策 040）、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、投票票面按 works 表核对（rid 真实、已发布、非 demo、属本题、与 mid 一致；同 UUID 回读比对全部字段，跨对局重放 409）、`PRAGMA user_version` 结构迁移（001 works 表 + 种子、002 page_views 表）、访客统计记录中间件（只记页面 HTML，IP 按当日盐哈希）、`/api/admin/*` 管理组（stats 仪表盘 / log 数据流水，requireAdmin 门禁：未登录 401、非管理员 404）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
+| `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4；`users.role` 管理员标记（`ADMIN_OWNER` 引导期授权，决策 041） |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
 | `scripts/validate-placeholder.mjs` | 占位符系统校验（10 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤、随机强弱开关（开启后格局变化、关闭时可复现）；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
 | `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
 | `scripts/validate-votes.mjs` | 投票校验（11 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、票面清单核对 400（伪造 rid / rid 与题号不符 / mid 与 rid 不符 / 演示作品）、同 UUID 跨对局重放 409（B1/B2 回归）、非法 payload 400、流水升序、服务端返回能通过前端校验、GET /api/works 迁移种子（5 条、已发布、content 合法 JSON）；拼合模块时把 works-roster.json 内联注入（data URL 解析不了相对路径） |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
+| `scripts/validate-admin.mjs` | 管理后台校验（6 项，决策 041）：起真实 server + 临时 SQLite（带 `ADMIN_OWNER`），覆盖管理员标记（ADMIN_OWNER 账号 role=admin、普通账号 null）、admin 门禁（未登录 401 / 普通用户 404 / 管理员 200）、访客统计（页面访问记录、API/资产不记录、stats 字段自洽、体检形态）、数据流水（投票/评论/注册记录、关键字过滤、未知类型 400）、双入口构建产物存在 |
 | `scripts/check-arena-scroll.mjs` | 竞技场命题定位契约：延迟执行、平滑/减少动态效果、卸载取消与脱离 DOM 跳过 |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
 | `scripts/check-wipe.mjs` | 页面横扫过渡不变量断言（决策 029，8 项）：层挂 body、盖满才换路由、关键帧只动 transform、结束必清理、防重入、reduced-motion 直达、timing 覆盖生效；手写时钟 + 假 DOM，无需浏览器 |
@@ -80,6 +82,10 @@
 | `POST /api/comments` | 需登录（401）、同源（403）、JSON（415）、校验（400）、幂等插入（id 冲突或内容不符 409） |
 | `GET /api/works` | 已发布作品全量清单（works 表 `published=1`，按登记时间升序），公开；content 为 JSON 字符串由前端 `lib/works.ts` 解析（决策 040） |
 | `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts），按时间升序，公开、不带用户信息 |
+| `POST /api/track` | 访客浏览上报（决策 042）：前端页面加载时上报一次 path，同源即可无需登录，204 静默（失败也 204）；跨源 403 |
+| `GET /api/admin/stats?days=N` | 管理员专用：今日/昨日浏览与访客、近 N 日趋势（1–90）、累计票评注册作品数、Node 体检（内存/运行时长/平台）；未登录 401、非管理员 404 |
+| `GET /api/admin/log?kind=&q=&limit=` | 管理员专用：投票/评论/注册三类流水（倒序，kind 不合法 400），q 关键字过滤（用户名/题号/内容），limit 1–200；未登录 401、非管理员 404 |
+| `POST /api/dev/clear-my-votes` | 调试：清空 dev 自己的全部真实投票（决策 042）；仅 dev 账号 + 本机回环（或 ALLOW_DEV_LOGIN=1），同源；只影响 dev，其他用户的票不动 |
 | `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party / 票面与 works 表核对——rid 真实、已发布、非 demo、属本题、与 mid 一致）；同对局已投换 UUID 重投 409、同 UUID 重试仅当票面完全一致才幂等 200，跨对局重放或票面不符 409（响应带 `code: pair/id` 区分对局重复与编号冲突）；rid/mid trim 后入库 |
 
 横切行为：
@@ -100,7 +106,9 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`（自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion` 校验四类界面行为（wipe / surface / game / arena-scroll）的不变量，或分开跑 `check:wipe` / `check:surface` / `check:game` / `check:arena-scroll`，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
+检查命令：`npm run typecheck`、`npm run lint`、`npm run validate:arena`、`npm run validate:scroll`、`npm run validate:placeholder`、`npm run validate:leaderboard`、`npm run validate:votes`、`npm run validate:admin`（均自带临时 SQLite 与随机端口，无需先起服务）；`npm run validate:comments` 需先 `npm start`（或 dev:server），操作本地 data 库并自清理；`npm run check:motion` 校验四类界面行为（wipe / surface / game / arena-scroll）的不变量，或分开跑 `check:wipe` / `check:surface` / `check:game` / `check:arena-scroll`，无需起服务。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` 断言 + `reference/*-review.html` 调参页）再改行为。
+
+后台本地访问：`npm run dev` 后打开 `http://127.0.0.1:5173/admin.html`（vite 实际端口看启动输出）。dev 面板一键登录即管理员（决策 042），无需环境变量；生产部署给其他账号授权直接改库。重复测试投票被对局去重挡下（409「这一对作品你已经投过票了」）时，用 dev 面板的「清空重投」清掉 dev 的票再投。
 
 环境变量（均有默认值，本地开发可不设）：
 
@@ -109,6 +117,7 @@ npm start          # 生产形态：http://localhost:3000
 | `PORT` / `HOST` | 监听端口（默认 3000）/ 地址（默认 0.0.0.0） |
 | `DATA_DIR` | SQLite 文件目录（默认 `<项目根>/data`） |
 | `RATE_LIMIT_PER_MIN` | 评论每 IP 每分钟条数（默认 10） |
+| `ADMIN_OWNER` | 后台管理员引导（决策 041，已被 042 的「dev 即管理员」大幅弱化）：该用户名的账号在启动时与登录时被标为 admin（幂等）。本地开发用 dev 面板一键登录即管理员，无需此变量；生产给其他账号授权直接改库 `UPDATE users SET role='admin' WHERE username='xxx'` |
 | `APP_ORIGIN` | 站点完整来源（如 `https://域名`），用于同源校验与 secure cookie |
 | `TRUST_PROXY` | 逗号分隔的可信代理 IP（如 nginx 同机部署时 `127.0.0.1`） |
 
@@ -130,6 +139,7 @@ npm start          # 生产形态：http://localhost:3000
 - `rounds = prompts` 为 legacy 别名，仅因状态机与旧代码引用保留。
 - 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。作品数据已单一来源：SQLite works 表（决策 040），`lib/works-roster.json` 是它的种子与前端兜底快照，手工加作品改 JSON 即可。
 - works 表结构演进走 `server/index.js` 的 `MIGRATIONS`（`PRAGMA user_version` 驱动，启动自动补齐）；`content` 存 JSON 字符串，加展示字段优先在该 JSON 内扩展，不动表结构。首启动种子只在表空时执行，不会覆盖库内已有作品。
+- 管理后台（决策 041）：同仓库双应用——`admin.html` → `src/admin.tsx`（门禁 + 布局）+ `app/admin/`（dashboard 仪表盘 / log 数据流水 / placeholder 占位页）+ `app/admin/admin.css`（朴素工作台风，与主站样式互不掺和）。会话复用主站 arena_session cookie。页面访问统计在 server/index.js 的中间件里（只记 HTML 页面，hash 路由的子页面不可见）。后台第二期：作品登记/发布开关、题目管理、收件箱文件浏览器、活动管理（占位页已就位）。
 - `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿在现接口上静默截断——截断会让客户端 Elo 重放失真（见 `server/index.js` 注释）。
 - vite dev 代理必须 `changeOrigin: false`（`vite.config.ts` 有注释）：否则服务端 sameOrigin 校验在 dev 下全部 403；生产不经 vite，不受影响。
 

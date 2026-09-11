@@ -31,9 +31,32 @@ export function installAuth(app, db, sameOrigin) {
     CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
     CREATE TABLE IF NOT EXISTS auth_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires_at INTEGER NOT NULL);
   `);
+  // 管理员标记（后台体系，决策 040）：users.role 为 'admin' 或 NULL（普通用户）。
+  // 首位管理员用 ADMIN_OWNER 环境变量标记——每次启动都尝试（幂等）：账号还不存在
+  // 时本次标记不上，注册后的下一次启动会补上；标记完成后可撤掉该变量。
+  // 避免任何人都能自助提权。要给其他账号授权：直接改库
+  //   UPDATE users SET role='admin' WHERE username='xxx';
+  if (
+    !db
+      .prepare('PRAGMA table_info(users)')
+      .all()
+      .some((column) => column.name === 'role')
+  ) {
+    db.exec('ALTER TABLE users ADD COLUMN role TEXT');
+  }
+  if (process.env.ADMIN_OWNER) {
+    const owner = normalize(process.env.ADMIN_OWNER);
+    if (owner) {
+      const result = db
+        .prepare('UPDATE users SET role = ? WHERE username = ?')
+        .run('admin', owner);
+      if (result.changes > 0)
+        console.log(`[arenaofbias] 已将 ${owner} 标记为管理员`);
+    }
+  }
   const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
   const sessionUser = db.prepare(
-    'SELECT users.id, users.username FROM sessions JOIN users ON users.id = sessions.user_id WHERE token_hash = ? AND expires_at > ?',
+    'SELECT users.id, users.username, users.role FROM sessions JOIN users ON users.id = sessions.user_id WHERE token_hash = ? AND expires_at > ?',
   );
   const token = (req) => {
     const value = String(req.headers.cookie || '')
@@ -60,6 +83,15 @@ export function installAuth(app, db, sameOrigin) {
   const login = (req, res, user) => {
     const raw = randomBytes(32).toString('hex');
     const current = token(req);
+    // ADMIN_OWNER 匹配的账号在登录/注册成功时即刻授权（幂等）：
+    // 不用先重启服务——设好环境变量，用该账号登录一次即生效
+    let role = user.role ?? null;
+    const owner = normalize(process.env.ADMIN_OWNER || '');
+    if (owner && user.username === owner && role !== 'admin') {
+      db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', user.id);
+      role = 'admin';
+      console.log(`[arenaofbias] 已将 ${owner} 标记为管理员`);
+    }
     db.transaction(() => {
       if (current)
         db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(
@@ -73,7 +105,7 @@ export function installAuth(app, db, sameOrigin) {
       );
     })();
     res.cookie(cookieName, raw, { ...cookieOptions(req), maxAge: lifetime });
-    return { id: user.id, username: user.username };
+    return { id: user.id, username: user.username, role };
   };
   app.use('/api', (req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -142,12 +174,10 @@ export function installAuth(app, db, sameOrigin) {
       const hash = await derive(password, salt);
       const user = { id: randomUUID(), username };
       try {
-        db.prepare('INSERT INTO users VALUES (?, ?, ?, ?)').run(
-          user.id,
-          username,
-          `scrypt:${salt}:${hash.toString('hex')}`,
-          Date.now(),
-        );
+        // role 列由 ALTER 迁移追加（可能不存在于全新库的第一条 INSERT 前），显式列出列名
+        db.prepare(
+          'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
+        ).run(user.id, username, `scrypt:${salt}:${hash.toString('hex')}`, Date.now());
       } catch (error) {
         if (error.code === 'SQLITE_CONSTRAINT_UNIQUE')
           return res
@@ -195,17 +225,20 @@ export function installAuth(app, db, sameOrigin) {
       const hash = await derive(randomBytes(32).toString('hex'), salt);
       const candidate = { id: randomUUID(), username: 'dev' };
       try {
-        db.prepare('INSERT INTO users VALUES (?, ?, ?, ?)').run(
-          candidate.id,
-          'dev',
-          `scrypt:${salt}:${hash.toString('hex')}`,
-          Date.now(),
-        );
+        db.prepare(
+          'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
+        ).run(candidate.id, 'dev', `scrypt:${salt}:${hash.toString('hex')}`, Date.now());
         user = candidate;
       } catch (error) {
         if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') user = getUser.get('dev');
         else throw error;
       }
+    }
+    // dev 是本机专用账号（创建入口就有回环门禁），登录即管理员——
+    // 省去本地开发还要设 ADMIN_OWNER 的麻烦（决策 041 补充）
+    if (user.role !== 'admin') {
+      db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', user.id);
+      user = getUser.get('dev');
     }
     res.status(201).json({ user: login(req, res, user) });
   });

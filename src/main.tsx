@@ -12,6 +12,7 @@ import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { prompts } from '@/lib/arena';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+import { trackPageView } from '@/lib/track';
 import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 // observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
 // 其 @import 的 spatial-fonts.css 同时为经典版移植的品牌字体供字体
@@ -82,7 +83,9 @@ function Routes() {
 }
 const reactRoot = createRoot(container);
 if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
-// 应用启动即拉取服务端作品清单；拉不到时 lib/works.ts 会回退内置花名册
+// 应用启动即拉取服务端作品清单；拉不到时 lib/works.ts 会回退内置花名册。
+// 同时上报一次页面浏览（含初始 hash 路由，后台访客统计用）
+trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
 loadWorks();
 reactRoot.render(
   <AccountProvider>

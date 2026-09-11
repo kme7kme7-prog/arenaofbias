@@ -24,7 +24,39 @@ export function DevPanel() {
   );
   const [status, setStatus] = useState('');
   const [devBusy, setDevBusy] = useState(false);
+  const [clearBusy, setClearBusy] = useState(false);
   const { user, refresh: refreshAccount } = useAccount();
+
+  // 清空 dev 自己的真实投票（服务端 DELETE + 榜单刷新），本地反复测试用。
+  // 只清 dev 账号的票，不碰任何真实用户数据。
+  const clearMyVotes = async () => {
+    setClearBusy(true);
+    setStatus('');
+    try {
+      const response = await fetch('/api/dev/clear-my-votes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        cleared?: number;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || '清空失败');
+      setStatus(
+        `已清空 dev 的 ${data.cleared ?? 0} 条真实投票，可以重新投票测试；后台流水与偏好榜随之更新`,
+      );
+      notifyVotesChanged();
+    } catch (cause) {
+      setStatus(
+        cause instanceof Error && cause.message !== 'Failed to fetch'
+          ? cause.message
+          : '无法连接服务端，清空需要服务端在线。',
+      );
+    } finally {
+      setClearBusy(false);
+    }
+  };
 
   const devSignIn = async () => {
     setDevBusy(true);
@@ -239,6 +271,23 @@ export function DevPanel() {
               清空
             </button>
           </div>
+          {user?.username === 'dev' && (
+            <div className="dev-row">
+              <span>
+                我的真实投票
+                <small>
+                  清空 dev 账号已落库的票（对局去重会让重复测试投不进，清掉即可重投）
+                </small>
+              </span>
+              <button
+                type="button"
+                onClick={clearMyVotes}
+                disabled={clearBusy}
+              >
+                {clearBusy ? '清空中…' : '清空重投'}
+              </button>
+            </div>
+          )}
           {status && <p className="dev-status">{status}</p>}
           <p className="dev-note">
             占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动

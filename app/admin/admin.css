@@ -1,0 +1,299 @@
+/* 管理后台样式：朴素工作台风（决策 040——后台是后台，不沿用主站酸黄视觉）。
+   仅覆盖后台入口加载的组件，主站样式与后台样式互不掺和。 */
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f4f5f2;
+  color: #1f221d;
+  font: 14px/1.6 system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+.admin-loading {
+  min-height: 100vh;
+}
+
+.admin-404 {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.admin-404 h1 {
+  margin: 0;
+  font-size: 48px;
+  letter-spacing: 2px;
+}
+.admin-404 p {
+  margin: 0;
+  color: #6a716a;
+}
+.admin-404 a {
+  color: #2c5f2d;
+  margin-top: 12px;
+}
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+.admin-side {
+  background: #22261f;
+  color: #d8dcd2;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px;
+  gap: 20px;
+}
+.admin-brand {
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-brand b {
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #fff;
+}
+.admin-brand span {
+  font-size: 11px;
+  color: #8b9384;
+  letter-spacing: 1px;
+}
+.admin-side nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-side nav button {
+  all: unset;
+  cursor: pointer;
+  padding: 9px 10px;
+  border-radius: 6px;
+  color: #c3c9bb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.admin-side nav button:hover {
+  background: #2e332a;
+}
+.admin-side nav button.active {
+  background: #3a4032;
+  color: #fff;
+}
+.admin-side nav button i {
+  font-style: normal;
+  font-size: 10px;
+  color: #7c8474;
+  border: 1px solid #4a5042;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.admin-side-foot {
+  margin-top: auto;
+  padding: 10px;
+  border-top: 1px solid #333a2d;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #9aa292;
+}
+.admin-side-foot a {
+  color: #b9c4ad;
+}
+
+.admin-main {
+  padding: 28px 32px;
+  min-width: 0;
+}
+.admin-main h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+.admin-sub {
+  color: #6a716a;
+  font-size: 13px;
+  margin: 0 0 24px;
+}
+
+/* 仪表盘 */
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.admin-card {
+  background: #fff;
+  border: 1px solid #dfe2da;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.admin-card b {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.admin-card span {
+  color: #6a716a;
+  font-size: 12px;
+}
+.admin-card small {
+  display: block;
+  color: #8a9184;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.admin-trend {
+  background: #fff;
+  border: 1px solid #dfe2da;
+  border-radius: 10px;
+  padding: 18px;
+}
+.admin-trend h2 {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+.admin-trend svg {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+.admin-trend .empty {
+  color: #8a9184;
+  font-size: 13px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* 流水 */
+.admin-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.admin-toolbar .tabs {
+  display: flex;
+  background: #e7eae2;
+  border-radius: 8px;
+  padding: 3px;
+}
+.admin-toolbar .tabs button {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #556054;
+}
+.admin-toolbar .tabs button.active {
+  background: #fff;
+  color: #1f221d;
+  font-weight: 600;
+}
+.admin-toolbar input {
+  flex: 1;
+  min-width: 200px;
+  border: 1px solid #cfd4c8;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: inherit;
+  background: #fff;
+}
+.admin-toolbar button.reload {
+  border: 1px solid #cfd4c8;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font: inherit;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #dfe2da;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid #eef0ea;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.admin-table td.wrap {
+  white-space: normal;
+  word-break: break-all;
+}
+.admin-table th {
+  background: #f2f4ef;
+  color: #556054;
+  font-weight: 600;
+  font-size: 12px;
+}
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+.admin-table .muted {
+  color: #8a9184;
+}
+.admin-error {
+  background: #fdf0ef;
+  border: 1px solid #ecc8c4;
+  color: #8c3b33;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+/* 占位页 */
+.admin-placeholder {
+  background: #fff;
+  border: 1px dashed #c4cabd;
+  border-radius: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #6a716a;
+}
+.admin-placeholder b {
+  display: block;
+  color: #3c443a;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 720px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+  .admin-side {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+  .admin-side nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .admin-side-foot {
+    display: none;
+  }
+  .admin-main {
+    padding: 18px 14px;
+  }
+}

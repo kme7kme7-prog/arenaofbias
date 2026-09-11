@@ -16,7 +16,9 @@ import express from 'express';
 import { installAuth } from './auth.js';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { createHash, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
@@ -135,6 +137,23 @@ const MIGRATIONS = [
         insertAll();
         console.log(`[arenaofbias] works 表已播种 ${roster.length} 条内置作品`);
       }
+    },
+  },
+  {
+    // 002 · 访客统计（后台体系，决策 040）：一行 = 一次页面浏览。
+    // 不存 IP、不存 UA 明文——按日聚合时只需要日期桶，访客识别用 IP 哈希
+    //（仅当日有效盐，无法反推原 IP，也跨不了日追踪）。
+    up() {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS page_views (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          day        TEXT NOT NULL,
+          path       TEXT NOT NULL,
+          ip_hash    TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS page_views_day ON page_views (day, created_at);
+      `);
     },
   },
 ];
@@ -442,6 +461,164 @@ app.post('/api/votes', limiter, (req, res) => {
       .status(503)
       .set(noStore)
       .json({ error: '暂时没有记上这一票，稍后再试？' });
+  }
+});
+
+// ---------- 管理后台 API（管理员专用，决策 040） ----------
+
+const requireAdmin = (req, res, next) => {
+  if (!req.user) return res.status(401).json({ error: '请先登录' });
+  if (req.user.role !== 'admin')
+    return res.status(404).json({ error: '接口不存在' });
+  next();
+};
+
+const dayKey = (ts) => new Date(ts).toISOString().slice(0, 10);
+
+// 仪表盘统计：今日/昨日浏览与访客、近 N 日趋势、累计票数评论数注册数、服务器体检
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+  try {
+    const today = dayKey(Date.now());
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+    const rows = db
+      .prepare(
+        `SELECT day, COUNT(*) AS views, COUNT(DISTINCT ip_hash) AS visitors
+         FROM page_views WHERE day >= date('now', ?) GROUP BY day ORDER BY day`,
+      )
+      .all(`-${days - 1} day`);
+    const counts = {
+      votes: db.prepare('SELECT COUNT(*) AS n FROM votes').get().n,
+      comments: db.prepare('SELECT COUNT(*) AS n FROM comments').get().n,
+      users: db.prepare('SELECT COUNT(*) AS n FROM users').get().n,
+      works: db.prepare('SELECT COUNT(*) AS n FROM works').get().n,
+      worksPublished: db
+        .prepare('SELECT COUNT(*) AS n FROM works WHERE published = 1')
+        .get().n,
+    };
+    const todayRow = rows.find((row) => row.day === today);
+    const yesterday = dayKey(Date.now() - 86_400_000);
+    const yesterdayRow = rows.find((row) => row.day === yesterday);
+    // 服务器体检：os 自带，无需额外依赖（宝塔有完整监控，这里只是日常速览）
+    const health = {
+      uptime: Math.round(process.uptime()),
+      memory: process.memoryUsage.rss(),
+      heapTotal: process.memoryUsage.heapTotal,
+      loadavg: os.loadavg?.() ?? null,
+      platform: `${os.type()} ${os.release()}`,
+      node: process.version,
+    };
+    res.set(noStore).json({
+      today: {
+        day: today,
+        views: todayRow?.views ?? 0,
+        visitors: todayRow?.visitors ?? 0,
+      },
+      yesterday: {
+        day: yesterday,
+        views: yesterdayRow?.views ?? 0,
+        visitors: yesterdayRow?.visitors ?? 0,
+      },
+      trend: rows,
+      totals: counts,
+      health,
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '统计数据暂时无法加载' });
+  }
+});
+
+// 数据流水：投票 / 评论 / 注册，各自支持关键字过滤与分页（倒序）
+app.get('/api/admin/log', requireAdmin, (req, res) => {
+  const kind = String(req.query.kind || 'votes');
+  const q = String(req.query.q || '').trim().slice(0, 64);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  try {
+    let rows;
+    if (kind === 'votes') {
+      rows = db
+        .prepare(
+          `SELECT v.id, v.prompt_id AS promptId, v.winner_mid AS winnerMid, v.loser_mid AS loserMid,
+                  v.mode, v.created_at AS ts, u.username
+           FROM votes v LEFT JOIN users u ON u.id = v.user_id
+           ${q ? 'WHERE u.username LIKE ? OR v.prompt_id LIKE ? OR v.winner_mid LIKE ? OR v.loser_mid LIKE ?' : ''}
+           ORDER BY v.created_at DESC LIMIT ?`,
+        )
+        .all(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`] : []), limit);
+    } else if (kind === 'comments') {
+      rows = db
+        .prepare(
+          `SELECT c.id, c.round_id AS roundId, c.side, c.body, c.created_at AS ts, u.username
+           FROM comments c LEFT JOIN users u ON u.id = c.user_id
+           ${q ? 'WHERE u.username LIKE ? OR c.round_id LIKE ? OR c.body LIKE ?' : ''}
+           ORDER BY c.created_at DESC LIMIT ?`,
+        )
+        .all(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`] : []), limit);
+    } else if (kind === 'users') {
+      rows = db
+        .prepare(
+          `SELECT id, username, role, created_at AS ts FROM users
+           ${q ? 'WHERE username LIKE ?' : ''}
+           ORDER BY created_at DESC LIMIT ?`,
+        )
+        .all(...(q ? [`%${q}%`] : []), limit);
+    } else {
+      return res.status(400).json({ error: '未知的流水类型' });
+    }
+    res.set(noStore).json({ rows });
+  } catch {
+    res.status(503).set(noStore).json({ error: '流水暂时无法加载' });
+  }
+});
+
+// 页面浏览记录（后台访客统计，决策 040）：由前端在文档加载时 POST /api/track
+// 上报（服务端中间件方案在 dev 下失效——vite 自己发页面，Express 看不到请求；
+// 上报方案 dev 与生产行为一致）。前端每加载一次文档报一次，hash 路由切换不计。
+// ip_hash = sha256(IP + 当日盐)，盐每天轮换——既不能反推 IP，也不能跨日追踪。
+const insertPageView = db.prepare(
+  'INSERT INTO page_views (day, path, ip_hash, created_at) VALUES (?, ?, ?, ?)',
+);
+let daySalt = '';
+let daySaltDay = '';
+const ipHashOfDay = (ip, day) => {
+  if (daySaltDay !== day) {
+    daySalt = randomBytes(8).toString('hex');
+    daySaltDay = day;
+  }
+  return createHash('sha256').update(`${daySalt}:${ip}`).digest('hex');
+};
+app.post('/api/track', (req, res) => {
+  // 同源即可上报，无需登录（访客也要统计）；失败吞错不影响页面
+  try {
+    if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+    const path = String(req.body?.path || '/').slice(0, 64);
+    const now = Date.now();
+    insertPageView.run(dayKey(now), path, ipHashOfDay(req.ip || 'unknown', dayKey(now)), now);
+    res.set(noStore).status(204).end();
+  } catch {
+    res.set(noStore).status(204).end();
+  }
+});
+
+// 开发者调试：清空自己（dev）的真实投票。仅 dev 账号 + 本机回环可用，
+// 与 /api/auth/dev 的门禁口径一致——本地反复测试投票流程用，不绕过任何
+// 校验，只是删掉重投（榜单与流水会随之更新，语义干净）。
+app.post('/api/dev/clear-my-votes', (req, res) => {
+  const isLoopback = (ip) =>
+    ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.user || req.user.username !== 'dev')
+    return res.status(403).json({ error: '仅 dev 账号可用' });
+  if (!(isLoopback(req.ip) || process.env.ALLOW_DEV_LOGIN === '1'))
+    return res.status(403).json({ error: '仅本机可用' });
+  try {
+    const result = db
+      .prepare('DELETE FROM votes WHERE user_id = ?')
+      .run(req.user.id);
+    res
+      .set(noStore)
+      .json({ cleared: result.changes });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没有清掉，稍后再试？' });
   }
 });
 
