@@ -2,7 +2,7 @@ import { AccountButton } from '@/components/account';
 import { useState, type ReactNode } from 'react';
 import { ArrowUpRight, ArrowRight, Search, Shuffle } from 'lucide-react';
 import { bandsNavigate } from '@/lib/game-transitions';
-import { prompts } from '@/lib/arena';
+import { currentPrompts } from '@/lib/prompts';
 import {
   currentPairs,
   currentResultsForPrompt,
@@ -67,7 +67,7 @@ const fallbackArt = (kind: string) =>
 export default function PromptLibrary() {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('all');
-  const visible = prompts.filter(
+  const visible = currentPrompts().filter(
     (prompt) =>
       (kind === 'all' || prompt.kind === kind) &&
       `${prompt.name} ${prompt.prompt}`

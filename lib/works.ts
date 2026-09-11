@@ -49,7 +49,8 @@ function parseWorkRow(row: unknown): ModelResult | null {
   };
 }
 
-/** 拉已发布作品清单；失败返回 null（调用方回退内置花名册） */
+/** 拉已发布作品清单；失败返回 null（调用方回退内置花名册）。空清单是合法结果
+ *（作品全部下架——发布开关语义），原样返回 []，不回退内置清单 */
 export async function fetchWorks(): Promise<ModelResult[] | null> {
   try {
     const response = await fetch('/api/works');
@@ -64,8 +65,10 @@ export async function fetchWorks(): Promise<ModelResult[] | null> {
     const works = parsed.filter(
       (work): work is ModelResult => work !== null,
     );
-    // 全部损坏或空表：与拉取失败同等对待（回退内置清单，站点可用）
-    return works.length > 0 ? works : null;
+    // 全部行损坏：与拉取失败同等对待（回退内置清单，站点可用）；
+    // 服务端本来就返回了空清单则视为合法的空（作品全部下架），不回退
+    if (data.works.length > 0 && works.length === 0) return null;
+    return works;
   } catch {
     return null;
   }

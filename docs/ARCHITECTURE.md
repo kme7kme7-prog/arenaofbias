@@ -23,13 +23,15 @@
 | `app/page.tsx` | 竞技场舞台：入场动画序列、投票/锁定/揭晓、换组、展开 Dialog、音效（WebAudio 振荡器）、键盘快捷键；`Work` 按 `content.kind` 四分支渲染（image / text / web / html）；`WebWork` 为 003 的硬编码 React 演示模板（template a/b） |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区等）、页面横扫过渡层 `.page-wipe`（`wipeNavigate` 动态创建） |
 | `app/account.css` | 登录/注册 Dialog 与账号按钮样式 |
-| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`modelResults` 是内置兜底清单（启动前与 `/api/works` 拉取失败时使用，数据即 `lib/works-roster.json`）；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源 |
+| `lib/arena.ts` | 全部题库数据与核心逻辑，详见下节；`modelResults` 是内置兜底清单（启动前与 `/api/works` 拉取失败时使用，数据即 `lib/works-roster.json`）；`prompts` 同理来自 `lib/prompts-seed.json`（动态题库 lib/prompts.ts 拉取失败时的兜底）；`ResultContent` 的 html 变体支持 `src`（外部文件）或 `html`（内联字符串，占位作品用）；`randomArenaHash` 可传入自定义数据源与题库（第 3/4 参），`arenaReducer` 第 3 参 promptCount 供动态题数越界守卫 |
+| `lib/prompts-seed.json` | 内置题目清单（7 道题全量字段），两处共享：前端兜底（arena.ts 校验后导出）、服务端 prompts 表首启动种子（迁移 003，决策 045）；新增题目走后台（落库），不再手改这里 |
+| `lib/prompts.ts` | 远端题库数据层（决策 045，与 lib/works.ts 同构）：`fetchPrompts` 拉 `GET /api/prompts`（已发布题，逐行解析、坏行跳过；空清单是合法结果——题目全部下架时前台显示空，不回退内置；全行损坏才与失败同等回退）；`loadPrompts`（main.tsx 与 admin 入口启动即拉）/`subscribePrompts`/`currentPrompts()`——全部题目消费方（竞技场、题库页、榜单分类、占位系统、投票/评论校验）以 `currentPrompts()` 为准，未就绪/失败时为内置种子 |
 | `lib/works-roster.json` | 内置作品清单（身份 + 完整 content），三处共享：前端兜底（arena.ts）、服务端 works 表首启动种子、投票校验的数据基础（经 works 表）；新增作品只改这一处 JSON（后台建成后改为后台登记） |
 | `lib/track.ts` | 访客统计上报（决策 042）：页面加载时 POST /api/track 一次（主站带初始 hash 路由，admin 报 /admin.html），失败静默；服务端中间件方案在 dev 下失效（vite 发页面，Express 看不到请求）故改此方案 |
-| `lib/works.ts` | 远端作品清单数据层（决策 040）：`fetchWorks` 拉 `GET /api/works`（已发布作品，content 为 JSON 字符串，逐行解析、坏行跳过）；`loadWorks`/`getWorksState`/`subscribeWorks` 的小型 store（main.tsx 启动即拉取，就绪后重渲染）；`currentWorks()` 在未就绪时返回内置 `modelResults`——`currentResults`（占位关闭时）以此为准 |
+| `lib/works.ts` | 远端作品清单数据层（决策 040）：`fetchWorks` 拉 `GET /api/works`（已发布作品，content 为 JSON 字符串，逐行解析、坏行跳过；空清单是合法结果——作品全部下架时前台显示空，不回退内置；全行损坏才与失败同等回退）；`loadWorks`/`getWorksState`/`subscribeWorks` 的小型 store（main.tsx 启动即拉取，就绪后重渲染）；`currentWorks()` 在未就绪时返回内置 `modelResults`——`currentResults`（占位关闭时）以此为准 |
 | `lib/placeholder.ts` | 开发者占位符系统：占位模型/结果/投票生成（播种伪随机，重建结果不变；「随机强弱」开关开启后投票强弱掺随机盐、每次生成名次格局不同，默认关闭保持可复现）、面板设置与占位投票的 localStorage 读写、`current*` 数据源帮助函数（占位模式开启时全站读它，关闭时原样返回真实数据）；隔离与剥离方式见文件头注释；`hashSeed`/`mulberry32` 导出供榜单维度生成复用 |
-| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes, scope)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场），聚合前先按当前阵容过滤未知模型的票；口径 `BoardScope`（决策 026）：mixed 混入全部票，formal 只计 mode=formal 的票，无 mode 的占位票只在混入口径计入；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
-| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 前端校验（形态规则与 `server/index.js` 镜像；服务端另按作品清单核对票面）、`pairKeyOf` 对局去重键、`submitVote`/`fetchVotes`、`voteToRecord` 流水→榜单聚合记录（带 mode，供只看正式口径过滤） |
+| `lib/leaderboard.ts` | 榜单数据层：`leaderboardData(category, votes, scope)` 把传入投票聚合成排行榜行（占位口径简易 Elo：基准 1200、K=32、按时间序迭代；wins/losses/winrate/topics/暂定判定 <30 场）；阵容 = 已发布作品 ∪ 流水历史模型（决策 045 ⑤「历史票保留在榜单」：作品全下架的模型以流水显示名快照留在榜上，下架不丢票不重排）；赛道归类认题目当前 kind，流水快照 promptKind 兜底下架题；口径 `BoardScope`（决策 026）：mixed 混入全部票，formal 只计 mode=formal 的票，无 mode 的占位票只在混入口径计入；`radarProfile`/`radarAverage` 生成播种的六维演示值；`currentVotes()` 为占位模式的默认投票来源 |
+| `lib/votes.ts` | 投票数据层：`ArenaVote` 类型（对局级：winner/loser 的作品 id + 模型 id + mode）、`validateVote` 写入校验（形态规则 + 题号白名单，与 `server/index.js` 镜像；服务端另按作品清单核对票面）、`VoteFlowRow`/`fetchVotes` 读取流水（**不按题号白名单过滤**——下架题/下架作品的历史票保留在榜单，决策 045 ⑤；行内 promptKind 与双方显示名为服务端联表快照）、`pairKeyOf` 对局去重键、`submitVote`、`voteToRecord` 流水→榜单聚合记录（mode/promptKind/显示名随行透传） |
 | `lib/comments.ts` | 评论类型与 `validateComment` 字段校验（UUID、题号白名单、side、1–280 字），与后端规则保持一致 |
 | `lib/scroll-tour.ts` | 长文作品按阅读速度自动滚动（smoothstep 缓动、可 Abort、后台标签不跳帧） |
 | `lib/arena-scroll.ts` | 竞技场定位：下一帧将命题区滚到视口上方，允许路由归顶先完成；支持 reduced-motion，返回取消函数避免卸载后误滚动 |
@@ -40,16 +42,17 @@
 | `components/afterparty.tsx` | 评论区：登录门槛、401 刷新会话并弹登录框、幂等 id、匿名观测员显示、刷新重试 |
 | `components/dev-panel.tsx` + `app/dev.css` | 开发者面板：右下角低对比 "dev" 入口（后期上线删除 `main.tsx` 挂载即隐藏）；开发者身份免登录（`POST /api/auth/dev`）、占位符模式开关、模型数量、生成/清空占位投票（写后广播 `aob:placeholder-votes-changed`，榜单页监听后立即重读并重播入场）、随机强弱开关、占位模式徽标 |
 | `components/ui/` | 只保留实际使用的 button、dialog、tabs、textarea 四个组件（2026-09-09 瘦身清掉其余 56 个未使用组件）；新增组件用 `npx shadcn@latest add <名>` 按需引入，CLI 不入依赖；`app/globals.css` 顶部内联了原 `shadcn/tailwind.css` 中用到的 data-* 状态变体 |
-| `server/index.js` | Express：静态托管 dist/（主站 + admin 双入口）、评论 GET/POST、作品 GET（works 表，只吐已发布，决策 040）、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引）、投票票面按 works 表核对（rid 真实、已发布、非 demo、属本题、与 mid 一致；同 UUID 回读比对全部字段，跨对局重放 409）、`PRAGMA user_version` 结构迁移（001 works 表 + 种子、002 page_views 表）、访客统计记录中间件（只记页面 HTML，IP 按当日盐哈希）、`/api/admin/*` 管理组（stats 仪表盘 / log 数据流水 / works 作品管理与发布开关 / inbox 收件箱，requireAdmin 门禁：未登录 401、非管理员 404）、内存滑动窗口限流（评论与投票共用）、同源校验、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
+| `server/index.js` | Express：静态托管 dist/（主站 + admin 双入口）、评论 GET/POST、作品 GET（works 表，只吐已发布，决策 040）、题目 GET（prompts 表，只吐已发布，决策 045）、投票 GET/POST（votes 表，对局级去重 `votes_user_pair` 唯一索引；流水联表补 promptKind 与双方显示名，永不过滤——下架题/下架作品的历史票保留在榜单，决策 045 ⑤）、投票票面按 works 表核对（rid 真实、已发布、非 demo、属本题、与 mid 一致；同 UUID 回读比对全部字段，跨对局重放 409）、`PRAGMA user_version` 结构迁移（001 works 表 + 种子、002 page_views 表、003 prompts 表 + 种子）、题号白名单收口到 prompts 表（投票/评论写入要求已发布，评论读取只要存在，收件箱登记只要存在）、访客统计记录中间件（只记页面 HTML，IP 按当日盐哈希）、`/api/admin/*` 管理组（stats 仪表盘 / log 数据流水 / works 作品管理与发布开关 / inbox 收件箱 / prompts 题目管理，requireAdmin 门禁：未登录 401、非管理员 404）、内存滑动窗口限流（评论与投票共用）、同源校验、`/api/admin` 请求体放宽 64kb（题目提示词 8000 字，公开接口维持 4kb）、`comments.user_id` 启动时自动 ALTER 迁移、`TRUST_PROXY` / `APP_ORIGIN` |
 | `server/works-register.js` | 作品登记公共核心（决策 043/044）：文件名解析（「标题，模型名」）、模型 id（slug + 短哈希防塌缩）、作品 id 生成（`nextFreeWorkId` 同时探测库与磁盘遗留）、文件搬运（copy=脚本原件不动 / move=收件箱登记即搬走，跨盘 EXDEV 退化复制+删除）、works 表入库——CLI 脚本与后台收件箱共用，不写两份 |
-| `app/admin/works.tsx` + `app/admin/inbox.tsx` | 后台第二期上半（决策 044）：作品管理页（全量清单含草稿、题号/状态/关键字筛选、发布开关乐观更新失败回滚、标题/模型名编辑、预览直开；**无删除**——投票流水引用作品，model_id 不可改）；收件箱页（条目清单带解析建议、选题登记、默认草稿可勾选直接发布、不可登记件可删） |
+| `app/admin/works.tsx` + `app/admin/inbox.tsx` | 后台第二期上半（决策 044）：作品管理页（全量清单含草稿、题号/状态/关键字筛选、发布开关乐观更新失败回滚、标题/模型名编辑、预览直开；**无删除**——投票流水引用作品，model_id 不可改）；收件箱页（条目清单带解析建议、选题登记、默认草稿可勾选直接发布、不可登记件可删）。两页的题目下拉走 `app/admin/use-admin-prompts.ts`（/api/admin/prompts 含草稿题——收件箱要能往草稿题登记作品） |
+| `app/admin/prompts.tsx` | 题目管理页（后台第三步，决策 045）：全量清单（含下架）带每题作品/票数统计、新增（编号自动 008 起、默认草稿可勾选立即上架）、编辑表单（文案自由改 + 已上架题提醒「修改不影响已有投票」）、上下架滑块（下架=前台完全隐藏）；无删除 |
 | `server/auth.js` | 账号：注册/登录/登出/`/api/auth/me`/开发者免登录 `/api/auth/dev`（固定 dev 账号，仅本机回环或 `ALLOW_DEV_LOGIN=1`）；scrypt（N=32768, r=8, p=1）；cookie 与 sessions 表；`auth_limits` 双维度限流；scrypt 并发上限 4；`users.role` 管理员标记（`ADMIN_OWNER` 引导期授权，决策 041） |
 | `scripts/validate-arena.mjs` | 状态机 + 题库数据校验（transpile lib/arena.ts 后断言，11 项） |
 | `scripts/validate-placeholder.mjs` | 占位符系统校验（10 项）：生成器结构、与配对函数集成、真实/占位数据隔离、切换模型数量后旧阵容投票被过滤、随机强弱开关（开启后格局变化、关闭时可复现）；arena.ts 与 placeholder.ts 拼合为一个模块后断言，localStorage 以 shim 代替 |
-| `scripts/validate-leaderboard.mjs` | 榜单校验（8 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
+| `scripts/validate-leaderboard.mjs` | 榜单校验（9 项）：空票空榜、行数与排序、胜负自洽（games=wins+losses、总场次=2×票数）、Elo 零和、分类过滤（写作榜只计 text 题）、口径过滤（决策 026：只看正式只计 formal 票）、下架不丢票（决策 045 ⑤：未知题快照归类、历史模型以流水名上榜、快照缺失回落 id）、雷达确定性与值域、行元数据（PH sigil 与强调色、demo 结果不进榜）；三模块拼合，localStorage 以 shim 代替 |
 | `scripts/validate-votes.mjs` | 投票校验（11 项）：前端 `validateVote`/`pairKeyOf`/`voteToRecord` 规则（含题号白名单、胜负同体、mode 拦截）；子进程起真实 server + 临时 SQLite，覆盖未登录 401、跨源 403、写入 201、对局去重 409、同 UUID 幂等重试、票面清单核对 400（伪造 rid / rid 与题号不符 / mid 与 rid 不符 / 演示作品）、同 UUID 跨对局重放 409（B1/B2 回归）、非法 payload 400、流水升序、服务端返回能通过前端校验、GET /api/works 迁移种子（5 条、已发布、content 合法 JSON）；拼合模块时把 works-roster.json 内联注入（data URL 解析不了相对路径） |
 | `scripts/validate-scroll-tour.mjs` | 滚动巡览校验（mock rAF，5 项） |
-| `scripts/validate-admin.mjs` | 管理后台校验（10 项，决策 041/042/044）：起真实 server + 临时 SQLite（带 `ADMIN_OWNER`），覆盖管理员标记（ADMIN_OWNER 账号 role=admin、普通账号 null）、admin 门禁（未登录 401 / 普通用户 404 / 管理员 200）、访客统计（/api/track 上报记录、跨源 403、stats 字段自洽、体检形态）、数据流水（投票/评论/注册记录、关键字过滤、未知类型 400）、dev 登录即管理员 + 清票接口（普通用户 403、清后重投 201、他人票不受影响）、评论按内容可搜、作品管理（全量清单与筛选搜索、编辑与发布开关——下架即从 /api/works 消失且 B2 核对拒票、model_id 不随显示名变、空改动/非法值/未知 id 400/404、跨源 403 非 JSON 415）、收件箱（清单建议、单文件与文件夹登记、同模型让位 -2、路径穿越防护、删除后空箱）、双入口构建产物存在 |
+| `scripts/validate-admin.mjs` | 管理后台校验（11 项，决策 041/042/044/045）：起真实 server + 临时 SQLite（带 `ADMIN_OWNER`），覆盖管理员标记（ADMIN_OWNER 账号 role=admin、普通账号 null）、admin 门禁（未登录 401 / 普通用户 404 / 管理员 200）、访客统计（/api/track 上报记录、跨源 403、stats 字段自洽、体检形态）、数据流水（投票/评论/注册记录、关键字过滤、未知类型 400）、dev 登录即管理员 + 清票接口（普通用户 403、清后重投 201、他人票不受影响）、评论按内容可搜、作品管理（全量清单与筛选搜索、编辑与发布开关——下架即从 /api/works 消失且 B2 核对拒票、model_id 不随显示名变、空改动/非法值/未知 id 400/404、跨源 403 非 JSON 415）、收件箱（清单建议、单文件与文件夹登记、同模型让位 -2、路径穿越防护、删除后空箱）、题目管理（门禁、新增自动编号 008、编辑文案、上下架即公开清单增减、评论白名单认题目表、长提示词请求体 201 回归——8000 字超全局 4kb）、双入口构建产物存在 |
 | `scripts/register-works.mjs` | 作品批量登记 CLI（决策 043/044，解析/搬运/入库逻辑在 `server/works-register.js` 与后台收件箱共用）：`npm run register:works -- --source <目录> --prompt <题号> [--draft]`，解析「标题，模型名.html」→ 复制进 `data/works/<题号>/`（原件不动）→ works 表入库（默认已发布）；文件名排序生成稳定 id，幂等可重跑 |
 | `scripts/check-arena-scroll.mjs` | 竞技场命题定位契约：延迟执行、平滑/减少动态效果、卸载取消与脱离 DOM 跳过 |
 | `scripts/validate-comments.mjs` | 评论接口集成检查，需先启动后端；写本地 data 库并自清理 |
@@ -84,7 +87,8 @@
 | `GET /api/comments?round=xxx` | 按题取最新 100 条，联表 users 返回 username；无需登录 |
 | `POST /api/comments` | 需登录（401）、同源（403）、JSON（415）、校验（400）、幂等插入（id 冲突或内容不符 409） |
 | `GET /api/works` | 已发布作品全量清单（works 表 `published=1`，按登记时间升序），公开；content 为 JSON 字符串由前端 `lib/works.ts` 解析（决策 040） |
-| `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts），按时间升序，公开、不带用户信息 |
+| `GET /api/prompts` | 已发布题目全量清单（prompts 表 `published=1`，按编号升序），公开；前端 `lib/prompts.ts` 启动拉取，失败回退内置种子（决策 045） |
+| `GET /api/votes` | 全量投票流水（promptId/winnerRid/winnerMid/loserRid/loserMid/mode/ts + 联表快照 promptKind/winnerName/loserName），按时间升序，公开、不带用户信息；**永不过滤**——下架题/下架作品的历史票保留在榜单（决策 045 ⑤） |
 | `POST /api/track` | 访客浏览上报（决策 042）：前端页面加载时上报一次 path，同源即可无需登录，204 静默（失败也 204）；跨源 403 |
 | `GET /api/admin/stats?days=N` | 管理员专用：今日/昨日浏览与访客、近 N 日趋势（1–90）、累计票评注册作品数、Node 体检（内存/运行时长/平台）；未登录 401、非管理员 404 |
 | `GET /api/admin/log?kind=&q=&limit=` | 管理员专用：投票/评论/注册三类流水（倒序，kind 不合法 400），q 关键字过滤（用户名/题号/内容），limit 1–200；未登录 401、非管理员 404 |
@@ -93,6 +97,9 @@
 | `GET /api/admin/inbox` | 管理员专用（决策 044）：收件箱条目清单（单文件/文件夹、大小、可登记性与原因、解析建议 title/model），返回目录路径 |
 | `POST /api/admin/inbox/register` | 管理员专用（决策 044）：登记一件——单文件或含 index.html 的文件夹**搬进** `data/works/<题号>/` 并入库（默认草稿，`publish: true` 直接发布）；同模型自动让位 -2/-3（库与磁盘都探测）；文件名只收单段路径（防穿越 400）、未知题号/缺模型名 400、落库失败文件退回收件箱 |
 | `DELETE /api/admin/inbox?name=` | 管理员专用（决策 044）：删除收件箱文件/文件夹（不进作品库）；名字同样只收单段路径 |
+| `GET /api/admin/prompts` | 管理员专用（决策 045）：全量题目清单**含下架**，按编号升序，带每题作品数与票数 |
+| `POST /api/admin/prompts` | 管理员专用（决策 045）：新增题目——编号自动往下排（内置种子到 007，故从 008 起）；kind/name/prompt 必填，category/code/commentary/detail 可选；默认草稿（`published: true` 直接上架）；跨源 403、非 JSON 415、字段非法 400 |
+| `PATCH /api/admin/prompts/:id` | 管理员专用（决策 045）：编辑文案（自由改，不影响已有投票）与上下架开关；partial 校验、无改动 400、未知题 404；下架即时从 `/api/prompts` 消失（前台完全隐藏），评论/投票白名单随之收紧 |
 | `POST /api/dev/clear-my-votes` | 调试：清空 dev 自己的全部真实投票（决策 042）；仅 dev 账号 + 本机回环（或 ALLOW_DEV_LOGIN=1），同源；只影响 dev，其他用户的票不动 |
 | `POST /api/votes` | 需登录（401）、同源（403）、JSON（415）、校验（400：UUID / 题号白名单 / 胜负不得同体 / mode ∈ blind\|party / 票面与 works 表核对——rid 真实、已发布、非 demo、属本题、与 mid 一致）；同对局已投换 UUID 重投 409、同 UUID 重试仅当票面完全一致才幂等 200，跨对局重放或票面不符 409（响应带 `code: pair/id` 区分对局重复与编号冲突）；rid/mid trim 后入库 |
 
@@ -135,9 +142,9 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 扩充内容操作步骤
 
-1. `lib/arena.ts` 的 `prompts` 追加提示词：三位数字 id、`kind`（image / text / web）、文案字段。
-2. 新增作品（后台收件箱路线，推荐）：文件丢 `data/inbox/`（宝塔/本机）→ 后台「收件箱」页选题目登记（决策 044，默认草稿，去「作品管理」检查后发布；单文件命名「标题，模型名.html」自动带出标题与模型名，多文件作品整个文件夹放进来、根目录须有 index.html）。批量 CLI 路线：`npm run register:works -- --source <目录> --prompt <题号> [--draft]`（登记即发布）。手工路线：改 `lib/works-roster.json`（种子，仅空表时种入）+ 重启。
-3. 同步两处评论题号白名单：`lib/comments.ts` 的 `validateComment` 与 `server/index.js` 的 `ALLOWED_ROUNDS`。
+1. 新增题目（后台路线，决策 045）：后台「题目管理」→ 新增题目（编号自动 008 起，默认草稿）→ 填类型/名称/提示词全文与展示文案 → 上架。公开接口 `/api/prompts` 与前台题库页随之生效；题目编号就是三位数字 id。
+2. 新增作品（后台收件箱路线，推荐）：文件丢 `data/inbox/`（宝塔/本机）→ 后台「收件箱」页选题目登记（决策 044，默认草稿，去「作品管理」检查后发布；单文件命名「标题，模型名.html」自动带出标题与模型名，多文件作品整个文件夹放进来、根目录须有 index.html）。批量 CLI 路线：`npm run register:works -- --source <目录> --prompt <题号> [--draft]`（登记即发布；题号以 prompts 表为准）。手工路线：改 `lib/works-roster.json`（种子，仅空表时种入）+ 重启。
+3. 题号白名单已收口到 prompts 表（决策 045）：投票/评论/登记的题号校验全自动，加题无需改任何代码。
 4. HTML 作品：文件放 `public/works/`，结果用 `content: { kind: 'html', src: '/works/xxx.html' }` 引用（sandbox iframe 预览）。
 5. `isDemo: true` 的结果不计模型数、不参与配对与随机竞技场，仅预览页可见（语义见 `docs/PRODUCT.md` 内容真实性分级）。
 6. 无需修改抽组逻辑；某题补齐两个不同 modelId 的结果后，`#arena/{id}` 地址自动从预览页变为竞技场（路由按 eligiblePairs 判定）。
@@ -147,7 +154,7 @@ npm start          # 生产形态：http://localhost:3000
 - 竞技场页"本场收录 N 个模型的 M 份结果"（`app/page.tsx`）统计未过滤 isDemo，与提示词库页口径不一致；当前可进竞技场的题都没有 demo 结果，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
 - `rounds = prompts` 为 legacy 别名，仅因状态机与旧代码引用保留。
-- 题号白名单现在有三处镜像：`lib/comments.ts`（评论）、`lib/votes.ts`（由题库派生）、`server/index.js`（`ALLOWED_ROUNDS`，评论与投票共用）；新增题号时同步（votes 前端侧随题库自动更新）。作品数据已单一来源：SQLite works 表（决策 040），`lib/works-roster.json` 是它的种子与前端兜底快照，手工加作品改 JSON 即可。
+- 题号白名单已收口到 prompts 表（决策 045）：服务端投票/评论校验、收件箱登记、register:works 脚本都查表，前端 votes/comments 校验随 `currentPrompts()` 派生——加题无需改代码。作品数据单一来源：SQLite works 表（决策 040），`lib/works-roster.json` 是它的种子与前端兜底快照；题目数据同理（决策 045，`lib/prompts-seed.json`）。
 - works 表结构演进走 `server/index.js` 的 `MIGRATIONS`（`PRAGMA user_version` 驱动，启动自动补齐）；`content` 存 JSON 字符串，加展示字段优先在该 JSON 内扩展，不动表结构。首启动种子只在表空时执行，不会覆盖库内已有作品。
 - 管理后台（决策 041）：同仓库双应用——`admin.html` → `src/admin.tsx`（门禁 + 布局）+ `app/admin/`（dashboard 仪表盘 / log 数据流水 / works 作品管理 / inbox 收件箱 / placeholder 占位页）+ `app/admin/admin.css`（朴素工作台风，与主站样式互不掺和）。会话复用主站 arena_session cookie。页面访问统计在 server/index.js 的中间件里（只记 HTML 页面，hash 路由的子页面不可见）。后台第二期上半已落地：作品管理 + 收件箱（决策 044）；剩题目管理（prompts 表 + 动态题库，用户明确押后）、活动管理（占位页已就位）。
 - `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿在现接口上静默截断——截断会让客户端 Elo 重放失真（见 `server/index.js` 注释）。

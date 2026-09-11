@@ -31,16 +31,39 @@ const rosterJson = await readFile(
   new URL('../lib/works-roster.json', import.meta.url),
   'utf8',
 );
-const injectRoster = (code) =>
-  code.replace(
-    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
-    `const rosterData = ${rosterJson};`,
-  );
-const arenaCode = injectRoster(
+const promptsSeedJson = await readFile(
+  new URL('../lib/prompts-seed.json', import.meta.url),
+  'utf8',
+);
+const injectData = (code) =>
+  code
+    .replace(
+      /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+      `const rosterData = ${rosterJson};`,
+    )
+    .replace(
+      /^import\s+promptsSeed\s+from\s+['"]\.\/prompts-seed\.json['"];?\s*$/m,
+      `const promptsSeed = ${promptsSeedJson};`,
+    );
+const arenaCode = injectData(
   transpile(
     await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
   ),
 );
+// lib/prompts.ts 合并进同一模块（stripImports 已去其导入）；
+// 其内部 seedPrompts 改绑模块内 arena 的 prompts（arena 已声明 seedPrompts，避免撞名）
+const promptsCode = stripImports(
+  transpile(
+    await readFile(new URL('../lib/prompts.ts', import.meta.url), 'utf8'),
+  ),
+)
+  .replace(/\bseedPrompts\b/g, 'builtinPrompts')
+  // 模块级私有名改名（state/started/listeners/emit），避免与拼进同一模块的 works 撞名
+  .replace(/\bstate\b/g, 'promptsState')
+  .replace(/\bstarted\b/g, 'promptsStarted')
+  .replace(/\blisteners\b/g, 'promptsListeners')
+  .replace(/\bemit\b/g, 'emitPrompts')
+  .replace(/^let promptsState/m, 'const builtinPrompts = prompts;\nlet promptsState');
 // works.ts 合并进同一模块：未加载状态 currentWorks 回退内置清单（浏览器拉取失败的同一回退）
 const worksCode = stripImports(
   transpile(
@@ -59,7 +82,7 @@ const leaderboardCode = stripImports(
 );
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${worksCode}\n${placeholderCode}\n${leaderboardCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${worksCode}\n${placeholderCode}\n${leaderboardCode}`).toString('base64')}`
 );
 const {
   prompts,
@@ -165,6 +188,58 @@ check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', ()
   const legacyVotes = [vote(models[0], models[1], undefined, 4)];
   assert.equal(leaderboardData('all', legacyVotes, 'mixed').totalVotes, 1);
   assert.equal(leaderboardData('all', legacyVotes, 'formal').totalVotes, 0);
+});
+
+check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史票保留在榜', () => {
+  const models = leaderboardData('all').rows.map((row) => row.modelId);
+  assert.ok(models.length >= 2, '占位阵容至少两个模型');
+  // 题已下架：promptId 不在当前题库，promptKind 由流水快照提供，赛道归类不丢
+  const retiredPromptVote = {
+    promptId: '999',
+    winnerId: models[0],
+    loserId: models[1],
+    ts: 10,
+    mode: 'blind',
+    promptKind: 'web',
+  };
+  const retiredPromptData = leaderboardData('web', [retiredPromptVote], 'mixed');
+  assert.equal(retiredPromptData.totalVotes, 1);
+  assert.ok(retiredPromptData.rows.some((row) => row.modelId === models[0]));
+  // 作品全下架：模型不在当前阵容，显示名用流水快照，票照常计入聚合
+  const retiredVotes = [
+    {
+      promptId: '002',
+      winnerId: 'gone-a',
+      loserId: 'gone-b',
+      ts: 11,
+      mode: 'blind',
+      winnerName: '退役甲',
+      loserName: '退役乙',
+    },
+    {
+      promptId: '002',
+      winnerId: 'gone-a',
+      loserId: models[0],
+      ts: 12,
+      mode: 'blind',
+      winnerName: '退役甲',
+      loserName: '现役',
+    },
+  ];
+  const retiredData = leaderboardData('all', retiredVotes, 'mixed');
+  assert.equal(retiredData.totalVotes, 2);
+  const gone = retiredData.rows.find((row) => row.modelId === 'gone-a');
+  assert.ok(gone);
+  assert.equal(gone.name, '退役甲');
+  assert.equal(gone.games, 2);
+  assert.equal(gone.wins, 2);
+  assert.equal(gone.sub, '历史阵容 / RETIRED');
+  // 快照缺失（旧流水行）：历史模型以模型 id 兜底显示，票不丢
+  const nameless = leaderboardData('all', [
+    { promptId: '002', winnerId: 'gone-c', loserId: 'gone-d', ts: 13, mode: 'blind' },
+  ], 'mixed');
+  assert.equal(nameless.totalVotes, 1);
+  assert.equal(nameless.rows.find((row) => row.modelId === 'gone-c')?.name, 'gone-c');
 });
 
 check('雷达维度：同一模型同一赛道两次生成完全一致，值域 60–100', () => {

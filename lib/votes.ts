@@ -2,8 +2,8 @@
 // 与 lib/comments.ts 同构：前端校验镜像 + 提交/拉取；服务端规则见 server/index.js。
 // 占位模式的投票不经过本文件，走 lib/placeholder.ts 的本地占位投票。
 
-import { prompts } from '@/lib/arena';
 import type { Mode } from '@/lib/arena';
+import { currentPrompts } from '@/lib/prompts';
 
 /** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 021） */
 export type ArenaVote = {
@@ -21,21 +21,12 @@ export type ArenaVoteDraft = Omit<ArenaVote, 'ts'>;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// 题号白名单由题库派生；服务端 server/index.js 手写镜像，新增题目时两处同步
-const ALLOWED_PROMPTS = new Set(prompts.map((prompt) => prompt.id));
 
-export function validateVote(value: unknown): ArenaVoteDraft | null {
-  if (!value || typeof value !== 'object') return null;
-  const candidate = value as Record<string, unknown>;
-  if (
-    typeof candidate.id !== 'string' ||
-    !UUID_PATTERN.test(candidate.id)
-  )
+/** 字段形态校验（不含题号白名单）：写入与读取共用一份字段规则 */
+function voteShape(candidate: Record<string, unknown>): ArenaVoteDraft | null {
+  if (typeof candidate.id !== 'string' || !UUID_PATTERN.test(candidate.id))
     return null;
-  if (
-    typeof candidate.promptId !== 'string' ||
-    !ALLOWED_PROMPTS.has(candidate.promptId)
-  )
+  if (typeof candidate.promptId !== 'string' || !candidate.promptId)
     return null;
   for (const field of [
     'winnerRid',
@@ -49,7 +40,11 @@ export function validateVote(value: unknown): ArenaVoteDraft | null {
   }
   if (candidate.winnerRid === candidate.loserRid) return null;
   if (candidate.winnerMid === candidate.loserMid) return null;
-  if (candidate.mode !== 'blind' && candidate.mode !== 'party' && candidate.mode !== 'formal')
+  if (
+    candidate.mode !== 'blind' &&
+    candidate.mode !== 'party' &&
+    candidate.mode !== 'formal'
+  )
     return null;
   return {
     id: candidate.id as string,
@@ -60,6 +55,46 @@ export function validateVote(value: unknown): ArenaVoteDraft | null {
     loserMid: candidate.loserMid as string,
     mode: candidate.mode as Mode,
   };
+}
+
+export function validateVote(value: unknown): ArenaVoteDraft | null {
+  if (!value || typeof value !== 'object') return null;
+  const shape = voteShape(value as Record<string, unknown>);
+  // 写入口径：题号白名单随当前生效题库派生（决策 045），服务端按 prompts 表核对。
+  // 白名单只管写入——读取（fetchVotes）不按它过滤，下架题的历史票保留在榜单
+  //（决策 045 ⑤，2026-09-12 用户再次确认）
+  if (!shape || !currentPrompts().some((prompt) => prompt.id === shape.promptId))
+    return null;
+  return shape;
+}
+
+/** /api/votes 的流水行：ArenaVote 加服务端联表补充的展示快照——
+ * 下架题/下架作品的历史票靠它们留在榜单（归类赛道、给历史模型一个名字） */
+export type VoteFlowRow = ArenaVote & {
+  /** 胜方作品当前的显示名（可能已被编辑过；作品行缺失时缺省） */
+  winnerName?: string;
+  loserName?: string;
+  /** 题目当前类型（prompts 表含下架题——榜单赛道归类不依赖题库可见性） */
+  promptKind?: 'image' | 'text' | 'web';
+};
+
+function parseVoteRow(row: unknown): VoteFlowRow | null {
+  if (!row || typeof row !== 'object') return null;
+  const candidate = row as Record<string, unknown>;
+  const shape = voteShape(candidate);
+  if (!shape || typeof candidate.ts !== 'number') return null;
+  const parsed: VoteFlowRow = { ...shape, ts: candidate.ts };
+  if (typeof candidate.winnerName === 'string' && candidate.winnerName)
+    parsed.winnerName = candidate.winnerName;
+  if (typeof candidate.loserName === 'string' && candidate.loserName)
+    parsed.loserName = candidate.loserName;
+  if (
+    candidate.promptKind === 'image' ||
+    candidate.promptKind === 'text' ||
+    candidate.promptKind === 'web'
+  )
+    parsed.promptKind = candidate.promptKind;
+  return parsed;
 }
 
 /**
@@ -119,32 +154,36 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
   }
 }
 
-/** 拉全量投票流水；失败返回 null（调用方区分「无票」与「加载失败」） */
-export async function fetchVotes(): Promise<ArenaVote[] | null> {
+/** 拉全量投票流水；失败返回 null（调用方区分「无票」与「加载失败」）。
+ * 不按题号白名单过滤（决策 045 ⑤：下架题/下架作品的历史票保留在榜单），
+ * 形态非法的行跳过 */
+export async function fetchVotes(): Promise<VoteFlowRow[] | null> {
   try {
     const response = await fetch('/api/votes');
     if (!response.ok) return null;
     const data = (await response.json()) as { votes?: unknown };
     if (!Array.isArray(data.votes)) return null;
-    return data.votes.filter(
-      (vote): vote is ArenaVote =>
-        !!vote &&
-        typeof vote === 'object' &&
-        typeof vote.ts === 'number' &&
-        validateVote(vote) !== null,
-    );
+    const rows = data.votes.map(parseVoteRow);
+    if (rows.some((row) => row === null)) {
+      console.warn('[arenaofbias] /api/votes 返回了无法解析的投票行，已跳过');
+    }
+    return rows.filter((row): row is VoteFlowRow => row !== null);
   } catch {
     return null;
   }
 }
 
-/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供「只看正式」口径过滤） */
-export function voteToRecord(vote: ArenaVote): {
+/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供「只看正式」口径过滤）。
+ * promptKind 与双方显示名随行透传——下架题的赛道归类与历史模型的命名靠它们 */
+export function voteToRecord(vote: VoteFlowRow): {
   promptId: string;
   winnerId: string;
   loserId: string;
   ts: number;
   mode: Mode;
+  promptKind?: 'image' | 'text' | 'web';
+  winnerName?: string;
+  loserName?: string;
 } {
   return {
     promptId: vote.promptId,
@@ -152,5 +191,8 @@ export function voteToRecord(vote: ArenaVote): {
     loserId: vote.loserMid,
     ts: vote.ts,
     mode: vote.mode,
+    ...(vote.promptKind ? { promptKind: vote.promptKind } : {}),
+    ...(vote.winnerName ? { winnerName: vote.winnerName } : {}),
+    ...(vote.loserName ? { loserName: vote.loserName } : {}),
   };
 }

@@ -26,22 +26,44 @@ const transpile = (source) =>
     },
   }).outputText;
 
-// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
-// 转译后把清单内联成同名常量注入
+// arena.ts 从 lib/works-roster.json 与 lib/prompts-seed.json 导入清单：
+// data URL 模块解析不了相对路径，转译后把清单内联成同名常量注入
 const rosterJson = await readFile(
   new URL('../lib/works-roster.json', import.meta.url),
   'utf8',
 );
-const injectRoster = (code) =>
-  code.replace(
-    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
-    `const rosterData = ${rosterJson};`,
-  );
-const arenaCode = injectRoster(
+const promptsSeedJson = await readFile(
+  new URL('../lib/prompts-seed.json', import.meta.url),
+  'utf8',
+);
+const injectData = (code) =>
+  code
+    .replace(
+      /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+      `const rosterData = ${rosterJson};`,
+    )
+    .replace(
+      /^import\s+promptsSeed\s+from\s+['"]\.\/prompts-seed\.json['"];?\s*$/m,
+      `const promptsSeed = ${promptsSeedJson};`,
+    );
+const arenaCode = injectData(
   transpile(
     await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
   ),
 );
+// lib/prompts.ts 合并进同一模块：去掉对 arena 的导入；
+// 其内部 seedPrompts 改绑模块内 arena 的 prompts（arena 已声明 seedPrompts，避免撞名）
+const promptsCode = transpile(
+  await readFile(new URL('../lib/prompts.ts', import.meta.url), 'utf8'),
+)
+  .replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm, '')
+  .replace(/\bseedPrompts\b/g, 'builtinPrompts')
+  // 模块级私有名改名（state/started/listeners/emit），避免与拼进同一模块的 works 撞名
+  .replace(/\bstate\b/g, 'promptsState')
+  .replace(/\bstarted\b/g, 'promptsStarted')
+  .replace(/\blisteners\b/g, 'promptsListeners')
+  .replace(/\bemit\b/g, 'emitPrompts')
+  .replace(/^let promptsState/m, 'const builtinPrompts = prompts;\nlet promptsState');
 // works.ts 合并进同一模块：去掉对 arena 的导入后，currentWorks 在
 // 未加载状态返回内置 modelResults——与浏览器拉取失败时的回退一致
 const worksCode = transpile(
@@ -50,14 +72,14 @@ const worksCode = transpile(
 let placeholderCode = transpile(
   await readFile(new URL('../lib/placeholder.ts', import.meta.url), 'utf8'),
 );
-// 三份代码合并为一个模块：去掉 placeholder 对 arena / works 的值导入
+// 四份代码合并为一个模块：去掉 placeholder 对 arena / prompts / works 的值导入
 placeholderCode = placeholderCode.replace(
-  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|works)['"];?\s*$/gm,
+  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|prompts|works)['"];?\s*$/gm,
   '',
 );
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${worksCode}\n${placeholderCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${worksCode}\n${placeholderCode}`).toString('base64')}`
 );
 const {
   prompts,

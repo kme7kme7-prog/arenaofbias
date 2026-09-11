@@ -25,28 +25,50 @@ const transpile = (source) =>
     },
   }).outputText;
 
-// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
-// 转译后把清单内联成同名常量注入
+// arena.ts 从 lib/works-roster.json 与 lib/prompts-seed.json 导入清单：
+// data URL 模块解析不了相对路径，转译后把清单内联成同名常量注入
 const rosterJson = await readFile(
   new URL('../lib/works-roster.json', import.meta.url),
   'utf8',
 );
-const injectRoster = (code) =>
-  code.replace(
-    /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
-    `const rosterData = ${rosterJson};`,
-  );
-const arenaCode = injectRoster(
+const promptsSeedJson = await readFile(
+  new URL('../lib/prompts-seed.json', import.meta.url),
+  'utf8',
+);
+const injectData = (code) =>
+  code
+    .replace(
+      /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
+      `const rosterData = ${rosterJson};`,
+    )
+    .replace(
+      /^import\s+promptsSeed\s+from\s+['"]\.\/prompts-seed\.json['"];?\s*$/m,
+      `const promptsSeed = ${promptsSeedJson};`,
+    );
+const arenaCode = injectData(
   transpile(
     await readFile(new URL('../lib/arena.ts', import.meta.url), 'utf8'),
   ),
 );
+// lib/prompts.ts 合并进同一模块：去掉对 arena 的导入；
+// 其内部 seedPrompts 改绑模块内 arena 的 prompts（arena 已声明 seedPrompts，避免撞名）
+const promptsCode = transpile(
+  await readFile(new URL('../lib/prompts.ts', import.meta.url), 'utf8'),
+)
+  .replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm, '')
+  .replace(/\bseedPrompts\b/g, 'builtinPrompts')
+  // 模块级私有名改名（state/started/listeners/emit），避免与拼进同一模块的 works 撞名
+  .replace(/\bstate\b/g, 'promptsState')
+  .replace(/\bstarted\b/g, 'promptsStarted')
+  .replace(/\blisteners\b/g, 'promptsListeners')
+  .replace(/\bemit\b/g, 'emitPrompts')
+  .replace(/^let promptsState/m, 'const builtinPrompts = prompts;\nlet promptsState');
 const votesCode = transpile(
   await readFile(new URL('../lib/votes.ts', import.meta.url), 'utf8'),
-).replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm, '');
+).replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|prompts)['"];?\s*$/gm, '');
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${votesCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${votesCode}`).toString('base64')}`
 );
 const { validateVote, pairKeyOf, voteToRecord } = module;
 
@@ -226,7 +248,12 @@ try {
     assert.equal(listed.votes.length, 1);
     assert.ok(!('userId' in listed.votes[0]));
     assert.equal(listed.votes[0].winnerMid, 'inkwell');
-    // 流水必须能通过前端校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
+    // 决策 045 ⑤「历史票保留在榜单」：流水联表带展示快照——
+    // 下架题靠 promptKind 归赛道，下架作品的模型靠双方显示名留在榜上
+    assert.equal(listed.votes[0].winnerName, '墨池 / INKWELL');
+    assert.equal(listed.votes[0].loserName, '回声 / ECHO');
+    assert.equal(listed.votes[0].promptKind, 'text');
+    // 流水必须能通过前端形态校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
     for (const vote of listed.votes) {
       assert.ok(
         validateVote(vote),

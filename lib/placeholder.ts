@@ -7,17 +7,17 @@
 //   - 后期剥离：删除本文件、components/dev-panel.tsx、app/dev.css 与
 //     scripts/validate-placeholder.mjs，并把各调用点的 current* 帮助函数
 //     还原为对应数据源的默认调用即可。
-// 本文件除 lib/arena.ts 与 lib/works.ts 外不依赖任何模块，纯函数不触碰
+// 本文件除 lib/arena.ts、lib/prompts.ts 与 lib/works.ts 外不依赖任何模块，纯函数不触碰
 // localStorage 的部分可在 Node 校验脚本（scripts/validate-placeholder.mjs）中直接运行。
 
 import {
   eligiblePairs,
   pickMatchup,
-  prompts,
   randomArenaHash,
   resultsForPrompt,
 } from '@/lib/arena';
 import type { Matchup, ModelResult, Prompt } from '@/lib/arena';
+import { currentPrompts } from '@/lib/prompts';
 import { currentWorks } from '@/lib/works';
 
 // ---------------------------------------------------------------------------
@@ -283,7 +283,8 @@ h1{margin:0;font-size:clamp(28px,7vw,54px);line-height:1.05;color:${model.accent
 export function buildPlaceholderResults(modelCount: number): ModelResult[] {
   const models = placeholderModels(modelCount);
   const results: ModelResult[] = [];
-  for (const prompt of prompts) {
+  // 按当前生效题库生成（动态题库，决策 045）：后台新增的题也有占位作品可演示
+  for (const prompt of currentPrompts()) {
     for (const model of models) {
       const nn = model.id.slice(3);
       results.push({
@@ -336,7 +337,7 @@ export function currentMatchup(
 }
 
 export function currentRandomArenaHash(excludeId?: string): string {
-  return randomArenaHash(excludeId, Math.random, currentResults());
+  return randomArenaHash(excludeId, Math.random, currentResults(), currentPrompts());
 }
 
 // ---------------------------------------------------------------------------
@@ -376,7 +377,8 @@ export function generatePlaceholderVotes(count = 200): PlaceholderVote[] {
   const now = Date.now();
   const votes: PlaceholderVote[] = [];
   for (let i = 0; i < count; i++) {
-    const prompt = prompts[Math.floor(rng() * prompts.length)];
+    const pool = currentPrompts();
+    const prompt = pool[Math.floor(rng() * pool.length)];
     const left = models[Math.floor(rng() * models.length)];
     let right = models[Math.floor(rng() * models.length)];
     while (right.id === left.id)

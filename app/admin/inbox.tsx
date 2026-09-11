@@ -4,7 +4,7 @@
 // 每件也可勾选「登记后立即发布」。解析规则与 scripts/register-works.mjs 同源
 //（server/works-register.js）。
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { prompts } from '@/lib/arena';
+import { useAdminPromptOptions } from '@/app/admin/use-admin-prompts';
 
 type InboxEntry = {
   name: string;
@@ -23,6 +23,7 @@ type InboxForm = {
 };
 
 export function AdminInbox() {
+  const promptOptions = useAdminPromptOptions();
   const [dir, setDir] = useState('');
   const [entries, setEntries] = useState<InboxEntry[]>([]);
   const [forms, setForms] = useState<Record<string, InboxForm>>({});
@@ -239,7 +240,7 @@ export function AdminInbox() {
                       }
                     >
                       <option value="">选择题…</option>
-                      {prompts.map((item) => (
+                      {promptOptions.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.id} {item.name}
                         </option>

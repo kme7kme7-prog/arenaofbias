@@ -1,7 +1,9 @@
 import { AccountButton } from '@/components/account';
 import { useRef, useState } from 'react';
-import { randomArenaHash } from '@/lib/arena';
 import { createGameTransition, bandsNavigate } from '@/lib/game-transitions';
+// 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
+// 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
+import { currentRandomArenaHash } from '@/lib/placeholder';
 import { wipeNavigate, type PageWipeCopy } from '@/lib/ui-transitions';
 import {
   ArrowUpRight,
@@ -70,7 +72,7 @@ export default function Home() {
     transition.play();
   };
   const enterRandom = () =>
-    go(randomArenaHash(), { note: 'YOUR INSTINCT MATTERS.', title: 'Round Start' });
+    go(currentRandomArenaHash(), { note: 'YOUR INSTINCT MATTERS.', title: 'Round Start' });
   return (
     <div className="lobby">
       <div className="lobby-grid" aria-hidden="true" />

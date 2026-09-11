@@ -10,8 +10,8 @@ import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
 import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
-import { prompts } from '@/lib/arena';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '@/lib/prompts';
 import { trackPageView } from '@/lib/track';
 import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 // observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
@@ -41,6 +41,8 @@ function Routes() {
     () => '',
   );
   useSyncExternalStore(subscribeWorks, getWorksState);
+  // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
+  useSyncExternalStore(subscribePrompts, getPromptsState);
   useEffect(() => {
     window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
@@ -53,7 +55,7 @@ function Routes() {
   if (route === '#prompts') return <PromptLibrary />;
   if (route === '#rank') return <Ranking />;
   if (route.startsWith('#formal/')) {
-    const prompt = prompts.find((item) => item.id === route.slice(8));
+    const prompt = currentPrompts().find((item) => item.id === route.slice(8));
     if (prompt && currentPairs(prompt.id).length > 0)
       return <Arena key={`formal-${prompt.id}`} prompt={prompt} formal />;
     if (prompt)
@@ -67,7 +69,7 @@ function Routes() {
     );
   }
   if (route.startsWith('#arena/')) {
-    const prompt = prompts.find((item) => item.id === route.slice(7));
+    const prompt = currentPrompts().find((item) => item.id === route.slice(7));
     if (prompt && currentPairs(prompt.id).length > 0)
       return <Arena key={prompt.id} prompt={prompt} />;
     if (prompt) return <PromptPreview key={prompt.id} prompt={prompt} />;
@@ -87,6 +89,7 @@ if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
 // 同时上报一次页面浏览（含初始 hash 路由，后台访客统计用）
 trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
 loadWorks();
+loadPrompts(); // 动态题库（决策 045）
 reactRoot.render(
   <AccountProvider>
     <Routes />

@@ -38,12 +38,14 @@ import {
 import {
   arenaReducer,
   initialState,
-  rounds,
+  type ArenaState,
+  type ArenaAction,
   type ModelResult,
   type Prompt,
   type Matchup,
   type Side,
 } from '@/lib/arena';
+import { currentPrompts } from '@/lib/prompts';
 import {
   appendPlaceholderVote,
   currentMatchup,
@@ -252,8 +254,12 @@ export default function Arena({
   // 正式测评（决策 024）：全程匿名、无评论区；地址 #formal/{promptId}
   formal?: boolean;
 }) {
-  const promptIndex = rounds.findIndex((item) => item.id === prompt.id);
-  const [state, dispatch] = useReducer(arenaReducer, {
+  const promptIndex = currentPrompts().findIndex((item) => item.id === prompt.id);
+  // 动态题库（决策 045）：SWITCH 越界守卫用当前题目数，而不是种子快照
+  const [state, dispatch] = useReducer(
+    (state: ArenaState, action: ArenaAction) =>
+      arenaReducer(state, action, currentPrompts().length),
+    {
     ...initialState,
     mode: formal ? 'formal' : 'blind',
     round: promptIndex,

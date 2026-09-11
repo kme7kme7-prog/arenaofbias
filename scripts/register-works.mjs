@@ -39,10 +39,9 @@ const dataDir = process.env.DATA_DIR || path.join(projectRoot, 'data');
 const worksDir = process.env.WORKS_DIR || path.join(dataDir, 'works');
 const db = new Database(path.join(dataDir, 'comments.db'));
 
-// 题号须在服务端白名单内（与 server/index.js 的 ALLOWED_ROUNDS 同步维护）
-const ALLOWED = ['001', '002', '003', '004', '005', '006', '007'];
-if (!ALLOWED.includes(promptId)) {
-  console.error(`未知题号 ${promptId}（允许：${ALLOWED.join(' ')}）`);
+// 题号以 prompts 表为准（动态题库，决策 045）；表由服务端首次启动时迁移创建
+if (!db.prepare('SELECT 1 FROM prompts WHERE id = ?').get(promptId)) {
+  console.error(`未知题号 ${promptId}（题目须已存在于题库，可先在后台新增）`);
   process.exit(1);
 }
 

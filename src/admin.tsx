@@ -8,6 +8,7 @@ import { AdminDashboard } from '@/app/admin/dashboard';
 import { AdminInbox } from '@/app/admin/inbox';
 import { AdminLog } from '@/app/admin/log';
 import { AdminPlaceholder } from '@/app/admin/placeholder';
+import { AdminPrompts } from '@/app/admin/prompts';
 import { AdminWorks } from '@/app/admin/works';
 import { trackPageView } from '@/lib/track';
 import '@/app/admin/admin.css';
@@ -18,7 +19,7 @@ const SECTIONS = [
   { key: 'dashboard', label: '仪表盘', ready: true },
   { key: 'log', label: '数据流水', ready: true },
   { key: 'works', label: '作品管理', ready: true },
-  { key: 'prompts', label: '题目管理', ready: false },
+  { key: 'prompts', label: '题目管理', ready: true },
   { key: 'inbox', label: '收件箱', ready: true },
   { key: 'events', label: '活动管理', ready: false },
 ] as const;
@@ -89,12 +90,7 @@ function AdminShell({ user, section, onSection }: {
         {section === 'log' && <AdminLog />}
         {section === 'works' && <AdminWorks />}
         {section === 'inbox' && <AdminInbox />}
-        {section === 'prompts' && (
-          <AdminPlaceholder
-            title="题目管理"
-            note="新增/编辑提示词。当前阶段请直接编辑 lib/arena.ts 的 prompts 数组；此页将与题目的数据库化同期实现。"
-          />
-        )}
+        {section === 'prompts' && <AdminPrompts />}
         {section === 'events' && (
           <AdminPlaceholder
             title="活动管理"

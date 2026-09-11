@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { ArrowUpRight, RotateCcw } from 'lucide-react';
 import { bandsNavigate } from '@/lib/game-transitions';
 import { RollingLabel } from '@/components/rolling-label';
@@ -19,6 +26,8 @@ import type {
 } from '@/lib/leaderboard';
 import { isPlaceholderMode, readPlaceholderVotes } from '@/lib/placeholder';
 import { fetchVotes, voteToRecord } from '@/lib/votes';
+import { getPromptsState, subscribePrompts } from '@/lib/prompts';
+import { getWorksState, subscribeWorks } from '@/lib/works';
 
 const reduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -49,6 +58,11 @@ function useBoardVotes(replaySeed: number): {
   failed: boolean;
   loading: boolean;
 } {
+  // 数据源就绪状态参与依赖：冷加载时 /api/votes 可能先于 /api/works、
+  // /api/prompts 返回，榜单会按内置兜底名单聚合且此后不会重算——
+  // 任一数据源翻转（loading→ready）就重拉一次票并触发重算
+  const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
+  const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
   const [state, setState] = useState<{
     votes: VoteRecord[] | null;
     failed: boolean;
@@ -62,7 +76,7 @@ function useBoardVotes(replaySeed: number): {
     return () => {
       live = false;
     };
-  }, [replaySeed]);
+  }, [replaySeed, worksState, promptsState]);
   return {
     votes: state.votes,
     failed: state.failed,

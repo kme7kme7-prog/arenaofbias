@@ -4,6 +4,7 @@
 // GET /api/works 返回的已发布作品为准（lib/works.ts），本文件这份是启动前与
 // 拉取失败时的回退。新增作品只改这一处 JSON。
 import rosterData from './works-roster.json';
+import promptsSeed from './prompts-seed.json';
 
 export type Side = 'a' | 'b';
 export type Phase =
@@ -40,6 +41,8 @@ export const initialState: ArenaState = {
 export function arenaReducer(
   state: ArenaState,
   action: ArenaAction,
+  // SWITCH 的越界守卫；动态题库（lib/prompts.ts）下由调用方传当前题目数
+  promptCount = prompts.length,
 ): ArenaState {
   switch (action.type) {
     case 'LOADED':
@@ -57,7 +60,7 @@ export function arenaReducer(
         state.phase === 'transition' ||
         action.round < 0 ||
         !Number.isInteger(action.round) ||
-        action.round >= rounds.length
+        action.round >= promptCount
         ? state
         : { ...state, phase: 'transition', pendingRound: action.round };
     case 'ARRIVE':
@@ -99,159 +102,26 @@ export type Prompt = {
   detail: string;
 };
 
-export const prompts: Prompt[] = [
-  {
-    id: '001',
-    kind: 'web',
-    category: 'SVG 动画',
-    code: 'SVG',
-    name: '鹈鹕大挑战',
-    prompt: '创建一个HTML，内容是SVG绘制一个鹈鹕骑自行车的2D动画。',
-    commentary: '长喙、双轮，看看谁能让它真正骑起来。',
-    detail: '同一提示词 · SVG / HTML 动画',
-  },
-  {
-    id: '002',
-    kind: 'text',
-    category: '文字创作',
-    code: 'STORY',
-    name: '最后一句',
-    prompt: '一个机器人在世界停电前，给人类写了最后一封信。',
-    commentary: '电量可以归零，嘴硬不行。',
-    detail: '同一命题 · 两种叙事',
-  },
-  {
-    id: '003',
-    kind: 'web',
-    category: '网页设计',
-    code: 'WEB',
-    name: '环游轨道',
-    prompt: '为一家开往月球的旅行社，设计它的首页。',
-    commentary: '预算还在地球，审美已经登月。',
-    detail: '同一需求 · 两种表达',
-  },
-  {
-    id: '004',
-    kind: 'web',
-    category: '3D 场景',
-    code: 'VOXEL',
-    name: '营造法式',
-    prompt: `【任务】
-请创建一个可运行的 3D 体素（Voxel）风格中国古典建筑群场景，用 Three.js 实现。
-
-【场景要求】
-1. 建筑群至少 5 座建筑，主次关系明确：
-   - 主殿
-   - 配殿 数座
-   - 山门
-   - 宝塔或钟鼓楼 数座
-   - 上不封顶
-2. 空间布局：
-   - 建筑间距合理（体素比例下足以容纳道路与庭院）
-   - 道路连接良好
-   - 整体呈中轴对称
-3. 建筑风格（中式古典，仅供参考，可进一步拓展）：
-   - 屋顶：飞檐翘角，含歇山顶/庑殿顶/攒尖顶等中式形制
-   - 结构：斗拱、立柱、台阶
-   - 色彩：红墙、琉璃瓦或青瓦、木色构件
-   - 细节：门窗、灯笼、石狮等
-4. 环境与光影：
-   - 地面有铺装/草地处理，建筑与地面自然衔接
-   - 有明确光源与阴影，建筑群呈现光影层次与氛围
-   - 晨昏色调。可选：多色调
-
-【技术要求】
-- 使用 Three.js（React 或纯原生均可），无需后端
-- 在工作区中创建完整项目（Vite 等构建工具可用），确保可直接构建运行
-- 画面流畅：体素数量合理，旋转视角时帧率稳定（≥30fps）
-- 页面打开即进入场景，无需操作即可看到全貌
-
-【交付要求】
-- 项目结构完整，说明运行方式（安装与启动命令）
-- 如已实际运行，请说明运行结果`,
-    commentary: '飞檐斗拱之间，藏着一千年的章法。',
-    detail: '同一提示词 · 两种营造',
-  },
-  {
-    id: '005',
-    kind: 'web',
-    category: '3D 场景',
-    code: 'VOXEL',
-    name: '飞瀑穿云',
-    prompt: `【任务】
-请创建一个可运行的 3D 体素（Voxel）风格自然景观场景：山 + 瀑布 + 穿云效果，用 Three.js 实现。
-
-【场景要求】
-1. 山脉
-2. 瀑布
-3. 穿云
-4. 宏大自然环境：植被，光影氛围（必含晨昏色调，可选多色调）
-
-【技术要求】
-- Three.js，工作区完整项目，可直接构建运行
-- 画面流畅：体素数量合理，旋转视角帧率稳定（≥30fps）
-- 页面打开即进入场景，无需操作即可看到全貌
-
-【交付要求】
-- 项目结构完整，说明运行方式（安装与启动命令）
-- 如已实际运行，请说明运行结果`,
-    commentary: '山有多高，水就有多想往下跳。',
-    detail: '同一提示词 · 两种山水',
-  },
-  {
-    id: '006',
-    kind: 'web',
-    category: '网页设计',
-    code: 'WEB',
-    name: '整装出发',
-    prompt: `【任务】
-请设计并实现一个前端落地页：一个户外机能风运动装备品牌的产品展示页。品牌定位强调：高质量、高耐用度、高实用性。这是真实的商业场景页面，请把它当作要上线使用的产品来做。
-
-【功能要求】
-1. 页面结构完整，包含：品牌头部导航、核心卖点区（Hero）、产品展示区（至少 4 款产品）、品牌故事区、预订入口、页脚
-2. 产品展示区每款产品包含：名称、简介、价格、图片（可用占位图或图形绘制）
-3. 预订入口有明确交互（表单或按钮流程），操作有反馈
-4. 适配桌面与移动端（不同屏幕宽度下布局不崩坏）
-5. 交互细节：悬停、过渡动画等酌情完善
-
-【视觉要求】
-- 不指定风格，由你根据品牌调性自主设计一套完整、统一、有辨识度的视觉方案
-- 视觉方案须自洽：配色、字体、布局风格前后一致
-- 视觉表达需呼应品牌定位（高质量、高耐用度、高实用性）
-
-【技术要求】
-- 工作区完整项目（Vite + React 或原生均可），可直接构建运行
-- 页面打开即可正常浏览，无报错
-- 代码结构清晰（组件划分、状态管理合理）
-
-【交付要求】
-- 项目结构完整，说明运行方式；如已实际运行，请说明结果`,
-    commentary: '机能风不只要看起来能打，也得真能打。',
-    detail: '同一需求 · 两种店面',
-  },
-  {
-    id: '007',
-    kind: 'web',
-    category: '物理模拟',
-    code: 'GR',
-    name: '事件视界',
-    prompt: `【任务】
-请使用 HTML 创建一个黑洞（Black Hole）模拟。
-
-【最小要求】
-1. 使用 Three.js 或任何你擅长的库，我均允许
-2. 需要真实物理模拟——必须使用物理公式（如广义相对论光线追踪、Schwarzschild 度规、测地线方程等）
-3. 力求最保真（保真度优先，视觉效果与物理准确性都要）
-4. 必须加入 OrbitControls（支持旋转、缩放视角）
-5. 浏览器打开即可运行，无需额外操作即可观看
-
-【交付要求】
-- 项目结构完整，说明运行方式（安装与启动命令）
-- 如已实际运行，请说明运行结果`,
-    commentary: '光都逃不掉的地方，物理才开始说话。',
-    detail: '同一提示词 · 两种宇宙',
-  },
-];
+// 题目清单存 lib/prompts-seed.json，两处共享同一份：前端内置兜底（下方 prompts）、
+// 服务端 prompts 表的种子（server/index.js，迁移 003）。正常运行时前端以服务端
+// GET /api/prompts 返回的已发布题目为准（lib/prompts.ts），本文件这份是启动前
+// 与拉取失败时的回退；后台题目管理（决策 045）落库后，新增题目不再改这里。
+const seedPrompts = promptsSeed as unknown as Prompt[];
+for (const prompt of seedPrompts) {
+  // 种子漏配身份字段会在启动时立刻暴露
+  if (
+    !/^\d{3}$/.test(String(prompt.id)) ||
+    (prompt.kind !== 'image' &&
+      prompt.kind !== 'text' &&
+      prompt.kind !== 'web') ||
+    !prompt.name ||
+    !prompt.prompt
+  )
+    throw new Error(
+      `lib/prompts-seed.json 的题目 ${String(prompt.id)} 缺少必要字段或 kind 非法`,
+    );
+}
+export const prompts: Prompt[] = seedPrompts;
 
 // Legacy state-machine name; a round index now identifies a prompt only.
 export const rounds = prompts;
@@ -346,8 +216,10 @@ export function randomArenaHash(
   excludeId?: string,
   random = Math.random,
   results = modelResults,
+  // 动态题库（决策 045）：调用方传当前生效题目，缺省用内置种子
+  promptList: Prompt[] = prompts,
 ) {
-  const available = prompts.filter(
+  const available = promptList.filter(
     (prompt) => eligiblePairs(prompt.id, results).length > 0,
   );
   const other = available.filter((prompt) => prompt.id !== excludeId);

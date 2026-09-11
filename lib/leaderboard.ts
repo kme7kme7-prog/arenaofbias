@@ -4,7 +4,8 @@
 // 评分是占位口径的简易 Elo（基准 1200、K=32，按时间序迭代），
 // 仅用于演示榜单形态，正式算法待定（README 排名要表达什么一节）。
 
-import { prompts, type Mode } from '@/lib/arena';
+import type { Mode } from '@/lib/arena';
+import { currentPrompts } from '@/lib/prompts';
 import {
   currentResults,
   hashSeed,
@@ -75,7 +76,7 @@ const NOTE_POOL = [
 ];
 
 function promptKindMap(): Map<string, 'image' | 'text' | 'web'> {
-  return new Map(prompts.map((prompt) => [prompt.id, prompt.kind]));
+  return new Map(currentPrompts().map((prompt) => [prompt.id, prompt.kind]));
 }
 
 function matchesCategory(
@@ -87,7 +88,7 @@ function matchesCategory(
   return kind === category;
 }
 
-function modelMeta() {
+function modelMeta(votes: VoteRecord[]) {
   // 以当前数据源（占位或真实）中参与配对的结果为准：demo 样例不进榜
   const meta = new Map<
     string,
@@ -109,6 +110,25 @@ function modelMeta() {
       sub: ph ? `PLACEHOLDER / PH-${nn}` : '演示阵容 / DEMO',
     });
   }
+  // 历史阵容：只出现在流水里的模型（作品已全部下架——决策 045 ⑤「历史票保留在
+  // 榜单」）。仍进阵容参与聚合，显示名用流水里的作品名快照（缺失时回落模型 id），
+  // 下架任何作品都不再让该模型的票消失、不再引发全榜重排
+  for (const vote of votes) {
+    const retired: [string, string | undefined][] = [
+      [vote.winnerId, vote.winnerName],
+      [vote.loserId, vote.loserName],
+    ];
+    for (const [modelId, name] of retired) {
+      if (meta.has(modelId)) continue;
+      const display = name ?? modelId;
+      meta.set(modelId, {
+        name: display,
+        accent: FALLBACK_PALETTE[hashSeed(modelId) % FALLBACK_PALETTE.length],
+        sigil: display.slice(0, 1).toUpperCase(),
+        sub: '历史阵容 / RETIRED',
+      });
+    }
+  }
   return meta;
 }
 
@@ -120,6 +140,11 @@ export type VoteRecord = {
   ts: number;
   /** 这票产生的模式（决策 026：混榜可切换只看正式）；占位投票无此字段，只在混入口径计入 */
   mode?: Mode;
+  /** 题目类型快照（服务端联表提供，含下架题——下架不改变赛道归类，决策 045 ⑤） */
+  promptKind?: 'image' | 'text' | 'web';
+  /** 双方模型显示名快照（作品已全部下架的模型靠它在榜上有名） */
+  winnerName?: string;
+  loserName?: string;
 };
 
 /** 榜单口径（决策 026）：mixed = 正式与娱乐混入；formal = 只看正式测评的票 */
@@ -136,15 +161,15 @@ export function leaderboardData(
   scope: BoardScope = 'mixed',
 ): BoardData {
   const kinds = promptKindMap();
-  const meta = modelMeta();
-  // 先过阵容：真实投票由服务端形态校验（不认识阵容），伪造或已下架模型的票
-  // 在此过滤；占位投票读入时已按当前阵容过滤
+  const meta = modelMeta(votes);
+  // 先过阵容：阵容 = 已发布作品 ∪ 流水历史模型（决策 045 ⑤），票面只要认识
+  // 双方模型就计入；服务端写入时已按作品清单核对票面，客户端不重复设防
   const known = votes.filter(
     (vote) => meta.has(vote.winnerId) && meta.has(vote.loserId),
   );
   const scoped = known.filter(
     (vote) =>
-      matchesCategory(kinds.get(vote.promptId), category) &&
+      matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
       (scope === 'mixed' || vote.mode === 'formal'),
   );
 
@@ -202,8 +227,8 @@ export function leaderboardData(
     modelCount: meta.size,
     promptCount:
       category === 'all'
-        ? prompts.length
-        : prompts.filter((prompt) => prompt.kind === category).length,
+        ? currentPrompts().length
+        : currentPrompts().filter((prompt) => prompt.kind === category).length,
   };
 }
 

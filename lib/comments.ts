@@ -1,3 +1,7 @@
+// 评论数据层：题号白名单随当前生效题库（动态题库，决策 045）；
+// 服务端按 prompts 表核对，两端口径一致
+import { currentPrompts } from '@/lib/prompts';
+
 export type ArenaComment = {
   username?: string | null;
   id: string;
@@ -20,9 +24,7 @@ export function validateComment(
     return null;
   if (
     typeof candidate.roundId !== 'string' ||
-    !['001', '002', '003', '004', '005', '006', '007'].includes(
-      candidate.roundId,
-    )
+    !currentPrompts().some((prompt) => prompt.id === candidate.roundId)
   )
     return null;
   if (candidate.side !== 'a' && candidate.side !== 'b') return null;

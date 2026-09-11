@@ -6,10 +6,14 @@ const source = await readFile(
   new URL('../lib/arena.ts', import.meta.url),
   'utf8',
 );
-// arena.ts 从 lib/works-roster.json 导入作品清单：data URL 模块解析不了相对路径，
-// 转译后把清单内联成同名常量注入
+// arena.ts 从 lib/works-roster.json 与 lib/prompts-seed.json 导入清单：
+// data URL 模块解析不了相对路径，转译后把清单内联成同名常量注入
 const rosterJson = await readFile(
   new URL('../lib/works-roster.json', import.meta.url),
+  'utf8',
+);
+const promptsSeedJson = await readFile(
+  new URL('../lib/prompts-seed.json', import.meta.url),
   'utf8',
 );
 const compiled = ts
@@ -22,6 +26,10 @@ const compiled = ts
   .outputText.replace(
     /^import\s+rosterData\s+from\s+['"]\.\/works-roster\.json['"];?\s*$/m,
     `const rosterData = ${rosterJson};`,
+  )
+  .replace(
+    /^import\s+promptsSeed\s+from\s+['"]\.\/prompts-seed\.json['"];?\s*$/m,
+    `const promptsSeed = ${promptsSeedJson};`,
   );
 const {
   arenaReducer: reduce,

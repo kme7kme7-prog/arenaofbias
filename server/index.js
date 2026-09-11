@@ -170,6 +170,58 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    // 003 · 题目表（决策 045）：题库从写死的前端常量搬进数据库，后台才能管理。
+    // kind 驱动榜单赛道分类（写作=text、网页=web）；published 下架 = 前台完全隐藏。
+    up() {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS prompts (
+          id         TEXT PRIMARY KEY NOT NULL,
+          kind       TEXT NOT NULL,
+          category   TEXT NOT NULL DEFAULT '',
+          code       TEXT NOT NULL DEFAULT '',
+          name       TEXT NOT NULL,
+          prompt     TEXT NOT NULL,
+          commentary TEXT NOT NULL DEFAULT '',
+          detail     TEXT NOT NULL DEFAULT '',
+          published  INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL
+        );
+      `);
+      // 种子：仅当表空时把内置 7 题种入并置为已发布（与前端共享 lib/prompts-seed.json），
+      // 不覆盖库里已有的任何行，重复启动无副作用。
+      const count = db.prepare('SELECT COUNT(*) AS n FROM prompts').get();
+      if (count.n === 0) {
+        const seed = JSON.parse(
+          fs.readFileSync(
+            path.join(projectRoot, 'lib', 'prompts-seed.json'),
+            'utf8',
+          ),
+        );
+        const insert = db.prepare(
+          `INSERT INTO prompts (id, kind, category, code, name, prompt, commentary, detail, published, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        );
+        const now = Date.now();
+        db.transaction(() => {
+          for (const prompt of seed) {
+            insert.run(
+              prompt.id,
+              prompt.kind,
+              prompt.category ?? '',
+              prompt.code ?? '',
+              prompt.name,
+              prompt.prompt,
+              prompt.commentary ?? '',
+              prompt.detail ?? '',
+              now,
+            );
+          }
+        })();
+        console.log(`[arenaofbias] prompts 表已播种 ${seed.length} 道内置题目`);
+      }
+    },
+  },
 ];
 
 {
@@ -203,17 +255,34 @@ const selectVoteById = db.prepare(
 const selectVoteIdByPair = db.prepare(
   'SELECT id FROM votes WHERE user_id = ? AND pair_key = ?',
 );
+// 流水联表补三样展示快照（决策 045 ⑤「历史票保留在榜单」）：
+// 题目当前 kind（prompts 表含下架题——下架题的历史票仍按原赛道归类）、
+// 双方作品当前显示名（作品全下架后，模型仍能以名字上榜而不是裸 id）。
+// 票本身永不过滤：/api/votes 始终全量返回，榜单口径由客户端聚合。
 const listVotes = db.prepare(
-  `SELECT id, prompt_id AS promptId, winner_rid AS winnerRid, winner_mid AS winnerMid,
-          loser_rid AS loserRid, loser_mid AS loserMid, mode, created_at AS ts
-   FROM votes ORDER BY created_at ASC, id ASC`,
+  `SELECT v.id, v.prompt_id AS promptId, v.winner_rid AS winnerRid, v.winner_mid AS winnerMid,
+          v.loser_rid AS loserRid, v.loser_mid AS loserMid, v.mode, v.created_at AS ts,
+          wp.model_name AS winnerName, lp.model_name AS loserName, p.kind AS promptKind
+   FROM votes v
+   LEFT JOIN works wp ON wp.id = v.winner_rid
+   LEFT JOIN works lp ON lp.id = v.loser_rid
+   LEFT JOIN prompts p ON p.id = v.prompt_id
+   ORDER BY v.created_at ASC, v.id ASC`,
 );
 // ---------- 校验（与 lib/comments.ts 规则保持一致） ----------
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// 题目白名单，与界面侧 lib/comments.ts、lib/votes.ts 保持一致；新增题目（如 '004'）时各处都要加。
-const ALLOWED_ROUNDS = ['001', '002', '003', '004', '005', '006', '007'];
+// 题号白名单收口到 prompts 表（决策 045）：投票/评论/收件箱登记都以表为准，
+// 加题不再改代码。评论与投票要求题目已发布；收件箱登记只要题目存在
+//（先加题、再往里登记作品、检查后发布是正常流程）；评论读取只要题目存在
+//（下架题的历史评论不丢）。
+const promptExists = (promptId) =>
+  !!db.prepare('SELECT 1 FROM prompts WHERE id = ?').get(promptId);
+const promptPublished = (promptId) =>
+  !!db
+    .prepare('SELECT 1 FROM prompts WHERE id = ? AND published = 1')
+    .get(promptId);
 
 // ---------- 作品表查询（迁移 001 建立，种子来自 lib/works-roster.json） ----------
 
@@ -232,7 +301,7 @@ function validateComment(value) {
   if (!value || typeof value !== 'object') return null;
   const { id, roundId, side, body } = value;
   if (typeof id !== 'string' || !UUID_PATTERN.test(id)) return null;
-  if (typeof roundId !== 'string' || !ALLOWED_ROUNDS.includes(roundId))
+  if (typeof roundId !== 'string' || !promptPublished(roundId))
     return null;
   if (side !== 'a' && side !== 'b') return null;
   if (typeof body !== 'string' || !body.trim() || body.trim().length > 280)
@@ -250,7 +319,7 @@ function validateVote(value) {
   if (!value || typeof value !== 'object') return null;
   const { id, promptId, winnerRid, winnerMid, loserRid, loserMid, mode } = value;
   if (typeof id !== 'string' || !UUID_PATTERN.test(id)) return null;
-  if (typeof promptId !== 'string' || !ALLOWED_ROUNDS.includes(promptId))
+  if (typeof promptId !== 'string' || !promptPublished(promptId))
     return null;
   // rid/mid 与评论 body 一样 trim 后再入库，避免两端空格口径不一
   const trimmed = {};
@@ -324,6 +393,10 @@ app.disable('x-powered-by');
 // Explicit proxy allowlist only, e.g. loopback when nginx runs on the same VPS.
 if (process.env.TRUST_PROXY)
   app.set('trust proxy', process.env.TRUST_PROXY.split(','));
+// 管理接口的请求体单独放宽：题目提示词允许 8000 字（UTF-8 下约 24KB），
+// 全局 4kb 会把长题的保存拦成 413。body-parser 对已解析的请求体会跳过，
+// 两段中间件叠加不冲突；公开接口维持原限制不变。
+app.use('/api/admin', express.json({ limit: '64kb' }));
 app.use(
   express.json({
     limit: '4kb', // 原接口限制原始请求体 4000 字节
@@ -348,7 +421,7 @@ const listByRound = db.prepare(
 
 app.get('/api/comments', (req, res) => {
   const roundId = String(req.query.round || '');
-  if (!ALLOWED_ROUNDS.includes(roundId))
+  if (!promptExists(roundId))
     return res.status(400).json({ error: '题目不存在' });
   try {
     const rows = listByRound.all(roundId);
@@ -408,6 +481,24 @@ app.get('/api/works', (_req, res) => {
       .status(503)
       .set(noStore)
       .json({ error: '作品数据暂时无法加载，请稍后重试' });
+  }
+});
+
+// ---------- 题目：读取公开（只吐已发布，决策 045） ----------
+
+const selectPublishedPrompts = db.prepare(
+  `SELECT id, kind, category, code, name, prompt, commentary, detail
+   FROM prompts WHERE published = 1 ORDER BY id ASC`,
+);
+
+app.get('/api/prompts', (_req, res) => {
+  try {
+    res.set(noStore).json({ prompts: selectPublishedPrompts.all() });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '题目数据暂时无法加载，请稍后重试' });
   }
 });
 
@@ -622,7 +713,7 @@ const adminWorkView = (row) => {
 // 作品全量清单（含未发布），按题号/状态/关键字筛选，倒序分页
 app.get('/api/admin/works', requireAdmin, (req, res) => {
   const prompt = req.query.prompt ? String(req.query.prompt) : '';
-  if (prompt && !ALLOWED_ROUNDS.includes(prompt))
+  if (prompt && !promptExists(prompt))
     return res.status(400).json({ error: '未知题号' });
   const status = String(req.query.status || 'all');
   if (!['all', 'published', 'draft'].includes(status))
@@ -770,7 +861,7 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
   const name = safeEntryName(req.body?.name);
   if (!name) return res.status(400).json({ error: '文件名不合法' });
   const promptId = String(req.body?.promptId || '');
-  if (!ALLOWED_ROUNDS.includes(promptId))
+  if (!promptExists(promptId))
     return res.status(400).json({ error: '未知题号' });
   const modelName = String(req.body?.modelName || '').trim();
   if (!modelName || modelName.length > 64)
@@ -856,6 +947,157 @@ app.delete('/api/admin/inbox', requireAdmin, (req, res) => {
     res.set(noStore).status(204).end();
   } catch {
     res.status(503).set(noStore).json({ error: '删除失败，稍后再试' });
+  }
+});
+
+// ---------- 管理后台：题目管理（决策 045） ----------
+//
+// 约束：不提供删除——作品与投票流水引用题目，只允许下架（前台完全隐藏，
+// 历史票保留在榜单）。已发布题目的文案允许修改（用户拍板），不影响已有投票。
+
+const PROMPT_KINDS = ['image', 'text', 'web'];
+
+const adminPromptView = (id) => {
+  const row = db
+    .prepare(
+      `SELECT p.id, p.kind, p.category, p.code, p.name, p.prompt, p.commentary, p.detail,
+              p.published, p.created_at AS createdAt,
+              (SELECT COUNT(*) FROM works w WHERE w.prompt_id = p.id) AS worksCount,
+              (SELECT COUNT(*) FROM votes v WHERE v.prompt_id = p.id) AS voteCount
+       FROM prompts p WHERE p.id = ?`,
+    )
+    .get(id);
+  return row ? { ...row, published: !!row.published } : null;
+};
+
+// 校验并归一化题目字段：partial=false 全量必填（POST），true 只校验出现的字段（PATCH）
+function normalizePromptFields(body, { partial }) {
+  const out = {};
+  const need = (key) => !partial || body[key] !== undefined;
+  if (need('kind')) {
+    if (!PROMPT_KINDS.includes(body.kind))
+      return { error: '类型须为 image / text / web' };
+    out.kind = body.kind;
+  }
+  if (need('name')) {
+    const name = String(body.name ?? '').trim();
+    if (!name || name.length > 60) return { error: '名称须为 1–60 字' };
+    out.name = name;
+  }
+  if (need('prompt')) {
+    const text = String(body.prompt ?? '').trim();
+    if (!text || text.length > 8000) return { error: '提示词须为 1–8000 字' };
+    out.prompt = text;
+  }
+  if (need('category')) {
+    const value = String(body.category ?? '').trim();
+    if (value.length > 30) return { error: '分类最多 30 字' };
+    out.category = value;
+  }
+  if (need('code')) {
+    const value = String(body.code ?? '').trim();
+    if (value.length > 12) return { error: '代号最多 12 字' };
+    out.code = value;
+  }
+  if (need('commentary')) {
+    const value = String(body.commentary ?? '').trim();
+    if (value.length > 120) return { error: '一句话点评最多 120 字' };
+    out.commentary = value;
+  }
+  if (need('detail')) {
+    const value = String(body.detail ?? '').trim();
+    if (value.length > 60) return { error: '题库页副标最多 60 字' };
+    out.detail = value;
+  }
+  if (body.published !== undefined) {
+    if (typeof body.published !== 'boolean')
+      return { error: 'published 须为布尔值' };
+    out.published = body.published ? 1 : 0;
+  }
+  return { fields: out };
+}
+
+// 题目全量清单（含下架）+ 每题作品数与票数
+app.get('/api/admin/prompts', requireAdmin, (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        `SELECT p.id, p.kind, p.category, p.code, p.name, p.prompt, p.commentary, p.detail,
+                p.published, p.created_at AS createdAt,
+                (SELECT COUNT(*) FROM works w WHERE w.prompt_id = p.id) AS worksCount,
+                (SELECT COUNT(*) FROM votes v WHERE v.prompt_id = p.id) AS voteCount
+         FROM prompts p ORDER BY p.id ASC`,
+      )
+      .all()
+      .map((row) => ({ ...row, published: !!row.published }));
+    res.set(noStore).json({ prompts: rows });
+  } catch {
+    res.status(503).set(noStore).json({ error: '题目清单暂时无法加载' });
+  }
+});
+
+// 新增题目：编号自动往下排（内置种子到 007，故从 008 起）；默认草稿
+app.post('/api/admin/prompts', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const result = normalizePromptFields(req.body || {}, { partial: false });
+  if (result.error) return res.status(400).json({ error: result.error });
+  const nextId = (() => {
+    const row = db
+      .prepare(
+        "SELECT id FROM prompts WHERE id GLOB '[0-9][0-9][0-9]' ORDER BY id DESC LIMIT 1",
+      )
+      .get();
+    return String((row ? Number(row.id) : 7) + 1).padStart(3, '0');
+  })();
+  try {
+    const fields = result.fields;
+    db.prepare(
+      `INSERT INTO prompts (id, kind, category, code, name, prompt, commentary, detail, published, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      nextId,
+      fields.kind,
+      fields.category,
+      fields.code,
+      fields.name,
+      fields.prompt,
+      fields.commentary,
+      fields.detail,
+      fields.published ?? 0,
+      Date.now(),
+    );
+    res.set(noStore).status(201).json({ prompt: adminPromptView(nextId) });
+  } catch (error) {
+    console.error('[arenaofbias] prompt create failed:', error?.code || 'internal');
+    res.status(503).set(noStore).json({ error: '题目没能保存，稍后再试' });
+  }
+});
+
+// 编辑题目：文案字段与上下架开关。文案自由改（用户拍板），不影响已有投票。
+app.patch('/api/admin/prompts/:id', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  if (!promptExists(req.params.id))
+    return res.status(404).json({ error: '题目不存在' });
+  const result = normalizePromptFields(req.body || {}, { partial: true });
+  if (result.error) return res.status(400).json({ error: result.error });
+  const fields = result.fields;
+  if (Object.keys(fields).length === 0)
+    return res.status(400).json({ error: '没有要修改的内容' });
+  try {
+    const setSql = Object.keys(fields)
+      .map((key) => `${key} = ?`)
+      .join(', ');
+    db.prepare(`UPDATE prompts SET ${setSql} WHERE id = ?`).run(
+      ...Object.values(fields),
+      req.params.id,
+    );
+    res.set(noStore).json({ prompt: adminPromptView(req.params.id) });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没保存上，稍后再试' });
   }
 });
 
@@ -953,7 +1195,7 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
 // 请求体超过 4kb 等解析错误统一转成友好提示。
 app.use((error, _req, res, _next) => {
   if (error?.type === 'entity.too.large')
-    return res.status(413).json({ error: '留言过长' });
+    return res.status(413).json({ error: '内容过长' });
   if (error?.type === 'entity.parse.failed')
     return res.status(400).json({ error: '请求内容格式不正确。' });
   console.error('[arenaofbias] Request failed:', error.code || 'internal');

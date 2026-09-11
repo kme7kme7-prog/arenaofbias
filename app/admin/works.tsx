@@ -3,7 +3,7 @@
 // 约束：不提供删除——投票流水引用作品，只允许下架（关发布开关）；
 // model_id 不可改——榜单统计按它归组（票面存 mid），模型名只改显示名。
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { prompts } from '@/lib/arena';
+import { useAdminPromptOptions } from '@/app/admin/use-admin-prompts';
 
 type AdminWork = {
   id: string;
@@ -20,6 +20,7 @@ type AdminWork = {
 const fmt = (ts: number) => new Date(ts).toLocaleString('zh-CN', { hour12: false });
 
 export function AdminWorks() {
+  const promptOptions = useAdminPromptOptions();
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<'all' | 'published' | 'draft'>('all');
   const [q, setQ] = useState('');
@@ -155,7 +156,7 @@ export function AdminWorks() {
           aria-label="按题目筛选"
         >
           <option value="">全部题目</option>
-          {prompts.map((item) => (
+          {promptOptions.map((item) => (
             <option key={item.id} value={item.id}>
               {item.id} {item.name}
             </option>
