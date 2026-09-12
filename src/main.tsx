@@ -12,6 +12,7 @@ import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
 import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '@/lib/prompts';
+import { loadRatings } from '@/lib/ratings';
 import { trackPageView } from '@/lib/track';
 import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 // observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
@@ -90,6 +91,7 @@ if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
 trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
 loadWorks();
 loadPrompts(); // 动态题库（决策 045）
+loadRatings(); // 声望分：软性匹配的数据源（决策 046）
 reactRoot.render(
   <AccountProvider>
     <Routes />

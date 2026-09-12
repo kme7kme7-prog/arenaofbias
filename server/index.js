@@ -502,6 +502,39 @@ app.get('/api/prompts', (_req, res) => {
   }
 });
 
+// ---------- 声望分：匹配机制的数据源（决策 046，公开读取、内部用途） ----------
+//
+// 由 votes 表全量重放简易 Elo（基准 1200 / K=32 / 按时间序，与前端榜单同公式
+// 但独立维护）。这不是排行榜——前台榜单照旧由页面重放 /api/votes 得出；
+// 这里只是给 lib/matchmaking.ts 的配对参考分（「暗分」）。无票时返回空对象，
+// 调用方把未知模型按基础分处理。规模大后可换落表缓存，当前全量重放演示规模够用。
+
+app.get('/api/ratings', (_req, res) => {
+  try {
+    const rows = db
+      .prepare(
+        'SELECT winner_mid, loser_mid, created_at AS ts FROM votes ORDER BY created_at ASC, id ASC',
+      )
+      .all();
+    const K = 32;
+    const BASE = 1200;
+    const ratings = {};
+    for (const vote of rows) {
+      const a = ratings[vote.winner_mid] ?? BASE;
+      const b = ratings[vote.loser_mid] ?? BASE;
+      const expectedA = 1 / (1 + 10 ** ((b - a) / 400));
+      ratings[vote.winner_mid] = a + K * (1 - expectedA);
+      ratings[vote.loser_mid] = b + K * (0 - (1 - expectedA));
+    }
+    res.set(noStore).json({ ratings });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '声望分暂时无法加载' });
+  }
+});
+
 // ---------- 投票：写入要求登录（决策 020），读取公开、不带用户信息 ----------
 
 app.get('/api/votes', (_req, res) => {
@@ -1163,8 +1196,9 @@ app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }
 app.use(
   '/works',
   express.static(worksDir, {
-    // 作品文件按 id 唯一，重登记即换新文件——允许短缓存 + etag 协商即可
-    setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=3600'),
+    // 作品文件按 id 唯一，但内容可被登记/取景补丁重写，且预览 iframe 的 URL
+    // 固定（?aob=prev）不带版本——必须协商缓存（ETag 304）保证改动即刻生效
+    setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
   }),
 );
 

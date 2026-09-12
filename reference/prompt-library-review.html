@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提示词库 · 视觉与动效对照</title>
+<style>
+  * { box-sizing: border-box; } body { margin: 0; background: #20271f; color: #eef1e7; font: 14px system-ui; }
+  header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 24px; }
+  h1 { font-size: 16px; margin: 0 auto 0 0; } button,a { color: inherit; background: transparent; border: 1px solid #798571; padding: 9px 14px; cursor: pointer; }
+  p { margin: 0; padding: 0 24px 16px; color: #bac4b2; } iframe { display: block; width: 100%; height: calc(100dvh - 110px); margin: auto; border: 0; background: #dfe3dd; }
+</style>
+<header><h1>提示词库 / 真实页面对照</h1><button data-width="100%">桌面</button><button data-width="768px">平板 768</button><button data-width="390px">手机 390</button><button id="replay">重播入场</button><a href="/#prompts" target="_blank" rel="noopener">独立打开</a></header>
+<p>检查：搜索与筛选 → 连续快速选题 → 展开完整命题 → 进入竞技场 → 返回。减少动态效果跟随系统或浏览器模拟设置。</p>
+<iframe title="提示词库实际页面" src="/#prompts"></iframe>
+<script>
+  const frame = document.querySelector('iframe');
+  document.querySelectorAll('[data-width]').forEach(button => button.onclick = () => { frame.style.width = button.dataset.width; frame.style.maxWidth = '100%'; });
+  document.querySelector('#replay').onclick = () => frame.contentWindow.location.reload();
+</script>
+</html>

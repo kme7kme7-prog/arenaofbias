@@ -17,7 +17,9 @@ import {
   resultsForPrompt,
 } from '@/lib/arena';
 import type { Matchup, ModelResult, Prompt } from '@/lib/arena';
+import { pickMatchedMatchup } from '@/lib/matchmaking';
 import { currentPrompts } from '@/lib/prompts';
+import { currentRatings } from '@/lib/ratings';
 import { currentWorks } from '@/lib/works';
 
 // ---------------------------------------------------------------------------
@@ -333,7 +335,18 @@ export function currentMatchup(
   promptId: string,
   previous?: Matchup,
 ): Matchup | null {
-  return pickMatchup(promptId, previous, Math.random, currentResults());
+  // 占位模式维持纯随机（占位作品无真实票，声望分对它无意义）；
+  // 真实模式走软性匹配（决策 046）：按声望分同档优先，避开处刑局
+  if (isPlaceholderMode()) {
+    return pickMatchup(promptId, previous, Math.random, currentResults());
+  }
+  return pickMatchedMatchup(
+    promptId,
+    currentResults(),
+    currentRatings(),
+    previous,
+    Math.random,
+  );
 }
 
 export function currentRandomArenaHash(excludeId?: string): string {

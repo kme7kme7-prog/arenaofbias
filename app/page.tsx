@@ -210,11 +210,17 @@ function Work({
     const { content } = result;
     // 内联占位作品（srcDoc）不加载外部资源，沙箱保持最小权限
     const inline = 'html' in content;
+    // 取景参数只随预览态注入：作品内补丁据此切换「预览取景 / 放大后看原始全貌」
+    const src = inline
+      ? undefined
+      : expanded
+        ? content.src
+        : `${content.src}${content.src.includes('?') ? '&' : '?'}aob=prev`;
     return (
       <iframe
         className="html-work"
         title={result.title}
-        src={inline ? undefined : content.src}
+        src={src}
         srcDoc={inline ? content.html : undefined}
         sandbox={inline ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
         inert={!expanded}

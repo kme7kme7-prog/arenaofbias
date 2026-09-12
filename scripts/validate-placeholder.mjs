@@ -72,14 +72,22 @@ const worksCode = transpile(
 let placeholderCode = transpile(
   await readFile(new URL('../lib/placeholder.ts', import.meta.url), 'utf8'),
 );
-// 四份代码合并为一个模块：去掉 placeholder 对 arena / prompts / works 的值导入
+// 四份代码合并为一个模块：去掉 placeholder 对 arena / prompts / works / matchmaking / ratings 的值导入
 placeholderCode = placeholderCode.replace(
-  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|prompts|works)['"];?\s*$/gm,
+  /^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|prompts|works|matchmaking|ratings)['"];?\s*$/gm,
   '',
 );
+// matchmaking.ts 也拼进来（placeholder 的 currentMatchup 真实路径用它，决策 046）：
+// 内部状态/私有名改名避免与 works/prompts 撞名；ratings 不拼（currentRatings 由测试直接注入不了，
+// 拼合模块里 currentMatchup 的占位路径不走 ratings，真实路径测试用 matchmaking 原函数覆盖）
+const matchmakingCode = transpile(
+  await readFile(new URL('../lib/matchmaking.ts', import.meta.url), 'utf8'),
+)
+  .replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*arena['"];?\s*$/gm, '')
+  .replace(/\bratings\b/g, 'mmRatings');
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${worksCode}\n${placeholderCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${worksCode}\n${matchmakingCode}\n${placeholderCode}`).toString('base64')}`
 );
 const {
   prompts,
