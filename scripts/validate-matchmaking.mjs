@@ -233,6 +233,33 @@ try {
       }
       // 胜者 > 基准、败者 < 基准
       assert.ok(data.ratings['w-model'] > 1200 && data.ratings['l-model'] < 1200);
+      // 平局票（决策 048）：双方各得半分——重放口径与本地一致，且把差距往中间拉
+      const db2 = new Database(path.join(dataDir, 'comments.db'));
+      db2.prepare(
+        `INSERT INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at, outcome)
+         VALUES ('33333333-3333-4333-8333-333333333333', '002', 'x', 'w-model', 'y', 'l-model', 'k3', 'blind', 'u3', ${now + 2}, 'draw')`,
+      ).run();
+      db2.close();
+      data = await (await fetch(`${base}/api/ratings`)).json();
+      const withDraw = computeRatings([
+        { winnerId: 'w-model', loserId: 'l-model', ts: now },
+        { winnerId: 'w-model', loserId: 'l-model', ts: now + 1 },
+        { winnerId: 'w-model', loserId: 'l-model', ts: now + 2, outcome: 'draw' },
+      ]);
+      for (const [modelId, value] of Object.entries(withDraw)) {
+        assert.ok(
+          Math.abs(data.ratings[modelId] - value) < 1e-9,
+          `draw 后 ${modelId}: server ${data.ratings[modelId]} vs local ${value}`,
+        );
+      }
+      assert.ok(
+        data.ratings['w-model'] < expected['w-model'],
+        '平局后领先方声望回落',
+      );
+      assert.ok(
+        data.ratings['l-model'] > expected['l-model'],
+        '平局后落后方声望回升',
+      );
     });
   } finally {
     child.kill();

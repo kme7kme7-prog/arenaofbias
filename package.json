@@ -27,7 +27,8 @@
     "check:surface": "node scripts/check-surface.mjs",
     "check:game": "node scripts/check-game-transitions.mjs",
     "check:arena-scroll": "node scripts/check-arena-scroll.mjs",
-    "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs && node scripts/check-arena-scroll.mjs",
+    "check:library": "node scripts/check-library-motion.mjs",
+    "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs && node scripts/check-arena-scroll.mjs && node scripts/check-library-motion.mjs",
     "register:works": "node scripts/register-works.mjs"
   },
   "dependencies": {

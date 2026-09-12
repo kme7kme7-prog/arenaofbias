@@ -21,11 +21,12 @@ export type ArenaState = {
   pendingRound: number;
   run: number;
   mode: Mode;
-  choice: Side | null;
+  /** choice = 'draw'：「无法抉择」平局票（决策 048），揭晓时两侧都不显示选中态 */
+  choice: Side | 'draw' | null;
 };
 export type ArenaAction =
   | { type: 'LOADED' | 'READY' | 'REVEAL' | 'ARRIVE' | 'REPLAY' }
-  | { type: 'VOTE'; side: Side }
+  | { type: 'VOTE'; side: Side | 'draw' }
   | { type: 'SWITCH'; round: number }
   | { type: 'MODE'; mode: Mode };
 

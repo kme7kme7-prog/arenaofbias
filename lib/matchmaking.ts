@@ -104,6 +104,8 @@ export type RatingVote = {
   winnerId: string;
   loserId: string;
   ts: number;
+  /** 平局票（决策 048）双方各得半分；缺省按分胜负处理 */
+  outcome?: 'win' | 'draw';
 };
 
 /** 全量流水重放声望分；只计真实票（占位票本来就不进这张流水） */
@@ -115,8 +117,9 @@ export function computeRatings(votes: RatingVote[]): Ratings {
     const a = ratings[vote.winnerId] ?? BASE;
     const b = ratings[vote.loserId] ?? BASE;
     const expectedA = 1 / (1 + 10 ** ((b - a) / 400));
-    ratings[vote.winnerId] = a + K * (1 - expectedA);
-    ratings[vote.loserId] = b + K * (0 - (1 - expectedA));
+    const actualA = vote.outcome === 'draw' ? 0.5 : 1;
+    ratings[vote.winnerId] = a + K * (actualA - expectedA);
+    ratings[vote.loserId] = b + K * (1 - actualA - (1 - expectedA));
   }
   return ratings;
 }

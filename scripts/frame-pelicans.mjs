@@ -160,7 +160,114 @@ ${cfg.panel ? `html.aob-prev ${cfg.panel}{display:none!important}` : ''}
 </style>
 `;
 
-const FRAME_JS = (cfg) => `<script id="aob-frame-js">
+const FRAME_JS = (cfg) => {
+  const box = (vb) => vb.split(/\s+/).map(Number).join(', ');
+  // 纯场景作品：取景框运行时按容器比例计算（见下方脚本注释）。
+  // 海报/容器型（poster）、canvas 位图、无 svg（noSvg）三类维持固定框 + 固定 PAR。
+  const dynamic = !cfg.canvas && cfg.mode !== 'poster' && cfg.mode !== 'noSvg';
+  const staticJs = `  ${cfg.vb ? `svg.setAttribute('viewBox', '${cfg.vb}');` : '/* viewBox 原框已合适 */'}
+  /* 纯场景铺满用 slice；海报类场景区在宽窗口下是超宽横条，slice 必裁上下——
+     用 meet 完整呈现取景窗，两侧露出海报自身底色 */
+  svg.setAttribute('preserveAspectRatio', '${cfg.mode === 'poster' ? 'xMidYMid meet' : 'xMidYMid slice'}');`;
+  const dynamicJs = `  var ORIG = [${box(cfg.orig.vb)}];        /* 原画范围（不可越过，越界会露底） */
+  var SUBJ = [${box(cfg.vb ?? cfg.orig.vb)}]; /* 主体取景框（无逐份配置时以原画为准） */
+  /* 取景框以主体为中心向外扩到容器比例；夹回原画范围后若仍略有缺口（≤10%），
+     用居中裁切补满——可见区域必须仍完整包含主体，否则退到「整幅原画 + 留边」
+     并给页面铺上与原画背景相配的底色。任何窗口比例下主体都完整可见。 */
+  function expand(a) {
+    var f = SUBJ.slice();
+    if (f[2] / f[3] < a) {
+      var w = f[3] * a;
+      f[0] -= (w - f[2]) / 2;
+      f[2] = w;
+    } else {
+      var h = f[2] / a;
+      f[1] -= (h - f[3]) / 2;
+      f[3] = h;
+    }
+    return f;
+  }
+  function clip(f, box) {
+    if (f[2] > box[2]) { f[2] = box[2]; f[0] = box[0]; }
+    if (f[3] > box[3]) { f[3] = box[3]; f[1] = box[1]; }
+    f[0] = Math.min(Math.max(f[0], box[0]), box[0] + box[2] - f[2]);
+    f[1] = Math.min(Math.max(f[1], box[1]), box[1] + box[3] - f[3]);
+    return f;
+  }
+  function visible(f, a) {
+    var w = f[2], h = f[3];
+    if (w / h > a) w = h * a; else h = w / a;
+    return [f[0] + (f[2] - w) / 2, f[1] + (f[3] - h) / 2, w, h];
+  }
+  function hideOutside() {
+    /* 留边模式下隐藏场景之外的兄弟元素：画面缩进后，作品页自己的提示条 /
+       标题会浮在留边区域外，看着像页面漏了；隐藏它们（现状 slice 铺满时
+       这些元素本来也被画面盖住看不见）。 */
+    var node = svg;
+    while (node && node !== document.documentElement) {
+      var parent = node.parentElement;
+      if (parent) {
+        for (var i = 0; i < parent.children.length; i++) {
+          var k = parent.children[i];
+          if (k === node || k.contains(node)) continue;
+          if (k.classList && k.classList.contains('aob-haze')) continue;
+          if (k.tagName === 'SCRIPT' || k.tagName === 'STYLE' || k.tagName === 'LINK' || k.tagName === 'HEAD') continue;
+          k.style.visibility = 'hidden';
+        }
+      }
+      node = parent;
+    }
+  }
+  var haze = null;
+  var hazeStyleAdded = false;
+  function setHaze(on) {
+    /* 留边区域铺「画面自己的模糊放大版」（播放器 letterbox 的通行做法），
+       比纯色填充自然得多；切回铺满模式时移除。 */
+    if (on && !haze) {
+      haze = svg.cloneNode(true);
+      haze.removeAttribute('id');
+      haze.setAttribute('class', 'aob-haze');
+      haze.setAttribute('aria-hidden', 'true');
+      haze.setAttribute('viewBox', ORIG.join(' '));
+      haze.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+      var inner = haze.querySelectorAll('script');
+      for (var i = 0; i < inner.length; i++) inner[i].remove();
+      if (!hazeStyleAdded) {
+        hazeStyleAdded = true;
+        var st = document.createElement('style');
+        st.textContent =
+          'html.aob-prev svg.aob-haze{position:fixed!important;left:-8vw!important;top:-8vh!important;width:116vw!important;height:116vh!important;filter:blur(30px) saturate(1.05) brightness(.97);z-index:0;pointer-events:none}' +
+          'html.aob-prev svg.aob-haze *{animation:none!important}' +
+          'html.aob-prev svg.aob-scene{z-index:1}';
+        document.head.appendChild(st);
+      }
+      document.body.insertBefore(haze, document.body.firstChild);
+    } else if (!on && haze) {
+      haze.remove();
+      haze = null;
+    }
+  }
+  function apply() {
+    var a = window.innerWidth / Math.max(1, window.innerHeight);
+    var fit = clip(expand(a), ORIG);
+    var band = visible(fit, a);
+    /* 裁掉的份额：取景框是宽松框（主体占框 70–90%，四周有余量），
+       ≤6% 的裁边不可见、直接裁满容器；再大就退「整幅原画 + 模糊留边」，
+       宁可留边也不裁进主体（用户要求：主体必须完整）。 */
+    var crop = Math.max(1 - band[2] / fit[2], 1 - band[3] / fit[3]);
+    var useSlice = crop <= 0.06;
+    var f = useSlice ? fit : clip(ORIG.slice(), ORIG);
+    svg.setAttribute(
+      'viewBox',
+      f.map(function (n) { return Math.round(n * 10) / 10; }).join(' '),
+    );
+    svg.setAttribute('preserveAspectRatio', useSlice ? 'xMidYMid slice' : 'xMidYMid meet');
+    setHaze(!useSlice);
+    if (!useSlice) hideOutside();
+  }
+  apply();
+  window.addEventListener('resize', apply);`;
+  return `<script id="aob-frame-js">
 /* aob 预览模式开关：?aob=prev 时加 html.aob-prev（激活取景 CSS）并临时改写
    viewBox 取景；无参数（放大预览 / 独立打开）什么都不做 = 原始页面。 */
 (function () {
@@ -168,13 +275,11 @@ const FRAME_JS = (cfg) => `<script id="aob-frame-js">
   document.documentElement.classList.add('aob-prev');
   var svg = document.querySelector('svg.aob-scene');
   if (!svg) return;
-  ${cfg.vb ? `svg.setAttribute('viewBox', '${cfg.vb}');` : '/* viewBox 原框已合适 */'}
-  /* 纯场景铺满用 slice；海报类场景区在宽窗口下是超宽横条，slice 必裁上下——
-     用 meet 完整呈现取景窗，两侧露出海报自身底色 */
-  svg.setAttribute('preserveAspectRatio', '${cfg.mode === 'poster' ? 'xMidYMid meet' : 'xMidYMid slice'}');
+${dynamic ? dynamicJs : staticJs}
 })();
 </script>
 `;
+};
 
 let patched = 0;
 const notes = [];

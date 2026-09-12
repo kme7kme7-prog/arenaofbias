@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「无法抉择」按钮 · 三方案对照</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #20271f; color: #eef1e7; font: 14px system-ui; }
+  header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 24px 10px; }
+  h1 { font-size: 16px; margin: 0 auto 0 0; }
+  button { color: inherit; background: transparent; border: 1px solid #798571; padding: 8px 13px; cursor: pointer; }
+  button[aria-pressed='true'] { background: #eef1e7; color: #20271f; }
+  p { margin: 0; padding: 0 24px 14px; color: #bac4b2; line-height: 1.7; }
+  main { display: grid; gap: 18px; padding: 0 24px 32px; }
+  section { border: 1px solid #46523f; }
+  .cap { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: #273023; }
+  .cap b { font-size: 14px; letter-spacing: .5px; }
+  .cap span { color: #bac4b2; font-size: 12.5px; }
+  .frame { height: 520px; overflow: hidden; background: #dfe3dd; }
+  iframe { display: block; width: 1137px; max-width: 100%; height: 520px; border: 0; background: #dfe3dd; transition: width .3s; }
+</style>
+<header>
+  <h1>「无法抉择」按钮 · 三方案对照</h1>
+  <button data-width="1137px" aria-pressed="true">桌面 1137</button>
+  <button data-width="760px">平板 760</button>
+  <button data-width="390px">手机 390</button>
+  <button id="reload">全部重载</button>
+  <a href="/#arena/001" target="_blank" rel="noopener" style="color:inherit">独立打开竞技场</a>
+</header>
+<p>
+  三个方案都是<b>真实竞技场页面的实时渲染</b>（每个框里就是活的页面：可以悬停、点按、换组），
+  差别只是往页面里注入的样式。窄屏请点上方宽度按钮，再回来看三个框的表现。
+  看中哪个告诉 AI 一声（A / B / C）即可定稿。
+</p>
+<main>
+  <section data-variant="a">
+    <div class="cap"><b>A · 朴素文字链</b><span>去掉盒子，做成右下角「重播入场」那类安静的次级操作；悬停出现酸黄荧光笔标记。改动最小、最稳。</span></div>
+    <div class="frame"><iframe title="方案 A：朴素文字链" src="/#arena/001"></iframe></div>
+  </section>
+  <section data-variant="b">
+    <div class="cap"><b>B · 三块并列</b><span>红块 ｜ 中性块 ｜ 蓝块 并排等高，中块用斜纹纸面，结构上就是「三选一」。窄屏自动退回两侧按钮下的一条。</span></div>
+    <div class="frame"><iframe title="方案 B：三块并列" src="/#arena/001"></iframe></div>
+  </section>
+  <section data-variant="c">
+    <div class="cap"><b>C · 中缝小圆钮</b><span>一枚圆形天平钮落在两个按钮中缝的下端（对决轴的中立点），不抢眼；悬停展开成胶囊显示文字与按键。窄屏退回一条横条。</span></div>
+    <div class="frame"><iframe title="方案 C：中缝小圆钮" src="/#arena/001"></iframe></div>
+  </section>
+</main>
+<script>
+  const CUT = 'polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)';
+
+  // 方案 A：朴素文字链——无框无底，靠字色与悬停高亮表达层级
+  const VARIANT_A = `
+    .draw-row { gap: 14px; margin: 16px 0 0; }
+    .draw-rule { background: linear-gradient(90deg, transparent, #20221d26); }
+    .draw-rule:last-child { background: linear-gradient(90deg, #20221d26, transparent); }
+    .vote-draw {
+      width: auto; max-width: none; height: auto; padding: 7px 12px; gap: 10px;
+      background: transparent; clip-path: none; box-shadow: none; color: #4c5e37;
+    }
+    .vote-draw .vote-icon { width: 26px; height: 26px; border-color: #1c242338; }
+    .vote-draw .vote-copy strong { font-size: 15px; font-weight: 700; letter-spacing: .4px; }
+    .vote-draw .vote-copy small { font-size: 9px; letter-spacing: 1.2px; color: #6b7a5b; }
+    .vote-draw kbd { margin-left: 2px; width: 20px; height: 20px; border-color: #1c242330; color: inherit; }
+    .vote-draw:not(:disabled):hover { background: transparent; color: var(--ink); transform: none; box-shadow: none; }
+    .vote-draw:not(:disabled):hover .vote-copy strong {
+      background: linear-gradient(transparent 60%, #d9fb51 60%);
+    }
+    .vote-draw:not(:disabled):hover .vote-copy small { color: #526347; }
+    .vote-draw:not(:disabled):hover .vote-icon,
+    .vote-draw:not(:disabled):hover kbd { border-color: #1c242366; }
+    .vote-draw.is-draw-picked { background: transparent; color: var(--ink); box-shadow: none; }
+    .vote-draw.is-draw-picked .vote-copy strong {
+      background: linear-gradient(transparent 60%, #d9fb51 60%);
+    }
+    .vote-draw.is-draw-picked .vote-copy small { color: #526347; }
+  `;
+
+  // 方案 B：三块并列——舞台改三列，中块为斜纹纸面中性块
+  const VARIANT_B = `
+    .vote-draw {
+      background:
+        repeating-linear-gradient(-45deg, #20221d0d 0 6px, transparent 6px 12px),
+        var(--paper);
+    }
+    @media (min-width: 700px) {
+      .arena-stage {
+        grid-template-columns: minmax(0, 1fr) minmax(150px, 196px) minmax(0, 1fr);
+        gap: 16px;
+      }
+      .contender-a { grid-column: 1; }
+      .contender-b { grid-column: 3; }
+      /* 中块取代 VS 徽章的位置与角色——VS 轴隐藏，避免与中块重叠 */
+      .versus-spine { display: none; }
+      .draw-row { grid-column: 2; grid-row: 1; margin: 0; gap: 0; align-items: stretch; }
+      .draw-rule { display: none; }
+      .vote-draw {
+        width: 100%; max-width: none; height: 100%; min-height: 260px;
+        flex-direction: column; justify-content: center; align-items: center;
+        gap: 18px; padding: 26px 14px; text-align: center;
+      }
+      .vote-draw .vote-icon { width: 46px; height: 46px; }
+      .vote-draw .vote-icon svg { width: 24px; height: 24px; }
+      .vote-draw .vote-copy { width: 100%; align-items: center; }
+      .vote-draw .vote-copy strong { font-size: 20px; letter-spacing: 2px; }
+      .vote-draw .vote-copy small { font-size: 9px; letter-spacing: 1.2px; white-space: nowrap; }
+      .vote-draw kbd { margin-left: 0; width: 28px; height: 28px; }
+    }
+    @media (max-width: 699px) {
+      .vote-draw { width: 100%; max-width: calc(100% - 8px); height: auto; min-height: 52px; padding: 10px 12px; }
+    }
+  `;
+
+  // 方案 C：中缝小圆钮——绝对定位在舞台中缝下方，悬停展开为胶囊
+  const VARIANT_C = `
+    .vote-draw {
+      background: #f7f5ee;
+      box-shadow: inset 0 0 0 1px #20221d, 3px 4px 0 #a2ad87;
+    }
+    @media (min-width: 700px) {
+      .draw-row {
+        position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+        margin: 0; gap: 0; width: auto; z-index: 20;
+      }
+      .draw-rule { display: none; }
+      .vote-draw {
+        width: 58px; max-width: none; height: 58px; padding: 0; gap: 0;
+        justify-content: center; border-radius: 50%; clip-path: none;
+        transition: width .3s cubic-bezier(.16,1,.3,1), border-radius .3s, transform .28s var(--ease-out);
+      }
+      .vote-draw .vote-icon { border: 0; width: 27px; height: 27px; }
+      .vote-draw .vote-copy, .vote-draw kbd { display: none; }
+      .vote-draw:not(:disabled):hover {
+        width: 216px; border-radius: 0; justify-content: flex-start;
+        padding: 0 18px; gap: 11px; clip-path: ${CUT};
+        transform: translateY(-4px);
+      }
+      .vote-draw:not(:disabled):hover .vote-copy { display: flex; }
+      .vote-draw:not(:disabled):hover .vote-copy strong { font-size: 16px; }
+      .vote-draw:not(:disabled):hover .vote-copy small { font-size: 8px; letter-spacing: 1px; }
+      .vote-draw:not(:disabled):hover kbd { display: inline-flex; margin-left: auto; }
+      .vote-draw.is-draw-picked {
+        width: 216px; border-radius: 0; justify-content: flex-start;
+        padding: 0 18px; gap: 11px; clip-path: ${CUT};
+        background: var(--ink); color: var(--acid);
+      }
+      .vote-draw.is-draw-picked .vote-copy { display: flex; }
+      .vote-draw.is-draw-picked .vote-copy strong { font-size: 16px; }
+      .vote-draw.is-draw-picked .vote-copy small { font-size: 8px; color: #c1cfab; }
+      .vote-draw.is-draw-picked kbd { display: inline-flex; margin-left: auto; border-color: #f0f3e94d; }
+      .vote-draw.is-draw-picked .vote-icon { border: 0; }
+    }
+    @media (max-width: 699px) {
+      .vote-draw { width: 100%; max-width: calc(100% - 8px); height: 58px; border-radius: 0; justify-content: flex-start; padding: 0 14px; gap: 10px; clip-path: ${CUT}; }
+      .vote-draw .vote-copy { display: flex; }
+      .vote-draw kbd { margin-left: auto; }
+    }
+  `;
+
+  const VARIANTS = { a: VARIANT_A, b: VARIANT_B, c: VARIANT_C };
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function dress(frame, variant) {
+    const doc = frame.contentDocument;
+    // 等 React 把投票区渲染出来（最长 8 秒）
+    for (let i = 0; i < 80; i++) {
+      if (doc.querySelector('.draw-row')) break;
+      await sleep(100);
+    }
+    const skip = [...doc.querySelectorAll('button')].find((b) => b.textContent.includes('跳过入场'));
+    skip?.click();
+    await sleep(900);
+    let style = doc.getElementById('draw-variant-style');
+    if (!style) {
+      style = doc.createElement('style');
+      style.id = 'draw-variant-style';
+      doc.head.appendChild(style);
+    }
+    style.textContent = VARIANTS[variant];
+    await sleep(250);
+    doc.querySelector('.draw-row')?.scrollIntoView({ block: 'center' });
+  }
+
+  for (const section of document.querySelectorAll('section[data-variant]')) {
+    const frame = section.querySelector('iframe');
+    const variant = section.dataset.variant;
+    if (frame.contentDocument?.readyState === 'complete' && frame.contentDocument.querySelector('.draw-row')) {
+      void dress(frame, variant);
+    } else {
+      frame.addEventListener('load', () => void dress(frame, variant));
+    }
+  }
+
+  document.querySelectorAll('[data-width]').forEach((button) => {
+    button.onclick = () => {
+      document.querySelectorAll('[data-width]').forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+      for (const frame of document.querySelectorAll('iframe')) frame.style.width = button.dataset.width;
+    };
+  });
+  document.querySelector('#reload').onclick = () => {
+    for (const frame of document.querySelectorAll('iframe')) frame.contentWindow.location.reload();
+  };
+</script>
+</html>

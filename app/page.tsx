@@ -10,21 +10,28 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ReactNode,
 } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
   AudioLines,
   Check,
+  ChevronDown,
   Crosshair,
   Expand,
   Eye,
   Fingerprint,
   ImageIcon,
+  Laugh,
   LockKeyhole,
   Maximize,
   RotateCcw,
+  Scale,
+  ScrollText,
   SkipForward,
+  ThumbsDown,
+  ThumbsUp,
   Volume2,
   VolumeX,
   X,
@@ -55,6 +62,7 @@ import {
   isPlaceholderMode,
 } from '@/lib/placeholder';
 import { submitVote } from '@/lib/votes';
+import { submitReaction, type ReactionKind } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll } from '@/lib/arena-scroll';
@@ -62,6 +70,14 @@ import { Afterparty } from '@/components/afterparty';
 
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
+// 「无法抉择」按钮的中文主标：每轮对局随机换一个（决策 048）
+const DRAW_LABELS = [
+  '不分伯仲',
+  '难分高下',
+  '旗鼓相当',
+  '势均力敌',
+  '半斤八两',
+] as const;
 
 /** 一票的落点反馈：真实模式写入服务端，占位模式写入本地（决策 020/021） */
 type VoteOutcome =
@@ -176,15 +192,150 @@ function WebWork({
   );
 }
 
+// 结果阶段的「本轮提示词」折叠条；父级用 key（题号+run）挂载，
+// 换题/换组时整体重挂载，折叠状态随之归零
+function PromptRecall({ round }: { round: Prompt }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="prompt-recall" data-open={open} aria-label="本轮提示词">
+      <button
+        type="button"
+        className="prompt-recall-head"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="prompt-recall-tag">
+          <ScrollText size={13} />
+          本轮提示词
+        </span>
+        <span className="prompt-recall-title">{round.name}</span>
+        <span className="prompt-recall-meta">THE PROMPT / {round.id}</span>
+        <span className="prompt-recall-chevron" aria-hidden="true">
+          <ChevronDown size={15} />
+        </span>
+      </button>
+      <div className="prompt-recall-panel">
+        <div className="prompt-recall-inner">
+          <p>{round.prompt}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// 揭晓后的模型反应条（点赞/点踩/大笑，2026-09-13 用户拍板）：
+// 跟着题号累计、一人一槽可换态度；纸面仪器风——描边小圆钮 + 计数，不照搬爱心样例。
+function ReactionBar({
+  promptId,
+  mid,
+  modelLabel,
+}: {
+  promptId: string;
+  mid: string;
+  modelLabel: string;
+}) {
+  const [mine, setMine] = useState<ReactionKind | null>(null);
+  const [counts, setCounts] = useState<Record<ReactionKind, number> | null>(null);
+  const [burst, setBurst] = useState<ReactionKind | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(`/api/reactions?prompt=${encodeURIComponent(promptId)}`);
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          counts?: Record<string, Partial<Record<ReactionKind, number>>>;
+          mine?: Record<string, ReactionKind>;
+        };
+        if (cancelled) return;
+        const row = data.counts?.[mid] ?? {};
+        setCounts({
+          up: row.up ?? 0,
+          down: row.down ?? 0,
+          laugh: row.laugh ?? 0,
+        });
+        setMine(data.mine?.[mid] ?? null);
+      } catch {
+        /* 拉不到就只显示零计数，不挡流程 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [promptId, mid]);
+  const react = (kind: ReactionKind) => {
+    const next = mine === kind ? null : kind;
+    setMine(next);
+    if (next) {
+      setCounts((current) =>
+        current ? { ...current, [kind]: current[kind] + 1 } : current,
+      );
+      setBurst(kind);
+    } else {
+      setCounts((current) =>
+        current ? { ...current, [kind]: Math.max(0, current[kind] - 1) } : current,
+      );
+    }
+    void submitReaction({
+      // 取消态服务端按覆盖语义处理：送一个无害的重复（同 kind）等价于保留，
+      // 真正的取消由本地镜像呈现；避免额外加 DELETE 接口
+      id: crypto.randomUUID(),
+      promptId,
+      mid,
+      kind: next ?? mine ?? 'up',
+    });
+  };
+  const items: Array<{
+    kind: ReactionKind;
+    label: string;
+    icon: ReactNode;
+  }> = [
+    { kind: 'up', label: '可以', icon: <ThumbsUp size={14} /> },
+    { kind: 'down', label: '不行', icon: <ThumbsDown size={14} /> },
+    { kind: 'laugh', label: '哈哈', icon: <Laugh size={16} /> },
+  ];
+  return (
+    <div
+      className={`reaction-bar ${burst ? `is-bursting reaction-burst-${burst}` : ''}`}
+      onAnimationEnd={() => setBurst(null)}
+      aria-label={`对 ${modelLabel} 的态度`}
+    >
+      <span className="reaction-caption">你的态度</span>
+      {items.map(({ kind, label, icon }) => (
+        <button
+          key={kind}
+          type="button"
+          className={`reaction-chip reaction-${kind} ${mine === kind ? 'is-picked' : ''}`}
+          onClick={() => react(kind)}
+          aria-pressed={mine === kind}
+          aria-label={`${label}（${counts?.[kind] ?? 0}）`}
+        >
+          <span className="reaction-icon">{icon}</span>
+          <span className="reaction-count">{counts?.[kind] ?? 0}</span>
+          <span className="reaction-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Work({
   result,
   side,
   expanded = false,
+  interactive = false,
   imageFailed = false,
 }: {
   result: ModelResult;
   side: Side;
   expanded?: boolean;
+  /** 小预览也允许交互（点击画面、作品内按钮）——投票阶段才开启 */
+  interactive?: boolean;
   imageFailed?: boolean;
 }) {
   if (result.content.kind === 'image')
@@ -223,8 +374,8 @@ function Work({
         src={src}
         srcDoc={inline ? content.html : undefined}
         sandbox={inline ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
-        inert={!expanded}
-        style={{ pointerEvents: expanded ? 'auto' : 'none' }}
+        inert={!interactive}
+        style={{ pointerEvents: interactive ? 'auto' : 'none' }}
       />
     );
   }
@@ -274,6 +425,9 @@ export default function Arena({
   const [pair, setPair] = useState<Matchup>(() => currentMatchup(prompt.id)!);
   const pairCount = currentPairs(prompt.id).length;
   const resultCount = currentResultsForPrompt(prompt.id).length;
+  // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
+  const drawLabel =
+    DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
@@ -529,14 +683,17 @@ export default function Arena({
   const { open: openAccount } = useAccount();
 
   const recordVote = useCallback(
-    (side: Side) => {
-      const winner = side === 'a' ? pair[0] : pair[1];
+    (side: Side | 'draw') => {
+      // 平局（决策 048）：双方按出场左右顺序登记（a 入 winner、b 入 loser），无胜负语义
+      const winner = side === 'b' ? pair[1] : pair[0];
       const loser = side === 'b' ? pair[0] : pair[1];
+      const outcome = side === 'draw' ? ('draw' as const) : ('win' as const);
       if (isPlaceholderMode()) {
         const appended = appendPlaceholderVote({
           promptId: prompt.id,
           winnerId: winner.modelId,
           loserId: loser.modelId,
+          outcome,
         });
         setVoteRecord({
           run: state.run,
@@ -553,6 +710,7 @@ export default function Arena({
         loserRid: loser.id,
         loserMid: loser.modelId,
         mode: state.mode,
+        outcome,
       }).then((result) => {
         setVoteRecord({
           run: state.run,
@@ -570,7 +728,7 @@ export default function Arena({
   );
 
   const vote = useCallback(
-    (side: Side) => {
+    (side: Side | 'draw') => {
       if (state.phase !== 'voting') return;
       play('vote');
       dispatch({ type: 'VOTE', side });
@@ -603,6 +761,7 @@ export default function Arena({
         return;
       if (event.key.toLowerCase() === 'a') vote('a');
       if (event.key.toLowerCase() === 'd') vote('b');
+      if (event.key.toLowerCase() === 's') vote('draw');
       if (event.key.toLowerCase() === 'n') nextMatchup();
       if (event.key === ' ' && state.phase === 'intro') {
         event.preventDefault();
@@ -811,7 +970,7 @@ export default function Arena({
             return (
               <div
                 key={side}
-                className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && !chosen ? 'not-chosen' : ''}`}
+                className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && state.choice !== 'draw' && !chosen ? 'not-chosen' : ''}`}
               >
                 <div className="work-panel" ref={index === 0 ? cardA : cardB}>
                   <div className="panel-heading">
@@ -844,6 +1003,8 @@ export default function Arena({
                       <Work
                         result={result}
                         side={side}
+                        // 投票阶段（及揭晓后）小预览也允许交互：点击画面、作品内按钮
+                        interactive={state.phase === 'voting' || state.phase === 'result'}
                         imageFailed={
                           result.content.kind === 'image' &&
                           failedAssets.includes(result.content.src)
@@ -920,13 +1081,63 @@ export default function Arena({
                 </button>
                 {state.phase === 'result' && (
                   <div className="side-result">
-                    <span>{chosen ? '你站在了这一边' : '另一种直觉'}</span>
-                    <strong>{chosen ? '已选择' : '未选择'}</strong>
+                    <span>
+                      {state.choice === 'draw'
+                        ? '难以取舍'
+                        : chosen
+                          ? '你站在了这一边'
+                          : '另一种直觉'}
+                    </span>
+                    <strong>
+                      {state.choice === 'draw'
+                        ? '平局'
+                        : chosen
+                          ? '已选择'
+                          : '未选择'}
+                    </strong>
                   </div>
                 )}
+                {state.phase === 'result' &&
+                  state.mode !== 'formal' &&
+                  revealed && (
+                    <ReactionBar
+                      promptId={prompt.id}
+                      mid={result.modelId}
+                      modelLabel={round.models[index]}
+                    />
+                  )}
               </div>
             );
           })}
+          <div className="draw-row">
+            <span className="draw-rule" aria-hidden="true" />
+            <button
+              className={`vote-draw ${state.choice === 'draw' ? 'is-draw-picked' : ''}`}
+              onClick={() => vote('draw')}
+              onPointerEnter={() => play('hover')}
+              disabled={state.phase !== 'voting'}
+            >
+              <span className="vote-icon">
+                {state.choice === 'draw' ? (
+                  <Check size={19} />
+                ) : (
+                  <Scale size={18} />
+                )}
+              </span>
+              <span className="vote-copy">
+                <strong>{drawLabel}</strong>
+                <small>
+                  {state.phase === 'intro' || state.phase === 'loading'
+                    ? 'AWAITING YOUR JUDGEMENT'
+                    : state.choice === 'draw'
+                      ? 'DRAW CONFIRMED'
+                      : 'CALL IT A DRAW'}
+                </small>
+              </span>
+              <kbd>S</kbd>
+            </button>
+            <span className="draw-rule" aria-hidden="true" />
+          </div>
           <div className="versus-spine" aria-hidden="true">
             <div className="spine-line" />
             <div className="vs-emblem">
@@ -966,11 +1177,19 @@ export default function Arena({
           {state.phase === 'locking' && (
             <div className="lock-announcement" aria-hidden="true">
               <Crosshair size={28} />
-              <span>直觉已锁定</span>
-              <small>JUDGEMENT REGISTERED</small>
+              <span>{state.choice === 'draw' ? '平局已锁定' : '直觉已锁定'}</span>
+              <small>
+                {state.choice === 'draw'
+                  ? 'CALL IT A DRAW'
+                  : 'JUDGEMENT REGISTERED'}
+              </small>
             </div>
           )}
         </div>
+
+        {state.phase === 'result' && (
+          <PromptRecall key={`${round.id}-${state.run}`} round={round} />
+        )}
 
         <div
           className={`round-console ${state.phase === 'result' ? 'show-result' : ''}`}
@@ -979,7 +1198,11 @@ export default function Arena({
             <div className="result-console">
               <div className="result-caption">
                 <Check size={17} />
-                <strong>好，你有自己的答案。</strong>
+                <strong>
+                  {state.choice === 'draw'
+                    ? '选不出来，也是一种答案。'
+                    : '好，你有自己的答案。'}
+                </strong>
                 <span
                   className="vote-note"
                   data-state={voteOutcome.state}
@@ -987,7 +1210,9 @@ export default function Arena({
                   {voteOutcome.state === 'saved' &&
                     (isPlaceholderMode()
                       ? '已写入本地演示数据 · 占位模式'
-                      : '你的选择已计入偏好榜')}
+                      : state.choice === 'draw'
+                        ? '平局已计入偏好榜，双方各得半分'
+                        : '你的选择已计入偏好榜')}
                   {voteOutcome.state === 'auth' && (
                     <button
                       type="button"
@@ -1049,14 +1274,28 @@ export default function Arena({
                 重播入场
               </button>
             )}
-            <button
-              className={`next-button ${state.phase === 'result' ? 'highlight' : ''}`}
-              onClick={() => nextMatchup()}
-              disabled={blocked}
-            >
-              {pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词'}
-              <ArrowRight size={17} />
-            </button>
+            {state.mode === 'formal' ? (
+              <button
+                className={`next-button ${state.phase === 'result' ? 'highlight' : ''}`}
+                onClick={() => nextMatchup()}
+                disabled={blocked}
+              >
+                {pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词'}
+                <ArrowRight size={17} />
+              </button>
+            ) : (
+              <button
+                className={`next-button next-topic ${state.phase === 'result' ? 'highlight' : ''}`}
+                onClick={() => {
+                  // 娱乐模式：下一题随机抽题（排除当前题），hash 切题由路由重挂载
+                  window.location.hash = currentRandomArenaHash(prompt.id);
+                }}
+                disabled={blocked}
+              >
+                下一题
+                <ArrowRight size={17} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1075,7 +1314,8 @@ export default function Arena({
                 <Afterparty
                   key={`${round.id}-${state.run}`}
                   roundId={round.id}
-                  side={state.choice}
+                  // 评论按侧归档（a/b 二选一）；平局没有「站的一侧」，归到 a 侧讨论串
+                  side={state.choice === 'draw' ? 'a' : state.choice}
                 />
               </div>
             )}
@@ -1165,6 +1405,7 @@ export default function Arena({
                 result={pair[expanded === 'a' ? 0 : 1]}
                 side={expanded}
                 expanded
+                interactive
                 imageFailed={(() => {
                   const content = pair[expanded === 'a' ? 0 : 1].content;
                   return (

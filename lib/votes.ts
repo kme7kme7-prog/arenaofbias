@@ -5,7 +5,9 @@
 import type { Mode } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
 
-/** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 021） */
+/** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 021）。
+ * outcome = draw 时（决策 048「无法抉择」平局票）winner/loser 四个字段只表示
+ * 出场左右顺序（a 侧入 winner、b 侧入 loser），无胜负语义 */
 export type ArenaVote = {
   id: string;
   promptId: string;
@@ -14,6 +16,7 @@ export type ArenaVote = {
   loserRid: string;
   loserMid: string;
   mode: Mode;
+  outcome: 'win' | 'draw';
   ts: number;
 };
 
@@ -46,6 +49,13 @@ function voteShape(candidate: Record<string, unknown>): ArenaVoteDraft | null {
     candidate.mode !== 'formal'
   )
     return null;
+  // outcome 缺省 win：旧客户端与早期流水行没有该字段（决策 048）
+  if (
+    candidate.outcome !== undefined &&
+    candidate.outcome !== 'win' &&
+    candidate.outcome !== 'draw'
+  )
+    return null;
   return {
     id: candidate.id as string,
     promptId: candidate.promptId as string,
@@ -54,6 +64,7 @@ function voteShape(candidate: Record<string, unknown>): ArenaVoteDraft | null {
     loserRid: candidate.loserRid as string,
     loserMid: candidate.loserMid as string,
     mode: candidate.mode as Mode,
+    outcome: (candidate.outcome as 'win' | 'draw' | undefined) ?? 'win',
   };
 }
 
@@ -181,6 +192,7 @@ export function voteToRecord(vote: VoteFlowRow): {
   loserId: string;
   ts: number;
   mode: Mode;
+  outcome: 'win' | 'draw';
   promptKind?: 'image' | 'text' | 'web';
   winnerName?: string;
   loserName?: string;
@@ -191,6 +203,8 @@ export function voteToRecord(vote: VoteFlowRow): {
     loserId: vote.loserMid,
     ts: vote.ts,
     mode: vote.mode,
+    // 缺省 win：早期流水行与手工构造的记录可能没有该字段（决策 048）
+    outcome: vote.outcome ?? 'win',
     ...(vote.promptKind ? { promptKind: vote.promptKind } : {}),
     ...(vote.winnerName ? { winnerName: vote.winnerName } : {}),
     ...(vote.loserName ? { loserName: vote.loserName } : {}),

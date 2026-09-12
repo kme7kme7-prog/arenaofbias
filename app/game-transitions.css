@@ -1,6 +1,5 @@
 /* 游戏过场（lib/game-transitions.ts 的 frame/bands 两套）样式，生产与对照页共用。
-   决策 031/032：frame（档案锁定）已接入首页主按钮（进玩法菜单）；
-   bands（一体斜幕）仍在对照页 /reference/game-transitions-review.html。 */
+   frame 接首页主按钮；bands 接首页、题库与偏好榜间的导航。 */
 .game-transition {
   position: fixed;
   inset: 0;
@@ -21,45 +20,48 @@
 .game-transition * {
   box-sizing: border-box;
 }
-.gt-convoy {
+/* 注意：限定为「层里的子元素」——过场层自己的 class 也带 gt-convoy，
+   不加前缀的 .gt-convoy 会把层本身也变成 absolute（层随页面滚动、cqw 容器
+   变成被撑大的层宽，标题因此巨大且切页后页面从底部漏出）。 */
+.game-transition .gt-convoy {
   position: absolute;
   inset: -2px -40cqh;
 }
 .gt-convoy-face {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background: var(--gt-acid);
   transform: skewX(-14deg);
-  overflow: hidden;
 }
 .gt-convoy-paper {
   position: absolute;
   inset: 0 3cqw;
-  background: var(--gt-paper);
   border-left: 1px solid var(--gt-ink);
+  background: var(--gt-paper);
 }
 .gt-convoy-ink {
   position: absolute;
   inset: 0 7cqw;
+  border-left: 1px solid #76835c;
   background: var(--gt-ink);
   color: var(--gt-paper);
-  border-left: 1px solid #76835c;
 }
 .gt-convoy-label {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  transform: skewX(14deg);
-  padding: 0;
+  justify-content: center;
   gap: 1.8cqw;
+  padding: 0;
+  transform: skewX(14deg);
 }
 .gt-convoy-number {
+  color: var(--gt-acid);
   font: 400 1.2cqw monospace;
   letter-spacing: 0.35cqw;
-  color: var(--gt-acid);
 }
 .gt-convoy-title {
   font-size: 5cqw;
@@ -68,9 +70,110 @@
   line-height: 1;
 }
 .gt-convoy-note {
+  color: #adb79b;
   font: 400 0.9cqw monospace;
   letter-spacing: 0.18cqw;
-  color: #adb79b;
+}
+.gt-ink-field {
+  position: absolute;
+  inset: 0;
+  background: var(--gt-ink);
+}
+.gt-field-index {
+  position: absolute;
+  top: 7%;
+  right: 5%;
+  color: var(--gt-acid);
+  font: 600 1cqw monospace;
+  letter-spacing: 0.2cqw;
+}
+.gt-band-bank {
+  position: absolute;
+  inset: -18% -25%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.5cqh;
+  transform: rotate(-18deg);
+}
+.gt-band {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 25cqh;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-block: 1px solid var(--gt-ink);
+  background: var(--gt-acid);
+  color: var(--gt-ink);
+  box-shadow: 0 1cqh 0 #0003;
+}
+.gt-band-1 {
+  height: 19cqh;
+  background: var(--gt-paper);
+}
+.gt-band-2 {
+  height: 15cqh;
+  border-color: #a5b98c;
+  background: #566647;
+  color: var(--gt-paper);
+}
+.gt-ribbon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4cqw;
+  white-space: nowrap;
+}
+.gt-ribbon-index {
+  border-right: 1px solid currentColor;
+  padding-right: 2.4cqw;
+  font: 400 3.4cqw monospace;
+  opacity: 0.4;
+}
+.gt-ribbon-word {
+  font-size: 4.4cqw;
+  font-weight: 900;
+  letter-spacing: -0.22cqw;
+  line-height: 1;
+}
+.gt-band-1 .gt-ribbon-word {
+  font-size: 3.3cqw;
+  font-weight: 400;
+  letter-spacing: -0.13cqw;
+}
+.gt-band-2 .gt-ribbon-word {
+  font-size: 2.5cqw;
+  letter-spacing: 0.13cqw;
+}
+/* 斜带扫不到的左上/右下两角：墨场上补品牌角标填空 */
+.gt-field-tag {
+  position: absolute;
+  font: 600 0.85cqw monospace;
+  letter-spacing: 0.22cqw;
+  color: #90a181;
+}
+.gt-field-tag.tl {
+  top: 4.5%;
+  left: 4%;
+  padding: 0.7cqw;
+  border-top: 2px solid var(--gt-acid);
+  border-left: 2px solid var(--gt-acid);
+}
+.gt-field-tag.br {
+  bottom: 4.5%;
+  right: 4%;
+  padding: 0.7cqw;
+  text-align: right;
+  border-bottom: 2px solid var(--gt-acid);
+  border-right: 2px solid var(--gt-acid);
+}
+.gt-ribbon-label {
+  border: 1px solid currentColor;
+  padding: 0.8cqw 1.2cqw;
+  font: 600 0.82cqw monospace;
+  letter-spacing: 0.13cqw;
 }
 
 .gt-sheet,

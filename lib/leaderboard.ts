@@ -33,7 +33,9 @@ export type BoardRow = {
   games: number;
   wins: number;
   losses: number;
-  /** 胜率 0–1 */
+  /** 平局场数（决策 048）；games = wins + losses + draws */
+  draws: number;
+  /** 胜率 0–1（平局计入分母场次、不计胜场） */
   winrate: number;
   /** 参与过比较的题数 */
   topics: number;
@@ -132,7 +134,8 @@ function modelMeta(votes: VoteRecord[]) {
   return meta;
 }
 
-/** 榜单聚合口径的一票：模型层面的胜负与时间（服务端流水经 voteToRecord 映射） */
+/** 榜单聚合口径的一票：模型层面的胜负与时间（服务端流水经 voteToRecord 映射）。
+ * outcome = draw（决策 048 平局票）时双方各得半分；占位投票无此字段，按 win 处理 */
 export type VoteRecord = {
   promptId: string;
   winnerId: string;
@@ -140,6 +143,8 @@ export type VoteRecord = {
   ts: number;
   /** 这票产生的模式（决策 026：混榜可切换只看正式）；占位投票无此字段，只在混入口径计入 */
   mode?: Mode;
+  /** win = 分胜负；draw = 无法抉择的平局（缺省按 win——占位票与早期数据无此字段） */
+  outcome?: 'win' | 'draw';
   /** 题目类型快照（服务端联表提供，含下架题——下架不改变赛道归类，决策 045 ⑤） */
   promptKind?: 'image' | 'text' | 'web';
   /** 双方模型显示名快照（作品已全部下架的模型靠它在榜上有名） */
@@ -176,6 +181,7 @@ export function leaderboardData(
   const rating = new Map<string, number>();
   const wins = new Map<string, number>();
   const losses = new Map<string, number>();
+  const draws = new Map<string, number>();
   const topicSets = new Map<string, Set<string>>();
   const touch = (id: string) => {
     if (!rating.has(id)) rating.set(id, ELO_BASE);
@@ -188,10 +194,17 @@ export function leaderboardData(
     const ra = rating.get(vote.winnerId) ?? ELO_BASE;
     const rb = rating.get(vote.loserId) ?? ELO_BASE;
     const expected = 1 / (1 + 10 ** ((rb - ra) / 400));
-    rating.set(vote.winnerId, ra + ELO_K * (1 - expected));
-    rating.set(vote.loserId, rb - ELO_K * (1 - expected));
-    wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
-    losses.set(vote.loserId, (losses.get(vote.loserId) ?? 0) + 1);
+    // 平局（决策 048）：双方实际得分各 0.5，胜场/负场都不计、记平局数
+    const actual = vote.outcome === 'draw' ? 0.5 : 1;
+    rating.set(vote.winnerId, ra + ELO_K * (actual - expected));
+    rating.set(vote.loserId, rb + ELO_K * (1 - actual - (1 - expected)));
+    if (vote.outcome === 'draw') {
+      draws.set(vote.winnerId, (draws.get(vote.winnerId) ?? 0) + 1);
+      draws.set(vote.loserId, (draws.get(vote.loserId) ?? 0) + 1);
+    } else {
+      wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
+      losses.set(vote.loserId, (losses.get(vote.loserId) ?? 0) + 1);
+    }
     topicSets.get(vote.winnerId)?.add(vote.promptId);
     topicSets.get(vote.loserId)?.add(vote.promptId);
   }
@@ -200,7 +213,8 @@ export function leaderboardData(
   for (const [modelId, info] of meta) {
     const w = wins.get(modelId) ?? 0;
     const l = losses.get(modelId) ?? 0;
-    const games = w + l;
+    const d = draws.get(modelId) ?? 0;
+    const games = w + l + d;
     if (games === 0) continue;
     rows.push({
       modelId,
@@ -212,6 +226,7 @@ export function leaderboardData(
       games,
       wins: w,
       losses: l,
+      draws: d,
       winrate: w / games,
       topics: topicSets.get(modelId)?.size ?? 0,
       trial: games < TRIAL_GAME_THRESHOLD,

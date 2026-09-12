@@ -324,8 +324,9 @@ function ProfilePanel({
         </div>
       </div>
       <p className="rank-panel-note">
-        {shown.wins} 胜 / {shown.losses} 负 · 胜率 {Math.round(shown.winrate * 100)}%。
-        {shown.note}
+        {shown.wins} 胜 / {shown.losses} 负
+        {shown.draws > 0 ? ` / ${shown.draws} 平` : ''} · 胜率{' '}
+        {Math.round(shown.winrate * 100)}%。{shown.note}
       </p>
     </div>
   );

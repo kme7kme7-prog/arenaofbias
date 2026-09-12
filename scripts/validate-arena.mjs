@@ -76,6 +76,21 @@ check('Reveal requires a locked choice and preserves it', () => {
   assert.equal(result.phase, 'result');
   assert.equal(result.choice, 'a');
 });
+check('Draw vote (decision 048) locks like a side vote and survives reveal', () => {
+  const drawLocked = reduce(voting, { type: 'VOTE', side: 'draw' });
+  assert.equal(drawLocked.phase, 'locking');
+  assert.equal(drawLocked.choice, 'draw');
+  // 锁定后同样不可改票
+  assert.equal(reduce(drawLocked, { type: 'VOTE', side: 'a' }), drawLocked);
+  const drawResult = reduce(drawLocked, { type: 'REVEAL' });
+  assert.equal(drawResult.phase, 'result');
+  assert.equal(drawResult.choice, 'draw');
+  // 换题/重播同样清掉平局选择
+  const replay = reduce(reduce(drawResult, { type: 'REPLAY' }), {
+    type: 'ARRIVE',
+  });
+  assert.equal(replay.choice, null);
+});
 check(
   'Switching during a reveal cancels the stale reveal and starts a clean round',
   () => {

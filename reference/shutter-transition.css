@@ -1,0 +1,199 @@
+.shutter-host {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+}
+.shutter-host.shutter-fullscreen {
+  position: fixed;
+  z-index: 10000;
+}
+:root:has(.shutter-fullscreen) {
+  overflow: hidden;
+}
+.shutter-transition,
+.shutter-transition * {
+  position: absolute;
+  box-sizing: border-box;
+}
+.shutter-transition {
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: size;
+  color: #333;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  --shutter-dark: #333;
+  --shutter-mid: #888;
+  --shutter-light: #ccc;
+  --shutter-white: #fff;
+  --shutter-accent: #00e5d1;
+}
+.shutter-background {
+  inset: 0;
+  background: #e6e6e6;
+}
+.shutter-center {
+  --card-width: min(35cqw, 81cqh);
+  width: var(--card-width);
+  height: calc(var(--card-width) * 0.86);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.shutter-square {
+  inset: 0;
+  background: var(--shutter-white);
+  box-shadow:
+    0 0.7cqw 2cqw #3333330a,
+    0 0.08cqw 0.2cqw #33333306;
+  animation: shutter-square-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both paused;
+}
+.shutter-depth {
+  inset: 0;
+  box-shadow:
+    0 1.3cqw 3.2cqw #33333310,
+    0 0.2cqw 0.65cqw #33333308;
+  animation: shutter-depth-in 900ms 1500ms ease-in-out both paused;
+}
+.shutter-main-text {
+  top: 66%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  font-size: calc(var(--card-width) * 0.1142857 * var(--title-fit));
+  letter-spacing: -0.045em;
+  line-height: 1;
+  animation: shutter-text-in 600ms 300ms ease-out both paused;
+}
+.shutter-waveform {
+  top: 84%;
+  left: 28%;
+  width: 44%;
+  height: 2cqh;
+  transform-origin: left center;
+  animation: shutter-wave-in 600ms 600ms cubic-bezier(0.22, 1, 0.36, 1) both
+    paused;
+}
+.shutter-waveform svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--shutter-dark);
+  stroke-width: 1.1;
+  stroke-linejoin: miter;
+}
+.shutter-micro {
+  top: 79%;
+  left: 28%;
+  width: 44%;
+  height: 3%;
+}
+.shutter-micro-row {
+  top: calc(var(--row) * 35%);
+  left: calc(var(--row) * 3%);
+  width: calc(100% - var(--row) * 6%);
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--shutter-dark) 0 2px,
+    transparent 2px 6px
+  );
+  transform-origin: center;
+  animation: shutter-micro-adjust 700ms calc(1500ms + var(--row) * 90ms)
+    ease-in-out both paused;
+}
+.shutter-transition-bars,
+.shutter-solid-color-layer {
+  inset: 0;
+}
+.shutter-bar {
+  top: 0;
+  bottom: 0;
+  left: var(--bar-left);
+  width: calc(var(--bar-width) + 1px);
+  animation: shutter-bar-in 780ms var(--bar-delay)
+    cubic-bezier(0.65, 0, 0.25, 1) both paused;
+}
+.shutter-solid-color-layer {
+  background: var(--shutter-accent);
+  animation: shutter-color-in 850ms 3800ms cubic-bezier(0.76, 0, 0.24, 1) both
+    paused;
+}
+@keyframes shutter-square-in {
+  from {
+    opacity: 0;
+    transform: scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes shutter-text-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes shutter-wave-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@keyframes shutter-depth-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes shutter-micro-adjust {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  50% {
+    opacity: 0.085;
+  }
+  from {
+    transform: scaleX(0.96);
+  }
+  to {
+    transform: scaleX(1.08);
+  }
+}
+@keyframes shutter-bar-in {
+  from {
+    transform: translateX(var(--bar-start));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes shutter-color-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@container (max-aspect-ratio: 4/5) {
+  .shutter-center {
+    --card-width: min(78cqw, 81cqh);
+  }
+}

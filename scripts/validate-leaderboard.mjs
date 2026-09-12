@@ -190,6 +190,47 @@ check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', ()
   assert.equal(leaderboardData('all', legacyVotes, 'formal').totalVotes, 0);
 });
 
+check('平局票（决策 048）：双方各得半分、记平局不计胜负、场次含平局', () => {
+  const models = leaderboardData('all').rows.map((row) => row.modelId);
+  assert.ok(models.length >= 2, '占位阵容至少两个模型');
+  const [a, b] = models;
+  const winVote = {
+    promptId: '001',
+    winnerId: a,
+    loserId: b,
+    ts: 1,
+    mode: 'blind',
+    outcome: 'win',
+  };
+  const drawVote = { ...winVote, ts: 2, outcome: 'draw' };
+  const data = leaderboardData('all', [winVote, drawVote], 'mixed');
+  assert.equal(data.totalVotes, 2);
+  const rowA = data.rows.find((row) => row.modelId === a);
+  const rowB = data.rows.find((row) => row.modelId === b);
+  // 一胜 + 一平：games 含平局，wins/losses/draws 自洽
+  assert.equal(rowA.games, 2);
+  assert.equal(rowA.wins, 1);
+  assert.equal(rowA.losses, 0);
+  assert.equal(rowA.draws, 1);
+  assert.equal(rowA.games, rowA.wins + rowA.losses + rowA.draws);
+  assert.equal(rowB.losses, 1);
+  assert.equal(rowB.draws, 1);
+  // Elo：第一票后 a 高 b 低；平局让高分方回跌、低分方回升
+  const onlyWin = leaderboardData('all', [winVote], 'mixed');
+  const aAfterWin = onlyWin.rows.find((row) => row.modelId === a).rating;
+  const bAfterWin = onlyWin.rows.find((row) => row.modelId === b).rating;
+  assert.ok(aAfterWin > 1200 && bAfterWin < 1200);
+  assert.ok(rowA.rating < aAfterWin, '平局后领先方评分回落');
+  assert.ok(rowB.rating > bAfterWin, '平局后落后方评分回升');
+  // 无 outcome 字段的旧票（占位票/早期数据）按胜负处理
+  const legacy = leaderboardData(
+    'all',
+    [{ promptId: '001', winnerId: a, loserId: b, ts: 3, mode: 'blind' }],
+    'mixed',
+  );
+  assert.equal(legacy.rows.find((row) => row.modelId === a).wins, 1);
+});
+
 check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史票保留在榜', () => {
   const models = leaderboardData('all').rows.map((row) => row.modelId);
   assert.ok(models.length >= 2, '占位阵容至少两个模型');

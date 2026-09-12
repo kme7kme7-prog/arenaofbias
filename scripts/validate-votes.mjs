@@ -104,7 +104,13 @@ const realVote = {
 };
 
 await check('合法票通过校验，题号白名单拦截未知题', () => {
-  assert.deepEqual(validateVote(validVote), validVote);
+  // outcome（决策 048）：缺省补 win；draw 合法保留；其他值拒绝
+  assert.deepEqual(validateVote(validVote), { ...validVote, outcome: 'win' });
+  assert.deepEqual(validateVote({ ...validVote, outcome: 'draw' }), {
+    ...validVote,
+    outcome: 'draw',
+  });
+  assert.equal(validateVote({ ...validVote, outcome: 'tie' }), null);
   assert.equal(validateVote({ ...validVote, promptId: '999' }), null);
 });
 
@@ -147,6 +153,8 @@ await check('voteToRecord 降到模型层（榜单聚合口径）', () => {
     ts: 1725900000000,
     // mode 随记录保留，供「只看正式」口径过滤（决策 026）
     mode: 'blind',
+    // outcome 随记录保留，供榜单平局半分重放（决策 048）
+    outcome: 'win',
   });
 });
 
@@ -346,6 +354,58 @@ try {
     },
   );
 
+  await check(
+    '平局票（决策 048）：draw 写入 201、流水带 outcome、平局同样占用对局',
+    async () => {
+      // 注册第二个用户（dev 在上面的用例里已把 002/003 两对都投过）
+      const register = await robustFetch(`${base}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', origin: base },
+        body: JSON.stringify({
+          username: 'draw_tester',
+          password: 'draw-tester-password-1',
+        }),
+      });
+      assert.equal(register.status, 201);
+      const cookie = register.headers.get('set-cookie').split(';')[0];
+      const drawVote = {
+        ...realVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3321',
+        outcome: 'draw',
+      };
+      const created = await post(cookie, drawVote);
+      assert.equal(created.status, 201);
+      assert.equal((await created.json()).vote.outcome, 'draw');
+      // 公开流水带 outcome；旧的胜负票也带（迁移缺省 win）
+      const listed = await (await robustFetch(`${base}/api/votes`)).json();
+      assert.equal(
+        listed.votes.find((vote) => vote.id === drawVote.id)?.outcome,
+        'draw',
+      );
+      assert.ok(
+        listed.votes.every(
+          (vote) => vote.outcome === 'win' || vote.outcome === 'draw',
+        ),
+      );
+      // 平局占用对局：同一对再投（改投胜负）→ 409 pair
+      const again = await post(cookie, {
+        ...drawVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3322',
+        outcome: 'win',
+      });
+      assert.equal(again.status, 409);
+      assert.equal((await again.json()).code, 'pair');
+      // 反向同样成立：dev 已投过这对的胜负票，改投平局 → 409 pair
+      const devCookie = await login();
+      const devDraw = await post(devCookie, {
+        ...drawVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3323',
+      });
+      assert.equal(devDraw.status, 409);
+      assert.equal((await devDraw.json()).code, 'pair');
+    },
+  );
+
   await check('非法 payload 400：坏 UUID / 未知题号 / mode 缺失', async () => {
     const cookie = await login();
     for (const body of [
@@ -359,6 +419,12 @@ try {
         ...validVote,
         id: '3f2504e0-4f89-41d3-9a0c-0305e82c3305',
         mode: undefined,
+      },
+      // outcome 只认 win/draw（决策 048）
+      {
+        ...validVote,
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3306',
+        outcome: 'tie',
       },
     ]) {
       const response = await post(cookie, body);

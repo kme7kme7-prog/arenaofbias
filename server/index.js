@@ -222,6 +222,43 @@ const MIGRATIONS = [
       }
     },
   },
+  {
+    // 004 · 投票 outcome 列：「无法抉择」平局票（决策 048）。
+    // win（默认，存量票）= 分胜负；draw = 平局，榜单与声望分重放时双方各得半分。
+    // 平局行的 winner_*/loser_* 按出场左右顺序登记（a 侧入 winner、 b 侧入 loser），
+    // 只表示票面登记顺序，无胜负语义；对局去重（pair_key）口径不变——弃权也占用这一对。
+    up() {
+      if (
+        !db
+          .prepare('PRAGMA table_info(votes)')
+          .all()
+          .some((column) => column.name === 'outcome')
+      )
+        db.exec(
+          `ALTER TABLE votes ADD COLUMN outcome TEXT NOT NULL DEFAULT 'win'`,
+        );
+    },
+  },
+  {
+    // 005 · 反应表：娱乐模式揭晓后给模型点赞/点踩/大笑（2026-09-13 用户拍板）。
+    // 一人对一题一模型占一个反应槽（UNIQUE 约束），换一种态度即覆盖 kind，不叠票；
+    // 读取只回聚合计数与本人选择，不暴露他人身份。
+    up() {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS reactions (
+          id         TEXT PRIMARY KEY NOT NULL,
+          prompt_id  TEXT NOT NULL,
+          mid        TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          user_id    TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS reactions_slot
+          ON reactions (user_id, prompt_id, mid);
+        CREATE INDEX IF NOT EXISTS reactions_prompt ON reactions (prompt_id);
+      `);
+    },
+  },
 ];
 
 {
@@ -243,17 +280,34 @@ const selectById = db.prepare(
 );
 
 const insertVote = db.prepare(
-  `INSERT OR IGNORE INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  `INSERT OR IGNORE INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at, outcome)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 const selectVoteById = db.prepare(
   `SELECT id, prompt_id AS promptId, winner_rid AS winnerRid, winner_mid AS winnerMid,
           loser_rid AS loserRid, loser_mid AS loserMid, pair_key AS pairKey,
-          mode, created_at AS ts, user_id AS userId
+          mode, created_at AS ts, user_id AS userId, outcome
    FROM votes WHERE id = ?`,
 );
 const selectVoteIdByPair = db.prepare(
   'SELECT id FROM votes WHERE user_id = ? AND pair_key = ?',
+);
+// 反应（迁移 005）：一人一题一模型一槽，换态度覆盖 kind
+const upsertReaction = db.prepare(
+  `INSERT INTO reactions (id, prompt_id, mid, kind, user_id, created_at)
+   VALUES (?, ?, ?, ?, ?, ?)
+   ON CONFLICT(user_id, prompt_id, mid)
+   DO UPDATE SET kind = excluded.kind, created_at = excluded.created_at`,
+);
+const listReactionCounts = db.prepare(
+  `SELECT mid, kind, COUNT(*) AS n FROM reactions WHERE prompt_id = ? GROUP BY mid, kind`,
+);
+const listMyReactions = db.prepare(
+  'SELECT mid, kind FROM reactions WHERE prompt_id = ? AND user_id = ?',
+);
+// 防伪造：只允许对这道题已发布作品的模型表态
+const reactionModelExists = db.prepare(
+  'SELECT 1 FROM works WHERE prompt_id = ? AND model_id = ? AND published = 1',
 );
 // 流水联表补三样展示快照（决策 045 ⑤「历史票保留在榜单」）：
 // 题目当前 kind（prompts 表含下架题——下架题的历史票仍按原赛道归类）、
@@ -261,7 +315,7 @@ const selectVoteIdByPair = db.prepare(
 // 票本身永不过滤：/api/votes 始终全量返回，榜单口径由客户端聚合。
 const listVotes = db.prepare(
   `SELECT v.id, v.prompt_id AS promptId, v.winner_rid AS winnerRid, v.winner_mid AS winnerMid,
-          v.loser_rid AS loserRid, v.loser_mid AS loserMid, v.mode, v.created_at AS ts,
+          v.loser_rid AS loserRid, v.loser_mid AS loserMid, v.mode, v.created_at AS ts, v.outcome,
           wp.model_name AS winnerName, lp.model_name AS loserName, p.kind AS promptKind
    FROM votes v
    LEFT JOIN works wp ON wp.id = v.winner_rid
@@ -337,6 +391,9 @@ function validateVote(value) {
   if (vote.winnerRid === vote.loserRid || vote.winnerMid === vote.loserMid)
     return null;
   if (!VOTE_MODES.includes(mode)) return null;
+  // 决策 048：outcome 缺省 win（旧客户端与存量票），draw = 无法抉择的平局票
+  const outcome = value.outcome ?? 'win';
+  if (outcome !== 'win' && outcome !== 'draw') return null;
   // 票面与作品表核对（B2）：rid 必须真实存在、已发布、非演示、属于本题，并与 mid 一致
   const winner = selectWorkForVote.get(vote.winnerRid);
   const loser = selectWorkForVote.get(vote.loserRid);
@@ -346,7 +403,7 @@ function validateVote(value) {
     return null;
   if (winner.modelId !== vote.winnerMid || loser.modelId !== vote.loserMid)
     return null;
-  return { ...vote, mode };
+  return { ...vote, mode, outcome };
 }
 
 // 回读比对：同 UUID 必须是同一笔票——用户、题号、双方 rid/mid、模式全一致。
@@ -359,7 +416,8 @@ const isSameVote = (saved, vote, userId) =>
   saved.winnerMid === vote.winnerMid &&
   saved.loserRid === vote.loserRid &&
   saved.loserMid === vote.loserMid &&
-  saved.mode === vote.mode;
+  saved.mode === vote.mode &&
+  saved.outcome === vote.outcome;
 
 // ---------- 演示级限流（内存滑动窗口，按真实客户端 IP） ----------
 
@@ -513,7 +571,7 @@ app.get('/api/ratings', (_req, res) => {
   try {
     const rows = db
       .prepare(
-        'SELECT winner_mid, loser_mid, created_at AS ts FROM votes ORDER BY created_at ASC, id ASC',
+        'SELECT winner_mid, loser_mid, created_at AS ts, outcome FROM votes ORDER BY created_at ASC, id ASC',
       )
       .all();
     const K = 32;
@@ -523,8 +581,10 @@ app.get('/api/ratings', (_req, res) => {
       const a = ratings[vote.winner_mid] ?? BASE;
       const b = ratings[vote.loser_mid] ?? BASE;
       const expectedA = 1 / (1 + 10 ** ((b - a) / 400));
-      ratings[vote.winner_mid] = a + K * (1 - expectedA);
-      ratings[vote.loser_mid] = b + K * (0 - (1 - expectedA));
+      // 平局（决策 048）：双方实际得分各 0.5——强于预期的一方涨得少甚至微跌
+      const actualA = vote.outcome === 'draw' ? 0.5 : 1;
+      ratings[vote.winner_mid] = a + K * (actualA - expectedA);
+      ratings[vote.loser_mid] = b + K * (1 - actualA - (1 - expectedA));
     }
     res.set(noStore).json({ ratings });
   } catch {
@@ -586,6 +646,7 @@ app.post('/api/votes', limiter, (req, res) => {
       vote.mode,
       req.user.id,
       Date.now(),
+      vote.outcome,
     );
     const saved = selectVoteById.get(vote.id);
     if (!isSameVote(saved, vote, req.user.id))
@@ -599,6 +660,69 @@ app.post('/api/votes', limiter, (req, res) => {
       .status(503)
       .set(noStore)
       .json({ error: '暂时没有记上这一票，稍后再试？' });
+  }
+});
+
+// ---------- 反应：点赞 / 点踩 / 大笑（迁移 005；写入要求登录，读取公开） ----------
+
+const REACTION_KINDS = new Set(['up', 'down', 'laugh']);
+// 反应跟着题号走（跨对局累计同一模型在这道题下的反应），换态度覆盖不叠票
+app.post('/api/reactions', limiter, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  if (!req.user) return res.status(401).json({ error: '请先登录再表态。' });
+  const { id, promptId, mid, kind } = req.body ?? {};
+  if (!id || !UUID_PATTERN.test(id)) return res.status(400).json({ error: '反应内容无效' });
+  if (!promptId || !promptPublished(promptId))
+    return res.status(400).json({ error: '反应内容无效' });
+  if (typeof mid !== 'string' || !mid.trim() || !REACTION_KINDS.has(kind))
+    return res.status(400).json({ error: '反应内容无效' });
+  if (!reactionModelExists.get(promptId, mid.trim()))
+    return res.status(400).json({ error: '反应内容无效' });
+  try {
+    upsertReaction.run(id, promptId, mid.trim(), kind, req.user.id, Date.now());
+    const mine = new Map(
+      listMyReactions.all(promptId, req.user.id).map((row) => [row.mid, row.kind]),
+    );
+    const counts = {};
+    for (const row of listReactionCounts.all(promptId)) {
+      counts[row.mid] ??= { up: 0, down: 0, laugh: 0 };
+      counts[row.mid][row.kind] = row.n;
+    }
+    res.set(noStore).status(201).json({ mine: Object.fromEntries(mine), counts });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '暂时没有记上这一下，稍后再试？' });
+  }
+});
+
+app.get('/api/reactions', (req, res) => {
+  const promptId = String(req.query.prompt ?? '');
+  if (!promptId || !promptExists(promptId))
+    return res.status(400).json({ error: '题目不存在' });
+  try {
+    const counts = {};
+    for (const row of listReactionCounts.all(promptId)) {
+      counts[row.mid] ??= { up: 0, down: 0, laugh: 0 };
+      counts[row.mid][row.kind] = row.n;
+    }
+    // 本人选择只有登录时返回；未登录只看得到聚合计数
+    const mine = req.user
+      ? Object.fromEntries(
+          listMyReactions
+            .all(promptId, req.user.id)
+            .map((row) => [row.mid, row.kind]),
+        )
+      : {};
+    res.set(noStore).json({ counts, mine });
+  } catch {
+    res
+      .status(503)
+      .set(noStore)
+      .json({ error: '反应数据暂时无法加载，请稍后重试' });
   }
 });
 
@@ -676,7 +800,7 @@ app.get('/api/admin/log', requireAdmin, (req, res) => {
       rows = db
         .prepare(
           `SELECT v.id, v.prompt_id AS promptId, v.winner_mid AS winnerMid, v.loser_mid AS loserMid,
-                  v.mode, v.created_at AS ts, u.username
+                  v.mode, v.created_at AS ts, v.outcome, u.username
            FROM votes v LEFT JOIN users u ON u.id = v.user_id
            ${q ? 'WHERE u.username LIKE ? OR v.prompt_id LIKE ? OR v.winner_mid LIKE ? OR v.loser_mid LIKE ?' : ''}
            ORDER BY v.created_at DESC LIMIT ?`,

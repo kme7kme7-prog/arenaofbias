@@ -859,6 +859,116 @@ kbd {
 .phase-voting .vote-b {
   animation-delay: 0.08s;
 }
+/* 「无法抉择」平局票（决策 048）：两侧战队牌之外的第三选择——做成「或者」分隔条，
+   细线夹一个中性按钮，紧贴投票行下方。硬投影 + 纸墨底是全站既有词汇，
+   不用红蓝战队色，保持「这不是第三个立场」的语义。 */
+/* 「无法抉择」平局票（决策 048）：左右战队牌之外的第三选择。
+   内部结构、尺寸、切角、字号、kbd 位置与两侧投票按钮逐项对齐——是「同一个家族的
+   第三个」；只有配色是中性纸墨而非战队色，因为它不是第三个立场。 */
+.draw-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 12px 0 0;
+}
+.draw-rule {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #20221d40);
+}
+.draw-rule:last-child {
+  background: linear-gradient(90deg, #20221d40, transparent);
+}
+.vote-draw {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+  width: min(560px, 100%);
+  max-width: calc(100% - 36px);
+  height: 58px;
+  padding: 0 20px;
+  background: var(--paper);
+  /* 与两侧投票按钮同一招牌切角（右下斜切 12px）；切角会吃掉 border，描边改走 inset 阴影 */
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    0 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px #20221d,
+    3px 4px 0 #a2ad87;
+  color: var(--ink);
+  text-align: left;
+  transition:
+    transform 0.28s var(--ease-out),
+    background 0.3s,
+    color 0.3s,
+    box-shadow 0.28s var(--ease-out),
+    opacity 0.35s,
+    filter 0.35s;
+}
+.vote-draw .vote-icon {
+  width: 33px;
+  height: 33px;
+  border-color: #1c242345;
+}
+.vote-draw .vote-copy strong {
+  font-weight: 750;
+  font-size: clamp(16px, 1.7vw, 22px);
+  letter-spacing: 1px;
+}
+/* 副文案与两侧按钮同规格：9px 等宽、1.45px 字距；内容是英文（CALL IT A DRAW） */
+.vote-draw .vote-copy small {
+  font: 9px var(--mono);
+  letter-spacing: 1.45px;
+  color: #526347;
+}
+.vote-draw kbd {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border-color: #1c242356;
+}
+.vote-draw:not(:disabled):hover {
+  background: #eef0e6;
+  transform: translate(-2px, -3px);
+  box-shadow:
+    inset 0 0 0 1px #20221d,
+    5px 7px 0 #a2ad87;
+}
+.vote-draw:not(:disabled):active {
+  transform: translate(0, 0);
+  box-shadow:
+    inset 0 0 0 1px #20221d,
+    1px 1px 0 #a2ad87;
+}
+.vote-draw.is-draw-picked {
+  background: var(--ink);
+  color: var(--acid);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.vote-draw.is-draw-picked .vote-copy small {
+  color: #c1cfab;
+}
+.vote-draw.is-draw-picked .vote-icon,
+.vote-draw.is-draw-picked kbd {
+  border-color: #f0f3e94d;
+}
+.phase-intro .vote-draw,
+.phase-loading .vote-draw {
+  opacity: 0.4;
+  filter: saturate(0.45);
+}
+.phase-voting .vote-draw {
+  animation: button-ready 0.7s var(--ease-out) both;
+  animation-delay: 0.16s;
+}
 .versus-spine {
   display: flex;
   position: absolute;
@@ -1253,6 +1363,26 @@ kbd {
 }
 .next-button.highlight {
   min-width: 169px;
+}
+/* 娱乐模式的「下一题」：酸黄实心 + 硬投影，是结果区最显眼的出口 */
+.next-button.next-topic {
+  background: var(--acid);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 3px 3px 0 #a2ad87;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+.next-button.next-topic:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #a2ad87;
+  background: var(--acid);
+}
+.next-button.next-topic:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: none;
 }
 .next-button:disabled,
 .text-button:disabled {
@@ -2055,6 +2185,30 @@ kbd {
     width: 22px;
     height: 22px;
   }
+  /* 平局按钮随两侧一起降一档（决策 048 同族第三个） */
+  .vote-draw {
+    height: 64px;
+    padding: 0 12px;
+    gap: 10px;
+    width: min(520px, 100%);
+    max-width: calc(100% - 24px);
+  }
+  .vote-draw .vote-icon {
+    width: 29px;
+    height: 29px;
+  }
+  .vote-draw .vote-copy strong {
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+  .vote-draw .vote-copy small {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  .vote-draw kbd {
+    width: 22px;
+    height: 22px;
+  }
   .selector-heading {
     display: none;
   }
@@ -2285,6 +2439,38 @@ kbd {
     letter-spacing: 0.25px;
   }
   .vote-button kbd {
+    display: none;
+  }
+  /* 平局按钮随两侧一起收窄；小屏隐藏 kbd（同两侧） */
+  .vote-draw {
+    height: 61px;
+    padding: 0 10px;
+    gap: 8px;
+    width: 100%;
+    max-width: calc(100% - 8px);
+  }
+  .draw-row {
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .vote-draw .vote-icon {
+    width: 22px;
+    height: 22px;
+    border: 0;
+  }
+  .vote-draw .vote-icon svg {
+    width: 20px;
+  }
+  .vote-draw .vote-copy strong {
+    font-size: clamp(13px, 3.6vw, 17px);
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+  }
+  .vote-draw .vote-copy small {
+    font-size: 6px;
+    letter-spacing: 0.4px;
+  }
+  .vote-draw kbd {
     display: none;
   }
   .versus-spine {
@@ -2615,6 +2801,18 @@ kbd {
   opacity: 0;
   margin-top: 0;
   padding-block: 0;
+  pointer-events: none;
+  transition:
+    height 0.75s var(--ease-out),
+    margin 0.75s var(--ease-out),
+    opacity 0.25s;
+}
+/* 平局行与两侧投票按钮同款收起：揭晓后整个横条（按钮+两侧渐隐线）退场 */
+.phase-result .draw-row {
+  height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
   pointer-events: none;
   transition:
     height 0.75s var(--ease-out),
@@ -3068,6 +3266,172 @@ kbd {
 .prompt-disclosure[open] .prompt-disclosure-label::after { transform: rotate(45deg); }
 .prompt-disclosure p { margin: 16px 0 5px; font-size: 14px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
 .prompt-disclosure[open] p { animation: text-enter .3s var(--ease-out) both; }
+
+/* 揭晓后的模型反应条（点赞/点踩/大笑）：纸面仪器风——描边小圆钮 + 计数，
+   不做实心彩色块；点中弹跳 + 酸黄粒子迸发（参考 transitions.dev 手法，本站色系） */
+.reaction-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  animation: text-enter .5s .15s var(--ease-out) both;
+}
+.reaction-caption {
+  font: 10px var(--mono);
+  letter-spacing: 1px;
+  color: #71806b;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.reaction-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--paper);
+  border: 1px solid #6b7a5f;
+  color: var(--ink);
+  font: 600 11px var(--mono);
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
+  transition:
+    background .18s,
+    color .18s,
+    transform .18s,
+    border-color .18s;
+}
+.reaction-chip:hover {
+  background: #d3dac8;
+  transform: translateY(-1px);
+}
+.reaction-chip.is-picked {
+  background: var(--ink);
+  color: var(--acid);
+  border-color: var(--ink);
+}
+.reaction-chip.is-picked .reaction-icon { animation: reaction-pop .35s cubic-bezier(0.34, 1.96, 0.64, 1); }
+@keyframes reaction-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.82); }
+  100% { transform: scale(1); }
+}
+.reaction-icon { display: inline-flex; }
+.reaction-count { min-width: 10px; text-align: right; }
+/* 粒子迸发：每颗沿自己的向量飞散，纯 CSS 变量驱动 */
+.reaction-dots {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  color: var(--acid);
+}
+.reaction-dots i {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 3px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0;
+}
+.reaction-bar.is-bursting .reaction-chip.is-picked .reaction-dots i {
+  animation: reaction-burst .55s ease-out forwards;
+}
+.reaction-bar.is-bursting.reaction-burst-up .reaction-dots i { --acid-c: var(--acid); }
+.reaction-bar.is-bursting .reaction-dots i:nth-child(1) { --px: 14px; --py: -16px; --d: 0ms; }
+.reaction-bar.is-bursting .reaction-dots i:nth-child(2) { --px: 18px; --py: -4px; --d: 25ms; }
+.reaction-bar.is-bursting .reaction-dots i:nth-child(3) { --px: -16px; --py: -14px; --d: 40ms; }
+.reaction-bar.is-bursting .reaction-dots i:nth-child(4) { --px: -13px; --py: 6px; --d: 10ms; }
+@keyframes reaction-burst {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  25% { opacity: 1; transform: translate(calc(var(--px) * 0.3), calc(var(--py) * 0.3)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reaction-icon, .reaction-dots i { animation: none !important; }
+}
+
+/* 结果阶段：「本轮提示词」折叠条（作品正下方通栏，与上方评审附言黑条首尾呼应；
+   面板高度用 grid 0fr→1fr 过渡，不用 JS 量高） */
+.prompt-recall {
+  margin-top: 12px;
+  color: #dee6d7;
+  background: #263029;
+  border-left: 3px solid var(--acid);
+  animation: text-enter .6s var(--ease-out) both;
+}
+.prompt-recall-head {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 15px;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .2s;
+}
+.prompt-recall-head:hover { background: #2c3830; }
+.prompt-recall-head:focus-visible { outline: 2px solid var(--acid); outline-offset: -2px; }
+.prompt-recall-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--acid);
+  white-space: nowrap;
+}
+.prompt-recall-title { font-size: 14px; font-weight: 600; letter-spacing: .3px; }
+.prompt-recall-meta {
+  margin-left: auto;
+  font: 9px var(--mono);
+  letter-spacing: 1px;
+  color: #90a181;
+  white-space: nowrap;
+}
+.prompt-recall-chevron {
+  display: inline-flex;
+  color: #90a181;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform .25s var(--ease-out);
+}
+.prompt-recall[data-open='true'] .prompt-recall-chevron { transform: scaleY(-1); color: var(--acid); }
+.prompt-recall-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .25s var(--ease-out);
+}
+.prompt-recall[data-open='true'] .prompt-recall-panel { grid-template-rows: 1fr; }
+.prompt-recall-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity .25s var(--ease-out),
+    filter .25s var(--ease-out);
+}
+.prompt-recall[data-open='true'] .prompt-recall-inner { opacity: 1; filter: blur(0); }
+.prompt-recall-inner p {
+  margin: 0 15px;
+  padding: 12px 0 14px;
+  border-top: 1px dashed #dee6d733;
+  font-size: 14px;
+  line-height: 1.9;
+  letter-spacing: .3px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .phase-result .is-chosen .work-panel::after {
   width: 100%;
   transform-origin: left;
@@ -3098,6 +3462,10 @@ kbd {
 @media (max-width: 699px) {
   .prompt-disclosure summary { align-items: flex-start; flex-direction: column; gap: 4px; font-size: 13px; }
   .prompt-disclosure p { font-size: 13px; }
+  .prompt-recall-head { gap: 10px; padding-inline: 12px; }
+  .prompt-recall-meta { display: none; }
+  .prompt-recall-title { font-size: 13px; }
+  .prompt-recall-inner p { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *,

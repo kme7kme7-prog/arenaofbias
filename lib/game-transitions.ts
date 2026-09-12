@@ -1,15 +1,20 @@
-// Reference prototypes: shared playback and scrubbing use the same WAAPI tracks.
-// No route integration yet; onCovered is the safe point for a future navigation.
+// Reference prototypes and route navigation share the same WAAPI tracks.
+// onCovered is the safe point for a route swap.
+// 注意：本文件被 scripts/check-game-transitions.mjs 转译成 data: URL 导入测试，
+// 不能加任何静态/动态模块导入（data: URL 下相对路径无法解析），导航封装也一样。
 
-// bands 导航（决策 033）：题库 / 偏好榜 / 返回首页走一体斜幕过场。
+// bands 导航（决策 033）：偏好榜入口与返回首页走斜向切片过场。
 // 与首页主按钮的 frame 接入同模式：盖满时换路由，模块级锁防跨实例重入。
 let bandsNavRunning = false;
-export function bandsNavigate(hash: string) {
+export function bandsNavigate(
+  hash: string,
+  options: Pick<GameTransitionOptions, 'title' | 'words' | 'labels'> = {},
+) {
   if (bandsNavRunning) return;
   bandsNavRunning = true;
   createGameTransition('bands', {
-    // 决策 033 补充：导航用途下默认节奏偏慢，整体 1.25× 均匀加速
-    // （总长约 1397→1120ms，盖满 520→416ms，编排比例不变）
+    ...options,
+    // 导航用途下整体 1.25× 均匀加速，保持三带的错峰比例。
     speed: 1.25,
     onCovered: () => {
       window.location.hash = hash;
@@ -20,7 +25,23 @@ export function bandsNavigate(hash: string) {
   }).play();
 }
 
-export type GameTransitionKind = 'frame' | 'bands';
+// convoy 导航（2026-09-13 用户拍板）：首页→题库、玩法菜单→测评走一体斜幕。
+let convoyNavRunning = false;
+export function convoyNavigate(hash: string, title?: string) {
+  if (convoyNavRunning) return;
+  convoyNavRunning = true;
+  createGameTransition('convoy', {
+    title,
+    onCovered: () => {
+      window.location.hash = hash;
+    },
+    onFinish: () => {
+      convoyNavRunning = false;
+    },
+  }).play();
+}
+
+export type GameTransitionKind = 'frame' | 'bands' | 'convoy';
 export interface GameTransitionOptions {
   parent?: HTMLElement;
   title?: string;
@@ -30,15 +51,19 @@ export interface GameTransitionOptions {
   onCovered?: () => void;
   onFrame?: (time: number, duration: number) => void;
   onFinish?: () => void;
+  // bands 字带文案（三条带各一词一签）；缺省用通用品牌词
+  words?: [string, string, string];
+  labels?: [string, string, string];
 }
 
 export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
   const covered = kind === 'frame' ? 420 : 520;
-  const exitStart = covered + Math.max(0, hold) * (kind === 'bands' ? 0.35 : 1);
+  const exitStart =
+    covered + Math.max(0, hold) * (kind === 'convoy' ? 0.35 : 1);
   return {
     covered,
     exitStart,
-    duration: exitStart + 650,
+    duration: exitStart + (kind === 'bands' ? 900 : 650),
   };
 }
 
@@ -151,15 +176,91 @@ export function createGameTransition(
     fade(copy, 0, 1, 280, 220);
     move(copy, 'translateY(14px)', 'translateY(0)', 280, 550);
     move(sheet, 'translateY(0)', 'translateY(-101%)', timing.exitStart, 650);
+  } else if (kind === 'bands') {
+    const field = el('gt-ink-field');
+    el('gt-field-index', field, '02 / MAKE A CHOICE');
+    // 斜带扫不到的左上/右下两角用品牌角标填空
+    el('gt-field-tag tl', field, 'ARENA OF BIAS');
+    el('gt-field-tag br', field, 'TRUST YOUR INSTINCT');
+    track(
+      field,
+      [
+        {
+          transform: 'translateX(-110%)',
+          offset: 0,
+          easing: ease,
+        },
+        {
+          transform: 'translateX(0)',
+          offset: timing.covered / timing.duration,
+        },
+        {
+          transform: 'translateX(0)',
+          offset: (timing.exitStart + 150) / timing.duration,
+          easing: ease,
+        },
+        {
+          transform: 'translateX(110%)',
+          offset: (timing.exitStart + 850) / timing.duration,
+        },
+        { transform: 'translateX(110%)', offset: 1 },
+      ],
+      0,
+      timing.duration,
+      'linear',
+    );
+    const bank = el('gt-band-bank');
+    // 三条带提前进场（墨场开滑后 150ms 跟进、错峰 90ms），盖满时已就位——
+    // 中段不再空转；左右交替方向杀入再各自反向退出，形成对抗交错。
+    const bandIn = 460;
+    const bandOut = 460;
+    const words = options.words ?? [title, 'TRUST YOUR INSTINCT', '偏见 · 各有所爱'];
+    const labels = options.labels ?? ['OBSERVE →', 'COMPARE →', 'DECIDE →'];
+    for (let i = 0; i < 3; i++) {
+      const row = el(`gt-band gt-band-${i}`, bank);
+      const ribbon = el('gt-ribbon', row);
+      for (let j = 0; j < 3; j++) {
+        el('gt-ribbon-index', ribbon, `0${i + 1} /`);
+        el('gt-ribbon-word', ribbon, words[i]);
+        el('gt-ribbon-label', ribbon, labels[i]);
+      }
+      const sign = i % 2 ? 1 : -1;
+      const start = 150 + i * 90;
+      const exit = timing.exitStart + i * 60;
+      const bandDuration = exit + bandOut - start;
+      track(
+        row,
+        [
+          { transform: `translateX(${sign * 110}%)`, offset: 0, easing: ease },
+          { transform: 'translateX(0)', offset: bandIn / bandDuration },
+          {
+            transform: 'translateX(0)',
+            offset: (exit - start) / bandDuration,
+            easing: ease,
+          },
+          { transform: `translateX(${-sign * 110}%)`, offset: 1 },
+        ],
+        start,
+        bandDuration,
+        'linear',
+      );
+      move(
+        ribbon,
+        `translateX(${sign < 0 ? -9 : -22}%)`,
+        `translateX(${sign < 0 ? -22 : -9}%)`,
+        start,
+        bandDuration,
+      );
+    }
   } else {
-    // All colored edges belong to one moving assembly, so decoration and
-    // full-screen coverage cannot drift apart during the route handoff.
+    // The colored edges and dark occlusion share one clock, so the full-screen
+    // cover remains continuous while the route changes underneath.
     const convoy = el('gt-convoy');
     const face = el('gt-convoy-face', convoy);
     el('gt-convoy-paper', face);
     const ink = el('gt-convoy-ink', face);
     const label = el('gt-convoy-label', ink);
-    el('gt-convoy-number', label, '02 /');
+    el('gt-convoy-number', label, '03 /');
     el('gt-convoy-title', label, title);
     el('gt-convoy-note', label, '下一场，凭直觉。 / MAKE YOUR CHOICE');
     track(

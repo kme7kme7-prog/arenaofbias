@@ -61,7 +61,7 @@ const step = (stamp) => {
   raf.clear();
   callbacks.forEach((fn) => fn(stamp));
 };
-for (const kind of ['frame', 'bands']) {
+for (const kind of ['frame', 'bands', 'convoy']) {
   tracks = [];
   let covered = 0,
     finished = 0;
@@ -72,12 +72,33 @@ for (const kind of ['frame', 'bands']) {
   assert.equal(run.layer.parent, document.body);
   assert.equal(run.layer['aria-hidden'], 'true');
   if (kind === 'bands') {
+    const field = tracks.find((t) => t.owner === 'gt-ink-field');
+    const bands = tracks.filter((t) => t.owner?.startsWith('gt-band gt-band-'));
+    assert.ok(field, 'the ink field must own route coverage');
+    assert.equal(
+      bands.length,
+      3,
+      'three independent diagonal ribbons are required',
+    );
+    assert.ok(bands.every((band) => band.frames.length === 4));
+    assert.ok(
+      bands.every((band) => band.frames[1].transform === 'translateX(0)'),
+      'ribbons must align briefly in the center before separating',
+    );
+    assert.equal(
+      field.frames[1].offset,
+      run.timing.covered / run.timing.duration,
+    );
+    console.log(
+      'PASS ink field covers the route while three diagonal ribbons cross',
+    );
+  } else if (kind === 'convoy') {
     const convoy = tracks.filter((t) => t.owner === 'gt-convoy');
     assert.equal(convoy.length, 1, 'colored sheets share one motion clock');
     const motion = convoy[0];
     assert.equal(motion.options.duration, run.timing.duration);
     assert.deepEqual(
-      motion.frames.map((f) => f.transform),
+      motion.frames.map((frame) => frame.transform),
       [
         'translateX(-110%)',
         'translateX(0%)',
@@ -90,9 +111,7 @@ for (const kind of ['frame', 'bands']) {
       motion.frames[1].offset,
       run.timing.covered / run.timing.duration,
     );
-    console.log(
-      'PASS single assembly advances continuously and owns full coverage',
-    );
+    console.log('PASS integrated diagonal curtain owns full coverage');
   } else {
     const veil = tracks.find((t) => t.owner === 'gt-veil');
     assert.ok(veil.frames.every((f) => 'transform' in f && !('opacity' in f)));
@@ -149,4 +168,21 @@ for (const kind of ['frame', 'bands']) {
     `PASS ${kind}: body ownership, safe properties, scrub isolation, idempotent play, cover gate, late frames, pause/resume, cleanup, cancellation, reduced motion`,
   );
 }
-console.log('22 game transition invariant checks passed.');
+// 层选择器隔离（2026-09-13 回归）：过场层本身 class 就带 gt-<kind>，
+// CSS 里任何不带 .game-transition 前缀的裸 .gt-<kind> 规则都会命中层自身——
+// 曾把层从 fixed 变成 absolute 并被撑到 2800px 宽，导致标题巨大、切页后页面从底部漏出。
+{
+  const css = await readFile(
+    new URL('../app/game-transitions.css', import.meta.url),
+    'utf8',
+  );
+  for (const kind of ['frame', 'bands', 'convoy']) {
+    const bare = new RegExp(`(^|})\\s*\\.gt-${kind}\\s*[,{]`, 'm');
+    assert.ok(
+      !bare.test(css),
+      `.gt-${kind} 规则必须加 .game-transition 前缀，否则会命中过场层自身`,
+    );
+  }
+  console.log('PASS kind styles never match the transition layer itself');
+}
+console.log('23 game transition invariant checks passed.');

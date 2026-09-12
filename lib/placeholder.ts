@@ -363,6 +363,8 @@ export type PlaceholderVote = {
   winnerId: string;
   loserId: string;
   ts: number;
+  /** 手动投出的平局票（决策 048）；生成的占位票全是胜负票，无此字段按 win 处理 */
+  outcome?: 'win' | 'draw';
 };
 
 export function generatePlaceholderVotes(count = 200): PlaceholderVote[] {

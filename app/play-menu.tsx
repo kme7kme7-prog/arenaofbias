@@ -1,6 +1,7 @@
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useAccount, AccountButton } from '@/components/account';
 import { currentRandomArenaHash } from '@/lib/placeholder';
+import { convoyNavigate } from '@/lib/game-transitions';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
 // 正式测评为资格制：当前 dev 开发者身份拥有资格（决策 028）。
@@ -85,6 +86,18 @@ export default function PlayMenu() {
                           ? formalHref()
                           : '#random'
                     }
+                    onClick={(e) => {
+                      // 菜单进测评走一体斜幕（2026-09-13 用户拍板）；
+                      // formal 的目的地在点击时现抽，保持随机口径
+                      e.preventDefault();
+                      const hash =
+                        mode.id === 'event'
+                          ? '#event'
+                          : mode.id === 'formal'
+                            ? formalHref()
+                            : '#random';
+                      convoyNavigate(hash, mode.code);
+                    }}
                   >
                     <span className="play-classic-idx">
                       {String(index + 1).padStart(3, '0')}

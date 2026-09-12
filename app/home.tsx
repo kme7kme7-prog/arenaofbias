@@ -1,6 +1,7 @@
 import { AccountButton } from '@/components/account';
 import { useRef, useState } from 'react';
-import { createGameTransition, bandsNavigate } from '@/lib/game-transitions';
+import { createGameTransition, bandsNavigate, convoyNavigate } from '@/lib/game-transitions';
+import { currentRatings } from '@/lib/ratings';
 // 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
 // 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
 import { currentRandomArenaHash } from '@/lib/placeholder';
@@ -130,7 +131,7 @@ export default function Home() {
               href="#prompts"
               onClick={(e) => {
                 e.preventDefault();
-                bandsNavigate('#prompts');
+                convoyNavigate('#prompts', 'PROMPT LIBRARY');
               }}
             >
               先逛逛提示词库 <ArrowUpRight size={20} />
@@ -140,7 +141,21 @@ export default function Home() {
               href="#rank"
               onClick={(e) => {
                 e.preventDefault();
-                bandsNavigate('#rank');
+                // 字带站队：声望分前两名上带（暗分排序，未就绪/不足退回通用品牌词）
+                const top = Object.entries(currentRatings())
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 2)
+                  .map(([mid]) => mid);
+                bandsNavigate(
+                  '#rank',
+                  top.length >= 2
+                    ? {
+                        title: 'LEADERBOARD',
+                        words: ['LEADERBOARD', top[0], top[1]],
+                        labels: ['RANK →', 'TOP 01', 'TOP 02'],
+                      }
+                    : { title: 'LEADERBOARD' },
+                );
               }}
             >
               看看偏好榜 <ArrowUpRight size={20} />

@@ -12,6 +12,8 @@ type VoteRow = {
   mode: string;
   ts: number;
   username: string | null;
+  /** 决策 048：draw = 平局票（winnerMid 列改显示「平局」） */
+  outcome?: 'win' | 'draw';
 };
 type CommentRow = {
   id: string;
@@ -164,7 +166,7 @@ export function AdminLog() {
                 <td className="muted">{fmt(row.ts)}</td>
                 <td>{row.username ?? '—'}</td>
                 <td>{row.promptId}</td>
-                <td>{row.winnerMid}</td>
+                <td>{row.outcome === 'draw' ? '平局' : row.winnerMid}</td>
                 <td className="muted">{row.loserMid}</td>
                 <td>{row.mode}</td>
               </tr>
