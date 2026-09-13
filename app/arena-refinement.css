@@ -1,0 +1,655 @@
+/* Arena finish: paper, ink and team colors, with fewer competing visual layers. */
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font:
+    500 12px/1.2 'MiSans',
+    'Microsoft YaHei',
+    sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.language-switch:hover {
+  background: #a0b18520;
+}
+.language-switch:focus-visible {
+  outline: 2px solid var(--acid);
+  outline-offset: 4px;
+}
+.lobby-header,
+.rank-header,
+.obs-header {
+  gap: 18px;
+}
+.lobby-header .language-switch,
+.rank-header .language-switch {
+  margin-left: auto;
+}
+.lobby-brand .brand-tag,
+.brand .brand-tag {
+  margin-left: 0.12em;
+}
+html[lang='zh-CN'] .lobby-brand,
+html[lang='zh-CN'] .brand strong {
+  letter-spacing: 0.08em;
+}
+
+.arena-shell {
+  --paper: #e9ebe3;
+  background:
+    radial-gradient(ellipse at 50% 0, #f5f5ee 0, transparent 70%), #e3e7df;
+}
+.arena-shell .ambient-grid {
+  opacity: 0.12;
+  background-size: 80px 80px;
+}
+.arena-shell .ambient-grid::after {
+  display: none;
+}
+.arena-shell .topbar {
+  height: 68px;
+  padding-inline: max(24px, calc((100vw - 1480px) / 2));
+  gap: 28px;
+  background: #1c2927;
+  border-bottom: 1px solid #73805d;
+  box-shadow: 0 3px 0 #d9fb5133;
+}
+.arena-shell .brand {
+  gap: 12px;
+  flex-shrink: 0;
+}
+.arena-shell .brand strong {
+  font-size: 23px;
+  white-space: nowrap;
+}
+.arena-shell .brand .arena-mark {
+  scale: 0.76;
+  margin: -6px;
+}
+.arena-shell .header-divider,
+.arena-shell .terminal-label .live-dot {
+  display: none;
+}
+.arena-shell .terminal-label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.arena-shell .arena-home-link {
+  color: #bcc8be;
+}
+.arena-shell .arena-home-link:hover {
+  color: var(--acid);
+}
+.arena-shell .header-right {
+  margin-left: auto;
+  gap: 10px;
+}
+.arena-shell .header-right .account-entry {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+.arena-shell .icon-button {
+  width: 34px;
+  height: 36px;
+  border-color: #74837740;
+}
+.arena-shell .language-switch {
+  border-color: #74837770;
+  color: #dce5d9;
+}
+.arena-shell .main-terminal {
+  width: calc(100% - 64px);
+  max-width: 1440px;
+  padding-top: 28px;
+}
+.arena-shell .command-row {
+  min-height: 54px;
+  margin-bottom: 24px;
+  gap: 28px;
+}
+.arena-shell .section-heading h1 {
+  font:
+    750 clamp(25px, 2.3vw, 34px)/1.3 'MiSans',
+    'Microsoft YaHei',
+    sans-serif;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+.arena-shell .mode-static {
+  max-width: 420px;
+  text-align: right;
+}
+.arena-shell .mode-static-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #364939;
+  font-size: 12px;
+  box-shadow: none;
+}
+.arena-shell .mode-static-label svg {
+  color: #657c34;
+  width: 15px;
+}
+.arena-shell .mode-tabs p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #69766b;
+  margin-top: 5px;
+}
+.arena-shell .briefing {
+  min-height: 64px;
+  padding: 14px 20px;
+  gap: 20px;
+  border-color: #9ba79470;
+  border-left: 3px solid #384e3b;
+  background: #f7f7ef;
+  box-shadow: 0 1px 0 #fff inset;
+}
+.arena-shell .round-tag {
+  color: #708068;
+  font-size: 10px;
+}
+.arena-shell .round-tag b {
+  color: #273c2e;
+  font-size: 22px;
+  font-weight: 600;
+  margin-left: 10px;
+}
+.arena-shell .round-tag svg {
+  display: none;
+}
+.arena-shell .briefing-copy {
+  padding-left: 20px;
+  border-color: #a9b2a460;
+}
+.arena-shell .briefing h2 {
+  font-size: 14px;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+}
+.arena-shell .briefing-corner {
+  display: none;
+}
+.arena-shell .match-commentary {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding: 11px 20px;
+  min-height: 42px;
+  border: 1px solid #9ba79470;
+  border-top: 0;
+  border-left: 3px solid #384e3b;
+  background: #d9dfd2;
+  color: #465640;
+  gap: 20px;
+}
+.arena-shell .commentary-badge {
+  font-size: 10px;
+  color: #617052;
+}
+.arena-shell .commentary-badge .arena-mark {
+  display: none;
+}
+.arena-shell .match-commentary p {
+  font-size: 12px;
+  letter-spacing: 0.025em;
+  line-height: 1.6;
+}
+.arena-shell .field-meta {
+  height: 30px;
+  font-size: 10px;
+  color: #72806d;
+  letter-spacing: 0.04em;
+}
+.arena-shell .field-status {
+  font-size: 11px;
+}
+.arena-shell .field-status i {
+  width: 4px;
+  height: 4px;
+}
+.arena-shell .stage-watermark {
+  display: none;
+}
+.arena-shell .arena-stage {
+  column-gap: 52px;
+  row-gap: 18px;
+}
+.arena-shell .work-panel {
+  padding-inline: 7px;
+  background: #20302c;
+  border: 1px solid #41534a;
+  box-shadow:
+    0 2px 1px #1c30221c,
+    0 12px 22px -16px #182e2580;
+}
+.arena-shell .work-panel::before {
+  display: none;
+}
+.arena-shell .work-panel::after {
+  height: 2px;
+  width: 44px;
+}
+.arena-shell .panel-heading {
+  height: 48px;
+  padding: 0 6px;
+  gap: 12px;
+}
+.arena-shell .panel-identity {
+  min-width: 0;
+  gap: 12px;
+}
+.arena-shell .side-letter {
+  font-size: 24px;
+  width: 26px;
+  height: auto;
+  border: 0;
+  padding: 0;
+}
+.arena-shell .model-identity {
+  font-size: 12px;
+  letter-spacing: 0.035em;
+  overflow-wrap: anywhere;
+}
+.arena-shell .panel-lock {
+  color: #93a18b;
+}
+.arena-shell .panel-lock svg {
+  width: 12px;
+}
+.arena-shell .image-corner {
+  display: none;
+}
+.arena-shell .panel-bottom {
+  height: 28px;
+  font-size: 9px;
+  color: #a3b09b;
+  letter-spacing: 0.03em;
+}
+.arena-shell .expand-control {
+  width: 32px;
+  height: 32px;
+  right: 10px;
+  bottom: 10px;
+  background: #1c3028d9;
+  border-color: #eff6e45c;
+}
+.arena-shell .vote-button {
+  height: 54px;
+  margin-top: 10px;
+  gap: 12px;
+  padding: 0 16px;
+  background: linear-gradient(115deg, #ffffff14, transparent 75%), var(--team);
+}
+.arena-shell .vote-copy strong {
+  font-size: clamp(13px, 1.2vw, 17px);
+  letter-spacing: 0.01em;
+  font-weight: 650;
+}
+.arena-shell .vote-icon {
+  border: 0;
+  width: 23px;
+  height: 26px;
+}
+.arena-shell .vote-button kbd {
+  width: 23px;
+  height: 23px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.arena-shell .vote-button::after {
+  height: 2px;
+}
+.arena-shell .draw-row {
+  margin: 0;
+  gap: 20px;
+}
+.arena-shell .vote-draw {
+  width: 260px;
+  height: 42px;
+  padding-inline: 16px;
+  gap: 12px;
+  background: #e9ece3;
+  box-shadow: inset 0 0 0 1px #84927c80;
+}
+.arena-shell .vote-draw .vote-copy strong {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.arena-shell .vote-draw .vote-icon {
+  width: 23px;
+  height: 26px;
+}
+.arena-shell .vote-draw kbd {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.arena-shell .draw-rule {
+  opacity: 0.45;
+}
+.arena-shell .versus-spine {
+  width: 42px;
+  left: calc(50% - 21px);
+}
+.arena-shell .vs-emblem {
+  width: 32px;
+  height: 40px;
+}
+.arena-shell .vs-emblem b {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  font-style: normal;
+  white-space: nowrap;
+  color: #63745e;
+}
+.arena-shell .vs-orbit {
+  opacity: 0.35;
+}
+.arena-shell .vs-orbit.second {
+  display: none;
+}
+.arena-shell .spine-line {
+  opacity: 0.35;
+}
+.arena-shell .round-console {
+  margin-top: 16px;
+  padding-block: 14px;
+  border-color: #8d9e8560;
+}
+.arena-shell .sequence-steps {
+  font-size: 10px;
+  gap: 8px;
+  color: #73836c;
+}
+.arena-shell .sequence-steps b {
+  width: 22px;
+  height: 24px;
+  font-size: 10px;
+}
+.arena-shell .text-button {
+  font-size: 11px;
+}
+.arena-shell .next-button {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 9px 15px;
+}
+.arena-shell.phase-result .vote-button {
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+.arena-shell.phase-result .draw-row {
+  height: 0;
+  margin: 0;
+}
+.arena-shell.phase-result .side-result {
+  position: static;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 8px 2px;
+  background: transparent;
+  border-bottom: 1px solid #81907740;
+}
+.arena-shell.phase-result .side-result > span {
+  display: inline;
+  color: #69765e;
+  font-size: 10px;
+}
+.arena-shell.phase-result .side-result strong {
+  font-size: 14px;
+  color: #344933;
+}
+.arena-shell .chosen-stamp {
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+html[lang='en'] .arena-shell .brand strong {
+  font-size: 20px;
+}
+html[lang='en'] .arena-shell .vote-copy strong {
+  font-size: clamp(12px, 1.2vw, 16px);
+}
+
+@media (min-width: 1600px) {
+  .arena-shell .main-terminal {
+    padding-top: 34px;
+  }
+  .arena-shell .work-viewport {
+    height: clamp(400px, 30cqw, 540px);
+  }
+}
+@media (min-width: 700px) and (max-height: 850px) {
+  .arena-shell .topbar {
+    height: 58px;
+  }
+  .arena-shell .main-terminal {
+    padding-top: 20px;
+  }
+  .arena-shell .command-row {
+    min-height: 44px;
+    margin-bottom: 18px;
+  }
+  .arena-shell .briefing {
+    min-height: 54px;
+    padding-block: 10px;
+  }
+  .arena-shell .match-commentary {
+    padding-block: 8px;
+    min-height: 34px;
+    margin-bottom: 10px;
+  }
+}
+@media (max-width: 1100px) {
+  .arena-shell .topbar {
+    padding-inline: 24px;
+    gap: 20px;
+  }
+  .arena-shell .terminal-label {
+    gap: 12px;
+  }
+  .arena-shell .header-right {
+    gap: 7px;
+  }
+  .arena-shell .main-terminal {
+    width: calc(100% - 48px);
+  }
+  .arena-shell .brand strong {
+    font-size: 21px;
+  }
+  .arena-shell .arena-stage {
+    column-gap: 32px;
+  }
+  .arena-shell .versus-spine {
+    width: 26px;
+    left: calc(50% - 13px);
+  }
+  .arena-shell .vs-emblem {
+    width: 25px;
+  }
+  .arena-shell .vs-orbit {
+    display: none;
+  }
+  .arena-shell .panel-heading {
+    height: 42px;
+  }
+  .arena-shell .mode-static {
+    max-width: 320px;
+  }
+  .arena-shell .work-viewport {
+    height: clamp(310px, 40cqw, 400px);
+  }
+  .lobby-header-note,
+  .rank-header-note {
+    display: none;
+  }
+}
+@media (max-width: 699px) {
+  .arena-shell .topbar {
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .arena-shell .brand strong {
+    font-size: 18px;
+  }
+  .arena-shell .brand .arena-mark {
+    scale: 0.65;
+  }
+  .arena-shell .terminal-label {
+    order: 3;
+    width: 100%;
+    font-size: 11px;
+    border-top: 1px solid #a9b5a225;
+    padding-top: 10px;
+  }
+  .arena-shell .header-right {
+    gap: 7px;
+  }
+  .arena-shell .header-right .icon-button {
+    display: none;
+  }
+  .arena-shell .header-right .account-entry {
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .language-switch {
+    min-height: 32px;
+    padding-inline: 8px;
+    font-size: 11px;
+    gap: 5px;
+  }
+  .language-switch svg {
+    width: 14px;
+  }
+  .arena-shell .main-terminal {
+    width: calc(100% - 32px);
+    padding-top: 22px;
+  }
+  .arena-shell .command-row {
+    display: block;
+    margin-bottom: 20px;
+  }
+  .arena-shell .section-heading h1 {
+    font-size: 26px;
+  }
+  .arena-shell .mode-static {
+    max-width: none;
+    text-align: left;
+    margin-top: 12px;
+  }
+  .arena-shell .mode-tabs p {
+    text-align: left;
+  }
+  .arena-shell .briefing {
+    padding: 12px;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .arena-shell .round-tag {
+    font-size: 0;
+  }
+  .arena-shell .round-tag b {
+    margin: 0;
+    font-size: 16px;
+    line-height: 25px;
+  }
+  .arena-shell .briefing-copy {
+    padding-left: 10px;
+  }
+  .arena-shell .briefing h2 {
+    font-size: 12px;
+    line-height: 1.9;
+  }
+  .arena-shell .match-commentary {
+    padding: 9px 12px;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .arena-shell .commentary-badge {
+    font-size: 9px;
+  }
+  .arena-shell .match-commentary p {
+    font-size: 10px;
+  }
+  .arena-shell .field-meta {
+    font-size: 9px;
+  }
+  .arena-shell .field-meta .meta-right {
+    display: none;
+  }
+  .arena-shell .arena-stage {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 22px;
+  }
+  .arena-shell .versus-spine {
+    display: none;
+  }
+  .arena-shell .panel-bottom > span:first-child {
+    font-size: 9px;
+  }
+  .arena-shell .work-viewport {
+    height: 340px;
+  }
+  .arena-shell .vote-button {
+    height: 48px;
+  }
+  .arena-shell .vote-copy strong {
+    font-size: 14px;
+  }
+  .arena-shell .draw-row {
+    gap: 10px;
+  }
+  .arena-shell .vote-draw {
+    width: 220px;
+  }
+  .arena-shell .round-console {
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .arena-shell .sequence-steps {
+    flex-wrap: wrap;
+  }
+  .lobby-header,
+  .rank-header,
+  .obs-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .lobby-header {
+    height: auto;
+    min-height: 94px;
+    padding-block: 16px;
+  }
+  .lobby-header .lobby-brand,
+  .rank-header .lobby-brand {
+    margin-right: auto;
+  }
+  html[lang='en'] .arena-shell .brand strong {
+    font-size: 16px;
+  }
+  html[lang='en'] .arena-shell .topbar {
+    column-gap: 8px;
+  }
+  html[lang='en'] .arena-shell .language-switch svg {
+    display: none;
+  }
+}

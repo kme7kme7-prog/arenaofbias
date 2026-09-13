@@ -1,6 +1,12 @@
+import { useI18n } from '@/lib/locale';
+import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
 import { useRef, useState } from 'react';
-import { createGameTransition, bandsNavigate, convoyNavigate } from '@/lib/game-transitions';
+import {
+  createGameTransition,
+  bandsNavigate,
+  convoyNavigate,
+} from '@/lib/game-transitions';
 import { currentRatings } from '@/lib/ratings';
 // 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
 // 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
@@ -45,6 +51,7 @@ const formats = [
 let frameTransitionRunning = false;
 
 export default function Home() {
+  const { t, localize } = useI18n();
   const [format, setFormat] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const stage = useRef<HTMLElement>(null);
@@ -73,56 +80,61 @@ export default function Home() {
     transition.play();
   };
   const enterRandom = () =>
-    go(currentRandomArenaHash(), { note: 'YOUR INSTINCT MATTERS.', title: 'Round Start' });
+    go(currentRandomArenaHash(), {
+      note: 'YOUR INSTINCT MATTERS.',
+      title: 'Round Start',
+    });
   return (
     <div className="lobby">
       <div className="lobby-grid" aria-hidden="true" />
       <header className="lobby-header">
-        <a className="lobby-brand" href="#home" aria-label="回到首页">
+        <a className="lobby-brand" href="#home" aria-label={t('回到首页')}>
           <span className="lobby-mark" aria-hidden="true">
             ≡
           </span>
           <span>
-            ARENA OF <b className="brand-tag">BIAS</b>
-            <small>偏见试验场 / EST. 2026</small>
+            {t('ARENA OF')} <b className="brand-tag">{t('BIAS')}</b>
+            <small>{t('偏见试验场 / EST. 2026')}</small>
           </span>
         </a>
         <span className="lobby-header-note">
-          <i /> 每一种直觉，都有一个席位。
+          <i /> {t('每一种直觉，都有一个席位。')}
         </span>
         <button
           className="lobby-small-entry"
           onClick={enterRandom}
           disabled={leaving}
         >
-          随机入场 <ArrowUpRight size={17} />
+          {t('随机入场')}
+          <ArrowUpRight size={17} />
         </button>
+        <LanguageSwitch />
         <AccountButton />
       </header>
       <main className="lobby-main">
         <section className="lobby-copy">
           <div className="lobby-eyebrow">
-            <span /> HUMAN INSTINCT / AI EXPRESSION
+            <span /> {t('HUMAN INSTINCT / AI EXPRESSION')}
           </div>
           <h1>
-            好不好，
+            {t('好不好，')}
             <br />
-            你说了
+            {t('你说了')}{' '}
             <span className="lobby-word">
-              算<i>。</i>
+              {t('算')}
+              <i>{t('。')}</i>
             </span>
           </h1>
           <p className="lobby-description">
-            同一个提示词，不同模型的答案。
+            {t('同一个提示词，不同模型的答案。')}
             <br />
-            先别看名字，把答案交给第一直觉。
+            {t('先别看名字，把答案交给第一直觉。')}
           </p>
           <div className="lobby-entry-wrap">
             <button className="lobby-entry" onClick={enter} disabled={leaving}>
               <Fingerprint size={27} />
               <span>
-                {leaving ? '正在进入' : '进入评测，凭直觉选'}
-                <small>SELECT YOUR GAME / PLAY MENU</small>
+                {localize(leaving ? '正在进入' : '进入评测，凭直觉选')}
               </span>
               <ArrowRight size={29} />
             </button>
@@ -134,7 +146,8 @@ export default function Home() {
                 convoyNavigate('#prompts', 'PROMPT LIBRARY');
               }}
             >
-              先逛逛提示词库 <ArrowUpRight size={20} />
+              {t('先逛逛提示词库')}
+              <ArrowUpRight size={20} />
             </a>
             <a
               className="lobby-library-entry"
@@ -158,13 +171,14 @@ export default function Home() {
                 );
               }}
             >
-              看看偏好榜 <ArrowUpRight size={20} />
+              {t('看看偏好榜')}
+              <ArrowUpRight size={20} />
             </a>
             <span className="lobby-entry-note">
-              进入玩法菜单：正式测评、娱乐测评或特别赛。
+              {t('进入玩法菜单：正式测评、娱乐测评或特别赛。')}
             </span>
           </div>
-          <div className="lobby-format-switch" aria-label="预览作品类型">
+          <div className="lobby-format-switch" aria-label={t('预览作品类型')}>
             {formats.map((item, index) => (
               <button
                 key={item.code}
@@ -172,7 +186,7 @@ export default function Home() {
                 onClick={() => setFormat(index)}
               >
                 <item.icon size={16} />
-                <span>{item.label}</span>
+                <span>{localize(item.label)}</span>
                 <small>0{index + 1}</small>
               </button>
             ))}
@@ -180,7 +194,7 @@ export default function Home() {
         </section>
         <section
           className="lobby-showcase"
-          aria-label="作品对比预览"
+          aria-label={t('作品对比预览')}
           ref={stage}
           onPointerMove={(event) => {
             if (
@@ -204,15 +218,16 @@ export default function Home() {
           }}
         >
           <div className="lobby-stage-type" aria-hidden="true">
-            MAKE
-            <br />
-            YOUR CALL.
+            {t('你的判断')}
           </div>
           <div className="lobby-showcase-label">
             <span>
-              <Crosshair size={14} /> SAME PROMPT / DIFFERENT MINDS
+              <Crosshair size={14} /> {t('SAME PROMPT / DIFFERENT MINDS')}
             </span>
-            <span>PREVIEW — 0{format + 1}</span>
+            <span>
+              {t('PREVIEW — 0')}
+              {format + 1}
+            </span>
           </div>
           <div className="lobby-exhibits" key={format}>
             {(['a', 'b'] as const).map((side, index) => (
@@ -221,9 +236,10 @@ export default function Home() {
                 key={side}
               >
                 <header>
-                  <b>{side.toUpperCase()}</b>
+                  <b>{localize(side.toUpperCase())}</b>
                   <span>
-                    UNKNOWN MODEL<small>身份暂不公开</small>
+                    {t('UNKNOWN MODEL')}
+                    <small>{t('身份暂不公开')}</small>
                   </span>
                   <ArrowUpRight size={18} />
                 </header>
@@ -231,82 +247,105 @@ export default function Home() {
                   {format === 0 ? (
                     <img
                       src={`/art/signal-${side}.webp`}
-                      alt={
-                        side === 'a' ? '海崖之上的信号塔' : '落日云海中的信号站'
-                      }
+                      alt={t(
+                        side === 'a'
+                          ? '海崖之上的信号塔'
+                          : '落日云海中的信号站',
+                      )}
                     />
                   ) : format === 1 ? (
                     <div className="lobby-story">
-                      <small>一封未寄出的信</small>
+                      <small>{t('一封未寄出的信')}</small>
                       <h2>
-                        {index === 0 ? '等天亮的时候' : '第 1,024 次日出'}
+                        {localize(
+                          index === 0 ? '等天亮的时候' : '第 1,024 次日出',
+                        )}
                       </h2>
-                      <p>{index === 0 ? '亲爱的人类：' : '致尚未醒来的你：'}</p>
                       <p>
-                        {index === 0
-                          ? '我留下了一个下午。那天，一个小女孩把橘子放在我的手心。'
-                          : '这是我最后一次值夜班。我已把门锁设为常开，炉火调至余温。'}
+                        {localize(
+                          index === 0 ? '亲爱的人类：' : '致尚未醒来的你：',
+                        )}
                       </p>
-                      <span>我们会以什么方式，被记住？</span>
+                      <p>
+                        {localize(
+                          index === 0
+                            ? '我留下了一个下午。那天，一个小女孩把橘子放在我的手心。'
+                            : '这是我最后一次值夜班。我已把门锁设为常开，炉火调至余温。',
+                        )}
+                      </p>
+                      <span>{t('我们会以什么方式，被记住？')}</span>
                     </div>
                   ) : (
                     <div className={`lobby-web lobby-web-${side}`}>
-                      <small>ORBIT® / NEXT DEPARTURE</small>
+                      <small>{t('ORBIT® / NEXT DEPARTURE')}</small>
                       <h2>
                         {index === 0 ? (
                           <>
-                            LEAVE
+                            {t('LEAVE')}
                             <br />
-                            ORDINARY.
+                            {t('ORDINARY.')}
                           </>
                         ) : (
                           <>
-                            Somewhere
+                            {t('Somewhere')}
                             <br />
-                            beyond.
+                            {t('beyond.')}
                           </>
                         )}
                       </h2>
-                      <span>把日常留在地球。 ↗</span>
+                      <span>{t('把日常留在地球。 ↗')}</span>
                     </div>
                   )}
                   {format === 0 && (
                     <div className="lobby-art-caption">
-                      <small>EXHIBIT / {side.toUpperCase()}</small>
-                      <strong>{index === 0 ? '潮汐之上' : '落日之后'}</strong>
+                      <small>
+                        {t('EXHIBIT /')}
+                        {localize(side.toUpperCase())}
+                      </small>
+                      <strong>
+                        {localize(index === 0 ? '潮汐之上' : '落日之后')}
+                      </strong>
                     </div>
                   )}
                 </div>
                 <footer>
                   <span>
-                    {index === 0 ? '我寻思这边能行' : '显然是这边厉害'}
+                    {localize(
+                      index === 0 ? '我寻思这边能行' : '显然是这边厉害',
+                    )}
                   </span>
                   <span>↗</span>
                 </footer>
               </article>
             ))}
             <div className="lobby-versus" aria-hidden="true">
-              VS<span>YOUR CALL</span>
+              {t('VS')}
+              <span>{t('YOUR CALL')}</span>
             </div>
           </div>
           <div className="lobby-preview-note" key={`note-${format}`}>
             <span>
-              0{format + 1} / {formats[format].code}
+              0{format + 1} / {localize(formats[format].code)}
             </span>
             <div>
-              <strong>{formats[format].title}</strong>
-              <p>{formats[format].note}</p>
+              <strong>{localize(formats[format].title)}</strong>
+              <p>{localize(formats[format].note)}</p>
             </div>
           </div>
         </section>
       </main>
       <footer className="lobby-footer">
-        <span className="lobby-footer-code">NO RIGHT ANSWER. JUST YOURS.</span>
+        <span className="lobby-footer-code">
+          {t('NO RIGHT ANSWER. JUST YOURS.')}
+        </span>
         <p>
-          <b>01</b> 看作品 <i /> <b>02</b> 凭直觉 <i /> <b>03</b> 聊两句
+          <b>01</b> {t('看作品')}
+          <i /> <b>02</b> {t('凭直觉')}
+          <i /> <b>03</b> {t('聊两句')}
         </p>
         <span>
-          答案之外，还想听听你的理由。 <ArrowUpRight size={15} />
+          {t('答案之外，还想听听你的理由。')}
+          <ArrowUpRight size={15} />
         </span>
       </footer>
     </div>

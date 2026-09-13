@@ -1,3 +1,5 @@
+import { useI18n } from '@/lib/locale';
+import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
 import {
   useLayoutEffect,
@@ -74,6 +76,7 @@ function promptStats(id: string) {
   };
 }
 function PromptDossier({ prompt }: { prompt: Prompt }) {
+  const { t, localize } = useI18n();
   const reduced = useSyncExternalStore(
     subscribeMotion,
     reducedMotion,
@@ -102,7 +105,7 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
           <iframe
             className="archive-pelican"
             src={`/art/pelican-cover.html${reduced ? '?motion=reduce' : ''}`}
-            title="鹈鹕骑行 SVG 动画演示"
+            title={t('鹈鹕骑行 SVG 动画演示')}
             sandbox="allow-scripts"
           />
         ) : (
@@ -117,37 +120,43 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
       </div>
       <div className="archive-caption">
         <span>
-          {prompt.code} / {prompt.category}
+          {localize(prompt.code)} / {localize(prompt.category)}
         </span>
         <span>
-          {prompt.id === '001'
-            ? 'SVG 动画演示，非参赛作品'
-            : '题目意象，非参赛作品'}
+          {localize(
+            prompt.id === '001'
+              ? 'SVG 动画演示，非参赛作品'
+              : '题目意象，非参赛作品',
+          )}
         </span>
       </div>
       <div className="archive-dossier-body">
         <div className="archive-title-line" data-library-reveal>
           <div>
-            <p className="archive-selected-label">当前命题</p>
+            <p className="archive-selected-label">{t('当前命题')}</p>
             <h2 id="dossier-title">{prompt.name}</h2>
           </div>
           <span className="archive-dossier-number" aria-hidden="true">
-            {prompt.id}
+            {localize(prompt.id)}
           </span>
         </div>
-        {prompt.commentary && (
-          <p className="archive-commentary" data-library-reveal>
-            {prompt.commentary}
-          </p>
+        {localize(
+          prompt.commentary && (
+            <p className="archive-commentary" data-library-reveal>
+              {localize(prompt.commentary)}
+            </p>
+          ),
         )}
         <section
           className="archive-brief"
-          aria-label="提示词原文"
+          aria-label={t('提示词原文')}
           data-library-reveal
         >
           <div className="archive-brief-heading">
-            <span>命题原文</span>
-            <span>{prompt.prompt.length} 字符</span>
+            <span>{t('命题原文')}</span>
+            <span>
+              {prompt.prompt.length} {t('字符')}
+            </span>
           </div>
           <div
             id={`brief-${prompt.id}`}
@@ -162,7 +171,7 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
               aria-controls={`brief-${prompt.id}`}
               onClick={() => setExpanded((value) => !value)}
             >
-              {expanded ? '收起命题' : '展开完整命题'}
+              {localize(expanded ? '收起命题' : '展开完整命题')}
               <ChevronDown size={15} />
             </button>
           )}
@@ -170,24 +179,31 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
         <div className="archive-dossier-bottom" data-library-reveal>
           <div className="archive-roster">
             <span>
-              <b>{stats.models.toString().padStart(2, '0')}</b> 个模型
+              <b>{localize(stats.models.toString().padStart(2, '0'))}</b>{' '}
+              {t('个模型')}
             </span>
             <span>
-              <b>{stats.works.toString().padStart(2, '0')}</b> 份结果
+              <b>{localize(stats.works.toString().padStart(2, '0'))}</b>{' '}
+              {t('份结果')}
             </span>
             {stats.samples > 0 && (
-              <small>另有 {stats.samples} 份演示样例</small>
+              <small>
+                {t('另有')}
+                {stats.samples} {t('份演示样例')}
+              </small>
             )}
           </div>
           <a className="archive-enter" href={`#arena/${prompt.id}`}>
             <span>
-              {stats.ready
-                ? '进入竞技场'
-                : stats.samples
-                  ? '查看提示词与样例'
-                  : '查看提示词'}
+              {localize(
+                stats.ready
+                  ? '进入竞技场'
+                  : stats.samples
+                    ? '查看提示词与样例'
+                    : '查看提示词',
+              )}
               <small>
-                {stats.ready ? '看作品，凭直觉选择' : '作品尚未齐备'}
+                {localize(stats.ready ? '看作品，凭直觉选择' : '作品尚未齐备')}
               </small>
             </span>
             <ArrowUpRight size={27} />
@@ -198,6 +214,7 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
   );
 }
 export default function PromptLibrary() {
+  const { t, localize } = useI18n();
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -276,7 +293,7 @@ export default function PromptLibrary() {
         <a
           className="lobby-brand"
           href="#home"
-          aria-label="回到首页"
+          aria-label={t('回到首页')}
           onClick={(event) => {
             event.preventDefault();
             // 入场是一体斜幕，退出走同款对称
@@ -285,8 +302,8 @@ export default function PromptLibrary() {
         >
           <span className="lobby-mark">≡</span>
           <span>
-            ARENA OF <b className="brand-tag">BIAS</b>
-            <small>偏见试验场 / PROMPT LIBRARY</small>
+            {t('ARENA OF')} <b className="brand-tag">{t('BIAS')}</b>
+            <small>{t('偏见试验场 / PROMPT LIBRARY')}</small>
           </span>
         </a>
         <a
@@ -298,44 +315,57 @@ export default function PromptLibrary() {
           }}
         >
           <ArrowLeft size={15} />
-          首页
+          {t('首页')}
         </a>
-        <a className="lobby-small-entry" href="#random" aria-label="随机入场">
+        <a
+          className="lobby-small-entry"
+          href="#random"
+          aria-label={t('随机入场')}
+        >
           <Shuffle size={15} />
-          随机入场
+          {t('随机入场')}
         </a>
+        <LanguageSwitch />
         <AccountButton />
       </header>
       <main className="archive-main">
         <section className="archive-heading" aria-labelledby="archive-heading">
           <div className="archive-heading-copy">
-            <p className="archive-eyebrow">THE PROMPT COLLECTION</p>
+            <p className="archive-eyebrow">{t('THE PROMPT COLLECTION')}</p>
             <h1 id="archive-heading">
-              问题相同<span>。答案不同。</span>
+              {t('问题相同')}
+              <span>{t('。答案不同。')}</span>
             </h1>
-            <p>从一个好问题开始，看看 AI 能走多远。</p>
+            <p>{t('从一个好问题开始，看看 AI 能走多远。')}</p>
           </div>
           <div
             className="archive-summary"
-            aria-label={`${prompts.length} 道命题，${readyCount} 个竞技场可进入`}
+            aria-label={t('{prompts} 道命题，{arenas} 个竞技场可进入', {
+              prompts: prompts.length,
+              arenas: readyCount,
+            })}
           >
-            <strong>{prompts.length.toString().padStart(2, '0')}</strong>
+            <strong>
+              {localize(prompts.length.toString().padStart(2, '0'))}
+            </strong>
             <span>
-              道命题
+              {t('道命题')}
               <br />
-              <b>{readyCount} 个可进入竞技场</b>
+              <b>
+                {readyCount} {t('个可进入竞技场')}
+              </b>
             </span>
           </div>
         </section>
         <div className="archive-toolbar">
-          <div className="archive-filters" aria-label="按作品类型筛选">
+          <div className="archive-filters" aria-label={t('按作品类型筛选')}>
             {filters.map(([value, label]) => (
               <button
                 key={value}
                 aria-pressed={kind === value}
                 onClick={() => setKind(value)}
               >
-                <span>{label}</span>
+                <span>{localize(label)}</span>
                 <small>
                   {value === 'all'
                     ? prompts.length
@@ -347,26 +377,28 @@ export default function PromptLibrary() {
           <label className="archive-search">
             <Search size={18} />
             <input
-              aria-label="搜索提示词"
-              placeholder="搜索题目、关键词或编号"
+              aria-label={t('搜索提示词')}
+              placeholder={t('搜索题目、关键词或编号')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            {query && (
-              <button
-                type="button"
-                aria-label="清空搜索"
-                onClick={() => setQuery('')}
-              >
-                <X size={16} />
-              </button>
+            {localize(
+              query && (
+                <button
+                  type="button"
+                  aria-label={t('清空搜索')}
+                  onClick={() => setQuery('')}
+                >
+                  <X size={16} />
+                </button>
+              ),
             )}
           </label>
         </div>
         <div className="archive-workspace">
-          <aside className="archive-index" aria-label="命题目录">
+          <aside className="archive-index" aria-label={t('命题目录')}>
             <div className="archive-index-heading">
-              <span>选择一道命题</span>
+              <span>{t('选择一道命题')}</span>
               <output aria-live="polite">
                 {visible.length} / {prompts.length}
               </output>
@@ -383,7 +415,9 @@ export default function PromptLibrary() {
                       onClick={() => setSelectedId(prompt.id)}
                       onKeyDown={(event) => moveSelection(event, index)}
                     >
-                      <span className="archive-option-number">{prompt.id}</span>
+                      <span className="archive-option-number">
+                        {localize(prompt.id)}
+                      </span>
                       {prompt.id === '001' ? (
                         <span
                           className="archive-thumb archive-thumb-live"
@@ -401,13 +435,15 @@ export default function PromptLibrary() {
                       <span className="archive-option-copy">
                         <b>{prompt.name}</b>
                         <small>
-                          {prompt.category}
+                          {localize(prompt.category)}
                           <span className={stats.ready ? 'is-ready' : ''}>
-                            {stats.ready
-                              ? '可比较'
-                              : stats.works
-                                ? '待配对'
-                                : '待收录'}
+                            {localize(
+                              stats.ready
+                                ? '可比较'
+                                : stats.works
+                                  ? '待配对'
+                                  : '待收录',
+                            )}
                           </span>
                         </small>
                       </span>
@@ -422,11 +458,13 @@ export default function PromptLibrary() {
             </div>
             <div className="archive-index-foot">
               <span>
-                {isPlaceholderMode()
-                  ? '占位符模式 · 开发者预览'
-                  : '同一命题，不同可能。'}
+                {localize(
+                  isPlaceholderMode()
+                    ? '占位符模式 · 开发者预览'
+                    : '同一命题，不同可能。',
+                )}
               </span>
-              <span className="archive-key-hint">↑ ↓ 切换</span>
+              <span className="archive-key-hint">{t('↑ ↓ 切换')}</span>
             </div>
           </aside>
           <div className="archive-stage">
@@ -434,11 +472,12 @@ export default function PromptLibrary() {
               <>
                 <div className="archive-stage-navigation">
                   <span>
-                    命题档案 <b>{selected.id}</b>
+                    {t('命题档案')}
+                    <b>{localize(selected.id)}</b>
                   </span>
                   <div>
                     <button
-                      aria-label="上一道命题"
+                      aria-label={t('上一道命题')}
                       disabled={selectedIndex <= 0}
                       onClick={() =>
                         setSelectedId(visible[selectedIndex - 1].id)
@@ -447,7 +486,7 @@ export default function PromptLibrary() {
                       <ChevronLeft size={17} />
                     </button>
                     <button
-                      aria-label="下一道命题"
+                      aria-label={t('下一道命题')}
                       disabled={selectedIndex >= visible.length - 1}
                       onClick={() =>
                         setSelectedId(visible[selectedIndex + 1].id)
@@ -463,18 +502,22 @@ export default function PromptLibrary() {
               <div className="archive-empty">
                 <Search size={36} strokeWidth={1} />
                 <h2>
-                  {prompts.length
-                    ? '这个问题，还没找到。'
-                    : '新的命题，正在准备。'}
+                  {localize(
+                    prompts.length
+                      ? '这个问题，还没找到。'
+                      : '新的命题，正在准备。',
+                  )}
                 </h2>
                 <p>
-                  {prompts.length
-                    ? '试试其他关键词，或换一种作品类型。'
-                    : '题库暂时没有已发布的提示词。'}
+                  {localize(
+                    prompts.length
+                      ? '试试其他关键词，或换一种作品类型。'
+                      : '题库暂时没有已发布的提示词。',
+                  )}
                 </p>
                 {prompts.length > 0 && (
                   <button onClick={reset}>
-                    查看全部提示词
+                    {t('查看全部提示词')}
                     <ArrowRight size={18} />
                   </button>
                 )}
@@ -484,8 +527,8 @@ export default function PromptLibrary() {
         </div>
       </main>
       <footer className="archive-footer">
-        <span>ONE PROMPT. DIFFERENT ANSWERS.</span>
-        <span>先看作品，再作判断。</span>
+        <span>{t('ONE PROMPT. DIFFERENT ANSWERS.')}</span>
+        <span>{t('先看作品，再作判断。')}</span>
       </footer>
     </div>
   );

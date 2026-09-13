@@ -1,3 +1,5 @@
+let translateWipe = (text: string) => text;
+export function setWipeTranslator(translator: (text: string) => string) { translateWipe = translator; }
 // 可打断的界面过渡：进入中途关闭会从当前透明度/位移接续反向，不跳变。
 // 另有页面级横扫过渡 wipeNavigate：色块扫入盖满整屏时换路由，再扫出露出新页面。
 
@@ -132,9 +134,9 @@ export function wipeNavigate(
   layer.className = "page-wipe";
   layer.setAttribute("aria-hidden", "true");
   const note = document.createElement("span");
-  note.textContent = copy.note;
+  note.textContent = translateWipe(copy.note);
   const title = document.createElement("b");
-  title.textContent = copy.title;
+  title.textContent = translateWipe(copy.title);
   layer.append(note, title);
   document.body.append(layer);
   const total = cover + hold + exit;

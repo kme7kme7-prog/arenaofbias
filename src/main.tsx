@@ -1,3 +1,4 @@
+import { useI18n } from '@/lib/locale';
 import { AccountProvider } from '@/components/account';
 import '@/app/account.css';
 import { createRoot } from 'react-dom/client';
@@ -11,7 +12,12 @@ import PromptPreview from '@/app/prompt-preview';
 import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
-import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '@/lib/prompts';
+import {
+  currentPrompts,
+  getPromptsState,
+  loadPrompts,
+  subscribePrompts,
+} from '@/lib/prompts';
 import { loadRatings } from '@/lib/ratings';
 import { trackPageView } from '@/lib/track';
 import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
@@ -24,6 +30,12 @@ import '@/app/home.css';
 import '@/app/library.css';
 import '@/app/dev.css';
 import '@/app/ranking.css';
+import '@/app/arena-refinement.css';
+import { getLocale, translate } from '@/lib/locale';
+import { setTransitionTranslator } from '@/lib/game-transitions';
+import { setWipeTranslator } from '@/lib/ui-transitions';
+setWipeTranslator((text) => translate(text, getLocale()));
+setTransitionTranslator((text) => translate(text, getLocale()));
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root mount point');
@@ -36,6 +48,7 @@ function subscribeRoute(callback: () => void) {
 // 作品清单（服务端 works 表）就绪后重渲染，让 currentPairs 等
 // 数据消费方从内置花名册切到远端清单（决策 040）
 function Routes() {
+  const { t } = useI18n();
   const route = useSyncExternalStore(
     subscribeRoute,
     () => window.location.hash,
@@ -63,9 +76,9 @@ function Routes() {
       return <PromptPreview key={`formal-${prompt.id}`} prompt={prompt} />;
     return (
       <div className="route-empty">
-        <h1>这个竞技场还未就绪。</h1>
-        <p>请从提示词库选择一个可比较的提示词。</p>
-        <a href="#prompts">前往提示词库 ↗</a>
+        <h1>{t('这个竞技场还未就绪。')}</h1>
+        <p>{t('请从提示词库选择一个可比较的提示词。')}</p>
+        <a href="#prompts">{t('前往提示词库 ↗')}</a>
       </div>
     );
   }
@@ -76,9 +89,9 @@ function Routes() {
     if (prompt) return <PromptPreview key={prompt.id} prompt={prompt} />;
     return (
       <div className="route-empty">
-        <h1>这个竞技场还未就绪。</h1>
-        <p>请从提示词库选择一个可比较的提示词。</p>
-        <a href="#prompts">前往提示词库 ↗</a>
+        <h1>{t('这个竞技场还未就绪。')}</h1>
+        <p>{t('请从提示词库选择一个可比较的提示词。')}</p>
+        <a href="#prompts">{t('前往提示词库 ↗')}</a>
       </div>
     );
   }

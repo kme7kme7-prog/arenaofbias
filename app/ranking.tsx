@@ -1,3 +1,5 @@
+import { LanguageSwitch } from '@/components/language-switch';
+import { useI18n } from '@/lib/locale';
 import {
   useEffect,
   useLayoutEffect,
@@ -48,9 +50,7 @@ function loadVotes(): Promise<VoteRecord[] | null> {
   if (isPlaceholderMode()) {
     return Promise.resolve(readPlaceholderVotes());
   }
-  return fetchVotes().then((votes) =>
-    votes ? votes.map(voteToRecord) : null,
-  );
+  return fetchVotes().then((votes) => (votes ? votes.map(voteToRecord) : null));
 }
 
 function useBoardVotes(replaySeed: number): {
@@ -106,6 +106,7 @@ function Radar({
   average: number[];
   labels: string[];
 }) {
+  const { t, localize } = useI18n();
   const [display, setDisplay] = useState(values);
   const previous = useRef(values);
   useEffect(() => {
@@ -136,7 +137,11 @@ function Radar({
     <svg
       className="rank-radar"
       viewBox="0 0 440 410"
-      aria-label={`六项模拟指标：${labels.map((label, i) => `${label}${Math.round(display[i])}`).join('，')}`}
+      aria-label={t('六项模拟指标：{labels}', {
+        labels: labels
+          .map((label, i) => `${t(label)} ${Math.round(display[i])}`)
+          .join(', '),
+      })}
     >
       <circle
         className="rank-radar-outer"
@@ -179,7 +184,7 @@ function Radar({
           x={coord(i, 169)[0]}
           y={coord(i, 169)[1] - 4}
         >
-          {label}
+          {localize(label)}
         </text>
       ))}
       {labels.map((label, i) => (
@@ -214,6 +219,7 @@ function ProfilePanel({
   totalTopics: number;
   wipeSeed: number;
 }) {
+  const { t, localize } = useI18n();
   const [shown, setShown] = useState(row);
   const [shownRank, setShownRank] = useState(rank);
   const [shownCategory, setShownCategory] = useState(category);
@@ -257,19 +263,24 @@ function ProfilePanel({
       <div className="rank-panel-wipe" ref={wipeRef} aria-hidden="true" />
       <div className="rank-panel-header">
         <span>
-          模型画像 / {BOARD_CATEGORIES.find((c) => c.id === shownCategory)?.label}
+          {t('模型画像 /')}
+          {localize(
+            BOARD_CATEGORIES.find((c) => c.id === shownCategory)?.label,
+          )}
         </span>
         <span className="rank-panel-live">
-          {shown.trial ? 'PROVISIONAL' : 'IN FOCUS'}
+          {localize(shown.trial ? 'PROVISIONAL' : 'IN FOCUS')}
         </span>
       </div>
       <div className="rank-panel-name">
         <div>
-          <h2><RollingLabel text={shown.name} reduced={reduced()} /></h2>
-          <small>{shown.sub}</small>
+          <h2>
+            <RollingLabel text={shown.name} reduced={reduced()} />
+          </h2>
+          <small>{localize(shown.sub)}</small>
         </div>
         <div className="rank-panel-rank">
-          <span>当前名次</span>
+          <span>{t('当前名次')}</span>
           <b>
             <RollingNumber
               value={shownRank}
@@ -286,11 +297,11 @@ function ProfilePanel({
       <div className="rank-radar-legend">
         <span>
           <i />
-          当前模型
+          {t('当前模型')}
         </span>
         <span>
           <i className="muted" />
-          阵容平均
+          {t('阵容平均')}
         </span>
       </div>
       <div className="rank-panel-foot">
@@ -303,7 +314,7 @@ function ProfilePanel({
               {...ROLLING_MOTION}
             />
           </b>
-          <span>偏好评分</span>
+          <span>{t('偏好评分')}</span>
         </div>
         <div>
           <b>
@@ -313,20 +324,22 @@ function ProfilePanel({
               {...ROLLING_MOTION}
             />
           </b>
-          <span>参与比较</span>
+          <span>{t('参与比较')}</span>
         </div>
         <div>
           <b>
             {shown.topics}
             <small> / {totalTopics}</small>
           </b>
-          <span>题目覆盖</span>
+          <span>{t('题目覆盖')}</span>
         </div>
       </div>
       <p className="rank-panel-note">
-        {shown.wins} 胜 / {shown.losses} 负
-        {shown.draws > 0 ? ` / ${shown.draws} 平` : ''} · 胜率{' '}
-        {Math.round(shown.winrate * 100)}%。{shown.note}
+        {shown.wins} {t('胜 /')}
+        {shown.losses} {t('负')}
+        {localize(shown.draws > 0 ? ` / ${shown.draws} 平` : '')} {t('· 胜率')}
+        {localize(' ')}
+        {Math.round(shown.winrate * 100)}%。{localize(shown.note)}
       </p>
     </div>
   );
@@ -337,6 +350,7 @@ function ProfilePanel({
 // ---------------------------------------------------------------------------
 
 export default function Ranking() {
+  const { t, localize } = useI18n();
   const [category, setCategory] = useState<BoardCategory>('all');
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -347,7 +361,8 @@ export default function Ranking() {
   useEffect(() => {
     const refresh = () => setReplaySeed((seed) => seed + 1);
     window.addEventListener('aob:placeholder-votes-changed', refresh);
-    return () => window.removeEventListener('aob:placeholder-votes-changed', refresh);
+    return () =>
+      window.removeEventListener('aob:placeholder-votes-changed', refresh);
   }, []);
   const { votes, failed, loading } = useBoardVotes(replaySeed);
   const data = useMemo(
@@ -359,9 +374,12 @@ export default function Ranking() {
     [scope, votes],
   );
   const selected =
-    data?.rows.find((row) => row.modelId === selectedId) ?? data?.rows[0] ?? null;
+    data?.rows.find((row) => row.modelId === selectedId) ??
+    data?.rows[0] ??
+    null;
   const selectedRank = selected
-    ? (data?.rows.findIndex((row) => row.modelId === selected.modelId) ?? -1) + 1
+    ? (data?.rows.findIndex((row) => row.modelId === selected.modelId) ?? -1) +
+      1
     : 0;
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const activeTabIndex = BOARD_CATEGORIES.findIndex((c) => c.id === category);
@@ -502,7 +520,7 @@ export default function Ranking() {
         <a
           className="lobby-brand"
           href="#home"
-          aria-label="回到首页"
+          aria-label={t('回到首页')}
           onClick={(e) => {
             e.preventDefault();
             bandsNavigate('#home');
@@ -512,21 +530,24 @@ export default function Ranking() {
             ≡
           </span>
           <span>
-            ARENA OF <b className="brand-tag">BIAS</b>
-            <small>偏好榜 / PREFERENCE INDEX</small>
+            {t('ARENA OF')} <b className="brand-tag">{t('BIAS')}</b>
+            <small>{t('偏好榜 / PREFERENCE INDEX')}</small>
           </span>
         </a>
+        <LanguageSwitch />
         <span className="rank-header-note">
-          <i /> 由每一次选择组成
+          <i /> {t('由每一次选择组成')}
         </span>
         <span className="demo-label">
           {placeholder ? (
             <>
-              PLACEHOLDER <b>DATA</b>
+              {t('PLACEHOLDER')}
+              <b>{t('DATA')}</b>
             </>
           ) : (
             <>
-              DEMO <b>DATA</b>
+              {t('DEMO')}
+              <b>{t('DATA')}</b>
             </>
           )}
         </span>
@@ -534,37 +555,48 @@ export default function Ranking() {
       <main className="rank-main">
         <section className="rank-hero">
           <div>
-            <div className="rank-eyebrow">THE PUBLIC PREFERENCE INDEX / 01</div>
+            <div className="rank-eyebrow">
+              {t('THE PUBLIC PREFERENCE INDEX / 01')}
+            </div>
             <h1>
-              偏好，有迹可循<span>。</span>
+              {t('偏好，有迹可循')}
+              <span>{t('。')}</span>
             </h1>
-            <p>没有标准答案。但每一次选择，都让偏好更清晰。</p>
+            <p>{t('没有标准答案。但每一次选择，都让偏好更清晰。')}</p>
           </div>
           <div className="rank-hero-note">
-            <small>{(allData?.totalVotes ?? 0) > 0 ? '参与比较' : '有效比较'}</small>
+            <small>
+              {localize(
+                (allData?.totalVotes ?? 0) > 0 ? '参与比较' : '有效比较',
+              )}
+            </small>
             <strong>
-              {(allData?.totalVotes ?? 0) > 0 ? (
-                <RollingNumber
-                  value={allData!.totalVotes}
-                  animated={!reduced()}
-                  {...ROLLING_MOTION}
-                />
-              ) : (
-                '—'
+              {localize(
+                (allData?.totalVotes ?? 0) > 0 ? (
+                  <RollingNumber
+                    value={allData!.totalVotes}
+                    animated={!reduced()}
+                    {...ROLLING_MOTION}
+                  />
+                ) : (
+                  '—'
+                ),
               )}
               {(allData?.totalVotes ?? 0) > 0 && (
                 <span className="rank-note-arrow"> ↗</span>
               )}
             </strong>
             <p>
-              {(allData?.totalVotes ?? 0) > 0
-                ? `${allData!.modelCount} 个模型 · ${allData!.promptCount} 道题目`
-                : '尚未形成排名'}
+              {localize(
+                (allData?.totalVotes ?? 0) > 0
+                  ? `${allData!.modelCount} 个模型 · ${allData!.promptCount} 道题目`
+                  : '尚未形成排名',
+              )}
             </p>
           </div>
         </section>
         <div className="rank-controls">
-          <div className="rank-tabs" role="tablist" aria-label="榜单类别">
+          <div className="rank-tabs" role="tablist" aria-label={t('榜单类别')}>
             <div
               className="rank-tab-light"
               style={{
@@ -586,7 +618,7 @@ export default function Ranking() {
                 <span className="rank-tab-idx" aria-hidden="true">
                   0{index + 1}
                 </span>
-                {item.label}
+                {localize(item.label)}
               </button>
             ))}
           </div>
@@ -598,16 +630,16 @@ export default function Ranking() {
                 onClick={() =>
                   setScope((value) => (value === 'mixed' ? 'formal' : 'mixed'))
                 }
-                title="正式与娱乐混榜，或只看正式测评的票（决策 026）"
+                title={t('正式与娱乐混榜，或只看正式测评的票（决策 026）')}
               >
-                <i aria-hidden="true" /> 只看正式
+                <i aria-hidden="true" /> {t('只看正式')}
               </button>
             )}
             <button
               className="rank-replay"
               onClick={() => setReplaySeed((seed) => seed + 1)}
             >
-              <RotateCcw size={13} /> 重播入场
+              <RotateCcw size={13} /> {t('重播入场')}
             </button>
           </div>
         </div>
@@ -615,77 +647,92 @@ export default function Ranking() {
         {loading ? (
           <section className="rank-empty" aria-live="polite">
             <div>
-              <div className="rank-empty-code">LOADING THE VOTES</div>
+              <div className="rank-empty-code">{t('LOADING THE VOTES')}</div>
               <h2>
-                正在取回
+                {t('正在取回')}
                 <br />
-                每一次选择。
+                {t('每一次选择。')}
               </h2>
-              <p>偏好榜由全部投票实时聚合，数据马上就到。</p>
+              <p>{t('偏好榜由全部投票实时聚合，数据马上就到。')}</p>
             </div>
           </section>
         ) : failed ? (
           <section className="rank-empty" aria-live="polite">
             <div>
-              <div className="rank-empty-code">SIGNAL LOST</div>
+              <div className="rank-empty-code">{t('SIGNAL LOST')}</div>
               <h2>
-                投票数据
+                {t('投票数据')}
                 <br />
-                暂时取不回来。
+                {t('暂时取不回来。')}
               </h2>
-              <p>网络或服务暂时不可用。稍后重试，或重新加载页面。</p>
+              <p>{t('网络或服务暂时不可用。稍后重试，或重新加载页面。')}</p>
               <button
                 className="rank-empty-action"
                 onClick={() => setReplaySeed((seed) => seed + 1)}
               >
-                重新拉取 <ArrowUpRight size={17} />
+                {t('重新拉取')}
+                <ArrowUpRight size={17} />
               </button>
             </div>
           </section>
         ) : (allData?.totalVotes ?? 0) === 0 ? (
           <section className="rank-empty" aria-live="polite">
             <div>
-              <div className="rank-empty-code">AWAITING YOUR FIRST CHOICE</div>
+              <div className="rank-empty-code">
+                {t('AWAITING YOUR FIRST CHOICE')}
+              </div>
               <h2>
-                第一份排名，
+                {t('第一份排名，')}
                 <br />
-                从一次选择开始。
+                {t('从一次选择开始。')}
               </h2>
               <p>
-                这里还没有足够的有效投票。看一组作品，选出你更喜欢的一边，让偏好逐渐有迹可循。
+                {t(
+                  '这里还没有足够的有效投票。看一组作品，选出你更喜欢的一边，让偏好逐渐有迹可循。',
+                )}
               </p>
               <a className="rank-empty-action" href="#random">
-                去看一组作品 <ArrowUpRight size={17} />
+                {t('去看一组作品')}
+                <ArrowUpRight size={17} />
               </a>
               <small className="rank-empty-hint">
-                {placeholder
-                  ? '占位符模式已开启：到竞技场亲手投一票，或到开发者面板生成占位投票。'
-                  : '投票需要登录；到各竞技场看一组作品，选出你更喜欢的一边。'}
+                {localize(
+                  placeholder
+                    ? '占位符模式已开启：到竞技场亲手投一票，或到开发者面板生成占位投票。'
+                    : '投票需要登录；到各竞技场看一组作品，选出你更喜欢的一边。',
+                )}
               </small>
             </div>
             <div className="rank-empty-art" aria-hidden="true">
-              <div className="rank-ticket">A</div>
-              <div className="rank-ticket front">B</div>
-              <div className="rank-sticker">YOUR CHOICE MATTERS</div>
+              <div className="rank-ticket">{t('A')}</div>
+              <div className="rank-ticket front">{t('B')}</div>
+              <div className="rank-sticker">{t('YOUR CHOICE MATTERS')}</div>
             </div>
           </section>
         ) : data!.rows.length === 0 ? (
           <section className="rank-empty" aria-live="polite">
             <div>
-              <div className="rank-empty-code">MORE PERSPECTIVES NEEDED</div>
+              <div className="rank-empty-code">
+                {t('MORE PERSPECTIVES NEEDED')}
+              </div>
               <h2>
-                {BOARD_CATEGORIES.find((c) => c.id === category)?.label}榜，
-                还差一些判断。
+                {localize(
+                  BOARD_CATEGORIES.find((c) => c.id === category)?.label,
+                )}
+                {t('榜， 还差一些判断。')}
               </h2>
-              <p>这个分类的比较数据还不足以形成榜单。你可以先看综合榜。</p>
+              <p>
+                {t('这个分类的比较数据还不足以形成榜单。你可以先看综合榜。')}
+              </p>
               <button
                 className="rank-empty-action"
                 onClick={() => setCategory('all')}
               >
-                查看综合榜 <ArrowUpRight size={17} />
+                {t('查看综合榜')}
+                <ArrowUpRight size={17} />
               </button>
               <small className="rank-empty-hint">
-                数据不足时不显示排名与雷达，避免把缺失数据画成零分。
+                {t('数据不足时不显示排名与雷达，避免把缺失数据画成零分。')}
               </small>
             </div>
           </section>
@@ -694,17 +741,17 @@ export default function Ranking() {
             <section>
               <div className="term-ticks rank-board-ticks" aria-hidden="true" />
               <div className="rank-columns">
-                <span>名次</span>
-                <span>模型 / MODEL</span>
-                <span className="numeric">偏好评分</span>
-                <span className="numeric samples">比较次数</span>
+                <span>{t('名次')}</span>
+                <span>{t('模型 / MODEL')}</span>
+                <span className="numeric">{t('偏好评分')}</span>
+                <span className="numeric samples">{t('比较次数')}</span>
                 <span />
               </div>
               <div
                 className="rank-board"
                 key={replaySeed}
                 ref={boardRef}
-                aria-label="模型偏好榜"
+                aria-label={t('模型偏好榜')}
               >
                 {data!.rows.map((row, index) => (
                   <article
@@ -720,7 +767,10 @@ export default function Ranking() {
                       <span className="rank-num">
                         <RollingNumber
                           value={index + 1}
-                          format={{ minimumIntegerDigits: 2, useGrouping: false }}
+                          format={{
+                            minimumIntegerDigits: 2,
+                            useGrouping: false,
+                          }}
                           animated={!reduced()}
                           {...ROLLING_MOTION}
                         />
@@ -731,16 +781,16 @@ export default function Ranking() {
                           style={{ color: row.accent }}
                           aria-hidden="true"
                         >
-                          {row.sigil}
+                          {localize(row.sigil)}
                         </span>
                         <span>
                           <span className="rank-name">
                             {row.name}
                             {row.trial && (
-                              <span className="rank-trial">暂定</span>
+                              <span className="rank-trial">{t('暂定')}</span>
                             )}
                           </span>
-                          <span className="rank-sub">{row.sub}</span>
+                          <span className="rank-sub">{localize(row.sub)}</span>
                         </span>
                       </span>
                       <RollingNumber
@@ -763,13 +813,17 @@ export default function Ranking() {
               </div>
               <div className="rank-board-foot">
                 <span className="rank-status">
-                  {BOARD_CATEGORIES.find((c) => c.id === category)?.label}偏好 ·
-                  选择模型查看六维档案
+                  {localize(
+                    BOARD_CATEGORIES.find((c) => c.id === category)?.label,
+                  )}
+                  {t('偏好 · 选择模型查看六维档案')}
                 </span>
                 <span>
-                  {placeholder
-                    ? '占位数据 · 评分与排名均为演示'
-                    : '评分与排名均为演示'}
+                  {localize(
+                    placeholder
+                      ? '占位数据 · 评分与排名均为演示'
+                      : '评分与排名均为演示',
+                  )}
                 </span>
               </div>
             </section>
@@ -785,9 +839,11 @@ export default function Ranking() {
                   />
                 </div>
                 <div className="rank-panel-caption">
-                  指标结构演示 · 六个维度均为模拟数据，尚未建立实际测量规则。
+                  {t(
+                    '指标结构演示 · 六个维度均为模拟数据，尚未建立实际测量规则。',
+                  )}
                   <br />
-                  虚线表示阵容平均值；切换赛道可查看不同的指标组合。
+                  {t('虚线表示阵容平均值；切换赛道可查看不同的指标组合。')}
                 </div>
               </aside>
             )}
@@ -795,9 +851,9 @@ export default function Ranking() {
         )}
       </main>
       <footer className="rank-footer">
-        <span>ARENA OF BIAS / SUBJECTIVITY IS THE POINT.</span>
+        <span>{t('ARENA OF BIAS / SUBJECTIVITY IS THE POINT.')}</span>
         <span>
-          {placeholder ? 'PLACEHOLDER VOTES ONLY' : 'DEMO BUILD 0.1'}
+          {localize(placeholder ? 'PLACEHOLDER VOTES ONLY' : 'DEMO BUILD 0.1')}
         </span>
       </footer>
     </div>

@@ -1,3 +1,6 @@
+let translateTransition = (text: string) => text;
+export function setTransitionTranslator(translator: (text: string) => string) { translateTransition = translator; }
+
 // Reference prototypes and route navigation share the same WAAPI tracks.
 // onCovered is the safe point for a route swap.
 // 注意：本文件被 scripts/check-game-transitions.mjs 转译成 data: URL 导入测试，
@@ -87,7 +90,7 @@ export function createGameTransition(
   const el = (className: string, parent = layer, text?: string) => {
     const node = document.createElement('div');
     node.className = className;
-    if (text !== undefined) node.textContent = text;
+    if (text !== undefined) node.textContent = translateTransition(text);
     parent.append(node);
     return node;
   };

@@ -1,3 +1,4 @@
+import { useI18n } from '@/lib/locale';
 // 开发者面板：右下角低对比入口，仅本地使用，后期上线时删除挂载即可整体隐藏。
 // 功能与 lib/placeholder.ts 的存储一一对应：占位符模式开关、模型数量、占位投票。
 import { useEffect, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ const MODEL_COUNT_OPTIONS = [2, 4, 6, 8, 10, 12, 14, 16];
 const GENERATED_VOTE_COUNT = 200;
 
 export function DevPanel() {
+  const { t, localize } = useI18n();
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<DevSettings>(readDevSettings);
   const [voteCount, setVoteCount] = useState(
@@ -105,7 +107,9 @@ export function DevPanel() {
     if (!transitionRef.current)
       transitionRef.current = new SurfaceTransition(panel, panel);
     const transition = transitionRef.current;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
     if (open) transition.show(reduced);
     else transition.hide(reduced);
   }, [open]);
@@ -169,132 +173,136 @@ export function DevPanel() {
     <>
       {settings.placeholderMode && (
         <div className="dev-mode-badge" aria-hidden="true">
-          PLACEHOLDER · 占位符模式
+          {t('PLACEHOLDER · 占位符模式')}
         </div>
       )}
       <button
         type="button"
         className="dev-entry"
         aria-expanded={open}
-        aria-label="开发者面板"
-        title="开发者面板"
+        aria-label={t('开发者面板')}
+        title={t('开发者面板')}
         onClick={() => setOpen((value) => !value)}
       >
-        dev
+        {t('dev')}
       </button>
       <div
         className="dev-panel"
         role="dialog"
-        aria-label="开发者面板"
+        aria-label={t('开发者面板')}
         ref={panelRef}
         hidden
       >
-          <header>
-            <strong>开发者面板</strong>
-            <span>DEV / LOCAL ONLY</span>
-            <button type="button" onClick={() => setOpen(false)} aria-label="关闭开发者面板">
-              ×
-            </button>
-          </header>
-          <div className="dev-row">
-            <span>
-              开发者身份
-              <small>
-                {user
+        <header>
+          <strong>{t('开发者面板')}</strong>
+          <span>{t('DEV / LOCAL ONLY')}</span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label={t('关闭开发者面板')}
+          >
+            ×
+          </button>
+        </header>
+        <div className="dev-row">
+          <span>
+            {t('开发者身份')}
+            <small>
+              {localize(
+                user
                   ? user.username === 'dev'
                     ? '当前已以 dev 身份登录'
                     : `已登录账号 ${user.username}，无需开发者登录`
-                  : '一键以 dev 账号登录（投票计入），无需输密码'}
-              </small>
-            </span>
-            <button
-              type="button"
-              onClick={devSignIn}
-              disabled={devBusy || !!user}
-            >
-              {devBusy ? '登录中…' : '免登录进入'}
-            </button>
-          </div>
-          <label className="dev-row">
-            <span>
-              占位符模式
-              <small>开启后题库与竞技场全部使用生成的占位作品</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.placeholderMode}
-              onChange={toggleMode}
-            />
-          </label>
-          <label className="dev-row">
-            <span>占位模型数量</span>
-            <select
-              value={settings.placeholderModelCount}
-              onChange={(event) => changeCount(Number(event.target.value))}
-            >
-              {MODEL_COUNT_OPTIONS.map((count) => (
-                <option key={count} value={count}>
-                  {count} 个
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="dev-row">
-            <span>
-              随机强弱
-              <small>
-                开启后每次生成的名次格局都不同，适合观察榜单换位动画
-              </small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.randomStrength}
-              onChange={toggleRandomStrength}
-            />
-          </div>
-          <div className="dev-row">
-            <span>
-              占位投票
-              <small>随机生成榜单数据，仅存本地，不入库</small>
-            </span>
-            <button type="button" onClick={generateVotes}>
-              生成 {GENERATED_VOTE_COUNT} 条
-            </button>
-          </div>
-          <div className="dev-row">
-            <span>现有占位投票：{voteCount} 条</span>
-            <button
-              type="button"
-              onClick={clearVotes}
-              disabled={voteCount === 0}
-            >
-              清空
-            </button>
-          </div>
-          {user?.username === 'dev' && (
-            <div className="dev-row">
-              <span>
-                我的真实投票
-                <small>
-                  清空 dev 账号已落库的票（对局去重会让重复测试投不进，清掉即可重投）
-                </small>
-              </span>
-              <button
-                type="button"
-                onClick={clearMyVotes}
-                disabled={clearBusy}
-              >
-                {clearBusy ? '清空中…' : '清空重投'}
-              </button>
-            </div>
-          )}
-          {status && <p className="dev-status">{status}</p>}
-          <p className="dev-note">
-            占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动
-            #rank 偏好榜演示，仅存本地不入库。开发者身份走
-            /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。
-          </p>
+                  : '一键以 dev 账号登录（投票计入），无需输密码',
+              )}
+            </small>
+          </span>
+          <button
+            type="button"
+            onClick={devSignIn}
+            disabled={devBusy || !!user}
+          >
+            {localize(devBusy ? '登录中…' : '免登录进入')}
+          </button>
         </div>
+        <label className="dev-row">
+          <span>
+            {t('占位符模式')}
+            <small>{t('开启后题库与竞技场全部使用生成的占位作品')}</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.placeholderMode}
+            onChange={toggleMode}
+          />
+        </label>
+        <label className="dev-row">
+          <span>{t('占位模型数量')}</span>
+          <select
+            value={settings.placeholderModelCount}
+            onChange={(event) => changeCount(Number(event.target.value))}
+          >
+            {MODEL_COUNT_OPTIONS.map((count) => (
+              <option key={count} value={count}>
+                {count} {t('个')}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="dev-row">
+          <span>
+            {t('随机强弱')}
+            <small>
+              {t('开启后每次生成的名次格局都不同，适合观察榜单换位动画')}
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.randomStrength}
+            onChange={toggleRandomStrength}
+          />
+        </div>
+        <div className="dev-row">
+          <span>
+            {t('占位投票')}
+            <small>{t('随机生成榜单数据，仅存本地，不入库')}</small>
+          </span>
+          <button type="button" onClick={generateVotes}>
+            {t('生成')}
+            {GENERATED_VOTE_COUNT} {t('条')}
+          </button>
+        </div>
+        <div className="dev-row">
+          <span>
+            {t('现有占位投票：')}
+            {voteCount} {t('条')}
+          </span>
+          <button type="button" onClick={clearVotes} disabled={voteCount === 0}>
+            {t('清空')}
+          </button>
+        </div>
+        {user?.username === 'dev' && (
+          <div className="dev-row">
+            <span>
+              {t('我的真实投票')}
+              <small>
+                {t(
+                  '清空 dev 账号已落库的票（对局去重会让重复测试投不进，清掉即可重投）',
+                )}
+              </small>
+            </span>
+            <button type="button" onClick={clearMyVotes} disabled={clearBusy}>
+              {localize(clearBusy ? '清空中…' : '清空重投')}
+            </button>
+          </div>
+        )}
+        {localize(status && <p className="dev-status">{localize(status)}</p>)}
+        <p className="dev-note">
+          {t(
+            '占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动 #rank 偏好榜演示，仅存本地不入库。开发者身份走 /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。',
+          )}
+        </p>
+      </div>
     </>
   );
 }

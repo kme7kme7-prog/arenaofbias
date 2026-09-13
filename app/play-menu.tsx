@@ -1,3 +1,5 @@
+import { useI18n } from '@/lib/locale';
+import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useAccount, AccountButton } from '@/components/account';
 import { currentRandomArenaHash } from '@/lib/placeholder';
@@ -30,6 +32,7 @@ export const MODES = [
 ] as const;
 
 export default function PlayMenu() {
+  const { t, localize } = useI18n();
   const { user } = useAccount();
   // 资格判定：当前唯一持资格的是开发者身份（决策 028）
   const qualified = user?.username === 'dev';
@@ -42,20 +45,22 @@ export default function PlayMenu() {
   return (
     <div className="lobby play-classic">
       <header className="lobby-header">
-        <a className="lobby-brand" href="#home" aria-label="回到首页">
+        <a className="lobby-brand" href="#home" aria-label={t('回到首页')}>
           <span className="lobby-mark" aria-hidden="true">
             ≡
           </span>
           <span>
-            ARENA OF <b className="brand-tag">BIAS</b>
-            <small>玩法菜单 / PLAY MENU</small>
+            {t('ARENA OF')} <b className="brand-tag">{t('BIAS')}</b>
+            <small>{t('玩法菜单 / PLAY MENU')}</small>
           </span>
         </a>
+        <LanguageSwitch />
         <AccountButton />
       </header>
       <main className="play-classic-main">
         <h1>
-          选择玩法，<em>然后交给直觉。</em>
+          {t('选择玩法，')}
+          <em>{t('然后交给直觉。')}</em>
         </h1>
         <ul className="play-classic-list">
           {MODES.map((mode, index) => {
@@ -63,17 +68,22 @@ export default function PlayMenu() {
             return (
               <li key={mode.id}>
                 {locked ? (
-                  <div className="play-classic-item locked" aria-disabled="true">
+                  <div
+                    className="play-classic-item locked"
+                    aria-disabled="true"
+                  >
                     <span className="play-classic-idx">
-                      {String(index + 1).padStart(3, '0')}
+                      {localize(String(index + 1).padStart(3, '0'))}
                     </span>
                     <span className="play-classic-name">
-                      <b>{mode.name}</b>
-                      <small>{mode.code} · 资格制 · 暂未开放</small>
+                      <b>{localize(mode.name)}</b>
+                      <small>{t('资格制 · 暂未开放')}</small>
                     </span>
-                    <span className="play-classic-desc">{mode.desc}</span>
+                    <span className="play-classic-desc">
+                      {localize(mode.desc)}
+                    </span>
                     <span className="play-classic-go">
-                      <Lock size={15} /> 需要资格
+                      <Lock size={15} /> {t('需要资格')}
                     </span>
                   </div>
                 ) : (
@@ -100,17 +110,18 @@ export default function PlayMenu() {
                     }}
                   >
                     <span className="play-classic-idx">
-                      {String(index + 1).padStart(3, '0')}
+                      {localize(String(index + 1).padStart(3, '0'))}
                     </span>
                     <span className="play-classic-name">
-                      <b>{mode.name}</b>
-                      <small>
-                        {mode.code} · {mode.status}
-                      </small>
+                      <b>{localize(mode.name)}</b>
+                      <small>{localize(mode.status)}</small>
                     </span>
-                    <span className="play-classic-desc">{mode.desc}</span>
+                    <span className="play-classic-desc">
+                      {localize(mode.desc)}
+                    </span>
                     <span className="play-classic-go">
-                      进入 <ArrowUpRight size={17} />
+                      {t('进入')}
+                      <ArrowUpRight size={17} />
                     </span>
                   </a>
                 )}
@@ -119,7 +130,9 @@ export default function PlayMenu() {
           })}
         </ul>
         <p className="play-classic-note">
-          玩法名称为暂定；正式测评为资格制，开发者身份（dev 面板登录）当前持有资格。
+          {t(
+            '玩法名称为暂定；正式测评为资格制，开发者身份（dev 面板登录）当前持有资格。',
+          )}
         </p>
       </main>
     </div>

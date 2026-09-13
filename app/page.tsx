@@ -1,4 +1,6 @@
 'use client';
+import { useI18n } from '@/lib/locale';
+import { LanguageSwitch } from '@/components/language-switch';
 
 import { AccountButton, useAccount } from '@/components/account';
 
@@ -195,9 +197,14 @@ function WebWork({
 // 结果阶段的「本轮提示词」折叠条；父级用 key（题号+run）挂载，
 // 换题/换组时整体重挂载，折叠状态随之归零
 function PromptRecall({ round }: { round: Prompt }) {
+  const { t, localize } = useI18n();
   const [open, setOpen] = useState(false);
   return (
-    <section className="prompt-recall" data-open={open} aria-label="本轮提示词">
+    <section
+      className="prompt-recall"
+      data-open={open}
+      aria-label={t('本轮提示词')}
+    >
       <button
         type="button"
         className="prompt-recall-head"
@@ -206,10 +213,13 @@ function PromptRecall({ round }: { round: Prompt }) {
       >
         <span className="prompt-recall-tag">
           <ScrollText size={13} />
-          本轮提示词
+          {t('本轮提示词')}
         </span>
         <span className="prompt-recall-title">{round.name}</span>
-        <span className="prompt-recall-meta">THE PROMPT / {round.id}</span>
+        <span className="prompt-recall-meta">
+          {t('THE PROMPT /')}
+          {localize(round.id)}
+        </span>
         <span className="prompt-recall-chevron" aria-hidden="true">
           <ChevronDown size={15} />
         </span>
@@ -234,14 +244,19 @@ function ReactionBar({
   mid: string;
   modelLabel: string;
 }) {
+  const { t, localize } = useI18n();
   const [mine, setMine] = useState<ReactionKind | null>(null);
-  const [counts, setCounts] = useState<Record<ReactionKind, number> | null>(null);
+  const [counts, setCounts] = useState<Record<ReactionKind, number> | null>(
+    null,
+  );
   const [burst, setBurst] = useState<ReactionKind | null>(null);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch(`/api/reactions?prompt=${encodeURIComponent(promptId)}`);
+        const response = await fetch(
+          `/api/reactions?prompt=${encodeURIComponent(promptId)}`,
+        );
         if (!response.ok) return;
         const data = (await response.json()) as {
           counts?: Record<string, Partial<Record<ReactionKind, number>>>;
@@ -273,7 +288,9 @@ function ReactionBar({
       setBurst(kind);
     } else {
       setCounts((current) =>
-        current ? { ...current, [kind]: Math.max(0, current[kind] - 1) } : current,
+        current
+          ? { ...current, [kind]: Math.max(0, current[kind] - 1) }
+          : current,
       );
     }
     void submitReaction({
@@ -298,9 +315,9 @@ function ReactionBar({
     <div
       className={`reaction-bar ${burst ? `is-bursting reaction-burst-${burst}` : ''}`}
       onAnimationEnd={() => setBurst(null)}
-      aria-label={`对 ${modelLabel} 的态度`}
+      aria-label={t('对 {model} 的态度', { model: modelLabel })}
     >
-      <span className="reaction-caption">你的态度</span>
+      <span className="reaction-caption">{t('你的态度')}</span>
       {items.map(({ kind, label, icon }) => (
         <button
           key={kind}
@@ -308,9 +325,9 @@ function ReactionBar({
           className={`reaction-chip reaction-${kind} ${mine === kind ? 'is-picked' : ''}`}
           onClick={() => react(kind)}
           aria-pressed={mine === kind}
-          aria-label={`${label}（${counts?.[kind] ?? 0}）`}
+          aria-label={`${t(label)} (${counts?.[kind] ?? 0})`}
         >
-          <span className="reaction-icon">{icon}</span>
+          <span className="reaction-icon">{localize(icon)}</span>
           <span className="reaction-count">{counts?.[kind] ?? 0}</span>
           <span className="reaction-dots" aria-hidden="true">
             <i />
@@ -338,12 +355,13 @@ function Work({
   interactive?: boolean;
   imageFailed?: boolean;
 }) {
+  const { t, localize } = useI18n();
   if (result.content.kind === 'image')
     return imageFailed ? (
       <div className="asset-error">
         <ImageIcon />
-        <strong>画面暂时未能载入</strong>
-        <span>可先切换至文字或网页对决</span>
+        <strong>{t('画面暂时未能载入')}</strong>
+        <span>{t('可先切换至文字或网页对决')}</span>
       </div>
     ) : (
       <img
@@ -383,12 +401,12 @@ function Work({
   return (
     <article className={`story-work story-${side}`} data-tour-scroll>
       <div className="story-meta">
-        <span>一封未寄出的信</span>
+        <span>{t('一封未寄出的信')}</span>
         <span>23:59:59</span>
       </div>
       <h3>
         {story.heading}
-        <span>。</span>
+        <span>{t('。')}</span>
       </h3>
       <div className="story-body">
         {story.paragraphs.map((p, i) => (
@@ -396,7 +414,7 @@ function Work({
         ))}
       </div>
       <footer>
-        <span>{story.ending}</span>
+        <span>{localize(story.ending)}</span>
         <AudioLines size={20} />
       </footer>
     </article>
@@ -411,23 +429,26 @@ export default function Arena({
   // 正式测评（决策 024）：全程匿名、无评论区；地址 #formal/{promptId}
   formal?: boolean;
 }) {
-  const promptIndex = currentPrompts().findIndex((item) => item.id === prompt.id);
+  const { t, localize } = useI18n();
+  const promptIndex = currentPrompts().findIndex(
+    (item) => item.id === prompt.id,
+  );
   // 动态题库（决策 045）：SWITCH 越界守卫用当前题目数，而不是种子快照
   const [state, dispatch] = useReducer(
     (state: ArenaState, action: ArenaAction) =>
       arenaReducer(state, action, currentPrompts().length),
     {
-    ...initialState,
-    mode: formal ? 'formal' : 'blind',
-    round: promptIndex,
-    pendingRound: promptIndex,
-  });
+      ...initialState,
+      mode: formal ? 'formal' : 'blind',
+      round: promptIndex,
+      pendingRound: promptIndex,
+    },
+  );
   const [pair, setPair] = useState<Matchup>(() => currentMatchup(prompt.id)!);
   const pairCount = currentPairs(prompt.id).length;
   const resultCount = currentResultsForPrompt(prompt.id).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
-  const drawLabel =
-    DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
+  const drawLabel = DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
@@ -804,7 +825,7 @@ export default function Arena({
       ? '画面载入中'
       : state.phase === 'intro'
         ? spotlight
-          ? `正在观测作品 ${spotlight.toUpperCase()}`
+          ? t('正在观测作品 {side}', { side: spotlight.toUpperCase() })
           : '作品入场'
         : state.phase === 'voting'
           ? '做出选择'
@@ -819,57 +840,45 @@ export default function Arena({
       className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''}`}
     >
       <div className="ambient-grid" aria-hidden="true" />
-      <div className="edge-coordinate left" aria-hidden="true">
-        BIAS / OBSERVATION SYSTEM — 026
-      </div>
+
       <header className="topbar">
-        <a className="brand" href="#home" aria-label="回到首页">
+        <a className="brand" href="#home" aria-label={t('回到首页')}>
           <Mark />
           <div>
             <strong>
-              ARENA OF <span className="brand-tag">BIAS</span>
+              {t('ARENA OF')} <span className="brand-tag">{t('BIAS')}</span>
             </strong>
-            <small>
-              偏见试验场 <span>／</span> EST. 2026
-            </small>
           </div>
         </a>
         <div className="header-divider" />
         <div className="terminal-label">
-          <span className="live-dot" />{' '}
+          <span className="live-dot" />
+          {localize(' ')}
           <a href="#home" className="arena-home-link">
-            返回首页
-          </a>{' '}
+            {t('返回首页')}
+          </a>
+          {localize(' ')}
           <a href="#prompts" className="arena-home-link">
-            / 提示词库
+            {t('/ 提示词库')}
           </a>
         </div>
         <div className="header-right">
+          <LanguageSwitch />
           <AccountButton />
-          <span className="demo-label">
-            {isPlaceholderMode() ? (
-              <>
-                PLACEHOLDER <b>DATA</b>
-              </>
-            ) : (
-              <>
-                DEMO BUILD <b>0.1</b>
-              </>
-            )}
-          </span>
+
           <button
             className={`icon-button ${sound ? 'on' : ''}`}
             onClick={toggleSound}
-            aria-label={sound ? '关闭音效' : '开启音效'}
-            title={sound ? '关闭音效' : '开启音效'}
+            aria-label={t(sound ? '关闭音效' : '开启音效')}
+            title={t(sound ? '关闭音效' : '开启音效')}
           >
             {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
           <button
             className="icon-button fullscreen-button"
             onClick={toggleFullscreen}
-            aria-label="切换全屏"
-            title="切换全屏"
+            aria-label={t('切换全屏')}
+            title={t('切换全屏')}
           >
             <Maximize size={17} />
           </button>
@@ -877,47 +886,71 @@ export default function Arena({
       </header>
 
       <main className="main-terminal">
-        <div className="spatial-session" aria-label="评审进度">
-          <span>OBSERVATION / {round.id}</span>
+        <div className="spatial-session" aria-label={t('评审进度')}>
+          <span>
+            {t('OBSERVATION /')}
+            {localize(round.id)}
+          </span>
           {['观看作品', '做出选择', '身份揭晓'].map((label, index) => {
-            const active = index === (state.phase === 'result' ? 2 : state.phase === 'voting' || state.phase === 'locking' ? 1 : 0);
-            return <span key={label} className={active ? 'active' : ''}><i />0{index + 1} / {label}</span>;
+            const active =
+              index ===
+              (state.phase === 'result'
+                ? 2
+                : state.phase === 'voting' || state.phase === 'locking'
+                  ? 1
+                  : 0);
+            return (
+              <span key={label} className={active ? 'active' : ''}>
+                <i />0{index + 1} / {localize(label)}
+              </span>
+            );
           })}
         </div>
         <section className="command-row">
           <div className="section-heading">
-            <span className="section-code">{'// SUBJECTIVE JUDGEMENT'}</span>
             <h1>
-              直觉，即是答案<span>。</span>
+              {t('直觉，即是答案')}
+              <span>{t('。')}</span>
             </h1>
           </div>
-          <div className="mode-tabs mode-static" aria-label="评审模式">
+          <div className="mode-tabs mode-static" aria-label={t('评审模式')}>
             <span className="mode-static-label">
               <Fingerprint size={17} />
-              <span>{state.mode === 'formal' ? '正式测评' : '娱乐测评'}</span>
+              <span>
+                {localize(state.mode === 'formal' ? '正式测评' : '娱乐测评')}
+              </span>
             </span>
             <p>
-              {state.mode === 'formal'
-                ? '全程匿名：任何环节都不揭示模型名称，也没有评论区。'
-                : '隐藏名字，只看作品；做出选择后揭晓身份。'}
+              {localize(
+                state.mode === 'formal'
+                  ? '全程匿名：任何环节都不揭示模型名称，也没有评论区。'
+                  : '隐藏名字，只看作品；做出选择后揭晓身份。',
+              )}
             </p>
           </div>
         </section>
 
-        <section className="briefing" ref={briefingRef} aria-label="本轮创作要求">
+        <section
+          className="briefing"
+          ref={briefingRef}
+          aria-label={t('本轮创作要求')}
+        >
           <div className="round-tag">
             <Crosshair size={19} />
             <span>
-              Round Start <b>{round.id}</b>
+              {t('Round Start')}
+              <b>{localize(round.id)}</b>
             </span>
           </div>
           <div className="briefing-copy">
-            <span className="prompt-label">本轮命题</span>
+            <span className="prompt-label">{t('本轮命题')}</span>
             {round.prompt.length > 90 ? (
               <details className="prompt-disclosure" key={round.id}>
                 <summary>
                   <span>{round.name}</span>
-                  <span className="prompt-disclosure-label">查看完整提示词</span>
+                  <span className="prompt-disclosure-label">
+                    {t('查看完整提示词')}
+                  </span>
                 </summary>
                 <p>{round.prompt}</p>
               </details>
@@ -932,37 +965,39 @@ export default function Arena({
         <aside
           className="match-commentary"
           key={`commentary-${round.id}`}
-          aria-label="本题旁白"
+          aria-label={t('本题旁白')}
         >
           <span className="commentary-badge">
             <Mark small />
-            评审附言
+            {t('评审附言')}
           </span>
           <p>“{round.commentary}”</p>
-          <span className="commentary-id">FIELD NOTE / {round.id}</span>
         </aside>
         <div className="field-meta">
           <span>
-            <i /> LIVE COMPARISON <span className="meta-slash">/</span>{' '}
-            {round.category}
+            <i /> {t('LIVE COMPARISON')}
+            <span className="meta-slash">/</span>
+            {localize(' ')}
+            {localize(round.category)}
           </span>
           <output className="field-status" aria-live="polite">
             <i />
-            {statusText}
+            {localize(statusText)}
           </output>
           <span className="meta-right">
             {state.mode === 'blind' ? (
               <LockKeyhole size={12} />
             ) : (
               <Eye size={12} />
-            )}{' '}
-            {revealed ? 'IDENTITY OPEN' : 'IDENTITY ENCRYPTED'}
+            )}
+            {localize(' ')}
+            {localize(revealed ? 'IDENTITY OPEN' : 'IDENTITY ENCRYPTED')}
           </span>
         </div>
 
         <div className="arena-stage" ref={stageRef}>
           <div className="stage-watermark" aria-hidden="true">
-            {spotlight ? spotlight.toUpperCase() : 'VS'}
+            {localize(spotlight ? spotlight.toUpperCase() : 'VS')}
           </div>
           {(['a', 'b'] as const).map((side, index) => {
             const chosen = state.choice === side;
@@ -975,16 +1010,15 @@ export default function Arena({
                 <div className="work-panel" ref={index === 0 ? cardA : cardB}>
                   <div className="panel-heading">
                     <div className="panel-identity">
-                      <span className="side-letter">{side.toUpperCase()}</span>
+                      <span className="side-letter">
+                        {localize(side.toUpperCase())}
+                      </span>
                       <span className="model-identity">
-                        {revealed ? round.models[index] : '未知模型'}
-                        <small>
-                          {revealed ? 'DEMO IDENTITY' : 'ANONYMOUS ENTRY'}
-                        </small>
+                        {localize(revealed ? round.models[index] : '未知模型')}
                       </span>
                     </div>
                     <span className="entry-number">
-                      {round.code} / 0{index + 1}
+                      {localize(round.code)} / 0{index + 1}
                     </span>
                     <span className="panel-lock">
                       {revealed ? <Eye size={15} /> : <LockKeyhole size={15} />}
@@ -1004,7 +1038,9 @@ export default function Arena({
                         result={result}
                         side={side}
                         // 投票阶段（及揭晓后）小预览也允许交互：点击画面、作品内按钮
-                        interactive={state.phase === 'voting' || state.phase === 'result'}
+                        interactive={
+                          state.phase === 'voting' || state.phase === 'result'
+                        }
                         imageFailed={
                           result.content.kind === 'image' &&
                           failedAssets.includes(result.content.src)
@@ -1015,7 +1051,10 @@ export default function Arena({
                     <span className="image-corner br" aria-hidden="true" />
                     {prompt.kind === 'image' && (
                       <div className="image-caption">
-                        <span>EXHIBIT {side.toUpperCase()}</span>
+                        <span>
+                          {t('EXHIBIT')}
+                          {localize(side.toUpperCase())}
+                        </span>
                         <strong>{round.labels[index]}</strong>
                       </div>
                     )}
@@ -1023,36 +1062,38 @@ export default function Arena({
                       className="expand-control"
                       onClick={() => setExpanded(side)}
                       disabled={state.phase === 'intro' || blocked}
-                      aria-label={`放大查看作品 ${side.toUpperCase()}`}
-                      title={
-                        prompt.kind === 'web' ? '打开交互预览' : '放大查看'
-                      }
+                      aria-label={t('放大查看作品 {side}', {
+                        side: side.toUpperCase(),
+                      })}
+                      title={t(
+                        prompt.kind === 'web' ? '打开交互预览' : '放大查看',
+                      )}
                     >
                       <Expand size={17} />
                     </button>
                     {chosen && (
                       <div className="chosen-stamp">
                         <Check size={17} />
-                        <span>YOUR PICK</span>
+                        <span>{t('YOUR PICK')}</span>
                       </div>
                     )}
                   </div>
                   <div className="panel-bottom">
                     <span>
                       <i />
-                      {state.phase === 'result'
-                        ? '身份已揭晓'
-                        : prompt.kind === 'web'
-                          ? 'HTML / 可打开交互预览'
-                          : prompt.kind === 'text'
-                            ? 'TEXT / 短篇创作'
-                            : 'IMAGE / 概念设计'}
+                      {localize(
+                        state.phase === 'result'
+                          ? '身份已揭晓'
+                          : prompt.kind === 'web'
+                            ? 'HTML / 可打开交互预览'
+                            : prompt.kind === 'text'
+                              ? 'TEXT / 短篇创作'
+                              : 'IMAGE / 概念设计',
+                      )}
                     </span>
-                    <span className="panel-bars" aria-hidden="true">
-                      ▌▌▏▌▏▌▌
-                    </span>
+
                     <span>
-                      0{index + 1} — {round.id}
+                      0{index + 1} — {localize(round.id)}
                     </span>
                   </div>
                 </div>
@@ -1067,33 +1108,32 @@ export default function Arena({
                   </span>
                   <span className="vote-copy">
                     <strong>
-                      {side === 'a' ? '我寻思这边能行' : '显然是这边厉害'}
+                      {localize(
+                        side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
+                      )}
                     </strong>
-                    <small>
-                      {state.phase === 'intro' || state.phase === 'loading'
-                        ? 'AWAITING YOUR JUDGEMENT'
-                        : chosen
-                          ? 'CHOICE CONFIRMED'
-                          : 'TRUST YOUR INSTINCT'}
-                    </small>
                   </span>
-                  <kbd>{side === 'a' ? 'A' : 'D'}</kbd>
+                  <kbd>{localize(side === 'a' ? 'A' : 'D')}</kbd>
                 </button>
                 {state.phase === 'result' && (
                   <div className="side-result">
                     <span>
-                      {state.choice === 'draw'
-                        ? '难以取舍'
-                        : chosen
-                          ? '你站在了这一边'
-                          : '另一种直觉'}
+                      {localize(
+                        state.choice === 'draw'
+                          ? '难以取舍'
+                          : chosen
+                            ? '你站在了这一边'
+                            : '另一种直觉',
+                      )}
                     </span>
                     <strong>
-                      {state.choice === 'draw'
-                        ? '平局'
-                        : chosen
-                          ? '已选择'
-                          : '未选择'}
+                      {localize(
+                        state.choice === 'draw'
+                          ? '平局'
+                          : chosen
+                            ? '已选择'
+                            : '未选择',
+                      )}
                     </strong>
                   </div>
                 )}
@@ -1125,16 +1165,9 @@ export default function Arena({
                 )}
               </span>
               <span className="vote-copy">
-                <strong>{drawLabel}</strong>
-                <small>
-                  {state.phase === 'intro' || state.phase === 'loading'
-                    ? 'AWAITING YOUR JUDGEMENT'
-                    : state.choice === 'draw'
-                      ? 'DRAW CONFIRMED'
-                      : 'CALL IT A DRAW'}
-                </small>
+                <strong>{localize(drawLabel)}</strong>
               </span>
-              <kbd>S</kbd>
+              <kbd>{t('S')}</kbd>
             </button>
             <span className="draw-rule" aria-hidden="true" />
           </div>
@@ -1143,45 +1176,46 @@ export default function Arena({
             <div className="vs-emblem">
               <span className="vs-orbit" />
               <span className="vs-orbit second" />
-              <b>VS</b>
+              <b>{t('VS')}</b>
             </div>
-            <span className="vs-sub">
-              MAKE
-              <br />
-              YOUR
-              <br />
-              CALL
-            </span>
+
             <div className="spine-line" />
           </div>
           {state.phase === 'intro' && (
             <div className="intro-label" key={state.run} aria-hidden="true">
-              <span>NEW ENCOUNTER</span>
+              <span>{t('NEW ENCOUNTER')}</span>
               <strong>
-                Round Start <b>{round.id}</b>
+                {t('Round Start')}
+                <b>{localize(round.id)}</b>
               </strong>
-              <span>两种表达。一个选择。</span>
+              <span>{t('两种表达。一个选择。')}</span>
             </div>
           )}
           {state.phase === 'loading' && (
             <div className="loading-overlay">
               <Mark />
-              <span>正在接入试验场</span>
+              <span>{t('正在接入试验场')}</span>
               <div className="load-track" />
             </div>
           )}
           <div className="transition-shutter" aria-hidden="true">
-            <span>SWITCHING FREQUENCY</span>
-            <b>{String(state.pendingRound + 1).padStart(2, '0')}</b>
+            <span>{t('SWITCHING FREQUENCY')}</span>
+            <b>{localize(String(state.pendingRound + 1).padStart(2, '0'))}</b>
           </div>
           {state.phase === 'locking' && (
             <div className="lock-announcement" aria-hidden="true">
               <Crosshair size={28} />
-              <span>{state.choice === 'draw' ? '平局已锁定' : '直觉已锁定'}</span>
+              <span>
+                {localize(
+                  state.choice === 'draw' ? '平局已锁定' : '直觉已锁定',
+                )}
+              </span>
               <small>
-                {state.choice === 'draw'
-                  ? 'CALL IT A DRAW'
-                  : 'JUDGEMENT REGISTERED'}
+                {localize(
+                  state.choice === 'draw'
+                    ? 'CALL IT A DRAW'
+                    : 'JUDGEMENT REGISTERED',
+                )}
               </small>
             </div>
           )}
@@ -1199,38 +1233,44 @@ export default function Arena({
               <div className="result-caption">
                 <Check size={17} />
                 <strong>
-                  {state.choice === 'draw'
-                    ? '选不出来，也是一种答案。'
-                    : '好，你有自己的答案。'}
+                  {localize(
+                    state.choice === 'draw'
+                      ? '选不出来，也是一种答案。'
+                      : '好，你有自己的答案。',
+                  )}
                 </strong>
-                <span
-                  className="vote-note"
-                  data-state={voteOutcome.state}
-                >
-                  {voteOutcome.state === 'saved' &&
-                    (isPlaceholderMode()
-                      ? '已写入本地演示数据 · 占位模式'
-                      : state.choice === 'draw'
-                        ? '平局已计入偏好榜，双方各得半分'
-                        : '你的选择已计入偏好榜')}
+                <span className="vote-note" data-state={voteOutcome.state}>
+                  {localize(
+                    voteOutcome.state === 'saved' &&
+                      (isPlaceholderMode()
+                        ? '已写入本地演示数据 · 占位模式'
+                        : state.choice === 'draw'
+                          ? '平局已计入偏好榜，双方各得半分'
+                          : '你的选择已计入偏好榜'),
+                  )}
                   {voteOutcome.state === 'auth' && (
                     <button
                       type="button"
                       className="vote-note-login"
                       onClick={openAccount}
                     >
-                      登录后，你的选择会计入偏好榜 ↗
+                      {t('登录后，你的选择会计入偏好榜 ↗')}
                     </button>
                   )}
-                  {voteOutcome.state === 'dup' &&
-                    '这一对作品你已经投过票了'}
-                  {voteOutcome.state === 'failed' && voteOutcome.message}
-                  {(voteOutcome.state === 'idle' ||
-                    voteOutcome.state === 'saving') &&
-                    '正在记录你的选择…'}
+                  {localize(
+                    voteOutcome.state === 'dup' && '这一对作品你已经投过票了',
+                  )}
+                  {localize(
+                    voteOutcome.state === 'failed' && voteOutcome.message,
+                  )}
+                  {localize(
+                    (voteOutcome.state === 'idle' ||
+                      voteOutcome.state === 'saving') &&
+                      '正在记录你的选择…',
+                  )}
                 </span>
                 <a className="result-board-link" href="#rank">
-                  看看偏好榜 ↗
+                  {t('看看偏好榜 ↗')}
                 </a>
               </div>
             </div>
@@ -1243,15 +1283,18 @@ export default function Arena({
                     : 'complete'
                 }
               >
-                <b>01</b>作品入场
+                <b>01</b>
+                {t('作品入场')}
               </span>
               <i />
               <span className={state.phase === 'voting' ? 'current' : ''}>
-                <b>02</b>直觉投票
+                <b>02</b>
+                {t('直觉投票')}
               </span>
               <i />
               <span>
-                <b>03</b>身份揭晓
+                <b>03</b>
+                {t('身份揭晓')}
               </span>
             </div>
           )}
@@ -1262,7 +1305,8 @@ export default function Arena({
                 onClick={() => dispatch({ type: 'READY' })}
               >
                 <SkipForward size={15} />
-                跳过入场 <kbd>SPACE</kbd>
+                {t('跳过入场')}
+                <kbd>{t('SPACE')}</kbd>
               </button>
             ) : (
               <button
@@ -1271,7 +1315,7 @@ export default function Arena({
                 disabled={blocked}
               >
                 <RotateCcw size={14} />
-                重播入场
+                {t('重播入场')}
               </button>
             )}
             {state.mode === 'formal' ? (
@@ -1280,7 +1324,9 @@ export default function Arena({
                 onClick={() => nextMatchup()}
                 disabled={blocked}
               >
-                {pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词'}
+                {localize(
+                  pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词',
+                )}
                 <ArrowRight size={17} />
               </button>
             ) : (
@@ -1292,7 +1338,7 @@ export default function Arena({
                 }}
                 disabled={blocked}
               >
-                下一题
+                {t('下一题')}
                 <ArrowRight size={17} />
               </button>
             )}
@@ -1303,11 +1349,11 @@ export default function Arena({
           <div className="afterparty-reveal">
             {state.mode === 'formal' ? (
               <div className="placeholder-note">
-                正式测评：全程匿名，本模式不开放评论区。
+                {t('正式测评：全程匿名，本模式不开放评论区。')}
               </div>
             ) : isPlaceholderMode() ? (
               <div className="placeholder-note">
-                占位符模式：评论区停用，占位数据不入库。
+                {t('占位符模式：评论区停用，占位数据不入库。')}
               </div>
             ) : (
               <div>
@@ -1324,38 +1370,44 @@ export default function Arena({
 
         <section
           className="round-selector prompt-context"
-          aria-label="当前提示词竞技场"
+          aria-label={t('当前提示词竞技场')}
         >
           <div className="selector-heading">
-            <span className="section-code">ONE PROMPT / ONE ARENA</span>
+            <span className="section-code">{t('ONE PROMPT / ONE ARENA')}</span>
             <strong>{prompt.name}</strong>
           </div>
           <p>
-            本场收录{' '}
-            {
-              new Set(
-                currentResultsForPrompt(prompt.id).map(
-                  (entry) => entry.modelId,
-                ),
-              ).size
-            }{' '}
-            个模型的 {resultCount} 份结果，只在这个提示词内比较。
+            {t(
+              '本场收录 {models} 个模型的 {works} 份结果，只在这个提示词内比较。',
+              {
+                models: new Set(
+                  currentResultsForPrompt(prompt.id).map(
+                    (entry) => entry.modelId,
+                  ),
+                ).size,
+                works: resultCount,
+              },
+            )}
           </p>
           <p>
-            {pairCount === 1
-              ? '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。'
-              : '换一组会优先抽取不同的作品组合。'}
+            {localize(
+              pairCount === 1
+                ? '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。'
+                : '换一组会优先抽取不同的作品组合。',
+            )}
           </p>
           <div className="prompt-context-links">
             <a href="#prompts">
-              返回提示词库 <ArrowUpRight size={16} />
+              {t('返回提示词库')}
+              <ArrowUpRight size={16} />
             </a>
             <button
               onClick={() => {
                 window.location.hash = currentRandomArenaHash(prompt.id);
               }}
             >
-              随机换个竞技场 <ArrowRight size={16} />
+              {t('随机换个竞技场')}
+              <ArrowRight size={16} />
             </button>
           </div>
         </section>
@@ -1363,14 +1415,19 @@ export default function Arena({
 
       <footer className="system-footer">
         <span>
-          <span className="live-dot" /> SYSTEM ONLINE <i /> NO RIGHT ANSWER.
+          <span className="live-dot" /> {t('SYSTEM ONLINE')}
+          <i /> {t('NO RIGHT ANSWER.')}
         </span>
         <span className="footer-keyboard">
-          <kbd>A</kbd> 左侧 <kbd>D</kbd> 右侧 <kbd>N</kbd> 同题换组
+          <kbd>{t('A')}</kbd> {t('左侧')}
+          <kbd>{t('D')}</kbd> {t('右侧')}
+          <kbd>{t('N')}</kbd> {t('同题换组')}
         </span>
         <span>
-          仅供体验 <span className="footer-cross">＋</span> ARENA OF{' '}
-          <span className="brand-tag">BIAS</span> / 2026
+          {t('仅供体验')}
+          <span className="footer-cross">＋</span> {t('ARENA OF')}
+          {localize(' ')}
+          <span className="brand-tag">{t('BIAS')}</span> / 2026
         </span>
       </footer>
 
@@ -1387,14 +1444,16 @@ export default function Arena({
           <div className="dialog-top">
             <div>
               <DialogTitle>
-                作品 {expanded?.toUpperCase()} <span>/ {round.category}</span>
+                {t('作品')}
+                {localize(expanded?.toUpperCase())}{' '}
+                <span>/ {localize(round.category)}</span>
               </DialogTitle>
               <DialogDescription>{round.prompt}</DialogDescription>
             </div>
             <button
               className="icon-button"
               onClick={() => setExpanded(null)}
-              aria-label="关闭作品预览"
+              aria-label={t('关闭作品预览')}
             >
               <X size={22} />
             </button>
@@ -1418,14 +1477,18 @@ export default function Arena({
           </div>
           <div className="dialog-bottom">
             <span>
-              {prompt.kind === 'web'
-                ? '演示页面 · 可以试试预订与目的地按钮'
-                : 'ESC 返回对决'}
+              {localize(
+                prompt.kind === 'web'
+                  ? '演示页面 · 可以试试预订与目的地按钮'
+                  : 'ESC 返回对决',
+              )}
             </span>
             <span>
-              {revealed && expanded
-                ? round.models[expanded === 'a' ? 0 : 1]
-                : '身份隐藏中'}
+              {localize(
+                revealed && expanded
+                  ? round.models[expanded === 'a' ? 0 : 1]
+                  : '身份隐藏中',
+              )}
             </span>
           </div>
         </DialogContent>

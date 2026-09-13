@@ -1,82 +1,52 @@
 # HANDOFF.md · 当前状态
 
-本文件是状态仪表盘：只放当前状态与阅读指引，每轮收工时更新。耐久事实（产品规则、架构、决策）归 `docs/` 各文档，本文不复述；冲突时以交接日志与 git 为准。
+本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
 ## 接手阅读顺序
 
-1. `AGENTS.md`（协作约束，会被自动注入）
-2. 本文
-3. `docs/handoff/` 里日期最新的一份交接日志
-4. 按需查阅：产品行为 `docs/PRODUCT.md` ｜ 架构与运行 `docs/ARCHITECTURE.md` ｜ 决策 `docs/DECISIONS.md` ｜ 想法库 `docs/IDEAS.md`
-5. 首次接手先读 `README.md`（长期定位与原则）
+1. `AGENTS.md`。
+2. 本文。
+3. [本轮总结：本地同步、鹈鹕接入与主站语言视觉整理](docs/handoff/2026-09-13-本地同步鹈鹕接入与主站语言视觉整理-Atmeplz.md)。
+4. 按需阅读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`；首次接手读 `README.md`。
+5. 上一远端批次见 [过场定稿与竞技场增补](docs/handoff/2026-09-13-过场定稿与竞技场增补-kme7kme7-prog.md)。`docs/IDEAS.md` 是候选库，不是授权任务清单。
 
 ## 当前状态（2026-09-13）
-- 2026-09-13 本批（未提交，待用户检查）：**过场定稿 + 竞技场增补批次**——自 `3e3c2ba` 累积多轮：平局票（048）/ 取景自适应 + 小预览可交互 / 题库页恢复第一版 / 后台审查三 bug 修复 / 「下架后历史票要留」收口 / 结果区提示词折叠条 + 平局行收场（055）/ 过场分工（052）+ 下一题（053）+ 模型反应（054）/ 斜幕真根因修复 / DECISIONS 两轮压缩（338→212 行，编号 1–55 齐全）。完整清单、验证与遗留物见 [本批归档](docs/handoff/2026-09-13-过场定稿与竞技场增补-kme7kme7-prog.md)。
-- 本批要点速览（接手先看这几条）：①**过场分工**——题库与菜单进测评走 convoy 一体斜幕，榜单入口走 bands 三带站队（字带=声望分前二模型名），百叶窗不进生产；**层样式禁止裸 `.gt-<kind>` 选择器**（会命中过场层自身，回归断言见 check:game 第 23 项）；②娱乐模式结果区主按钮是「下一题」（随机排除当前题），正式测评维持「同提示词 · 换一组」；③模型反应（迁移 005 `reactions`）一人一题一模型一槽、可换态度、正式测评不显示；**取消仅本地镜像，服务端不删（未加 DELETE）**；④提示词折叠条在作品正下方通栏（揭晓后出现、换题收回），揭晓后平局行与两侧投票按钮同款收起；⑤平局票双方 Elo 各 0.5、占用对局去重（048）。
-- 本批未跑与已知边界：`npm run lint` 被用户自建 `scripts/grid-contrast-check.mjs` 既有错误阻断（本批未碰）；`validate:comments` 未跑（会写本地库）；斜幕/字带字号以 1280 视口为基准调校，宽屏观感待用户复核；作品 iframe 同源沙箱与反应取消语义两项仍待用户拍板。
 
-- 2026-09-12 本轮（已提交 eec99d8，用户自提）：后台第二期上半——作品管理 + 收件箱（决策 044）——①**作品管理页**（`app/admin/works.tsx` + `GET/PATCH /api/admin/works`）：全量清单含草稿，题号/状态/关键字筛选，**发布开关**乐观更新（下架即时从 /api/works 消失、投票 B2 核对同步拒票，失败回滚），标题/模型名可编辑（**model_id 不可改**——榜单归组键），预览直开（草稿可看）；**不提供删除**（投票流水引用作品，只允许下架）。②**收件箱**（`app/admin/inbox.tsx` + `GET/POST/DELETE /api/admin/inbox*`）：文件丢 `data/inbox`（`WORKS_INBOX_DIR` 可配，启动即建）→ 后台登记（选题、确认标题/模型名，单文件「标题，模型名.html」自动带出）→ 文件**搬进** data/works + 入库，**默认草稿**可勾选直接发布；**多文件作品 = 整个文件夹**（index.html 约定，004–007 接入就绪）；同模型让位 -2/-3；登记/删除只收单段路径名防穿越。③登记逻辑抽公共核心 `server/works-register.js`（脚本与收件箱共用一份），register-works.mjs 复用后回归幂等（0 登记 20 跳过）。验证：validate:admin 扩至 10 项全过；typecheck / build / lint（仅用户自建脚本既有错误）/ votes（11）/ arena（11）/ placeholder（10）/ leaderboard（8）全过；validate:comments 与 check:motion 未跑（评论链路与动效未碰）。浏览器端到端：dev 登录→两新页全功能（开关往返 25→24→25、编辑落库并还原、筛选/搜索、收件箱空题拦截→登记草稿→条目搬走→空态）；测试数据已清理（库 25 件、001 目录 20 文件）。`.gitignore` 增 `/新建文件夹/`（防测试用例原件误入 git，用户同意）。另有发布开关视觉修正：药丸按钮改设置式左右滑块（用户反馈「不像能点的」）。
-- 2026-09-11 本轮（已提交 69d1382）：作品外部存储 + 鹈鹕集接入（决策 043）——①**作品文件住 `data/works`**（`WORKS_DIR` 可配，gitignore 内）：大文件永不进 git，VPS 上宝塔直接往固定目录传；Express 无条件挂载 `/works/` 优先供给该目录、回落 dist 里 public/works 演示样例（vite dev 已代理 /works）；②**登记脚本 `scripts/register-works.mjs`**（`npm run register:works`）：解析「标题，模型名.html」→ 复制进 data/works → works 表入库（默认已发布，--draft 未发布），文件名排序稳定 id 幂等可重跑，中文模型名掺短哈希防塌缩；③**tihu 整活集 20 份鹈鹕已登记发布到 001**——001 从仅演示样例转正为真实竞技场（约 18 模型、同模型多作品，决策 021 场景），用户可无占位真投票测试（「新建文件夹」原件未动，004–007 六模型矩阵已分类待接入）。验证：typecheck / build / lint（仅用户自建脚本既有错误）/ validate:admin（7）/ votes（11）/ arena（11）全过；浏览器实测：#arena/001 真竞技场（21 份结果、换一组按钮出现）、两轮不同对局投票均「已计入偏好榜」、后台流水与仪表盘（浏览 24/访客 8/票 4/作品 25/25）实时可见、作品文件直访与 public 回落均 200、登记重跑幂等（0 登记跳过 20）。
-- 2026-09-11 本轮（已提交 ff71219）：后台第一期落地后用户实测暴露两问题，同轮修复（决策 042）——①**访客统计在 dev 下完全失效**（服务端中间件记不到 vite 发的页面，后台数据全 0）：改为前端加载时 `POST /api/track` 上报（`lib/track.ts`，主站带初始 hash、admin 报自身路径；同源即可、跨源 403、失败静默），dev 与生产行为一致；②**投票不落库实为对局去重**（真实数据只有 002/003 各一对，dev 早已投完，再投即 409「这一对作品你已经投过票了」——提示在揭晓区不显眼，用户误以为丢票）：dev 面板新增「我的真实投票 / 清空重投」（`POST /api/dev/clear-my-votes`，仅 dev 账号+本机回环，只清 dev 的票，不绕过去重规则）；③**dev 登录即管理员**（`/api/auth/dev` 回环门禁已足够，用户不用再设 ADMIN_OWNER）。validate:admin 扩至 7 项（新增 dev 自动管理员 + 清票链路用例：403 拦普通用户、清后重投 201、owner 票不受影响）。浏览器端到端实测完整复现用户场景。注意：用户曾因开着**占位模式**投票误以为丢票——占位票只存 localStorage 是设计行为，排查时先看揭晓区提示。
-- 2026-09-11 本轮（已提交 ff71219）：管理后台第一期（决策 041）——①双入口：`admin.html` → `src/admin.tsx`（vite 多入口，admin 独立 chunk 约 10KB，主站产物不变），后台朴素工作台风、与主站样式互不掺和，noindex；②管理员：`users.role` 列（auth.js ALTER 迁移）+ `ADMIN_OWNER` 环境变量引导授权；`/api/admin/*` requireAdmin 门禁——未登录 401、非管理员 404（不泄露后台存在），admin 页未登录也呈现 404 视图；③访客统计：page_views 表（迁移 002）+（后由本轮 042 改为 /api/track 上报）；④接口：`GET /api/admin/stats`（今日/昨日浏览访客、近 N 日趋势、累计票评注册作品、Node 体检）、`GET /api/admin/log`（投票/评论/注册三类流水，关键字过滤 + 分页）；⑤页面：仪表盘（卡片 + 纯 SVG 柱状趋势图）、数据流水（tab 切换/搜索/加载更多，Enter 显式处理）、作品/题目/收件箱/活动四个诚实占位页。验证：新建 `validate:admin`（初版 6 项）+ typecheck / build / lint / validate:arena / placeholder / leaderboard / scroll / votes / check:motion 全过；浏览器冒烟：未登录 404 → 登录即 admin → 仪表盘数据正确 → 流水搜索命中 → 占位页正常。中途修复三个自身 bug：users INSERT 列数不匹配、ADMIN_OWNER 只在加列那次启动标记（时序缺陷）、流水搜索 Enter 不触发表单提交。
-- 2026-09-11 本轮（已提交 ce383f3）：作品清单入库（决策 040，后台体系地基）——①服务端：SQLite 新增 works 表（content 存 ResultContent 同构 JSON、`published` 发布开关默认关、`created_at`），`PRAGMA user_version` 驱动的启动迁移（今后加字段/加表在 MIGRATIONS 追加即可，不改存量数据），首启动把 `lib/works-roster.json` 的 5 条作品种入空表并置已发布（只在表空时种，不覆盖）；②`GET /api/works` 公开返回已发布清单（content 为 JSON 字符串）；③前端新增 `lib/works.ts`：启动拉取、就绪后重渲染（main.tsx 的 useSyncExternalStore），`currentResults`（占位关闭时）以远端清单为准，拉取失败回退内置 `modelResults`——站点行为零变化；`lib/works-roster.json` 升级为完整作品清单（content 整包入 JSON，`stories` 两篇小说随之搬入），arena.ts 不再有 contents 表；④B2 票面核对改查 works 表（只认已发布）；⑤验证脚本适配：placeholder/leaderboard 拼合模块补 works.ts 转译注入，validate-votes 扩至 11 项（新增 GET /api/works 种子回归）。验证：typecheck / build / validate:arena（11）/ placeholder（10）/ leaderboard（8）/ scroll / votes（11）/ check:motion 全过；浏览器冒烟：dev 起前后端，首页与 #arena/003 完整渲染（远端清单生效、两份网页作品入场正常、performance 资源记录确认 /api/works 200）。后台整版方案（同仓库双应用、管理员标记、宝塔传文件+后台文件浏览器登记、发布开关）已与用户讨论定稿，见决策 040 关联段。
-- 2026-09-11 本轮（未提交）：B1/B2 修复 + 状态回填——①实测确认已知 bug B1（同 UUID 跨对局 201 回显旧票）与 B2（伪造 rid 绕过对局去重）均未修复后，按用户拍板同轮修掉（决策 039）：作品身份字段抽为前后端共享的 `lib/works-roster.json`，服务端写入前核对票面（不符 400）、同 UUID 回读比对全部字段（不符 409 `code:'id'`）；②`validate:votes` 扩至 10 项并新增 B1/B2 回归用例；③HANDOFF 历史轮次「未提交」标记按实际提交回填（795c969 / 406828b / 0d7b375）；④`origin/vps-node` 废弃分支经用户确认已删除。注意：决策 039 中「服务端读 JSON 文件核对票面」的实现已被本轮 works 表取代（校验逻辑不变，数据源升级），两决策均有效。
-- 2026-09-11 署名更正（用户要求，已 force push）：main 历史改写——原 `3529204`「删掉了AGENTS.md 加了idea.md」被执行 AI 自署为 `Codex <codex@localhost>`，违反决策 010，已用 filter-branch 将其作者改回 kme7kme7-prog；其后 21 笔提交随之重写 hash，**文件内容与合并拓扑（fd58cd4 合并）完全不变**（已验证树 diff 为空）。旧→新对照：`3529204→f9e61c1`、`fb5e8db→d402720`、`7207ecd→eb7cf3b`、`bab6af1→e096e03`、`ae1a1d9→9fd0030`、`fd58cd4→cd64802`、`9cc4907→4393433`、`e103891→11b78f2`、`573b746→c861785`、`dcb2b59→2d3280f`、`6ced77f→0d7b375`、`3320eec→406828b`；更早提交不变。冻结归档正文中的旧 hash 按此对照解读，不改归档。`origin/vps-node` 上另有一笔同署名的孤儿提交 `886c8c1`（main 内已有署名正确的同内容 `2984481`），该废弃部署分支曾拍板保留，2026-09-11 经用户确认全面并入 main 后已删除。本地留有回滚备份分支 `backup/pre-author-rewrite`；Atmeplz 侧需 `git fetch && git reset --hard origin/main`。
-- 2026-09-11 本轮（已提交 795c969）：竞技场赛后布局、可用视口比例、反馈动效与命题自动定位（决策 037/038）。揭晓后作品保持尺寸、评论向下展开；矮窗口收紧顶部信息而不压缩预览；长提示词可展开；初入/换题/换组/重播定位到命题。详见[本轮归档](docs/handoff/2026-09-11-竞技场赛后布局与可用视口-kme7kme7-prog.md)（原文件名与负责人栏被执行 AI 自署为「Codex」，未提交前已按用户要求改回）。
-- 本轮基线：`406828b`；本轮文件已提交 `795c969`。`npm run typecheck`、`npm run build`、`npm run validate:arena`（11 项）、`npm run check:motion`（38 项）通过。`npm run lint` 仍被用户自建 `scripts/grid-contrast-check.mjs:76` 的既有错误阻断；未处理该无关脚本。
+- **代码基线**：本地 main 经用户明确授权覆盖对齐 `dcaa175`。此前远端为修正作者署名而重写历史，旧本地 HEAD 的对应提交为 `9fd0030`，树内容已核对一致。不要把历史重写误当成待合并的新功能。
+- **本轮提交状态**：语言、竞技场视觉与文档改动经用户授权已提交并推送到 main；提交只为留存改动，不等于视觉验收，第一版视觉仍待用户体验反馈。
+- **本地服务**：`npm run dev`，前端 `http://localhost:5173/`、API 3000；竞技场入口 `http://localhost:5173/#arena/001`。依赖已补齐，package.json/锁文件未改；服务是否仍在线以实际进程为准。
+- **001 作品**：用户提供的「20个神秘鹈鹕.zip」已经现有登记流程发布到本地：20 件真实作品、17 个模型身份；文件 `data/works/001`，库 `data/comments.db`。另有内置演示样例，所以部分全量统计显示 21 件/18 身份；此既有口径差异未改。
+- **内容边界**：没有导入他人的投票记录，没有应用远端取景补丁，没有修改原始作品；Git 不包含本地数据库与这些作品。004–007 尚未正式接入。
 
-- 2026-09-11 本轮（已提交 406828b）：回退两案 + bands 斜幕接入（决策 033–036）——①**网格恢复 Codex 原版**（40px 周期 / 1px 线 / 4% 透明度，加粗与收紧两版均被用户目试否决）；②**玩法菜单页回退**到 573b746 原版（其余放大方案被否且决策 035 禁止重提，仅下述⑤悬停例外）；③frame 中央组件第二轮缩小定稿：锁定框 26→22cqw、字标 3.8→3.2cqw、残影 32→27cqw、四角 3px、上下小字同比例（两轮累计 30→22cqw）；④bands 接入四个方向：首页→提示词库、首页→偏好榜（lobby-library-entry 两个链接）、题库→首页（页头品牌 + 页脚链接）、榜单→首页（页头品牌），统一走 `lib/game-transitions.ts` 新增的 `bandsNavigate`（模块级 `bandsNavRunning` 防重入锁，模式同 frame 接入；链接均 preventDefault 保留 href 语义）；⑤决策 036 追加：菜单三行玩法悬停浮起特效（抬升 + `4px 5px 0 #a2ad87` 硬投影、按下归零）由用户点名加回；`bandsNavigate` 以 1.25× 播放（用户嫌默认偏慢；总长 1397→约 1120ms、盖满 520→约 416ms，模块默认时间轴与对照页不变）；⑥菜单页底色深一号（#dfe3dd→#d0d6cd，系统既有深纸色）。验证与遗留物详见 [本轮归档](docs/handoff/2026-09-11-过场接入与视觉定稿-kme7kme7-prog.md)。
-- 2026-09-10 本轮（已提交 406828b，大部分已回退——放大方案被否仅行悬停浮起经决策 036 加回，详见 09-11 归档）：网格收紧 + 玩法菜单放大（用户反馈「网格又有点松了」「菜单页面有点素了」，指定用 impeccable 技能）——①过场网格周期 40→28px（线宽 2px 不变、透明度 0x10→0x0c 回调，总墨量近似守恒，只收紧不加重）；②玩法菜单按 impeccable `bolder` 方法放大：诊断是「菜单页悄悄退出了系统最强的动作」，用系统自有词汇放大（未引入任何新颜色/字体/原语）——h1 拉到全站展示强度（46px 普通字重 → clamp(44px,6.2vw,84px)/850/-3px），em「然后交给直觉。」改酸黄强调块（::selection 同词汇，inline-block 整块不断行），h1 与列表间接入既有 `.term-ticks` 刻度尺，行悬停获得招牌硬投影抬升（`4px 5px 0 #a2ad87` + translate(-2px,-3px)，active 归零——lobby-mark 同款动作），idx 提到 13px/700。impeccable 引擎二进制需外网下载失败，按其规程改为直读项目上下文 + bolder/craft-floor 参考执行。验证：DOM 真值（h1 79.4px/850、em 整块 563×91 不断行、真实悬停 computed shadow/transform 命中、网格计算值 26/28px）+ check:game 22 项 + typecheck + build 全过；截图 gui-test-screenshots/menu-desktop*.png（emitImage 出现拼贴伪影，以 DOM/像素真值代替目视）。
-- 2026-09-10 本轮（已提交 406828b，归档进 09-11 归档）：档案锁定过场接入生产（决策 032，用户拍板「接入！把第一个动画接到从主界面进入菜单的那个地方」）——①`app/home.tsx` 主按钮（进入评测 → `#play`）改走 `createGameTransition('frame')`，盖满时 `onCovered` 切路由；页眉「随机入场」仍走 `wipeNavigate` 不变；补上 Codex 归档点名的跨实例防重入缺口（模块自身有意无全局锁——对照页要多实例预览——接入侧用 home.tsx 模块级 `frameTransitionRunning` 锁，覆盖盖满后返回重挂载的窗口期）。②样式自 `reference/game-transitions.css` 迁至 `app/game-transitions.css`（生产与对照页共用唯一来源，避免两份拷贝漂移；对照页 import 改指新路径，原文件已删），main.tsx 挂载。③`package.json` 增 `check:game` 并入 `check:motion`（现为 wipe/surface/game 三套 37 项）。验证：check:motion 37 项、typecheck、lint（当时 0 错误）、build 全过；浏览器实测主按钮（纸页 153ms 在推入、420ms 盖满、盖满中 hash 切 `#play`、1720ms 结束层移除、菜单三玩法完整渲染）与随机入口（仍是 `.page-wipe` 横扫 + Round Start 文案、盖满切 `#arena/003`、结束清理）。改动涉及 Codex 未提交文件：迁移了其样式文件、改了对照页一行 import——系接入任务必需，特此注明。
-- 2026-09-10 新过场对照轮收尾（已提交 406828b）：用户确认「先这样」，暂定保留「档案锁定 / 斜向切片（一体斜幕）」两套方案；当时明确不 commit 不 push（后已随 406828b 入库）。~~两套仅在开发对照页，尚未接入主站路由~~（frame 已由上一条接入首页主按钮）。档案套为不透明纸页上推、方框锁定、字标滑入、整页上移退出；斜切套为酸黄/纸色边缘与深墨主体共用轨道、同向推进。最终参数、代码入口见 `docs/ARCHITECTURE.md`「新过场」；完整验证、未跑项与遗留物见 [本轮归档](docs/handoff/2026-09-10-新过场对照与视觉迭代-kme7kme7-prog.md)（原文件名被 Codex 擅自署名，已按用户要求更正，文末有勘误）。被否的三角仿作、青绿横带和独立飘带不作为当前方案（决策 030/031）。
+## 本轮界面与语言
 
-- 当前提交：见 git。Vite + React 前端、Express + SQLite 后端；提示词库 + 竞技场 + 账号评论与投票体系；题库 7 题，其中仅 002/003 可配对（占位内容，虚构模型身份，见 `docs/PRODUCT.md` 内容真实性分级）。
-- 2026-09-08 完成文档体系改造与全站改名 arenaofbias（字标 ARENA OF ＋ 酸底切角 BIAS 块）。
-- 2026-09-09 Atmeplz 轮：换组防泄漏（决策 014）；作品 iframe 沙箱放行 `allow-same-origin` 修复 3D 黑屏（决策 015）；依赖瘦身 node_modules 365MB→230MB（决策 016）。
-- 2026-09-09 本轮：左上角返回入口动效——竞技场 brand 由纯 div 变 `#home` 链接；字标本体保持朴素，动效只做在 mark 图标上（主界面按钮语言：硬投影、悬停微抬、按压回平），定稿形态见 [左上角返回入口归档](docs/handoff/2026-09-09-左上角返回入口按钮化-kme7kme7-prog.md)。
-- 2026-09-09 本轮：开发者占位符系统——右下角隐藏 "dev" 面板开启占位符模式后，题库与竞技场全量替换为生成的占位作品（与真实数据严格隔离、设置与占位投票仅存 localStorage），并可随机生成占位投票为榜单 UI 备料，见 [占位符模式与开发者面板归档](docs/handoff/2026-09-09-占位符模式与开发者面板-kme7kme7-prog.md)。
-- 2026-09-09 本轮修复（代码审查发现）：占位投票与模型数量可能失配——切换占位模型数量时自动清空占位投票，`readPlaceholderVotes` 按当前阵容过滤兜底（防手工改 localStorage 的残留脏票）；`validate:placeholder` 扩至 9 项。
-- 2026-09-09 本轮：偏好榜 `#rank`——原型 `prototypes/ranking.html` 定稿后移植为主站页面（综合/写作/网页三赛道、占位口径简易 Elo、暂定徽章、模型主题色档案卡、色块横推过场、雷达外侧静止内侧挪动）；入口在首页与竞技场揭晓区；新增 `validate:leaderboard`（7 项）；档案卡主题色规范见决策 017，见 [偏好榜归档](docs/handoff/2026-09-09-偏好榜原型与榜单页-kme7kme7-prog.md)。
-- 2026-09-10 本轮（已提交 bab6af1 + 合并 fd58cd4）：投票落库——竞技场选择实时计入偏好榜；votes 表对局级去重（决策 021）、投票需登录（决策 020）、开发者面板免登录（`/api/auth/dev`）、GET /api/votes 全量流水公开；同时修复存量 dev 代理 403（vite `changeOrigin: false`）。注意：fd58cd4 合并曾覆盖丢失决策 018/019，已按「编号不复用」以 020/021 补录（归档日志文末有勘误）。见 [投票落库归档](docs/handoff/2026-09-10-投票落库与开发者免登录-kme7kme7-prog.md)。
-- 2026-09-10 本轮（已提交 9cc4907）：代码审查 + 修复——审查发现 `validate:votes` 假绿（check 未 await、login 缺 Content-Type、kill 竞态，此前 HTTP 断言从未真正执行）并修复；随后修复次要问题（409 加 code 区分 pair/id、晚到提交响应不再覆盖新一轮反馈、pairKeyOf 两端统一 localeCompare、ArenaMode 并入 arena 的 Mode、服务端 rid/mid trim）。遗留 B1/B2 两个已知 bug 未修（见待办）。
-- 2026-09-10 本轮（已提交 e103891）：偏好榜赛道切换动画对齐原型——榜单不再按赛道重挂载（`key` 只留 replaySeed），切换走原型同款 FLIP 换位（offsetTop 记位、translateY 差值 1200ms、错峰 28ms、计分淡入、首行扫光 WAAPI 重放）；补上行底色 0.65s 过渡（榜首深底交叉淡化）、tab 滑块 0.8s、sigil 底色随名次过渡。**关键坑**：入场动画不能用常驻 CSS + 随名次变化的内联 animation-delay——delay 一变动画整段重播，换赛道时行会"消失后重新插入"；入场（重播）也改走 WAAPI，与原型同一机制。已在浏览器逐项实测：切换时行无 opacity/translateX 动画、纯 FLIP；重播仍整板入场。
-- 2026-09-10 本轮（已提交 e103891）：开发者面板新增「随机强弱」开关——默认关闭时占位投票的模型强弱固定（ph-03 种子强度 1.400 顶格，所以老是第一，这是设计不是 bug）；开启后 `generatePlaceholderVotes` 的强弱种子掺入随机盐，每次生成的名次格局都不同（用户要看榜单换位动画）。同时修复生成/清空占位投票后榜单不刷新的问题：面板广播 `aob:placeholder-votes-changed`，榜单页监听后自动重读并重播入场（storage 事件同页不触发）。`validate:placeholder` 扩至 10 项。
-- 2026-09-10 本轮（已提交 dcb2b59）：代码审查 + 修复落地——审查发现三处：决策 026「只看正式」榜单切换缺失（已补）、page.tsx 一处类型声明挤行（已修）、ui-transitions.ts 的 ContentTransition 死代码（已删）。「只看正式」实现：VoteRecord/voteToRecord 带 mode → leaderboardData 加 scope 口径（mixed/formal，无 mode 的占位票只在混入计入）→ 榜单页 rank-actions 加切换按钮（占位模式隐藏）。验证：typecheck / lint（0 错误）/ build / validate:arena（11）/ placeholder（10）/ leaderboard（扩至 8）/ scroll（5）/ votes（9，voteToRecord 断言随新结构更新）全过；浏览器端到端实测：dev 登录 → #formal/003 投票落库 mode=formal → 榜单只看正式显示该票（2 行）、混入 4 行、formal+网页赛道 2 行、formal+写作空态；切换可逆。截图存 gui-test-screenshots/。测试产生的 formal 票已从本地库清除。注意：先在 #formal/002 试投时被 409 对局去重挡下（用户凌晨的 blind 票占了同对局，mode 不分流去重——决策 021 语义，不是 bug）。
-- 2026-09-10 本轮（已提交 0d7b375）：文档一致性修复——①PRODUCT.md：删除重复两遍的「当前未实现」章节与过时的「可切换的空间体验」章节（573b746 提交时空间版文档同步撞车遗留）、从「当前未实现」移除已实现的「只看正式」并在偏好榜/场内状态两处补记其口径语义；②ARCHITECTURE.md：校验项数更新（validate:placeholder 9→10、validate:leaderboard 7→8，均实跑核对）并补 `BoardScope` 口径、`voteToRecord` mode 描述；③HANDOFF.md：此前标「未提交」的各轮改为实际提交号（9cc4907 / e103891×2 / dcb2b59 / 573b746×2），悬空基线引用 133a129 注明已不存在。无代码改动；validate:placeholder（10）与 validate:leaderboard（8）实跑通过。
-- 2026-09-10 本轮（已提交 0d7b375）：首页全屏过渡修复（用户报：进入评测的 Round Start 过渡设计有问题、会卡、色块盖满后直接消失无退场）——旧 `.lobby-wipe` 三个根因：clip-path inset 动画每帧整屏重绘（卡顿）；色块挂在 Home 组件内，路由一换组件卸载、色块瞬间消失（无退场）；主按钮现在去玩法菜单但文案仍是直连竞技场时代的 Round Start（语义错）。修复：`lib/ui-transitions.ts` 新增 `wipeNavigate(hash, copy)`——色块层动态挂在 body 上独立于路由存活，纯 transform 合成器横扫（扫入 360ms → 盖满停顿 150ms 内切路由、新页在遮挡下挂载 → 扫出 400ms 露出），文案随目的地（进菜单 SELECT YOUR GAME/Play Menu；随机入场 YOUR INSTINCT MATTERS/Round Start），reduced-motion 直接换页不扫；home.tsx 删 timer/wipe JSX，home.css 删全部旧 wipe 规则（含 lobby-cover 与 reduced-motion 覆盖），`.page-wipe` 样式进 globals.css（样式与动画参数注释写明不能回到 clip-path/组件内挂载的原因）。验证：typecheck / lint（0 错误）/ build 全过；浏览器实测两条路径——DOM 时间线（盖满帧 transform≈0 且 hash 未变→遮挡下 hash 切换→退场帧 translateX 递增→结束遮罩移除）+ 像素佐证（盖满帧 97%+ 墨色含酸黄文字、退场帧左亮右暗、终态两半屏全亮无残留）；截图存 gui-test-screenshots/t1-*、t2-*，像素分析脚本 scripts/wipe-pixel-check.mjs 留档。注意：IAB 后台标签帧节流会推迟动画 finished 回调（遮罩晚一两秒才移除），前台浏览器不受影响；Playwright 点击会被首页 lobby-rise 入场动画的 actionability 检查卡超时，坐标点击可绕过（测试手法，非页面 bug）。
-- 2026-09-10 本轮（已提交 0d7b375）：动效对照工具体系（决策 029，用户拍板「改动效前先建对照工具」，分层 A 断言+对照页 / B 只对照页 / C 不管，断言只锁不变量不锁设计参数）——①`wipeNavigate` 抽出 `defaultWipeTiming`（cover 360/hold 150/exit 400 + ease）并支持第三参 `Partial<PageWipeTiming>` 覆盖（默认行为不变，供对照页调参）；②`scripts/check-wipe.mjs`（8 项不变量：默认参数即线上值、层挂 body+aria-hidden+文案结构、结束清理可复用、防重入不改目的地、盖满才换路由、关键帧只动 transform+偏移精确、timing 覆盖生效、reduced 直达）与 `scripts/check-surface.mjs`（7 项：完整开/关状态机、**开到一半立即关从当前透明度/位移接续**、已隐藏 hide 空操作、reduced 直达、dispose 取消且可复用、finish 同步收尾），模式同 validate-*：typescript 转译 + data URL 导入 + 手写时钟假 DOM，无需浏览器；npm 挂 `check:wipe`/`check:surface`/`check:motion`；③`reference/wipe-review.html`、`reference/surface-review.html` 对照页（dev server 下 `/reference/*.html`）：import 真实 `lib/ui-transitions.ts` 非复制品，滑杆调三段节奏/进退时长、缓动选择、文案输入、reduced 模拟、surface 页实时状态机读数与打断演示、wipe 页带旧版复刻按钮（clip-path 盖满即消失，手感对照）；页面顶部注明定稿后回写 `defaultWipeTiming`/构造参数。验证：check:motion 15 项、typecheck / lint（0 错误）/ build 全过；浏览器实测 wipe 页（默认 910ms 时间线：360 盖满→hash 翻转→510–910 扫出→921 层移除；滑杆 cover=600 实测盖满 631ms 总时长联动 1150；旧版复刻 601ms 即消失；reduced 不出层）与 surface 页（open→open 动画清理；打断演示反向动画第一帧 opacity=0.9615 即当时进行值，非 0 跳变；终态 closed+hidden+0 动画）。修复过程中两处对照页自身的坑：surface 打断演示在面板已开时 show() 是 1→1 无意义，改为先归位关闭态再演示；假动画 `finished` promise 被 cancel 时无人订阅会崩 Node 进程（浏览器无此问题），预挂空 catch。④应用户要求在 `AGENTS.md` 增补一条**建议性**规则「动效改动：改动效前优先先建/更新对照工具再改行为」（用户明确要求措辞为建议而非强制），指向 DECISIONS 029 与 ARCHITECTURE 验证小节——保证任何接手 AI 经必读的 AGENTS.md 可发现该工具体系。
+- 默认中文单语，导航提供中文/English 切换；localStorage 键 `arena-language`，跨页/刷新保留，响应其他标签页的语言变化。
+- 覆盖主站首页、玩法菜单、竞技场、题库、预览、榜单、特别赛与账号/评论/开发面板；不是管理后台整站国际化。模型名、提示词原文、作品内容和评论保持原文。
+- 新模块：`lib/locale.ts`、`lib/messages.ts`、`components/language-switch.tsx`。过场模块通过入口注入翻译函数，时间轴未变。
+- 新样式：`app/arena-refinement.css`，在主入口后加载。整理导航、命题附言、作品框与投票层级，移除重复英文副标与部分装饰；揭晓标签移到作品下方；699px 及以下作品上下排列。
+- **用户方向见决策 056**：保留酸黄、墨绿、红蓝对抗、切角等现有风格，提高质感；具体视觉仍待体验反馈，不以写总结视为验收。
 
-## 最新交接
+## 验证与环境备注
 
-- 2026-09-10 空间版下线 + 正式测评落地（已提交 573b746）：用户拍板「3D 太丑去掉、空间版移除、品牌字标移植经典版、dev 身份拥有正式测评资格」（决策 027/028）。①删除 `app/observatory.tsx`、`home-spatial.tsx`、`components/archive-stage.tsx`、`experience.tsx`、`lib/spatial-motion.ts`、`lib/archive-audio.ts`、`scripts/validate-spatial.mjs`，卸载 three/@types/three，`main.tsx` 回到无切换的纯经典路由；`app/observatory.css` 与 MiSans 字体包保留（Event 页与移植的字标在用，含待清理的死规则）。②品牌移植：`.lobby-brand` 与竞技场 `.brand strong` 改 MiSans 400/800 双字重、BIAS 去酸底块（决策 027）。③正式测评：`#formal/{promptId}` 路由 + Arena `formal` prop（reducer 初始 mode='formal'，永不揭晓、无评论区）；mode 全链路放行 formal（arena.ts Mode / votes.ts / server VOTE_MODES）；玩法菜单按 `user?.username==='dev'` 判定资格（决策 028），未登录锁定「需要资格」。验证：typecheck / lint（0 错误）/ build / validate:arena（11）/ placeholder（10）/ leaderboard（7）/ scroll / votes（9）全过；浏览器实测：登出锁定、dev 解锁、#formal 投票后身份仍「未知模型 / IDENTITY ENCRYPTED」、评论区替换为匿名提示、题库/特别赛页正常。注意：测试登出接口时发现无 body 的 POST 会被 auth 中间件 415 挡（与 dev 登录同坑，需带空 JSON）。
-- 2026-09-10 玩法结构落地（已提交 573b746）：按决策 023–026 重整——新首页主按钮进 `#play`；玩法菜单 `app/play-menu.tsx`（MODES：正式测评/娱乐测评/鹈鹕大乱斗）；特别赛占位页 `app/event.tsx`；竞技场废除娱乐站队（page.tsx 模式切换 UI 换成静态「娱乐测评」牌，reducer 内部 mode 保留）。验证：typecheck / lint（0 错误）/ build / validate:arena（11）/ placeholder（10）/ leaderboard（7）/ spatial（3）/ scroll 全过。PRODUCT/ARCHITECTURE 已同步（其中"空间体验/菜单 3D"描述已随本轮 027 作废，见最新一条）。
-- 2026-09-10 玩法结构对齐（文档轮，无代码改动，已随 573b746 入库）：用户否定空间版首页 hero（变化过大、颜色偏淡、视觉重心不对），并明确产品骨架——首页职责是「进入」，要抓眼球、允许 3D 做氛围背景，但视觉重心必须是进入**玩法菜单页**的主按钮；菜单列玩法，点进才开始评测；玩法分三层（名称暂定）：**正式测评**（资格制、全程匿名、无评论区）、**娱乐测评**（选完才揭晓身份、有评论区，废除全程公开的娱乐站队）、**特别赛**（鹈鹕大乱斗类常驻/轮换独立页、独立成榜）；榜单归属：正式+娱乐混榜、可切换只看正式（决策 026）；3D 档案阵列只允许放题库页且要收敛尺寸、必须能快速检索；菜单页优先 3D、效果不好退仪器档案风卡片。已落实：README「首页与玩法结构」与榜单段、DECISIONS 023–026、IDEAS E06/P06。（落地实现见上一条"玩法结构落地"。）
-- 2026-09-10 空间体验改造（已被 027 下线；CSS/字体等幸存资产随 573b746 入库；当时基线提交 133a129 在后续重组中已不存在）：用户明确授权完整视觉更新，决策 022。新增默认空间版首页/题库（Three.js 原创纸页档案阵列、选中抽取、相机跟随、点选/横拖、检索、全文展开、进入竞技场横推转场）；MiSans 字体、短标题滚动、默认关闭的原创合成音效。竞技场/榜单/样例页统一新版纸张与仪器层次，竞技场补评审阶段轨道；雷达快切改为从当前显示值接续。左下角空间版/经典版切换保留旧界面，保存偏好；内存报告不高于 2GB 时默认经典，WebGL 故障及空间组件异常回退。
-- 核心文件：`app/observatory.tsx`、`app/observatory.css`、`components/archive-stage.tsx`、`components/experience.tsx`、`components/rolling-label.tsx`、`lib/spatial-motion.ts`、`lib/archive-audio.ts`；入口 `src/main.tsx` 动态加载三维模块。新增字体包（全部约25MB，按字符请求）。
-- 本轮验证：typecheck、lint、build；validate:arena（11）、placeholder（10）、leaderboard（7）、scroll（5）、votes（9）、新增 spatial（3：30/120fps一致、无回弹、反向接续）通过。IAB 实测桌面/390px手机首屏、搜索联动、档案展开/进入竞技场、跳过巡览、未登录选择与揭晓评论、榜单及网页空态、经典切换与恢复空间版。修复截图发现的标题与模型重叠、手机导航挤压、滚动编号继承小字号；入口热更新增加 root 卸载。
-- 验证边界：未做低性能真机跑分或人工听辨；未强制触发 WebGL 上下文丢失。build 有 Three.js 独立块551KB（gzip约138KB）的体积提醒，已按需加载；字体CSS约600KB级，后续可进一步按需拆分。未跑 validate:comments（未改评论链路，避免写用户本地库）。暂无新 Blender 资产需求。未 commit / push，等待用户体验评审。
+- 通过：`npm run typecheck`、`npm run build`、`npm run check:motion`、`node scripts/validate-locale.mjs`、`git diff --check`。
+- 作品：20 个真实作品接口与文件访问正常；重复登记 0 新增/20 跳过。
+- 浏览器：主站各路由英文冒烟正常；语言切换不重建 iframe、不重置揭晓与模型身份；刷新保留选择。390/897/1920 三档无横向溢出，截图已目检（`output/playwright/arena-final-*.png`）。
+- 定向 lint 仍有两项既有问题：account 的 EffectSetState、dev-panel 的 prefer-tag-over-role；已用 HEAD 副本复现。其余本轮定向检查通过。完整 lint 未跑；旧交接的 grid-contrast-check 既有错误本轮未重新核验。
+- 未跑完整评论/后台/投票后端回归：业务未改，避免写库。未登录投票 UI 检查返回预期 401，无测试投票落库；正常浏览可能写访问统计。没有逐件目检全部 20 个作品。
+- 多文件 HMR 曾造成账号上下文缓存撕裂与空白页，重启 dev + 完整刷新后恢复；出现 Missing account provider 时先排除缓存。
 
-- 2026-09-10 审查与修复轮：对 bab6af1 投票落库做了完整代码审查（含临时端口起真实服务端逐项实测）。核心结论：服务端 8 项行为（401/403/201/409/幂等/换作品可再投/400/公开读取不带 userId）全部符合设计，对局级去重语义与用户原话一致；但 `validate:votes` 此前的"3/3 通过"是假绿——已修复并验证（正常 3/3 exit 0、故意改坏断言 exit 1）。详见待办里的遗留 bug。
-- 验证：typecheck / lint（0 错误）/ build / validate:arena（11）/ validate:placeholder（9）/ validate:leaderboard（7）/ validate:votes（9，3/3）全部通过；409 code 区分与 trim 经真实服务端实测。
-- 审查与修复轮的改动已由用户提交为 9cc4907「修复了投票的一百亿个bug」。其后一轮（榜单动画对齐原型 + 随机强弱开关）的改动也已入库（并入 e103891，与风格改造第一批同一次提交）。验证全过：typecheck / lint（0 错误）/ build / validate:arena（11）/ validate:placeholder（10）/ validate:leaderboard（7）；浏览器实测 FLIP 纯换位、重播入场、随机强弱三轮生成三种榜首、生成后榜单自动刷新。
-- **风格改造基线**：上述提交是视觉风格改造前的回退点（用户计划进行一轮视觉风格改造；若改造效果不佳可能整体回退到该版本）。
-- 2026-09-10 本轮（已提交）：盲测揭晓解密动画——`lib/decryption.ts` 的 `DocumentDecryption`（`reveal()` 自起 rAF，目标选择器作为构造参数；逐行测量 TreeWalker + Range、错峰 0.22 铺开 / 0.78 窗口、缓动 0.4t² + 0.6(1-t)^(16/3)），遮黑条 CSS 在 `app/globals.css`（ink 色 #20221d）。接线在 `app/page.tsx`：盲测揭晓（phase→result）时 layout effect 内先盖住 `.model-identity` 再逐行退开，用户看不到未遮盖的真实身份；娱乐模式/减少动态效果不解密。
-- 2026-09-10 本轮（已提交）：视觉风格改造第一批——①滚动数字：新依赖 `@kitlangton/rolling-number@0.4.1`（MIT，许可存 `public/licenses/rolling-number.txt`），运动参数 460ms + motionBlur（库不读系统减少动态设置，各使用处显式传 `animated={!reduced()}`）；接到榜单行（名次/评分/次数）、档案卡（当前名次/评分/参与比较）与头部总票数。②可打断过渡：`lib/ui-transitions.ts` 的 `SurfaceTransition`（进 300ms/退 200ms，中途反向从当前透明度与位移接续），接到开发者面板开合——注意面板由条件渲染改为常驻挂载 + `hidden` 托管，且 `.dev-panel[hidden]` 需显式 `display:none`（class 的 display:flex 会盖掉 UA 的 hidden 规则）。③终端索引细节：`globals.css` 新增 `.term-ticks` 刻度尺（主刻度 72px/次刻度 12px），接到榜单表头上沿与题库计数行下方；榜单 tab 加 mono 编号（01/02/03）。用户评价"不够激进"，后续批次会继续加码，见 [风格改造第一批归档](docs/handoff/2026-09-10-风格改造第一批-kme7kme7-prog.md)。
-- 上一轮投票落库见 [投票落库归档](docs/handoff/2026-09-10-投票落库与开发者免登录-kme7kme7-prog.md)（注意其验证一节中 validate:votes 记录已被文末勘误更正）。
+## 接手时仍须遵守的既有边界
 
-## 待办（下一步候选，非约束）
+- 过场分工：题库与菜单进测评用 convoy 一体斜幕，榜单入口用 bands；百叶窗不进生产。禁止裸 `.gt-<kind>` 层样式选择器（决策 052）。
+- 娱乐结果主按钮「下一题」随机排除当前题；正式测评维持同题换组（053）。
+- 平局双方 Elo 各 0.5，并占用对局去重（048）。
+- 模型反应一人一题一模型一槽，可换态度；取消只改本地镜像，服务端尚无删除；正式测评不显示（054）。
+- 揭晓后提示词折叠条在作品下方通栏，平局入口收起（055）。
+- 真实作品走数据库与 `data/works`，不要恢复 `lib/arena.ts` 旧硬编码注册。作品下架保留历史票。
 
-- **部署警告**：反代（nginx/Caddy）之后不设 `TRUST_PROXY` 时 req.ip 恒为回环 → `/api/auth/dev` 对公网开放、per-IP 限流失效；部署文档需要写明。
-- 004–007 接入模型结果（操作步骤见 `docs/ARCHITECTURE.md` 扩充一节；上轮已验证 `public/works/` + `kind:'html'` 路径可行，注意 dist 需相对路径或构建时 `--base=./`；真实测试集在用户桌面 `AI测试流程设计/模型输出结果`）。接入后真实投票才开始有跨题意义（当前真实模式每题只有一对模型，投完即 409）。
-- 已知不一致：竞技场页"本场收录 N 个模型"未过滤 isDemo，与提示词库页口径不同（用户当前不可见，见 `docs/ARCHITECTURE.md` 技术备注）。
-- 待用户拍板：002/003 虚构模型身份的长期取向。
-- `docs/IDEAS.md` 全部条目均为候选，未经确认不得开发。
+## 遗留文件与下一步
 
-## 历史验证备注（2026-09-08 改名阶段）
-
-- 当时通过：`npm run typecheck`、`npm run lint`（0 错误）、`npm run validate:arena`（11 项）、`npm run validate:scroll`；字标形态已经浏览器目视确认。各轮完整验证见 `docs/handoff/` 对应归档。
-
-## 偏好榜原型迭代记录（已定稿并迁移）
-
-- `prototypes/ranking.html` 为单文件视觉原型（另一个 AI 产出初版，本账号与其协作迭代六轮以上）：错峰入场、排名换位、左榜右档布局、六维雷达、深色信息头+浅色图表、切角硬投影强化、原型状态选择器（有排名/无投票/分类不足三种空态）、头部主题色光晕与斜纹的多轮接缝调整。
-- 定稿后已迁移为主站 `#rank`（见上方"最新交接"），原型文件保留作视觉定稿记录。逐轮细节见 [偏好榜归档](docs/handoff/2026-09-09-偏好榜原型与榜单页-kme7kme7-prog.md)。
+- 他人遗留 `public/works/005/`、`006/`、`007/` 与 `public/works/works_2026-09-11,a-k.zip` 未动；不得顺手删除或提交。004 仍在既有忽略规则内。
+- 本轮所有改动清单、临时解压目录与验证细节见本轮总结；`data/`、`dist/`、截图不提交。
+- 下一步优先等用户对视觉第一版的具体反馈；没有授权继续扩展设计或功能。
+- 候选：004–007 正式接入、反应取消语义与专门回归、iframe 沙箱方案、正式资格管理、后台活动管理、002/003 虚构身份取向。均按用户确认范围推进，不将候选自动当成任务。
