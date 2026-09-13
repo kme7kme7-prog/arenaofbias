@@ -29,6 +29,13 @@ export const MODES = [
     status: '常驻特别赛 · 独立榜单',
     desc: '轮换主题的特别对局，单独成页、独立成榜，不混入主榜。',
   },
+  {
+    id: 'guess',
+    code: 'GUESS',
+    name: '模一把',
+    status: '每日一题 · 全世界同题',
+    desc: '8 次机会猜出今天的 AI 模型：绿色猜中、黄色接近、箭头指方向。猜完把战绩格子分享出去。',
+  },
 ] as const;
 
 export default function PlayMenu() {
@@ -92,20 +99,25 @@ export default function PlayMenu() {
                     href={
                       mode.id === 'event'
                         ? '#event'
-                        : mode.id === 'formal'
-                          ? formalHref()
-                          : '#random'
+                        : mode.id === 'guess'
+                          ? '#guess'
+                          : mode.id === 'formal'
+                            ? formalHref()
+                            : '#random'
                     }
                     onClick={(e) => {
                       // 菜单进测评走一体斜幕（2026-09-13 用户拍板）；
-                      // formal 的目的地在点击时现抽，保持随机口径
+                      // formal 的目的地在点击时现抽，保持随机口径；
+                      // 模一把同样走 convoy（决策 057），字带用菜单项 code
                       e.preventDefault();
                       const hash =
                         mode.id === 'event'
                           ? '#event'
-                          : mode.id === 'formal'
-                            ? formalHref()
-                            : '#random';
+                          : mode.id === 'guess'
+                            ? '#guess'
+                            : mode.id === 'formal'
+                              ? formalHref()
+                              : '#random';
                       convoyNavigate(hash, mode.code);
                     }}
                   >

@@ -6,6 +6,7 @@ import Arena from '@/app/page';
 import { useEffect, useSyncExternalStore } from 'react';
 import PlayMenu from '@/app/play-menu';
 import Event from '@/app/event';
+import GuessPage from '@/app/guess';
 import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
@@ -31,6 +32,8 @@ import '@/app/library.css';
 import '@/app/dev.css';
 import '@/app/ranking.css';
 import '@/app/arena-refinement.css';
+// 模一把（决策 057）：独立玩法页样式，在全局样式后加载
+import '@/app/guess.css';
 import { getLocale, translate } from '@/lib/locale';
 import { setTransitionTranslator } from '@/lib/game-transitions';
 import { setWipeTranslator } from '@/lib/ui-transitions';
@@ -66,6 +69,7 @@ function Routes() {
   if (route === '#arena' || route === '#random') return null;
   if (route === '#play') return <PlayMenu />;
   if (route === '#event') return <Event />;
+  if (route === '#guess') return <GuessPage />;
   if (route === '#prompts') return <PromptLibrary />;
   if (route === '#rank') return <Ranking />;
   if (route.startsWith('#formal/')) {

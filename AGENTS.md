@@ -19,6 +19,7 @@
 - `docs/handoff/` — 按日期归档的交接日志（模板 `_TEMPLATE.md`）
 - `README.md` — 项目定位与长期愿景
 - `docs/PRODUCT.md` — 产品当前行为
+- `docs/games/` — 独立玩法规则（首篇：模一把 `guess.md`）
 - `docs/ARCHITECTURE.md` — 架构、代码地图、本地运行与验证
 - `docs/DECISIONS.md` — 决策日志，只追加
 - `docs/IDEAS.md` — 候选想法库

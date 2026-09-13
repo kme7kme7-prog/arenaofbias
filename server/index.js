@@ -1274,6 +1274,93 @@ const ipHashOfDay = (ip, day) => {
   }
   return createHash('sha256').update(`${daySalt}:${ip}`).digest('hex');
 };
+// ---------- 模一把（决策 057）：Wordle 式猜 AI 模型 ----------
+//
+// 判定逻辑与数据集在 lib/guess-logic.ts（前端类型同源）。服务端持答案、
+// 只吐判定结果，防止「查看源码」直接看答案。这里用 jiti 在启动时加载
+// TS 模块（能解析其中的 json 导入），与验证脚本 scripts/validate-guess.mjs
+// 同一加载方式——判定口径永远同一份代码。
+//
+// GET /api/guess/today  → 数据集（无答案字段）+ 今天的日子编号。匿名可读。
+// POST /api/guess/check → body { guessId }，返回该猜测的逐属性反馈。
+//                         8 次的机会计数、战绩都在前端本地，接口无状态。
+import { createJiti } from 'jiti';
+
+const guessModule = await createJiti(import.meta.url)(
+  '../lib/guess-logic.ts',
+);
+const {
+  GUESS_MODELS: guessModels,
+  ATTRIBUTE_KEYS: guessAttributeKeys,
+  answerForDate: guessAnswerForDate,
+  dayNumber: guessDayNumber,
+  guessDayKey: guessDayKeyOf,
+  modelById: guessModelById,
+  resolveGuess: resolveGuessByName,
+  judge: judgeGuess,
+} = guessModule;
+
+// 公开字段：比 GuessModel 少不了什么（答案本身就是公开模型），但保持
+// 「服务端→前端」的显式白名单，未来数据集加私密字段（如出题权重）不会
+// 意外泄漏。
+const publicGuessModel = (m) => ({
+  id: m.id,
+  name: m.name,
+  vendor: m.vendor,
+  released: m.released,
+  openWeights: m.openWeights,
+  contextK: m.contextK,
+  modalities: m.modalities,
+  reasoning: m.reasoning,
+  // priceOut（官方一手输出单价 $/M）与 priceTier（代码内 PRICE_BAND_EDGES 划的档）
+  // 都下发：格子显示用档位，揭晓条展示具体价格
+  priceOut: m.priceOut,
+  priceTier: m.priceTier,
+});
+
+app.get('/api/guess/today', (_req, res) => {
+  try {
+    res.set(noStore).json({
+      dayKey: guessDayKeyOf(),
+      // dayNumber 给分享文案用（「模一把 #12」），epoch 见 lib/guess-logic.ts
+      dayNumber: guessDayNumber(),
+      attributes: guessAttributeKeys,
+      models: guessModels.map(publicGuessModel),
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '题目暂时无法加载，请稍后重试' });
+  }
+});
+
+app.post('/api/guess/check', limiter, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  // 无需登录：对局全部在前端本地，接口只做纯判定（答案不在请求里，无法伪造）。
+  // final=true 表示这是本日第 8 次（最后机会）：无论对错都随反馈附带答案，
+  // 供前端揭晓。次数计数在客户端，这里不校验——多拿一次答案没有收益
+  //（对局与战绩都不在服务端），不值得为它加状态。
+  const guessId = typeof req.body?.guessId === 'string' ? req.body.guessId : '';
+  const final = req.body?.final === true;
+  const guess = guessModelById.get(guessId) ?? resolveGuessByName(guessId);
+  if (!guess)
+    return res
+      .status(400)
+      .set(noStore)
+      .json({ code: 'unknown-model', error: '没有找到这个模型' });
+  try {
+    const answer = guessAnswerForDate();
+    const feedback = judgeGuess(guess, answer);
+    // 猜中或最后一次：随反馈附带答案（前端揭晓用）；否则不给，防试探
+    res.set(noStore).json({
+      feedback,
+      answer: feedback.won || final ? publicGuessModel(answer) : null,
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时判不了，稍后再试？' });
+  }
+});
+
 app.post('/api/track', (req, res) => {
   // 同源即可上报，无需登录（访客也要统计）；失败吞错不影响页面
   try {

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>模一把 · 视觉对照</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #0d1714;
+      color: #e6ece3;
+      font: 14px system-ui;
+    }
+    header {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #35463e;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0 16px 0 0;
+    }
+    button,
+    select {
+      background: #21332b;
+      color: inherit;
+      border: 1px solid #526359;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    main {
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    iframe {
+      width: 1440px;
+      max-width: 100%;
+      height: 1000px;
+      border: 1px solid #526359;
+      background: #14231c;
+    }
+    small {
+      color: #a3b3a8;
+    }
+  </style>
+  <header>
+    <h1>模一把 · 视觉对照</h1>
+    <select id="scene" aria-label="展示状态">
+      <option value="empty">初次进入</option>
+      <option value="feedback">猜测反馈</option>
+      <option value="win">猜中结算</option>
+      <option value="loss">用尽机会</option></select
+    ><select id="size" aria-label="视口宽度">
+      <option value="1440">桌面 1440</option>
+      <option value="1024">平板 1024</option>
+      <option value="390">手机 390</option></select
+    ><button id="replay">重播入场</button><button id="pause">暂停动效</button
+    ><button id="reduced">减少动态效果：关</button
+    ><small>隔离的演示数据，不读写真实对局和战绩。</small>
+  </header>
+  <main>
+    <iframe
+      id="stage"
+      title="模一把真实页面预览"
+      src="/reference/guess-review-stage.html?scene=empty"
+    ></iframe>
+  </main>
+  <script type="module">
+    const stage = document.querySelector('#stage');
+    let paused = false,
+      reduced = false;
+    document.querySelector('#scene').onchange = (e) => {
+      stage.src = '/reference/guess-review-stage.html?scene=' + e.target.value;
+      paused = false;
+      document.querySelector('#pause').textContent = '暂停动效';
+    };
+    document.querySelector('#size').onchange = (e) => {
+      stage.style.width = e.target.value + 'px';
+    };
+    document.querySelector('#replay').onclick = () =>
+      stage.contentWindow.location.reload();
+    document.querySelector('#pause').onclick = (e) => {
+      paused = !paused;
+      stage.contentDocument
+        .getAnimations()
+        .forEach((a) => (paused ? a.pause() : a.play()));
+      e.target.textContent = paused ? '继续动效' : '暂停动效';
+    };
+    document.querySelector('#reduced').onclick = (e) => {
+      reduced = !reduced;
+      stage.contentDocument.documentElement.classList.toggle(
+        'guess-reduced',
+        reduced,
+      );
+      e.target.textContent = '减少动态效果：' + (reduced ? '开' : '关');
+    };
+    stage.onload = () =>
+      stage.contentDocument.documentElement.classList.toggle(
+        'guess-reduced',
+        reduced,
+      );
+  </script>
+</html>
