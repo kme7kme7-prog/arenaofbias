@@ -19,6 +19,8 @@ export type GuessModel = {
   name: string;
   /** 厂商显示名（数据集原始字符串，如 "Zhipu AI (Z.ai)"）。判定按原文全等比较 */
   vendor: string;
+  /** 厂商国家/地区代码（VENDOR_REGION 映射）：厂商不同但同地区时厂商格给黄 */
+  region: string;
   /** 发布年月 "YYYY-MM"。口径：正式发布/广泛可用，不算预告 */
   released: string;
   /** 是否开放权重可下载 */
@@ -35,7 +37,42 @@ export type GuessModel = {
   priceTier: number | null;
   /** 知名度分（数据集自带，0-85）。当前只用于搜索默认候选排序 */
   popularity: number;
+  /** 难度分池：1 简单 / 2 中等 / 3 困难。玩家选难度后只在该池里出题与搜索 */
+  difficulty: GuessDifficulty;
+  /** 每日派生生效日（dayNumber 口径）：后台追加的模型从该日起参与每日题
+   *  取模，当天与历史答案不受追加影响；undefined = 主数据集基础槽，恒生效 */
+  sinceDay?: number;
+  /** 合并组 id（决策 061）：同线小版本并入一组只占一个答案槽，组内版本
+   *  仍是独立可猜模型。undefined = 独立条目（自己就是一槽） */
+  groupId?: string;
 };
+
+/** 三档难度（决策 060）：答案池互不重叠，各玩各的 */
+export type GuessDifficulty = 1 | 2 | 3;
+export const GUESS_DIFFICULTIES: GuessDifficulty[] = [1, 2, 3];
+/** 难度显示文案（zh/en），index 0/1/2 对应难度 1/2/3。
+ *  中档用「标准」不用「中等」——「中等」已被价格档占用（en=Mid），文案表按中文键查 */
+export const DIFFICULTY_INFO: { zh: string; en: string }[] = [
+  { zh: '简单', en: 'Easy' },
+  { zh: '标准', en: 'Normal' },
+  { zh: '困难', en: 'Hard' },
+];
+
+/** 某难度的候选池（答案与搜索候选都只从池里出）。数据集顺序即热度降序，过滤保持原序 */
+export function poolForDifficulty(
+  models: GuessModel[],
+  difficulty: GuessDifficulty,
+): GuessModel[] {
+  return models.filter((m) => m.difficulty === difficulty);
+}
+
+/** 每日一题的答案池（决策 063）：只从简单+标准出，困难池不进每日——
+ *  每日题是全球同题的分享型玩法，答案太冷门不利于传播；
+ *  困难档留给练习模式（随机出题、不限次） */
+export const DAILY_DIFFICULTIES: readonly GuessDifficulty[] = [1, 2];
+export function dailyPool(models: GuessModel[]): GuessModel[] {
+  return models.filter((m) => DAILY_DIFFICULTIES.includes(m.difficulty));
+}
 
 // ── 数据集适配层 ──
 // 外部维护的数据集（lib/guess-models.json）有自己的字段口径（org/year/month/
@@ -52,6 +89,37 @@ export type GuessModel = {
 /** 价格档边界：priceOut < 0.5 → 0 档；< 2 → 1；< 8 → 2；< 25 → 3；≥ 25 → 4 */
 export const PRICE_BAND_EDGES = [0.5, 2, 8, 25] as const;
 
+/** 厂商 → 国家/地区（2026-09-14 用户拍板：厂商格「同国家给黄」——
+ *  猜 xAI 答 OpenAI 都是美国给黄，中美跨国才是灰）。
+ *  数据集 org 原文 → 地区代码；新增厂商必须在这里补行，
+ *  validate:guess 断言没有未登记厂商（回落 '??' 只兜底不告警）。 */
+export const VENDOR_REGION: Record<string, string> = {
+  // 中国
+  'DeepSeek': 'CN',
+  'Moonshot AI': 'CN',
+  'Zhipu AI (Z.ai)': 'CN',
+  'MiniMax': 'CN',
+  'Alibaba': 'CN',
+  'Xiaomi': 'CN',
+  'StepFun': 'CN',
+  'Tencent': 'CN',
+  'Baidu': 'CN',
+  'ByteDance': 'CN',
+  '01.AI': 'CN',
+  // 美国
+  'OpenAI': 'US',
+  'Anthropic': 'US',
+  'Google': 'US',
+  'Meta': 'US',
+  'xAI': 'US',
+  'Microsoft': 'US',
+  'Thinking Machines': 'US',
+  'LMSYS': 'US',
+  'Stanford': 'US',
+  // 法国
+  'Mistral': 'FR',
+};
+
 function priceBandOf(priceOut: number | null): number | null {
   if (priceOut === null || !Number.isFinite(priceOut)) return null;
   for (let i = 0; i < PRICE_BAND_EDGES.length; i++)
@@ -59,7 +127,7 @@ function priceBandOf(priceOut: number | null): number | null {
   return PRICE_BAND_EDGES.length;
 }
 
-function normalizeModel(entry: {
+export type RawModel = {
   id: string;
   name: string;
   org: string;
@@ -71,11 +139,18 @@ function normalizeModel(entry: {
   reasoning: boolean;
   priceOut: number | null;
   popularity: number;
-}): GuessModel {
+  difficulty?: number;
+  /** 每日派生生效日（dayNumber）；主数据集不写此字段（恒生效） */
+  sinceDay?: number;
+  variants?: RawModel[];
+};
+
+function toModel(entry: RawModel, group?: RawModel): GuessModel {
   return {
     id: entry.id,
     name: entry.name,
     vendor: entry.org,
+    region: VENDOR_REGION[entry.org] ?? '??',
     released: `${entry.year}-${String(entry.month).padStart(2, '0')}`,
     openWeights: entry.openWeights,
     contextK: entry.contextK,
@@ -84,11 +159,64 @@ function normalizeModel(entry: {
     priceOut: entry.priceOut,
     priceTier: priceBandOf(entry.priceOut),
     popularity: entry.popularity,
+    // 数据集写 number；合法值域由 validate:guess 断言，这里收窄类型。
+    // 组内变体不带 difficulty，继承组的分池归属（分池以组为单位）
+    difficulty: (entry.difficulty ?? group?.difficulty) as GuessDifficulty,
+    sinceDay: entry.sinceDay ?? group?.sinceDay,
+    groupId: group?.id,
   };
 }
 
-export const GUESS_MODELS: GuessModel[] = rawData.models.map(normalizeModel);
+// 合并组（决策 061）：带 variants 的条目展开为「组内每个小版本一个可猜模型」，
+// 组条目本身（"Qwen3.x 27B" 这种占位名）不可猜也不可当答案——答案抽中组后
+// 再实例化为某个版本（见 answerForDate）
+function normalizeEntry(entry: RawModel): GuessModel[] {
+  if (!entry.variants?.length) return [toModel(entry)];
+  return entry.variants.map((v) => toModel(v, entry));
+}
+
+export const GUESS_MODELS: GuessModel[] = rawData.models.flatMap(normalizeEntry);
 export const modelById = new Map(GUESS_MODELS.map((m) => [m.id, m]));
+
+// ── 后台增量模型 ──
+// 后台「模一把」页手动追加的新模型存 data/guess-models-extra.json（服务器
+// 本地数据，不入库），服务端启动时读出并调 registerExtraModels 追加到
+// GUESS_MODELS 末尾。追加条目带 sinceDay（服务端写入 = 追加次日）：立即
+// 可被猜、进练习池；从次日起才参与每日题派生（answerForDate 的追加槽
+// 机制），当天与历史答案不受影响。前端从不调用它：浏览器包里只有基础集，
+// 候选数据走 /api/guess/today 下发，本函数只影响服务端持有的那份。
+
+/** 增量文件（data/guess-models-extra.json）格式 */
+export type ExtraModelsFile = {
+  /** 新厂商的地区登记（org 原文 → 地区码），合并进 VENDOR_REGION */
+  vendorRegions?: Record<string, string>;
+  /** 与主数据集同口径的条目；只允许独立条目（合并组请维护主数据集） */
+  models?: RawModel[];
+};
+
+/**
+ * 注册增量模型：先合并厂商地区映射（toModel 取 region 依赖它），再把条目
+ * 展开追加到数据集末尾。sinceDay 未写的条目视为恒生效（兼容旧增量文件）。
+ * id 冲突或格式非法抛 GuessError——启动时让 server 记日志、接口层转 400。
+ */
+export function registerExtraModels(extra: ExtraModelsFile): number {
+  if (extra.vendorRegions) Object.assign(VENDOR_REGION, extra.vendorRegions);
+  // 两阶段：先整体归一与查重，全部通过才合并——坏条目不让前面的条目
+  // 残留在数据集里（启动时每次重放都停在同一个坏条目，等于后面的全丢）
+  const batch: GuessModel[] = [];
+  for (const entry of extra.models ?? []) {
+    for (const m of normalizeEntry(entry)) {
+      if (modelById.has(m.id))
+        throw new GuessError('unknown-model', `增量模型 id 重复: ${m.id}`);
+      batch.push(m);
+    }
+  }
+  for (const m of batch) {
+    GUESS_MODELS.push(m);
+    modelById.set(m.id, m);
+  }
+  return batch.length;
+}
 
 /** 价格档显示文案（zh/en），index = priceTier（0-4） */
 export const PRICE_TIERS: { zh: string; en: string }[] = [
@@ -192,11 +320,14 @@ function judgeNumeric(
 export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
   const attributes = {} as Record<AttributeKey, Feedback>;
 
-  // 厂商：纯绿/灰
+  // 厂商：同厂商=绿；不同厂商但同国家/地区=黄（如 xAI 与 OpenAI 同为美国）；
+  // 跨国=灰。无箭头。地区映射见 VENDOR_REGION
   attributes.vendor =
     guess.vendor === answer.vendor
       ? { state: 'hit', arrow: null }
-      : { state: 'miss', arrow: null };
+      : guess.region === answer.region
+        ? { state: 'near', arrow: null }
+        : { state: 'miss', arrow: null };
 
   // 发布时间：月序号比较；near 阈值按月
   attributes.released = judgeNumeric(
@@ -236,12 +367,20 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
       ? { state: 'hit', arrow: null }
       : { state: 'miss', arrow: null };
 
-  // 价格档：档位比较；相邻档算 near
-  attributes.priceTier = judgeNumeric(
-    guess.priceTier === null ? null : guess.priceTier,
-    answer.priceTier === null ? null : answer.priceTier,
-    1.5, // 相邻档（差1）给黄，差2档给灰
-  );
+  // 价格档：档位序数比较（0-4）。相邻档（差 1）给黄、差 ≥2 给灰 + 箭头。
+  // 不走 judgeNumeric——它的比值分支会把 0↔1（1/0=∞）和 1↔2（2>1.5 倍）
+  // 误判成灰，相邻档的黄灯在低档位区间整体失效（2026-09-14 修复）
+  if (guess.priceTier === null || answer.priceTier === null) {
+    attributes.priceTier = { state: 'unknown', arrow: null };
+  } else if (guess.priceTier === answer.priceTier) {
+    attributes.priceTier = { state: 'hit', arrow: null };
+  } else {
+    attributes.priceTier = {
+      state:
+        Math.abs(guess.priceTier - answer.priceTier) === 1 ? 'near' : 'miss',
+      arrow: answer.priceTier > guess.priceTier ? 'up' : 'down',
+    };
+  }
 
   return {
     guessId: guess.id,
@@ -252,13 +391,16 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
 
 // ── 每日一题派生 ──
 // 设计目标：① 同一天全世界同答案（分享的前提）② 不引随机源（可复现、
-// React Compiler 与验证脚本都友好）③ 数据集加新模型不改变历史日期的答案
-//（昨天晒的图今天不能变卦）。
+// React Compiler 与验证脚本都友好）③ 往数据集追加新模型不改变任何已发布
+// 日期（含当天）的答案——昨天晒的图今天不能变卦，正在进行的对局更不能
+// 被换答案。
 //
-// 方案：epoch 日期序号 → 首选「序号 % 存量表长度」，但数据集追加会移位。
-// 因此用两层混合：seedOffset 固定，日期序号先加偏移再对长度取模。追加模型
-// 只在「取模环回」那天改变答案——用 anchor 日期把环回点钉死在数据集冻结日，
-// 冻结日之前的历史答案不受追加影响。
+// 方案（2026-09-14 修复版）：槽分「基础 / 追加」两类。基础槽 = 主数据集
+// （上线后冻结，只允许末尾追加），槽序永远稳定；追加槽 = 后台增量条目，
+// 带 sinceDay（生效日），只从该日起参与当日取模。某日的模数 = 基础槽数 +
+// 当日已生效的追加槽数——新追加的条目 sinceDay 在明天，今天与历史日期的
+// 模数和槽序都不动，答案一个不变。不能用「散列值 % 全量槽数」：池子变长
+// 会让几乎所有日期取模移位（98→100 槽实测 60 天里 58 天换答案）。
 
 /** 数据集冻结锚点：模一把上线日（决策 057）。改它=重排所有历史答案，上线后勿动 */
 export const GUESS_EPOCH = '2026-09-13';
@@ -290,15 +432,53 @@ export function dayNumber(date: Date = new Date()): number {
  * 每日答案：确定性派生，无随机源。
  * 不是简单的 (day % N)——数据集按知名度排序，同系列模型（qwen 家族等）
  * 在数组里相邻，直接取模会连续几天出同一家族，可玩性差。这里做两层
- * 散列混合：day 先乘素数再异或折叠，把相邻日期打散到数组的不同区域。
- * 数据集追加新模型只影响「散列值恰好落在新区间」的未来日期，历史答案
- * 保持稳定的前提是**新模型只追加在数组末尾**（见文件头注释）。
+ * 散列混合：day 先乘素数再折叠，把相邻日期打散到数组的不同区域。
+ *
+ * 难度（决策 060）：三个难度各用各的池（poolForDifficulty 过滤后的子数组），
+ * 同一天三个难度的答案各自独立；dayNumber 共享，分享文案按难度区分。
+ * 池内下标散列，所以**调整某模型的 difficulty 会重排两个池的历史答案**——
+ * 与追加契约同理，上线后难度归档冻结，只能用户显式推翻。
+ *
+ * 合并组（决策 061）：同线小版本（如 Qwen3.5/3.6/3.8 27B）在数据集里并入
+ * 一个组条目，答案池里只占一个槽——否则五六个近亲会把同一张脸刷成常客。
+ * 两级派生：第一层散列选答案槽（组或独立条目）；第二层在组内按「该槽第
+ * 几次被抽中」轮转实例化版本——比再散一次列可靠（哈希命中序列模组大小
+ * 不保证全覆盖），且每次命中换一个版本，组题连续出现时呈现不同小版本。
+ * 玩家视角：猜中邻近版本会拿到「全绿只差月份」的反馈，由此推出正确版本号。
+ *
+ * 追加契约（见上方「每日一题派生」注释）：基础槽序冻结 + 追加槽 sinceDay
+ * 起才并入模数。validate:guess 有「追加不改今日及历史答案」的回归断言。
  */
-export function answerForDate(date: Date = new Date()): GuessModel {
+export function answerForDate(
+  date: Date = new Date(),
+  pool: GuessModel[] = GUESS_MODELS,
+): GuessModel {
   // 负序号（上线前的日期）clamp 到 0：上线前不存在历史对局，统一给 epoch 题
   const n = Math.max(0, dayNumber(date));
-  // 乘大素数取模折叠：散列分布均匀且完全确定（无随机源）
-  const hash = (n * 2654435761) % 0xffffffff;
-  const index = hash % GUESS_MODELS.length;
-  return GUESS_MODELS[index];
+  // 第一层：答案槽去重（同组只占一槽），保持池内首次出现顺序保证确定性
+  const slots = new Map<string, GuessModel[]>();
+  for (const m of pool) {
+    const key = m.groupId ?? m.id;
+    const slot = slots.get(key);
+    if (slot) slot.push(m);
+    else slots.set(key, [m]);
+  }
+  // 基础槽 / 追加槽分流（「追加不改历史」的关键，见函数头注释）
+  const baseSlots: GuessModel[][] = [];
+  const extraSlots: GuessModel[][] = [];
+  for (const slot of slots.values())
+    (slot[0].sinceDay === undefined ? baseSlots : extraSlots).push(slot);
+  const select = (d: number): GuessModel[] => {
+    const h = (d * 2654435761) % 0xffffffff;
+    const eligible = extraSlots.filter((s) => (s[0].sinceDay ?? 0) <= d);
+    const r = h % (baseSlots.length + eligible.length);
+    return r < baseSlots.length ? baseSlots[r] : eligible[r - baseSlots.length];
+  };
+  const slot = select(n);
+  if (slot.length === 1) return slot[0];
+  // 第二层：第 hitCount 次命中该槽取第 hitCount 个版本（轮转，天然全覆盖；
+  // 扫描历史命中次数只依赖 dayNumber 与常量，O(n)、每日一次量级无压力）
+  let hits = 0;
+  for (let d = 0; d < n; d++) if (select(d) === slot) hits++;
+  return slot[hits % slot.length];
 }

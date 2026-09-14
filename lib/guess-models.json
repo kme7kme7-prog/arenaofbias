@@ -1,21 +1,66 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-13",
-  "source": "models.dev snapshot 2026-09-13 + manual curation for classic models",
+  "updatedAt": "2026-09-14",
+  "source": "models.dev snapshot 2026-09-13 + manual curation for classic models；2026-09-14 重构：近亲小版本合并为 variants 组（决策 061）",
   "models": [
     {
-      "id": "glm-5-2",
-      "name": "GLM-5.2",
+      "id": "glm-5-x",
+      "name": "GLM-5.x",
       "org": "Zhipu AI (Z.ai)",
       "year": 2026,
-      "month": 6,
+      "month": 2,
       "openWeights": true,
-      "contextK": 1049,
-      "modality": "text+image",
+      "contextK": 205,
+      "modality": "text",
       "reasoning": true,
       "priceTier": "free",
-      "priceOut": 4.4,
-      "popularity": 85
+      "priceOut": 3.2,
+      "popularity": 85,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "glm-5",
+          "name": "GLM-5",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.2,
+          "popularity": 43
+        },
+        {
+          "id": "glm-5-1",
+          "name": "GLM-5.1",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.4,
+          "popularity": 53
+        },
+        {
+          "id": "glm-5-2",
+          "name": "GLM-5.2",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 6,
+          "openWeights": true,
+          "contextK": 1049,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.4,
+          "popularity": 85
+        }
+      ]
     },
     {
       "id": "deepseek-v4-flash",
@@ -29,7 +74,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.6,
-      "popularity": 82
+      "popularity": 82,
+      "difficulty": 1
     },
     {
       "id": "deepseek-v4-pro",
@@ -43,21 +89,67 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.87,
-      "popularity": 72
+      "popularity": 72,
+      "difficulty": 1
     },
     {
-      "id": "kimi-k2-6",
-      "name": "Kimi K2.6",
+      "id": "kimi-k2-x",
+      "name": "Kimi K2.x",
       "org": "Moonshot AI",
       "year": 2026,
-      "month": 4,
+      "month": 1,
       "openWeights": true,
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
       "priceTier": "free",
-      "priceOut": 4,
-      "popularity": 64
+      "priceOut": null,
+      "popularity": 64,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "kimi-k2-5",
+          "name": "Kimi K2.5",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 1,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 43
+        },
+        {
+          "id": "kimi-k2-6",
+          "name": "Kimi K2.6",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4,
+          "popularity": 64
+        },
+        {
+          "id": "kimi-k2-7-code",
+          "name": "Kimi K2.7 Code",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 6,
+          "openWeights": true,
+          "contextK": 271,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4,
+          "popularity": 60
+        }
+      ]
     },
     {
       "id": "kimi-k3",
@@ -71,25 +163,12 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 15,
-      "popularity": 63
+      "popularity": 63,
+      "difficulty": 1
     },
     {
-      "id": "kimi-k2-7-code",
-      "name": "Kimi K2.7 Code",
-      "org": "Moonshot AI",
-      "year": 2026,
-      "month": 6,
-      "openWeights": true,
-      "contextK": 271,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 4,
-      "popularity": 60
-    },
-    {
-      "id": "gpt-oss-120b",
-      "name": "GPT OSS 120B",
+      "id": "gpt-oss",
+      "name": "GPT OSS",
       "org": "OpenAI",
       "year": 2025,
       "month": 8,
@@ -99,21 +178,38 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 54
-    },
-    {
-      "id": "glm-5-1",
-      "name": "GLM-5.1",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2026,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 205,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 4.4,
-      "popularity": 53
+      "popularity": 54,
+      "difficulty": 3,
+      "variants": [
+        {
+          "id": "gpt-oss-120b",
+          "name": "GPT OSS 120B",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 54
+        },
+        {
+          "id": "gpt-oss-20b",
+          "name": "GPT OSS 20B",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 33
+        }
+      ]
     },
     {
       "id": "glm-5-3-flash",
@@ -127,7 +223,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.25,
-      "popularity": 51
+      "popularity": 51,
+      "difficulty": 1
     },
     {
       "id": "glm-5-3",
@@ -141,7 +238,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 4.4,
-      "popularity": 48
+      "popularity": 48,
+      "difficulty": 1
     },
     {
       "id": "claude-sonnet-4-6",
@@ -155,7 +253,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 15,
-      "popularity": 46
+      "popularity": 46,
+      "difficulty": 1
     },
     {
       "id": "gpt-5-5",
@@ -169,21 +268,95 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 30,
-      "popularity": 45
+      "popularity": 45,
+      "difficulty": 1
     },
     {
-      "id": "minimax-m2-5",
-      "name": "MiniMax-M2.5",
+      "id": "minimax-m2-x",
+      "name": "MiniMax-M2.x",
       "org": "MiniMax",
-      "year": 2026,
-      "month": 2,
+      "year": 2025,
+      "month": 10,
       "openWeights": true,
-      "contextK": 229,
-      "modality": "text+image",
+      "contextK": 1000,
+      "modality": "text",
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 1.2,
-      "popularity": 44
+      "popularity": 44,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "minimax-m2",
+          "name": "MiniMax-M2",
+          "org": "MiniMax",
+          "year": 2025,
+          "month": 10,
+          "openWeights": true,
+          "contextK": 1000,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 18
+        },
+        {
+          "id": "minimax-m2-1",
+          "name": "MiniMax-M2.1",
+          "org": "MiniMax",
+          "year": 2025,
+          "month": 12,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 23
+        },
+        {
+          "id": "minimax-m2-5",
+          "name": "MiniMax-M2.5",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 229,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 44
+        },
+        {
+          "id": "minimax-m2-7",
+          "name": "MiniMax-M2.7",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 3,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 42
+        },
+        {
+          "id": "minimax-m2-7-highspeed",
+          "name": "MiniMax-M2.7 Highspeed",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 3,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.4,
+          "popularity": 17
+        }
+      ]
     },
     {
       "id": "minimax-m3",
@@ -197,7 +370,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 1.2,
-      "popularity": 44
+      "popularity": 44,
+      "difficulty": 1
     },
     {
       "id": "claude-opus-4-8",
@@ -211,35 +385,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 25,
-      "popularity": 43
-    },
-    {
-      "id": "glm-5",
-      "name": "GLM-5",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2026,
-      "month": 2,
-      "openWeights": true,
-      "contextK": 205,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 3.2,
-      "popularity": 43
-    },
-    {
-      "id": "kimi-k2-5",
-      "name": "Kimi K2.5",
-      "org": "Moonshot AI",
-      "year": 2026,
-      "month": 1,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 43
+      "popularity": 43,
+      "difficulty": 1
     },
     {
       "id": "gpt-5-4",
@@ -253,21 +400,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 15,
-      "popularity": 42
-    },
-    {
-      "id": "minimax-m2-7",
-      "name": "MiniMax-M2.7",
-      "org": "MiniMax",
-      "year": 2026,
-      "month": 3,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 1.2,
-      "popularity": 42
+      "popularity": 42,
+      "difficulty": 1
     },
     {
       "id": "claude-haiku-4-5",
@@ -281,7 +415,8 @@
       "reasoning": true,
       "priceTier": "cheap",
       "priceOut": 5,
-      "popularity": 41
+      "popularity": 41,
+      "difficulty": 1
     },
     {
       "id": "claude-opus-4-7",
@@ -295,21 +430,67 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 25,
-      "popularity": 41
+      "popularity": 41,
+      "difficulty": 1
     },
     {
-      "id": "claude-opus-4-6",
-      "name": "Claude Opus 4.6",
+      "id": "claude-opus-4-x",
+      "name": "Claude Opus 4.x",
       "org": "Anthropic",
-      "year": 2026,
-      "month": 2,
+      "year": 2025,
+      "month": 8,
       "openWeights": false,
-      "contextK": 1000,
+      "contextK": 200,
       "modality": "text+image",
       "reasoning": true,
       "priceTier": "high",
-      "priceOut": 25,
-      "popularity": 37
+      "priceOut": 75,
+      "popularity": 37,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "claude-opus-4-1",
+          "name": "Claude Opus 4.1",
+          "org": "Anthropic",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 75,
+          "popularity": 18
+        },
+        {
+          "id": "claude-opus-4-5",
+          "name": "Claude Opus 4.5",
+          "org": "Anthropic",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 25,
+          "popularity": 30
+        },
+        {
+          "id": "claude-opus-4-6",
+          "name": "Claude Opus 4.6",
+          "org": "Anthropic",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 25,
+          "popularity": 37
+        }
+      ]
     },
     {
       "id": "gpt-5-6-luna",
@@ -323,7 +504,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 1.2,
-      "popularity": 37
+      "popularity": 37,
+      "difficulty": 1
     },
     {
       "id": "gpt-5-6-sol",
@@ -337,7 +519,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 20,
-      "popularity": 37
+      "popularity": 37,
+      "difficulty": 1
     },
     {
       "id": "claude-fable-5",
@@ -351,21 +534,53 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 50,
-      "popularity": 36
+      "popularity": 36,
+      "difficulty": 1
     },
     {
-      "id": "gpt-5-4-mini",
-      "name": "GPT-5.4 Mini",
+      "id": "gpt-5-x-mini",
+      "name": "GPT-5.x Mini",
       "org": "OpenAI",
-      "year": 2026,
-      "month": 3,
+      "year": 2025,
+      "month": 8,
       "openWeights": false,
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 4.5,
-      "popularity": 36
+      "priceTier": "cheap",
+      "priceOut": 2,
+      "popularity": 36,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gpt-5-mini",
+          "name": "GPT-5 Mini",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 32
+        },
+        {
+          "id": "gpt-5-4-mini",
+          "name": "GPT-5.4 Mini",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.5,
+          "popularity": 36
+        }
+      ]
     },
     {
       "id": "gpt-5-6-terra",
@@ -379,21 +594,67 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 12,
-      "popularity": 36
+      "popularity": 36,
+      "difficulty": 1
     },
     {
-      "id": "glm-4-7",
-      "name": "GLM-4.7",
+      "id": "glm-4-x",
+      "name": "GLM-4.x",
       "org": "Zhipu AI (Z.ai)",
       "year": 2025,
-      "month": 12,
+      "month": 7,
       "openWeights": true,
-      "contextK": 205,
-      "modality": "text+image",
+      "contextK": 131,
+      "modality": "text",
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 2.2,
-      "popularity": 35
+      "popularity": 35,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "glm-4-5",
+          "name": "GLM-4.5",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 7,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 18
+        },
+        {
+          "id": "glm-4-6",
+          "name": "GLM-4.6",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 9,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 25
+        },
+        {
+          "id": "glm-4-7",
+          "name": "GLM-4.7",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 12,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 35
+        }
+      ]
     },
     {
       "id": "claude-sonnet-5",
@@ -407,35 +668,67 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 10,
-      "popularity": 34
+      "popularity": 34,
+      "difficulty": 1
     },
     {
-      "id": "gpt-oss-20b",
-      "name": "GPT OSS 20B",
-      "org": "OpenAI",
+      "id": "qwen3-x-max",
+      "name": "Qwen3.x Max",
+      "org": "Alibaba",
       "year": 2025,
-      "month": 8,
-      "openWeights": true,
-      "contextK": 131,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 262,
       "modality": "text",
       "reasoning": true,
       "priceTier": "free",
-      "priceOut": null,
-      "popularity": 33
-    },
-    {
-      "id": "qwen3-7-max",
-      "name": "Qwen3.7 Max",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 5,
-      "openWeights": false,
-      "contextK": 1064,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 7.5,
-      "popularity": 33
+      "priceOut": 6,
+      "popularity": 33,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "qwen3-max",
+          "name": "Qwen3 Max",
+          "org": "Alibaba",
+          "year": 2025,
+          "month": 9,
+          "openWeights": false,
+          "contextK": 262,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 21
+        },
+        {
+          "id": "qwen3-7-max",
+          "name": "Qwen3.7 Max",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 5,
+          "openWeights": false,
+          "contextK": 1064,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 7.5,
+          "popularity": 33
+        },
+        {
+          "id": "qwen3-8-max",
+          "name": "Qwen3.8 Max",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 30
+        }
+      ]
     },
     {
       "id": "claude-sonnet-4-5",
@@ -449,7 +742,8 @@
       "reasoning": true,
       "priceTier": "cheap",
       "priceOut": 15,
-      "popularity": 32
+      "popularity": 32,
+      "difficulty": 1
     },
     {
       "id": "gemini-2-5-flash",
@@ -463,7 +757,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 2.5,
-      "popularity": 32
+      "popularity": 32,
+      "difficulty": 1
     },
     {
       "id": "gemini-3-5-flash",
@@ -477,21 +772,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 9,
-      "popularity": 32
-    },
-    {
-      "id": "gpt-5-mini",
-      "name": "GPT-5 Mini",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 2,
-      "popularity": 32
+      "popularity": 32,
+      "difficulty": 1
     },
     {
       "id": "llama-3-3-70b",
@@ -505,7 +787,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 32
+      "popularity": 32,
+      "difficulty": 3
     },
     {
       "id": "claude-opus-5",
@@ -519,7 +802,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 25,
-      "popularity": 31
+      "popularity": 31,
+      "difficulty": 1
     },
     {
       "id": "deepseek-v3-2",
@@ -533,21 +817,53 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.42,
-      "popularity": 31
+      "popularity": 31,
+      "difficulty": 1
     },
     {
-      "id": "gpt-5-4-nano",
-      "name": "GPT-5.4 Nano",
+      "id": "gpt-5-x-nano",
+      "name": "GPT-5.x Nano",
       "org": "OpenAI",
-      "year": 2026,
-      "month": 3,
+      "year": 2025,
+      "month": 8,
       "openWeights": false,
-      "contextK": 1048,
+      "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
       "priceTier": "cheap",
-      "priceOut": 1.25,
-      "popularity": 31
+      "priceOut": 0.4,
+      "popularity": 31,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-nano",
+          "name": "GPT-5 Nano",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 0.4,
+          "popularity": 27
+        },
+        {
+          "id": "gpt-5-4-nano",
+          "name": "GPT-5.4 Nano",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1048,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 1.25,
+          "popularity": 31
+        }
+      ]
     },
     {
       "id": "qwen3-5-397b-a17b",
@@ -561,49 +877,126 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 3.6,
-      "popularity": 31
+      "popularity": 31,
+      "difficulty": 3
     },
     {
-      "id": "qwen3-7-plus",
-      "name": "Qwen3.7 Plus",
+      "id": "qwen3-x-plus",
+      "name": "Qwen3.x Plus",
       "org": "Alibaba",
       "year": 2026,
-      "month": 6,
+      "month": 2,
       "openWeights": false,
-      "contextK": 1064,
+      "contextK": 1000,
       "modality": "text+image+video",
       "reasoning": true,
       "priceTier": "free",
-      "priceOut": 3,
-      "popularity": 31
+      "priceOut": 2.4,
+      "popularity": 31,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "qwen3-5-plus",
+          "name": "Qwen3.5 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.4,
+          "popularity": 16
+        },
+        {
+          "id": "qwen3-6-plus",
+          "name": "Qwen3.6 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3,
+          "popularity": 28
+        },
+        {
+          "id": "qwen3-7-plus",
+          "name": "Qwen3.7 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 1064,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3,
+          "popularity": 31
+        }
+      ]
     },
     {
-      "id": "qwen3-8-27b",
-      "name": "Qwen3.8 27B",
+      "id": "qwen3-x-27b",
+      "name": "Qwen3.x 27B",
       "org": "Alibaba",
       "year": 2026,
-      "month": 8,
+      "month": 2,
       "openWeights": true,
-      "contextK": 1131,
+      "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 31
-    },
-    {
-      "id": "claude-opus-4-5",
-      "name": "Claude Opus 4.5",
-      "org": "Anthropic",
-      "year": 2025,
-      "month": 11,
-      "openWeights": false,
-      "contextK": 200,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "mid",
-      "priceOut": 25,
-      "popularity": 30
+      "priceTier": "cheap",
+      "priceOut": 2.4,
+      "popularity": 31,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-5-27b",
+          "name": "Qwen3.5 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2.4,
+          "popularity": 14
+        },
+        {
+          "id": "qwen3-6-27b",
+          "name": "Qwen3.6 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.6,
+          "popularity": 25
+        },
+        {
+          "id": "qwen3-8-27b",
+          "name": "Qwen3.8 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 1131,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 31
+        }
+      ]
     },
     {
       "id": "gemini-2-5-pro",
@@ -617,7 +1010,8 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 10,
-      "popularity": 30
+      "popularity": 30,
+      "difficulty": 1
     },
     {
       "id": "gemini-3-1-pro-preview",
@@ -631,49 +1025,53 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 12,
-      "popularity": 30
+      "popularity": 30,
+      "difficulty": 1
     },
     {
-      "id": "gpt-5-2",
-      "name": "GPT-5.2",
+      "id": "gpt-5-x",
+      "name": "GPT-5.x",
       "org": "OpenAI",
       "year": 2025,
-      "month": 12,
+      "month": 11,
       "openWeights": false,
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 14,
-      "popularity": 30
-    },
-    {
-      "id": "qwen3-8-max",
-      "name": "Qwen3.8 Max",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 8,
-      "openWeights": true,
-      "contextK": 1049,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 6,
-      "popularity": 30
-    },
-    {
-      "id": "gemma-4-31b-it",
-      "name": "Gemma 4 31B IT",
-      "org": "Google",
-      "year": 2026,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 29
+      "priceTier": "mid",
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gpt-5-1",
+          "name": "GPT-5.1",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 10,
+          "popularity": 29
+        },
+        {
+          "id": "gpt-5-2",
+          "name": "GPT-5.2",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 12,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 14,
+          "popularity": 30
+        }
+      ]
     },
     {
       "id": "gpt-5",
@@ -687,11 +1085,12 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 10,
-      "popularity": 29
+      "popularity": 29,
+      "difficulty": 2
     },
     {
-      "id": "gpt-5-1",
-      "name": "GPT-5.1",
+      "id": "gpt-5-x-codex",
+      "name": "GPT-5.x Codex",
       "org": "OpenAI",
       "year": 2025,
       "month": 11,
@@ -701,53 +1100,70 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 10,
-      "popularity": 29
+      "popularity": 27,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-1-codex",
+          "name": "GPT-5.1 Codex",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 10,
+          "popularity": 17
+        },
+        {
+          "id": "gpt-5-1-codex-mini",
+          "name": "GPT-5.1 Codex Mini",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 16
+        },
+        {
+          "id": "gpt-5-2-codex",
+          "name": "GPT-5.2 Codex",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 12,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": null,
+          "popularity": 20
+        },
+        {
+          "id": "gpt-5-3-codex",
+          "name": "GPT-5.3 Codex",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 14,
+          "popularity": 27
+        }
+      ]
     },
     {
-      "id": "qwen3-6-plus",
-      "name": "Qwen3.6 Plus",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 1000,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 3,
-      "popularity": 28
-    },
-    {
-      "id": "gpt-5-3-codex",
-      "name": "GPT-5.3 Codex",
-      "org": "OpenAI",
-      "year": 2026,
-      "month": 2,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "mid",
-      "priceOut": 14,
-      "popularity": 27
-    },
-    {
-      "id": "gpt-5-nano",
-      "name": "GPT-5 Nano",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 0.4,
-      "popularity": 27
-    },
-    {
-      "id": "grok-4-3",
-      "name": "Grok 4.3",
+      "id": "grok-4-x",
+      "name": "Grok 4.x",
       "org": "xAI",
       "year": 2026,
       "month": 4,
@@ -757,35 +1173,111 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 2.5,
-      "popularity": 27
+      "popularity": 27,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "grok-4-3",
+          "name": "Grok 4.3",
+          "org": "xAI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 2.5,
+          "popularity": 27
+        },
+        {
+          "id": "grok-4-5",
+          "name": "Grok 4.5",
+          "org": "xAI",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 26
+        },
+        {
+          "id": "grok-4-6",
+          "name": "Grok 4.6",
+          "org": "xAI",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 524,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 27
+        }
+      ]
     },
     {
-      "id": "grok-4-6",
-      "name": "Grok 4.6",
-      "org": "xAI",
-      "year": 2026,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 524,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 6,
-      "popularity": 27
-    },
-    {
-      "id": "gemini-3-1-flash-lite",
-      "name": "Gemini 3.1 Flash Lite",
+      "id": "gemini-x-flash-lite",
+      "name": "Gemini Flash-Lite",
       "org": "Google",
-      "year": 2026,
-      "month": 3,
+      "year": 2025,
+      "month": 6,
       "openWeights": false,
-      "contextK": 1050,
+      "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
       "priceTier": "free",
-      "priceOut": 1.5,
-      "popularity": 26
+      "priceOut": 0.4,
+      "popularity": 26,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gemini-2-5-flash-lite",
+          "name": "Gemini 2.5 Flash-Lite",
+          "org": "Google",
+          "year": 2025,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 0.4,
+          "popularity": 22
+        },
+        {
+          "id": "gemini-3-1-flash-lite",
+          "name": "Gemini 3.1 Flash Lite",
+          "org": "Google",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.5,
+          "popularity": 26
+        },
+        {
+          "id": "gemini-3-5-flash-lite",
+          "name": "Gemini 3.5 Flash Lite",
+          "org": "Google",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2.5,
+          "popularity": 23
+        }
+      ]
     },
     {
       "id": "gpt-4-1",
@@ -799,63 +1291,53 @@
       "reasoning": false,
       "priceTier": "mid",
       "priceOut": 8,
-      "popularity": 26
+      "popularity": 26,
+      "difficulty": 2
     },
     {
-      "id": "grok-4-5",
-      "name": "Grok 4.5",
-      "org": "xAI",
-      "year": 2026,
-      "month": 7,
-      "openWeights": false,
-      "contextK": 1000,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 6,
-      "popularity": 26
-    },
-    {
-      "id": "qwen3-6-35b-a3b",
-      "name": "Qwen3.6 35B A3B",
+      "id": "qwen3-x-35b-a3b",
+      "name": "Qwen3.x 35B A3B",
       "org": "Alibaba",
       "year": 2026,
-      "month": 4,
+      "month": 2,
       "openWeights": true,
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 1.485,
-      "popularity": 26
-    },
-    {
-      "id": "glm-4-6",
-      "name": "GLM-4.6",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2025,
-      "month": 9,
-      "openWeights": true,
-      "contextK": 205,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.2,
-      "popularity": 25
-    },
-    {
-      "id": "gpt-4-1-mini",
-      "name": "GPT-4.1 mini",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 4,
-      "openWeights": false,
-      "contextK": 1048,
-      "modality": "text+image",
-      "reasoning": false,
       "priceTier": "cheap",
-      "priceOut": 1.6,
-      "popularity": 25
+      "priceOut": 2,
+      "popularity": 26,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-5-35b-a3b",
+          "name": "Qwen3.5 35B A3B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 17
+        },
+        {
+          "id": "qwen3-6-35b-a3b",
+          "name": "Qwen3.6 35B A3B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.485,
+          "popularity": 26
+        }
+      ]
     },
     {
       "id": "mimo-v2-5-pro",
@@ -869,21 +1351,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.87,
-      "popularity": 25
-    },
-    {
-      "id": "qwen3-6-27b",
-      "name": "Qwen3.6 27B",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 3.6,
-      "popularity": 25
+      "popularity": 25,
+      "difficulty": 2
     },
     {
       "id": "deepseek-r1",
@@ -897,21 +1366,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 2.19,
-      "popularity": 24
-    },
-    {
-      "id": "deepseek-v4-1-flash",
-      "name": "DeepSeek V4.1 Flash",
-      "org": "DeepSeek",
-      "year": 2026,
-      "month": 9,
-      "openWeights": true,
-      "contextK": 1050,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 0.6,
-      "popularity": 24
+      "popularity": 24,
+      "difficulty": 1
     },
     {
       "id": "mimo-v2-5",
@@ -925,7 +1381,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 0.28,
-      "popularity": 24
+      "popularity": 24,
+      "difficulty": 2
     },
     {
       "id": "claude-fable-5-1",
@@ -939,25 +1396,12 @@
       "reasoning": true,
       "priceTier": "high",
       "priceOut": 50,
-      "popularity": 23
+      "popularity": 23,
+      "difficulty": 1
     },
     {
-      "id": "gemini-3-5-flash-lite",
-      "name": "Gemini 3.5 Flash Lite",
-      "org": "Google",
-      "year": 2026,
-      "month": 7,
-      "openWeights": false,
-      "contextK": 1049,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 2.5,
-      "popularity": 23
-    },
-    {
-      "id": "gemini-3-6-flash",
-      "name": "Gemini 3.6 Flash",
+      "id": "gemini-3-x-flash",
+      "name": "Gemini 3.x Flash",
       "org": "Google",
       "year": 2026,
       "month": 7,
@@ -967,7 +1411,38 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 3.75,
-      "popularity": 23
+      "popularity": 23,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gemini-3-6-flash",
+          "name": "Gemini 3.6 Flash",
+          "org": "Google",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.75,
+          "popularity": 23
+        },
+        {
+          "id": "gemini-3-7-flash",
+          "name": "Gemini 3.7 Flash",
+          "org": "Google",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.75,
+          "popularity": 22
+        }
+      ]
     },
     {
       "id": "gemini-3-flash-preview",
@@ -981,77 +1456,8 @@
       "reasoning": true,
       "priceTier": "cheap",
       "priceOut": 3,
-      "popularity": 23
-    },
-    {
-      "id": "glm-4-7-flash",
-      "name": "GLM-4.7 Flash",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2026,
-      "month": 1,
-      "openWeights": true,
-      "contextK": 203,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 0,
-      "popularity": 23
-    },
-    {
-      "id": "minimax-m2-1",
-      "name": "MiniMax-M2.1",
-      "org": "MiniMax",
-      "year": 2025,
-      "month": 12,
-      "openWeights": true,
-      "contextK": 205,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 1.2,
-      "popularity": 23
-    },
-    {
-      "id": "gemini-2-5-flash-lite",
-      "name": "Gemini 2.5 Flash-Lite",
-      "org": "Google",
-      "year": 2025,
-      "month": 6,
-      "openWeights": false,
-      "contextK": 1049,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 0.4,
-      "popularity": 22
-    },
-    {
-      "id": "gemini-3-7-flash",
-      "name": "Gemini 3.7 Flash",
-      "org": "Google",
-      "year": 2026,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 1049,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 3.75,
-      "popularity": 22
-    },
-    {
-      "id": "gpt-4-1-nano",
-      "name": "GPT-4.1 nano",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 4,
-      "openWeights": false,
-      "contextK": 1048,
-      "modality": "text+image",
-      "reasoning": false,
-      "priceTier": "cheap",
-      "priceOut": 0.4,
-      "popularity": 21
+      "popularity": 23,
+      "difficulty": 2
     },
     {
       "id": "gpt-4o",
@@ -1065,7 +1471,8 @@
       "reasoning": false,
       "priceTier": "mid",
       "priceOut": 15,
-      "popularity": 21
+      "popularity": 21,
+      "difficulty": 2
     },
     {
       "id": "gpt-4o-mini",
@@ -1079,39 +1486,12 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 0.6,
-      "popularity": 21
+      "popularity": 21,
+      "difficulty": 2
     },
     {
-      "id": "qwen3-235b-a22b-instruct-2507",
-      "name": "Qwen3 235B A22B Instruct 2507",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 7,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 21
-    },
-    {
-      "id": "qwen3-32b",
-      "name": "Qwen3 32B",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 131,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.8,
-      "popularity": 21
-    },
-    {
-      "id": "qwen3-6-flash",
-      "name": "Qwen3.6 Flash",
+      "id": "qwen3-x-flash",
+      "name": "Qwen3.x Flash",
       "org": "Alibaba",
       "year": 2026,
       "month": 4,
@@ -1121,49 +1501,38 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 1.125,
-      "popularity": 21
-    },
-    {
-      "id": "qwen3-8-flash",
-      "name": "Qwen3.8 Flash",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 1049,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 0.47,
-      "popularity": 21
-    },
-    {
-      "id": "qwen3-max",
-      "name": "Qwen3 Max",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 9,
-      "openWeights": false,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 6,
-      "popularity": 21
-    },
-    {
-      "id": "gpt-5-2-codex",
-      "name": "GPT-5.2 Codex",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 12,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": null,
-      "popularity": 20
+      "popularity": 21,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-6-flash",
+          "name": "Qwen3.6 Flash",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.125,
+          "popularity": 21
+        },
+        {
+          "id": "qwen3-8-flash",
+          "name": "Qwen3.8 Flash",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 0.47,
+          "popularity": 21
+        }
+      ]
     },
     {
       "id": "inkling",
@@ -1177,7 +1546,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 4.68,
-      "popularity": 20
+      "popularity": 20,
+      "difficulty": 3
     },
     {
       "id": "kimi-k2-thinking",
@@ -1191,49 +1561,8 @@
       "reasoning": true,
       "priceTier": "cheap",
       "priceOut": 2.5,
-      "popularity": 20
-    },
-    {
-      "id": "qwen3-5-9b",
-      "name": "Qwen3.5 9B",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 2,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 20
-    },
-    {
-      "id": "qwen3-coder-30b-a3b",
-      "name": "Qwen3 Coder 30B A3B",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.25,
-      "popularity": 20
-    },
-    {
-      "id": "qwen3-next-80b-a3b-instruct",
-      "name": "Qwen3-Next 80B-A3B Instruct",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 9,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2,
-      "popularity": 20
+      "popularity": 20,
+      "difficulty": 2
     },
     {
       "id": "deepseek-v3-1",
@@ -1247,7 +1576,8 @@
       "reasoning": true,
       "priceTier": "cheap",
       "priceOut": 1.68,
-      "popularity": 19
+      "popularity": 19,
+      "difficulty": 2
     },
     {
       "id": "gpt-6-astra",
@@ -1261,21 +1591,8 @@
       "reasoning": true,
       "priceTier": "high",
       "priceOut": 50,
-      "popularity": 19
-    },
-    {
-      "id": "claude-opus-4-1",
-      "name": "Claude Opus 4.1",
-      "org": "Anthropic",
-      "year": 2025,
-      "month": 8,
-      "openWeights": false,
-      "contextK": 200,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "high",
-      "priceOut": 75,
-      "popularity": 18
+      "popularity": 19,
+      "difficulty": 1
     },
     {
       "id": "gemini-3-8-flash",
@@ -1289,77 +1606,67 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 3.75,
-      "popularity": 18
+      "popularity": 18,
+      "difficulty": 2
     },
     {
-      "id": "gemma-4-26b-a4b-it",
-      "name": "Gemma 4 26B A4B IT",
-      "org": "Google",
-      "year": 2026,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 18
-    },
-    {
-      "id": "glm-4-5",
-      "name": "GLM-4.5",
-      "org": "Zhipu AI (Z.ai)",
+      "id": "gpt-5-x-pro",
+      "name": "GPT-5.x Pro",
+      "org": "OpenAI",
       "year": 2025,
-      "month": 7,
-      "openWeights": true,
-      "contextK": 131,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.2,
-      "popularity": 18
-    },
-    {
-      "id": "glm-5-turbo",
-      "name": "GLM-5 Turbo",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2026,
-      "month": 3,
-      "openWeights": true,
-      "contextK": 203,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 4,
-      "popularity": 18
-    },
-    {
-      "id": "gpt-5-4-pro",
-      "name": "GPT-5.4 Pro",
-      "org": "OpenAI",
-      "year": 2026,
-      "month": 3,
+      "month": 10,
       "openWeights": false,
-      "contextK": 1050,
+      "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "premium",
-      "priceOut": 180,
-      "popularity": 18
-    },
-    {
-      "id": "gpt-5-5-pro",
-      "name": "GPT-5.5 Pro",
-      "org": "OpenAI",
-      "year": 2026,
-      "month": 4,
-      "openWeights": false,
-      "contextK": 1050,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "premium",
-      "priceOut": 180,
-      "popularity": 18
+      "priceTier": "high",
+      "priceOut": 120,
+      "popularity": 18,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-pro",
+          "name": "GPT-5 Pro",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 10,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 120,
+          "popularity": 14
+        },
+        {
+          "id": "gpt-5-4-pro",
+          "name": "GPT-5.4 Pro",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "premium",
+          "priceOut": 180,
+          "popularity": 18
+        },
+        {
+          "id": "gpt-5-5-pro",
+          "name": "GPT-5.5 Pro",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "premium",
+          "priceOut": 180,
+          "popularity": 18
+        }
+      ]
     },
     {
       "id": "grok-build-0-1",
@@ -1373,21 +1680,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 2,
-      "popularity": 18
-    },
-    {
-      "id": "minimax-m2",
-      "name": "MiniMax-M2",
-      "org": "MiniMax",
-      "year": 2025,
-      "month": 10,
-      "openWeights": true,
-      "contextK": 1000,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 1.2,
-      "popularity": 18
+      "popularity": 18,
+      "difficulty": 3
     },
     {
       "id": "o4-mini",
@@ -1401,21 +1695,8 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 4.4,
-      "popularity": 18
-    },
-    {
-      "id": "qwen3-coder-480b-a35b",
-      "name": "Qwen3 Coder 480B A35B",
-      "org": "Alibaba",
-      "year": 2025,
-      "month": 4,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 7.5,
-      "popularity": 18
+      "popularity": 18,
+      "difficulty": 3
     },
     {
       "id": "deepseek-v3",
@@ -1429,35 +1710,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": 1.1,
-      "popularity": 17
-    },
-    {
-      "id": "gpt-5-1-codex",
-      "name": "GPT-5.1 Codex",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 11,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "mid",
-      "priceOut": 10,
-      "popularity": 17
-    },
-    {
-      "id": "minimax-m2-7-highspeed",
-      "name": "MiniMax-M2.7 Highspeed",
-      "org": "MiniMax",
-      "year": 2026,
-      "month": 3,
-      "openWeights": true,
-      "contextK": 205,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.4,
-      "popularity": 17
+      "popularity": 17,
+      "difficulty": 2
     },
     {
       "id": "o3",
@@ -1471,7 +1725,8 @@
       "reasoning": true,
       "priceTier": "mid",
       "priceOut": 8,
-      "popularity": 17
+      "popularity": 17,
+      "difficulty": 2
     },
     {
       "id": "qwen3-5-122b-a10b",
@@ -1485,77 +1740,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 3.2,
-      "popularity": 17
-    },
-    {
-      "id": "qwen3-5-35b-a3b",
-      "name": "Qwen3.5 35B A3B",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 2,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 2,
-      "popularity": 17
-    },
-    {
-      "id": "deepseek-v4-flash-vision-exp",
-      "name": "DeepSeek V4 Flash Vision Exp",
-      "org": "DeepSeek",
-      "year": 2026,
-      "month": 9,
-      "openWeights": true,
-      "contextK": 1049,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 0.6,
-      "popularity": 16
-    },
-    {
-      "id": "gpt-5-1-codex-mini",
-      "name": "GPT-5.1 Codex Mini",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 11,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 2,
-      "popularity": 16
-    },
-    {
-      "id": "o3-mini",
-      "name": "o3-mini",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 1,
-      "openWeights": false,
-      "contextK": 200,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "mid",
-      "priceOut": 4.4,
-      "popularity": 16
-    },
-    {
-      "id": "qwen3-5-plus",
-      "name": "Qwen3.5 Plus",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 2,
-      "openWeights": false,
-      "contextK": 1000,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": 2.4,
-      "popularity": 16
+      "popularity": 17,
+      "difficulty": 3
     },
     {
       "id": "step-3-7-flash",
@@ -1569,21 +1755,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 1.11,
-      "popularity": 16
-    },
-    {
-      "id": "glm-4-5-air",
-      "name": "GLM-4.5 Air",
-      "org": "Zhipu AI (Z.ai)",
-      "year": 2025,
-      "month": 7,
-      "openWeights": true,
-      "contextK": 131,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 1.1,
-      "popularity": 15
+      "popularity": 16,
+      "difficulty": 2
     },
     {
       "id": "glm-5v-turbo",
@@ -1597,7 +1770,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": 4,
-      "popularity": 15
+      "popularity": 15,
+      "difficulty": 2
     },
     {
       "id": "hy3",
@@ -1611,21 +1785,8 @@
       "reasoning": true,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 15
-    },
-    {
-      "id": "qwen3-coder-next",
-      "name": "Qwen3 Coder Next",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 2,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text",
-      "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 15
+      "popularity": 15,
+      "difficulty": 2
     },
     {
       "id": "qwen3-coder-plus",
@@ -1639,7 +1800,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": 5,
-      "popularity": 15
+      "popularity": 15,
+      "difficulty": 3
     },
     {
       "id": "qwen3-vl-235b-a22b",
@@ -1653,35 +1815,8 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 2.8,
-      "popularity": 15
-    },
-    {
-      "id": "gpt-5-pro",
-      "name": "GPT-5 Pro",
-      "org": "OpenAI",
-      "year": 2025,
-      "month": 10,
-      "openWeights": false,
-      "contextK": 400,
-      "modality": "text+image",
-      "reasoning": true,
-      "priceTier": "high",
-      "priceOut": 120,
-      "popularity": 14
-    },
-    {
-      "id": "qwen3-5-27b",
-      "name": "Qwen3.5 27B",
-      "org": "Alibaba",
-      "year": 2026,
-      "month": 2,
-      "openWeights": true,
-      "contextK": 262,
-      "modality": "text+image+video",
-      "reasoning": true,
-      "priceTier": "cheap",
-      "priceOut": 2.4,
-      "popularity": 14
+      "popularity": 15,
+      "difficulty": 3
     },
     {
       "id": "gpt-3",
@@ -1695,7 +1830,8 @@
       "reasoning": false,
       "priceTier": "premium",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gpt-4",
@@ -1709,7 +1845,8 @@
       "reasoning": false,
       "priceTier": "premium",
       "priceOut": 60,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gpt-4-turbo",
@@ -1723,7 +1860,8 @@
       "reasoning": false,
       "priceTier": "high",
       "priceOut": 30,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gpt-35-turbo",
@@ -1737,7 +1875,8 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 1.5,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "o1",
@@ -1751,7 +1890,8 @@
       "reasoning": true,
       "priceTier": "premium",
       "priceOut": 60,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "claude-1",
@@ -1765,7 +1905,8 @@
       "reasoning": false,
       "priceTier": null,
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "claude-2",
@@ -1779,7 +1920,8 @@
       "reasoning": false,
       "priceTier": "high",
       "priceOut": 24,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "claude-3-opus",
@@ -1793,11 +1935,12 @@
       "reasoning": false,
       "priceTier": "premium",
       "priceOut": 75,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
-      "id": "claude-3-sonnet",
-      "name": "Claude 3 Sonnet",
+      "id": "claude-3-x-sonnet",
+      "name": "Claude 3.x Sonnet",
       "org": "Anthropic",
       "year": 2024,
       "month": 2,
@@ -1807,11 +1950,42 @@
       "reasoning": false,
       "priceTier": "high",
       "priceOut": 15,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3,
+      "variants": [
+        {
+          "id": "claude-3-sonnet",
+          "name": "Claude 3 Sonnet",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "high",
+          "priceOut": 15,
+          "popularity": 0
+        },
+        {
+          "id": "claude-35-sonnet",
+          "name": "Claude 3.5 Sonnet",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "high",
+          "priceOut": 15,
+          "popularity": 0
+        }
+      ]
     },
     {
-      "id": "claude-3-haiku",
-      "name": "Claude 3 Haiku",
+      "id": "claude-3-x-haiku",
+      "name": "Claude 3.x Haiku",
       "org": "Anthropic",
       "year": 2024,
       "month": 3,
@@ -1821,35 +1995,38 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 1.25,
-      "popularity": 0
-    },
-    {
-      "id": "claude-35-sonnet",
-      "name": "Claude 3.5 Sonnet",
-      "org": "Anthropic",
-      "year": 2024,
-      "month": 6,
-      "openWeights": false,
-      "contextK": 200,
-      "modality": "text+image",
-      "reasoning": false,
-      "priceTier": "high",
-      "priceOut": 15,
-      "popularity": 0
-    },
-    {
-      "id": "claude-35-haiku",
-      "name": "Claude 3.5 Haiku",
-      "org": "Anthropic",
-      "year": 2024,
-      "month": 11,
-      "openWeights": false,
-      "contextK": 200,
-      "modality": "text",
-      "reasoning": false,
-      "priceTier": "cheap",
-      "priceOut": 4,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3,
+      "variants": [
+        {
+          "id": "claude-3-haiku",
+          "name": "Claude 3 Haiku",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "cheap",
+          "priceOut": 1.25,
+          "popularity": 0
+        },
+        {
+          "id": "claude-35-haiku",
+          "name": "Claude 3.5 Haiku",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text",
+          "reasoning": false,
+          "priceTier": "cheap",
+          "priceOut": 4,
+          "popularity": 0
+        }
+      ]
     },
     {
       "id": "gemini-1-0-pro",
@@ -1863,7 +2040,8 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 0.5,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gemini-15-pro",
@@ -1877,7 +2055,8 @@
       "reasoning": false,
       "priceTier": "mid",
       "priceOut": 5,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gemini-15-flash",
@@ -1891,7 +2070,8 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": 0.3,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "gemma",
@@ -1905,7 +2085,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "llama-2",
@@ -1919,7 +2100,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "llama-3",
@@ -1933,7 +2115,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "code-llama",
@@ -1947,7 +2130,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "mistral-7b",
@@ -1961,7 +2145,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "mixtral-8x7b",
@@ -1975,7 +2160,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "vicuna",
@@ -1989,7 +2175,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "alpaca",
@@ -2003,35 +2190,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
-    },
-    {
-      "id": "falcon",
-      "name": "Falcon 40B",
-      "org": "TII",
-      "year": 2023,
-      "month": 5,
-      "openWeights": true,
-      "contextK": 2,
-      "modality": "text",
-      "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 0
-    },
-    {
-      "id": "phi-2",
-      "name": "Phi-2",
-      "org": "Microsoft",
-      "year": 2023,
-      "month": 12,
-      "openWeights": true,
-      "contextK": 2,
-      "modality": "text",
-      "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "phi-3",
@@ -2045,7 +2205,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "qwen-15",
@@ -2059,7 +2220,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "qwen2",
@@ -2073,7 +2235,8 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "glm-4",
@@ -2087,7 +2250,8 @@
       "reasoning": false,
       "priceTier": null,
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "ernie-bot",
@@ -2101,7 +2265,8 @@
       "reasoning": false,
       "priceTier": null,
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "doubao",
@@ -2115,7 +2280,8 @@
       "reasoning": false,
       "priceTier": "cheap",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
       "id": "yi",
@@ -2129,49 +2295,83 @@
       "reasoning": false,
       "priceTier": "free",
       "priceOut": null,
-      "popularity": 0
+      "popularity": 0,
+      "difficulty": 3
     },
     {
-      "id": "command-r",
-      "name": "Command R",
-      "org": "Cohere",
-      "year": 2024,
-      "month": 3,
-      "openWeights": true,
-      "contextK": 128,
-      "modality": "text",
-      "reasoning": false,
-      "priceTier": "cheap",
-      "priceOut": 0.6,
-      "popularity": 0
-    },
-    {
-      "id": "jamba",
-      "name": "Jamba",
-      "org": "AI21",
-      "year": 2024,
-      "month": 3,
-      "openWeights": true,
-      "contextK": 256,
-      "modality": "text",
-      "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
-      "popularity": 0
-    },
-    {
-      "id": "granite-3",
-      "name": "Granite 3.0 8B",
-      "org": "IBM",
-      "year": 2024,
-      "month": 10,
+      "id": "doubao-seed-1-8",
+      "name": "Doubao Seed 1.8",
+      "org": "ByteDance",
+      "year": 2025,
+      "month": 12,
       "openWeights": true,
       "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 2.16,
+      "popularity": 30,
+      "difficulty": 2
+    },
+    {
+      "id": "doubao-seed-2-0-pro",
+      "name": "Doubao Seed 2.0 Pro",
+      "org": "ByteDance",
+      "year": 2026,
+      "month": 2,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 2.2,
+      "popularity": 38,
+      "difficulty": 1
+    },
+    {
+      "id": "doubao-seed-2-1-pro",
+      "name": "Doubao Seed 2.1 Pro",
+      "org": "ByteDance",
+      "year": 2026,
+      "month": 6,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 4.2,
+      "popularity": 40,
+      "difficulty": 1
+    },
+    {
+      "id": "hy4-preview",
+      "name": "Hy4 Preview",
+      "org": "Tencent",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 1024,
       "modality": "text",
-      "reasoning": false,
-      "priceTier": "free",
+      "reasoning": true,
+      "priceTier": null,
       "priceOut": null,
-      "popularity": 0
+      "popularity": 35,
+      "difficulty": 2
+    },
+    {
+      "id": "muse-spark-1-3",
+      "name": "Muse Spark 1.3",
+      "org": "Meta",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 4.25,
+      "popularity": 40,
+      "difficulty": 2
     }
   ]
 }

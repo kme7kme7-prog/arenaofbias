@@ -12,7 +12,7 @@ const compiled = ts.transpileModule(source, {
     module: ts.ModuleKind.ESNext,
   },
 }).outputText;
-const { createGameTransition } = await import(
+const { createGameTransition, guessNavigate, convoyNavigate } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
 );
 let tracks = [],
@@ -61,7 +61,7 @@ const step = (stamp) => {
   raf.clear();
   callbacks.forEach((fn) => fn(stamp));
 };
-for (const kind of ['frame', 'bands', 'convoy']) {
+for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
   tracks = [];
   let covered = 0,
     finished = 0;
@@ -91,6 +91,47 @@ for (const kind of ['frame', 'bands', 'convoy']) {
     );
     console.log(
       'PASS ink field covers the route while three diagonal ribbons cross',
+    );
+  } else if (kind === 'folio') {
+    const leaf = tracks.find((t) => t.owner === 'gt-folio-leaf');
+    assert.equal(leaf.frames[1].transform, 'translateX(0)');
+    assert.equal(
+      leaf.frames[1].offset,
+      run.timing.covered / run.timing.duration,
+    );
+    assert.equal(
+      leaf.frames[2].offset,
+      run.timing.exitStart / run.timing.duration,
+    );
+    assert.ok(run.timing.duration < 650);
+  } else if (kind === 'deal') {
+    const shell = tracks.find((t) => t.owner === 'gt-deal-shell');
+    const seal = tracks.find((t) => t.owner === 'gt-deal-seal');
+    assert.equal(seal.frames.at(-1).opacity, 0);
+    assert.equal(
+      seal.options.delay + seal.options.duration,
+      run.timing.covered,
+      'opening frame decoration must disappear before the later scene',
+    );
+    const sheen = tracks.find((t) => t.owner === 'gt-deal-sheen');
+    assert.equal(sheen.frames[0].opacity, 0);
+    assert.equal(sheen.frames.at(-1).opacity, 0);
+    assert.ok(
+      sheen.options.delay + sheen.options.duration <=
+        run.timing.exitStart + 150,
+      'material highlight must finish with the card content',
+    );
+    assert.equal(
+      shell.frames.at(-1).transform,
+      'translateY(0) rotate(0deg) scale(1)',
+    );
+    assert.equal(shell.options.duration, run.timing.covered);
+    const halves = tracks.filter((t) => t.owner?.startsWith('gt-deal-half '));
+    assert.equal(halves.length, 2);
+    assert.ok(halves.every((t) => t.options.delay === run.timing.exitStart));
+    assert.equal(tracks.filter((t) => t.owner === 'gt-deal-clue').length, 7);
+    console.log(
+      'PASS deal: opaque card covers before routing, two halves hold until exit, seven clues',
     );
   } else if (kind === 'convoy') {
     const convoy = tracks.filter((t) => t.owner === 'gt-convoy');
@@ -176,7 +217,7 @@ for (const kind of ['frame', 'bands', 'convoy']) {
     new URL('../app/game-transitions.css', import.meta.url),
     'utf8',
   );
-  for (const kind of ['frame', 'bands', 'convoy']) {
+  for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
     const bare = new RegExp(`(^|})\\s*\\.gt-${kind}\\s*[,{]`, 'm');
     assert.ok(
       !bare.test(css),
@@ -185,4 +226,40 @@ for (const kind of ['frame', 'bands', 'convoy']) {
   }
   console.log('PASS kind styles never match the transition layer itself');
 }
-console.log('23 game transition invariant checks passed.');
+console.log(
+  'Game transition invariant checks passed (frame, bands, convoy, deal, folio).',
+);
+
+// Both menu transitions share a navigation lock; reduced motion releases it too.
+window.location = { hash: '#play' };
+guessNavigate();
+guessNavigate();
+convoyNavigate('#event');
+assert.equal(document.body.children.length, 1);
+step(0);
+step(719);
+assert.equal(window.location.hash, '#play');
+step(720);
+assert.equal(window.location.hash, '#guess');
+step(2200);
+assert.equal(document.body.children.length, 0);
+window.matchMedia = () => ({ matches: true });
+window.location.hash = '#play';
+guessNavigate();
+assert.equal(window.location.hash, '#guess');
+assert.equal(document.body.children.length, 0);
+convoyNavigate('#event');
+assert.equal(window.location.hash, '#event');
+assert.equal(document.body.children.length, 0);
+console.log(
+  'PASS menu navigation: duplicate/cross-entry lock, covered routing, normal and reduced cleanup',
+);
+
+{
+  const run = createGameTransition('folio', { direction: 'back' });
+  const leaf = tracks.filter((t) => t.owner === 'gt-folio-leaf').at(-1);
+  assert.equal(leaf.frames[0].transform, 'translateX(-102%)');
+  assert.equal(leaf.frames.at(-1).transform, 'translateX(102%)');
+  run.dispose();
+  console.log('PASS folio: return direction reverses both entry and exit');
+}

@@ -1,4 +1,4 @@
-/* 游戏过场（lib/game-transitions.ts 的 frame/bands 两套）样式，生产与对照页共用。
+/* 游戏过场（frame / bands / convoy / deal）样式，生产与对照页共用。
    frame 接首页主按钮；bands 接首页、题库与偏好榜间的导航。 */
 .game-transition {
   position: fixed;
@@ -298,4 +298,288 @@
 .gt-signal-bar {
   width: 1px;
   background: #63714f;
+}
+/* 模一把 · 今日密牌。遮挡由两块实色半屏承担，文字和线索不参与导航时钟。 */
+.gt-deal-shell,
+.gt-deal-back {
+  position: absolute;
+  inset: -2px;
+  transform-origin: center;
+  will-change: transform;
+}
+.gt-deal-back {
+  background: #aab58a;
+}
+.gt-deal-back-1 {
+  background: #d5d8c7;
+}
+.gt-deal-seal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #c4cfac;
+  font:
+    400 40cqmin Georgia,
+    system-ui;
+}
+.gt-deal-seal:before {
+  content: '';
+  position: absolute;
+  inset: 3cqmin;
+  border: 1px solid #b7c49a45;
+  box-shadow:
+    inset 0 0 0 5px #111c17,
+    inset 0 0 0 6px #b7c49a18;
+}
+.gt-deal-seal:after {
+  content: '';
+  position: absolute;
+  inset: 4cqmin;
+  opacity: 0.045;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 5px,
+    #b7c49a 5px 6px
+  );
+}
+.gt-deal-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(50% + 1px);
+  background: #111c17;
+  overflow: hidden;
+}
+.gt-deal-half-0 {
+  left: 0;
+}
+.gt-deal-half-1 {
+  right: 0;
+}
+.gt-deal-half:after {
+  content: '';
+  position: absolute;
+  inset: 6cqh 5cqw;
+  border-top: 1px solid #bdcba51c;
+  border-bottom: 1px solid #bdcba51c;
+}
+.gt-deal-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11cqw;
+  color: #e6e9da;
+  font-family: MiSans, system-ui, sans-serif;
+  padding: 9cqw;
+}
+.gt-deal-info {
+  min-width: 0;
+}
+.gt-deal-kicker {
+  font-size: clamp(12px, 1.2cqmin, 20px);
+  letter-spacing: 0.24em;
+  color: #c4cfac;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gt-deal-kicker:before {
+  content: '';
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+}
+.gt-deal-title {
+  font-size: clamp(44px, 11cqmin, 150px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+  margin: 3cqmin 0 2cqmin;
+  white-space: nowrap;
+}
+.gt-deal-note {
+  font-size: clamp(11px, 1.6cqmin, 22px);
+  color: #8c9b88;
+  letter-spacing: 0.07em;
+}
+.gt-deal-clues {
+  display: flex;
+  gap: 1cqmin;
+  margin-top: 5cqmin;
+}
+
+.gt-deal-clue {
+  position: relative;
+  width: 4.6cqmin;
+  height: 5cqmin;
+  min-width: 22px;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  color: #c0cba9;
+  border-bottom: 1px solid #a7b68a38;
+  font: clamp(9px, 1.15cqmin, 16px) monospace;
+  letter-spacing: 0.08em;
+}
+.gt-deal-clue:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 22%;
+  right: 22%;
+  height: 2px;
+  background: #b9c99a;
+  box-shadow: 0 0 9px #b9c99a20;
+}
+.gt-deal-symbol {
+  position: relative;
+  flex-shrink: 0;
+  width: 27cqmin;
+  height: 37cqmin;
+  border: 1px solid #bac6a572;
+  background: linear-gradient(135deg, #56654b -25%, #28392c 42%, #18261e 100%);
+  color: #d9dfc5;
+  border-radius: 0.6cqmin;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow:
+    1px 1px 0 #070e0a,
+    2px 2px 0 #647055,
+    3px 3px 0 #070e0a,
+    0 18px 38px #0005,
+    inset 0 0 0 4px #15241e,
+    inset 0 0 0 5px #aeb99835;
+}
+.gt-deal-symbol:before {
+  content: '';
+  position: absolute;
+  inset: 2.2cqmin;
+  border: 1px solid #aeb99838;
+  border-radius: 0.15cqmin;
+}
+.gt-deal-symbol:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.055;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    #e5ecd3 3px 4px
+  );
+  pointer-events: none;
+}
+.gt-deal-mystery {
+  z-index: 1;
+  font:
+    italic 400 23cqmin Georgia,
+    'Times New Roman',
+    serif;
+  line-height: 1;
+  margin-top: -2cqmin;
+  text-shadow:
+    0 1px #ffffff35,
+    0 -1px #0008;
+}
+.gt-deal-count {
+  position: absolute;
+  top: 3.4cqmin;
+  left: 3.5cqmin;
+  font: 1.4cqmin monospace;
+  letter-spacing: 0.15em;
+  color: #c6d0b2;
+}
+.gt-deal-count-label {
+  position: absolute;
+  bottom: 3.4cqmin;
+  right: 3.5cqmin;
+  font-size: 1.1cqmin;
+  letter-spacing: 0.15em;
+  color: #b8c4a5;
+}
+.gt-deal-orbit {
+  position: absolute;
+  inset: 8cqmin 2cqmin;
+  border: 1px solid #c0cea326;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+  background: repeating-radial-gradient(
+    ellipse at center,
+    transparent 0 5px,
+    #c0cea316 5px 6px
+  );
+}
+.gt-deal-sheen {
+  position: absolute;
+  inset: -30% -15%;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    #eef6cf44 49%,
+    #f2f9d9 50%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+@container (max-aspect-ratio: 3/4) {
+  .gt-deal-copy {
+    flex-direction: column-reverse;
+    gap: 10cqmin;
+    padding: 10cqmin;
+  }
+  .gt-deal-info {
+    text-align: center;
+  }
+  .gt-deal-kicker {
+    justify-content: center;
+  }
+  .gt-deal-title {
+    font-size: 15cqmin;
+  }
+  .gt-deal-note {
+    font-size: 3cqmin;
+  }
+  .gt-deal-clues {
+    justify-content: center;
+    gap: 2cqmin;
+  }
+  .gt-deal-clue {
+    width: 7cqmin;
+    height: 7cqmin;
+    font-size: 2.5cqmin;
+  }
+  .gt-deal-symbol {
+    width: 30cqmin;
+    height: 41cqmin;
+  }
+  .gt-deal-count {
+    font-size: 2.2cqmin;
+  }
+  .gt-deal-count-label {
+    font-size: 2cqmin;
+  }
+}
+
+@container (max-aspect-ratio: 3/4) {
+  .game-transition:lang(en) .gt-deal-title {
+    font-size: 10cqmin;
+  }
+}
+/* 模一把内部的短翻页：轻薄实色幕，前进/返回方向相反。 */
+.gt-folio-leaf {
+  position: absolute;
+  inset: -2px;
+  background: #14231b;
+  border-inline: 5px solid #84946c;
+  box-shadow: inset 0 0 0 1px #cad5ae40;
+}
+.gt-folio-leaf:after {
+  content: '';
+  position: absolute;
+  inset: 7vh 7vw;
+  border-block: 1px solid #9dae8020;
 }

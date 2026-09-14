@@ -52,7 +52,8 @@
   <header>
     <h1>模一把 · 视觉对照</h1>
     <select id="scene" aria-label="展示状态">
-      <option value="empty">初次进入</option>
+      <option value="picker">模式与难度选择</option>
+      <option value="empty">游戏空白状态</option>
       <option value="feedback">猜测反馈</option>
       <option value="win">猜中结算</option>
       <option value="loss">用尽机会</option></select
@@ -68,7 +69,7 @@
     <iframe
       id="stage"
       title="模一把真实页面预览"
-      src="/reference/guess-review-stage.html?scene=empty"
+      src="/reference/guess-review-stage.html?scene=picker"
     ></iframe>
   </main>
   <script type="module">

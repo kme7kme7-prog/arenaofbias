@@ -251,7 +251,7 @@
   </head>
   <body>
     <header>
-      <b>ARENA OF BIAS</b><span>MOTION STUDIES / 001—003</span
+      <b>ARENA OF BIAS</b><span>MOTION STUDIES / 001—005</span
       ><a href="/reference/wipe-review.html">原横扫对照 ↗</a>
     </header>
     <main>
@@ -260,13 +260,15 @@
           <div class="eyebrow">REFERENCE / GAME TRANSITIONS</div>
           <h1>让切换成为一次入场。</h1>
           <p>
-            三套过场对比。拖动时间轴看构图，播放看节奏；全屏查看实际过场尺度。
+            五套过场对比。拖动时间轴看构图，播放看节奏；全屏查看实际过场尺度。
           </p>
         </div>
         <div class="tabs">
           <button id="frame" aria-selected="true">01 档案锁定</button
           ><button id="bands" aria-selected="false">02 斜向切片</button
-          ><button id="convoy" aria-selected="false">03 一体斜幕</button>
+          ><button id="convoy" aria-selected="false">03 一体斜幕</button
+          ><button id="deal" aria-selected="false">04 今日密牌</button
+          ><button id="folio" aria-selected="false">05 轻翻页</button>
         </div>
       </div>
       <div class="workspace">
@@ -303,6 +305,12 @@
         </div>
         <aside class="panel">
           <h3>PLAYBACK SETTINGS</h3>
+          <label
+            >轻翻页方向<select id="direction">
+              <option value="forward">进入游戏</option>
+              <option value="back">返回上级</option>
+            </select></label
+          >
           <label
             >播放速度<select id="speed">
               <option value="1">1× 正常</option>
@@ -373,6 +381,7 @@
           title: $('title').value,
           hold: Number($('hold').value),
           speed: Number($('speed').value),
+          direction: $('direction').value,
           reduced:
             $('reduced').checked ||
             matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -393,9 +402,17 @@
         controller = createGameTransition(kind, options);
         controller.seek(0);
         $('stages').innerHTML =
-          `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
+          `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : kind === 'deal' ? '抽出密牌' : kind === 'folio' ? '轻翻页' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
       }
       const descriptions = {
+        folio: [
+          '05 / 轻翻页',
+          '模式选择与游戏之间的短切换，约半秒；返回时反向播放。',
+        ],
+        deal: [
+          '04 / 今日密牌',
+          '卡牌旋入展开至满屏 → 七条线索依次亮起 → 从中央分开揭出模一把。',
+        ],
         frame: [
           '01 / ARCHIVE LOCK',
           '纸页快速上推盖住旧画面 → 方框锁定、字标从细线后滑入 → 整张档案继续向上抽离，清楚露出新画面。',
@@ -411,11 +428,15 @@
       };
       function select(next) {
         kind = next;
-        for (const name of ['frame', 'bands', 'convoy'])
+        for (const name of ['frame', 'bands', 'convoy', 'deal', 'folio'])
           $(name).setAttribute('aria-selected', String(kind === name));
-        $('hold').disabled = false;
+        $('hold').disabled = kind === 'folio';
+        $('direction').disabled = kind !== 'folio';
+        $('title').disabled = kind === 'deal' || kind === 'folio';
         $('study-note').textContent =
-          '纸灰绿、深墨与酸黄。方形档案锁定、三条斜向索引切片与一体斜幕，共用本站的过场语言。';
+          kind === 'deal'
+            ? '模一把专属入场：抽牌、七条线索、中央揭幕。实际菜单入口同一份实现；标题随主站语言切换。'
+            : '纸灰绿、深墨与酸黄。方形档案锁定、三条斜向索引切片与一体斜幕，共用本站的过场语言。';
         $('study-source').innerHTML =
           '检查：node scripts/check-game-transitions.mjs<br>模块：lib/game-transitions.ts';
         $('description-title').textContent = descriptions[kind][0];
@@ -425,6 +446,8 @@
       $('frame').onclick = () => select('frame');
       $('bands').onclick = () => select('bands');
       $('convoy').onclick = () => select('convoy');
+      $('deal').onclick = () => select('deal');
+      $('folio').onclick = () => select('folio');
       $('play').onclick = () => {
         build();
         $('pause').textContent = '暂停';
@@ -456,7 +479,7 @@
         controller.seek(time);
         $('pause').textContent = '继续';
       };
-      for (const id of ['speed', 'hold', 'title', 'reduced'])
+      for (const id of ['speed', 'hold', 'title', 'reduced', 'direction'])
         $(id).onchange = () => {
           $('hold-value').value = $('hold').value;
           build();
@@ -466,7 +489,9 @@
       });
       const initial = new URLSearchParams(location.search).get('study');
       select(
-        ['frame', 'bands', 'convoy'].includes(initial) ? initial : 'convoy',
+        ['frame', 'bands', 'convoy', 'deal', 'folio'].includes(initial)
+          ? initial
+          : 'convoy',
       );
     </script>
   </body>

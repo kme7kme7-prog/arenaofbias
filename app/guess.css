@@ -267,6 +267,8 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  /* console-top 里难度标签在最左，机会数与次数格整体靠右 */
+  margin-left: auto;
 }
 .guess-turn > span {
   font-size: 12px;
@@ -706,14 +708,377 @@
   color: #b2c49d;
   margin: 0;
 }
-.guess-share {
+.guess-result-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.guess-share {
   white-space: nowrap;
+}
+/* 重玩：次级幽灵按钮，酸黄描边与分享主按钮拉开层级；悬停图标倒转半圈呼应「重开」 */
+.guess-replay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--guess-accent);
+  background: transparent;
+  border: 1px solid #718b43;
+  transition:
+    border-color 0.18s,
+    background 0.18s,
+    transform 0.18s;
+}
+.guess-replay:hover {
+  border-color: var(--guess-accent);
+  background: #d8f36a14;
+  transform: translateY(-2px);
+}
+.guess-replay svg {
+  transition: transform 0.35s;
+}
+.guess-replay:hover svg {
+  transform: rotate(-180deg);
 }
 .guess-reveal {
   background: transparent;
   border: 0;
   color: #d8f36a;
+}
+
+/* 模式选择：每日挑战为主，三档练习为次。 */
+.guess-difficulty {
+  animation: guess-enter 0.5s both;
+  padding: 28px 0 40px;
+}
+.guess-main:focus {
+  outline: none;
+}
+.guess-picker-back {
+  margin-bottom: 14px;
+}
+.guess-page a[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: wait;
+}
+.guess-difficulty-head {
+  position: relative;
+  padding: 0 0 28px;
+}
+.guess-difficulty-head .guess-edition {
+  margin-top: 14px;
+}
+.guess-difficulty-head h1 {
+  font-size: clamp(48px, 5.4vw, 76px);
+  letter-spacing: -0.055em;
+  line-height: 1.15;
+  margin: 18px 0 14px;
+  font-weight: 650;
+}
+.guess-difficulty-head h1 > span {
+  color: #c4d394;
+  font-weight: 400;
+  font-size: 0.65em;
+  display: inline-block;
+  margin-left: 25px;
+  vertical-align: top;
+}
+.guess-difficulty-head p {
+  color: #a1b09a;
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 0;
+  max-width: 560px;
+}
+.guess-difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.guess-difficulty-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  text-align: left;
+  padding: 25px 24px 20px;
+  background: #19291f;
+  border: 1px solid #3a4b35;
+  color: inherit;
+  cursor: pointer;
+  min-height: 250px;
+  isolation: isolate;
+  transition:
+    border-color 0.2s,
+    transform 0.2s,
+    background 0.2s;
+}
+.guess-difficulty-card:hover:not(:disabled) {
+  border-color: #a3b982;
+  background: #213323;
+  transform: translateY(-3px);
+}
+.guess-difficulty-card:focus-visible {
+  outline: 2px solid var(--guess-accent);
+  outline-offset: 4px;
+}
+.guess-difficulty-card[data-level]:before {
+  content: '0' attr(data-level);
+  position: absolute;
+  right: 24px;
+  top: 17px;
+  font: 70px var(--mono);
+  color: #a5bb8112;
+  letter-spacing: -0.08em;
+  z-index: -1;
+}
+.guess-difficulty-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid #a8bd7d5e;
+  color: #b9cf92;
+}
+.guess-difficulty-name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.guess-difficulty-name b {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.guess-difficulty-name small {
+  font: 9px var(--mono);
+  letter-spacing: 0.12em;
+  color: #91a27e;
+}
+.guess-difficulty-blurb {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #a6b69a;
+}
+.guess-difficulty-meta {
+  margin-top: auto;
+  width: 100%;
+  padding-top: 18px;
+  border-top: 1px solid #83976b30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 10px;
+  color: #a0b28f;
+}
+.guess-difficulty-status {
+  font-size: 9px;
+  padding: 4px 7px;
+  background: #263922;
+  color: #b2c49b;
+  white-space: nowrap;
+}
+.guess-difficulty-status.is-playing {
+  color: #d8f36a;
+  background: #3b4e24;
+}
+.guess-difficulty-status.is-done {
+  color: #d5e7bb;
+  background: #385034;
+}
+.guess-difficulty-go {
+  position: absolute;
+  top: 25px;
+  right: 23px;
+  color: #a2b78c;
+  transition: transform 0.2s;
+}
+.guess-difficulty-card:hover .guess-difficulty-go {
+  transform: translate(2px, -2px);
+  color: #d8f36a;
+}
+.guess-difficulty-card.guess-daily-card {
+  width: 100%;
+  min-height: 255px;
+  padding: 30px 34px;
+  background: #223622;
+  border-color: #64764b;
+  box-shadow: inset 3px 0 #c5d89b;
+  overflow: hidden;
+}
+.guess-daily-card .guess-difficulty-icon {
+  border: 0;
+  color: #d9e8b7;
+}
+.guess-daily-card .guess-difficulty-name b {
+  font-size: 32px;
+}
+.guess-daily-card .guess-difficulty-name small {
+  color: #c3d5a5;
+}
+.guess-daily-card .guess-difficulty-blurb,
+.guess-daily-card .guess-difficulty-meta {
+  width: 62%;
+}
+.guess-daily-art {
+  position: absolute;
+  right: 12%;
+  top: 30px;
+  width: 124px;
+  height: 170px;
+  transform: rotate(8deg);
+  pointer-events: none;
+  opacity: 0.85;
+}
+.guess-daily-art > span {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b7c8968a;
+  background: #34472c;
+  box-shadow:
+    inset 0 0 0 5px #24371f,
+    inset 0 0 0 6px #b7c89635,
+    0 12px 24px #0003;
+  color: #dbe5c3;
+  font:
+    italic 92px Georgia,
+    serif;
+  border-radius: 3px;
+}
+.guess-daily-art i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #b7c8963a;
+  background: #2b3e23;
+  transform: rotate(-10deg) translate(-9px, 4px);
+  border-radius: 3px;
+}
+.guess-daily-art i:last-child {
+  transform: rotate(-18deg) translate(-18px, 9px);
+  z-index: -1;
+}
+.guess-practice-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 29px 0 14px;
+}
+.guess-practice-heading h2 {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+  color: #d1dcc3;
+}
+.guess-practice-heading > span {
+  font-size: 10px;
+  color: #879c7a;
+}
+.guess-difficulty-foot {
+  margin: 19px 0 0;
+  color: #8d9f80;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.guess-picker-pending {
+  font-size: 12px;
+  color: #c1d79c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .guess-difficulty {
+    padding-top: 21px;
+  }
+  .guess-difficulty-head h1 {
+    font-size: 58px;
+  }
+  .guess-difficulty-head p {
+    font-size: 11px;
+  }
+  .guess-difficulty-card.guess-daily-card {
+    padding: 23px;
+    min-height: 265px;
+  }
+  .guess-daily-card .guess-difficulty-name b {
+    font-size: 27px;
+  }
+  .guess-daily-card .guess-difficulty-name {
+    width: 66%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .guess-daily-card .guess-difficulty-blurb {
+    width: 66%;
+    font-size: 10px;
+  }
+  .guess-daily-card .guess-difficulty-meta {
+    width: 100%;
+    margin-top: 17px;
+  }
+  .guess-daily-art {
+    width: 70px;
+    height: 98px;
+    right: 25px;
+    top: 42px;
+    opacity: 0.65;
+  }
+  .guess-daily-art > span {
+    font-size: 58px;
+  }
+  .guess-difficulty-grid {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+  .guess-difficulty-card {
+    min-height: 205px;
+    padding: 22px;
+  }
+  .guess-difficulty-name b {
+    font-size: 23px;
+  }
+  .guess-practice-heading {
+    margin-top: 25px;
+  }
+}
+
+/* 游戏中的当前难度标签：点它回选择屏换难度 */
+.guess-difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  background: transparent;
+  border: 1px solid #3b4c3d;
+  color: #c6cfbb;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.18s,
+    color 0.18s;
+}
+.guess-difficulty-chip small {
+  font: 8px var(--mono);
+  letter-spacing: 0.16em;
+  color: #7c8e79;
+}
+.guess-difficulty-chip:hover {
+  border-color: var(--guess-accent);
+  color: var(--guess-accent);
 }
 .guess-error {
   font-size: 12px;
@@ -1011,6 +1376,20 @@
     align-items: flex-start;
     margin-bottom: 17px;
     gap: 12px;
+    flex-wrap: wrap;
+  }
+  .guess-difficulty-grid {
+    grid-template-columns: 1fr;
+  }
+  .guess-difficulty-card {
+    padding: 18px 16px;
+    gap: 10px;
+  }
+  .guess-difficulty-head h1 {
+    font-size: 46px;
+  }
+  .guess-difficulty-head p {
+    margin-bottom: 22px;
   }
   .guess-turn {
     display: block;
@@ -1135,9 +1514,17 @@
   .guess-result p {
     font-size: 9px;
   }
-  .guess-share {
+  .guess-result-actions {
     width: 100%;
     margin-top: 8px;
+    gap: 8px;
+  }
+  .guess-replay {
+    flex: 1;
+    padding: 12px;
+  }
+  .guess-share {
+    flex: 1;
     padding: 12px;
   }
   .guess-footer {

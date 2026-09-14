@@ -5,6 +5,7 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AdminDashboard } from '@/app/admin/dashboard';
+import { AdminGuess } from '@/app/admin/guess';
 import { AdminInbox } from '@/app/admin/inbox';
 import { AdminLog } from '@/app/admin/log';
 import { AdminPlaceholder } from '@/app/admin/placeholder';
@@ -21,6 +22,7 @@ const SECTIONS = [
   { key: 'works', label: '作品管理', ready: true },
   { key: 'prompts', label: '题目管理', ready: true },
   { key: 'inbox', label: '收件箱', ready: true },
+  { key: 'guess', label: '模一把', ready: true },
   { key: 'events', label: '活动管理', ready: false },
 ] as const;
 
@@ -91,6 +93,7 @@ function AdminShell({ user, section, onSection }: {
         {section === 'works' && <AdminWorks />}
         {section === 'inbox' && <AdminInbox />}
         {section === 'prompts' && <AdminPrompts />}
+        {section === 'guess' && <AdminGuess />}
         {section === 'events' && (
           <AdminPlaceholder
             title="活动管理"

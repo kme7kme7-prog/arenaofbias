@@ -531,6 +531,43 @@ export const messages: Record<string, string> = {
   '复制失败，长按选中手动复制吧。':
     'Copy failed — long-press to select and copy manually.',
   '分享战绩': 'Share result',
+  '重玩今天': 'Replay today',
+  // 难度选择（三档分池，各自独立出题与战绩）。中档键用「标准」——「中等」是价格档
+  '简单': 'Easy',
+  '标准': 'Normal',
+  '困难': 'Hard',
+  '热门模型专场，都叫得上名字': 'Only the household names.',
+  '主流全家桶，答案得绕点弯': 'Mainstream pool, takes some triangulating.',
+  '经典与冷门，硬核玩家专场': 'Classics and deep cuts — for the obsessed.',
+  '先选一个难度。三档各出一道题，进度和战绩各自独立。':
+    'Pick a difficulty first. Each tier has its own puzzle, progress, and record.',
+  '每天一道全世界同题；或者选个难度练习，随机出题不限次。':
+    'One shared puzzle a day — or pick a difficulty and practice with random puzzles, no limits.',
+  '每日一题': 'Daily puzzle',
+  '全世界同一道题，从热门与主流模型里出，猜完晒战绩。':
+    'One puzzle for the whole world, drawn from the well-known and mainstream. Share your result.',
+  '继续上次 · 已猜 {n} 次': 'Resume · {n} guesses in',
+  '随机出题 · 不限次数': 'Random puzzles · Unlimited',
+  '每日一题不出困难档；练习不限次，战绩只记每日题。':
+    'Hard tier stays out of the daily puzzle. Practice is unlimited; only daily games count toward your record.',
+  '练习模式': 'Practice',
+  '随机出题': 'Random puzzle',
+  '本局结束': 'Round over',
+  '答案揭晓，再来一把？': 'Answer revealed — play another?',
+  '七条线索，八次机会。不限次数，再来一把。':
+    'Seven clues, eight tries. No limits — play another round.',
+  '再来一把': 'Play again',
+  '暂时开不了局，稍后再试？': 'Can’t start a round right now — try again in a moment.',
+  '上一局已过期，已为你开新的一局。': 'That round expired; started a fresh one for you.',
+  '只记每日一题，保存在这台设备': 'Daily puzzles only · saved on this device',
+  '候选 {n} 个模型': '{n} models in the pool',
+  '今日已完成': 'Done today',
+  '进行中 · 已猜 {n} 次': 'In progress · {n} guesses in',
+  '今日战绩已记录': 'Today’s result logged',
+  '今天还没玩': 'Not played yet',
+  '答案池互不重叠：简单只出热门，困难只出经典与冷门。':
+    'Pools never overlap: Easy draws only hits, Hard only classics and deep cuts.',
+  '返回选择模式': 'Back to mode select',
   '已复制 ✓': 'Copied ✓',
   '直接看答案': 'Reveal answer',
   '猜中了！用了': 'Got it! Solved in',
@@ -539,6 +576,10 @@ export const messages: Record<string, string> = {
   '答案：': 'Answer:',
   '猜测历史': 'Guess history',
   '回到玩法菜单': 'Back to play menu',
+  '每日一题全世界同一道题（东八区零点更新），只从热门与主流模型里出；练习模式选难度随机出题、不限次数。反馈规则：厂商相同为绿、同国家为黄；发布时间、上下文、价格接近为黄并给箭头方向；「?」表示该属性未公开，不计对错。':
+    'The daily puzzle is the same worldwide (resets at midnight UTC+8), drawn from well-known and mainstream models; practice mode serves random puzzles by difficulty, unlimited. Rules: same vendor = green, same country = yellow; released/context/price near = yellow with an arrow; “?” means unpublished — never counts against you.',
+  '战绩只记每日一题，一天只记一次；练习模式随便刷，不影响连胜。对局不保存：退出或刷新就重新开局，每日题的答案不变。':
+    'Only daily puzzles count toward your record — once a day; practice never touches your streak. Games aren’t saved: leaving or refreshing starts you over, and the daily answer stays the same.',
   '每天全世界同一道题（东八区零点更新）。反馈规则：厂商/权重/推理猜对为绿；发布时间、上下文、价格接近为黄并给箭头方向；「?」表示该属性未公开，不计对错。':
     'One puzzle per day for the whole world (resets at midnight UTC+8). Rules: vendor/weights/reasoning match = green; released/context/price near = yellow with an arrow; “?” means unpublished — never counts against you.',
   '模一把加载中…': 'Loading Model Guess…',
@@ -561,7 +602,6 @@ export const messages: Record<string, string> = {
   "判定中": "Checking",
   "猜一下": "Guess",
   "匹配的模型": "Matching models",
-  "从一个熟悉的模型开始": "Start with a model you know",
   "确认": "Confirm",
   "模型候选": "Model suggestions",
   "没有找到这个模型，换个名字试试。": "No models found. Try another name.",
@@ -597,6 +637,11 @@ export const messages: Record<string, string> = {
   "图+视": "Image+video",
   "图+音+视": "Image+audio+video",
   "旗舰": "Flagship",
+  '每日谜题': 'Daily mystery',
+  '七条线索，锁定一个名字。': 'Seven clues. One name to uncover.',
+  '次机会': 'TRIES',
+  '全球同题': 'Same worldwide',
+  '正在准备练习题…': 'Preparing your puzzle…',
 };
 
 // Canonical labels for former decorative English and bilingual captions.

@@ -3,7 +3,7 @@ import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useAccount, AccountButton } from '@/components/account';
 import { currentRandomArenaHash } from '@/lib/placeholder';
-import { convoyNavigate } from '@/lib/game-transitions';
+import { convoyNavigate, guessNavigate } from '@/lib/game-transitions';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
 // 正式测评为资格制：当前 dev 开发者身份拥有资格（决策 028）。
@@ -108,16 +108,20 @@ export default function PlayMenu() {
                     onClick={(e) => {
                       // 菜单进测评走一体斜幕（2026-09-13 用户拍板）；
                       // formal 的目的地在点击时现抽，保持随机口径；
-                      // 模一把同样走 convoy（决策 057），字带用菜单项 code
+                      // 模一把使用独立的抽牌过场，其余入口维持 convoy。
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+                        return;
                       e.preventDefault();
+                      if (mode.id === 'guess') {
+                        guessNavigate();
+                        return;
+                      }
                       const hash =
                         mode.id === 'event'
                           ? '#event'
-                          : mode.id === 'guess'
-                            ? '#guess'
-                            : mode.id === 'formal'
-                              ? formalHref()
-                              : '#random';
+                          : mode.id === 'formal'
+                            ? formalHref()
+                            : '#random';
                       convoyNavigate(hash, mode.code);
                     }}
                   >

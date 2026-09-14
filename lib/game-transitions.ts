@@ -1,5 +1,7 @@
 let translateTransition = (text: string) => text;
-export function setTransitionTranslator(translator: (text: string) => string) { translateTransition = translator; }
+export function setTransitionTranslator(translator: (text: string) => string) {
+  translateTransition = translator;
+}
 
 // Reference prototypes and route navigation share the same WAAPI tracks.
 // onCovered is the safe point for a route swap.
@@ -44,13 +46,33 @@ export function convoyNavigate(hash: string, title?: string) {
   }).play();
 }
 
-export type GameTransitionKind = 'frame' | 'bands' | 'convoy';
+// Same menu lock as convoy: rapid clicks cannot launch competing route swaps.
+export function guessNavigate() {
+  if (convoyNavRunning) return;
+  convoyNavRunning = true;
+  createGameTransition('deal', {
+    onCovered: () => {
+      window.location.hash = '#guess';
+    },
+    onFinish: () => {
+      convoyNavRunning = false;
+    },
+  }).play();
+}
+
+export type GameTransitionKind =
+  | 'frame'
+  | 'bands'
+  | 'convoy'
+  | 'deal'
+  | 'folio';
 export interface GameTransitionOptions {
   parent?: HTMLElement;
   title?: string;
   speed?: number;
   hold?: number;
   reduced?: boolean;
+  direction?: 'forward' | 'back';
   onCovered?: () => void;
   onFrame?: (time: number, duration: number) => void;
   onFinish?: () => void;
@@ -60,7 +82,8 @@ export interface GameTransitionOptions {
 }
 
 export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
-  const covered = kind === 'frame' ? 420 : 520;
+  if (kind === 'folio') return { covered: 230, exitStart: 310, duration: 570 };
+  const covered = kind === 'frame' ? 420 : kind === 'deal' ? 720 : 520;
   const exitStart =
     covered + Math.max(0, hold) * (kind === 'convoy' ? 0.35 : 1);
   return {
@@ -133,7 +156,29 @@ export function createGameTransition(
       'linear',
     );
 
-  if (kind === 'frame') {
+  if (kind === 'folio') {
+    const leaf = el('gt-folio-leaf');
+    const sign = options.direction === 'back' ? -1 : 1;
+    track(
+      leaf,
+      [
+        { transform: `translateX(${sign * 102}%)`, offset: 0, easing: ease },
+        {
+          transform: 'translateX(0)',
+          offset: timing.covered / timing.duration,
+        },
+        {
+          transform: 'translateX(0)',
+          offset: timing.exitStart / timing.duration,
+          easing: ease,
+        },
+        { transform: `translateX(${-sign * 102}%)`, offset: 1 },
+      ],
+      0,
+      timing.duration,
+      'linear',
+    );
+  } else if (kind === 'frame') {
     const sheet = el('gt-sheet');
     const veil = el('gt-veil', sheet);
     // Opaque paper covers the old page without a prolonged crossfade.
@@ -217,7 +262,11 @@ export function createGameTransition(
     // 中段不再空转；左右交替方向杀入再各自反向退出，形成对抗交错。
     const bandIn = 460;
     const bandOut = 460;
-    const words = options.words ?? [title, 'TRUST YOUR INSTINCT', '偏见 · 各有所爱'];
+    const words = options.words ?? [
+      title,
+      'TRUST YOUR INSTINCT',
+      '偏见 · 各有所爱',
+    ];
     const labels = options.labels ?? ['OBSERVE →', 'COMPARE →', 'DECIDE →'];
     for (let i = 0; i < 3; i++) {
       const row = el(`gt-band gt-band-${i}`, bank);
@@ -255,6 +304,132 @@ export function createGameTransition(
         bandDuration,
       );
     }
+  } else if (kind === 'deal') {
+    // The card becomes a fully opaque viewport before routing. Its two halves
+    // own the hold and exit, so no independent background can outlive the reveal.
+    for (let i = 0; i < 2; i++) {
+      const back = el(`gt-deal-back gt-deal-back-${i}`);
+      track(
+        back,
+        [
+          {
+            transform: `translateY(120%) rotate(${-18 + i * 7}deg) scale(.22)`,
+            opacity: 1,
+            offset: 0,
+          },
+          {
+            transform: `translateY(0) rotate(${-9 + i * 15}deg) scale(.32)`,
+            opacity: 1,
+            offset: 0.48,
+          },
+          {
+            transform: 'translateY(0) rotate(0deg) scale(1.04)',
+            opacity: 1,
+            offset: 0.88,
+          },
+          {
+            transform: 'translateY(0) rotate(0deg) scale(1.04)',
+            opacity: 0,
+            offset: 1,
+          },
+        ],
+        i * 35,
+        timing.covered + 90,
+        ease,
+      );
+    }
+    const shell = el('gt-deal-shell');
+    track(
+      shell,
+      [
+        {
+          transform: 'translateY(125%) rotate(-11deg) scale(.22)',
+          offset: 0,
+          easing: 'cubic-bezier(.16,1,.3,1)',
+        },
+        {
+          transform: 'translateY(0) rotate(4deg) scale(.32)',
+          offset: 0.46,
+          easing: 'cubic-bezier(.7,0,.15,1)',
+        },
+        { transform: 'translateY(0) rotate(0deg) scale(1)', offset: 1 },
+      ],
+      0,
+      timing.covered,
+      'linear',
+    );
+    for (let i = 0; i < 2; i++) {
+      const half = el(`gt-deal-half gt-deal-half-${i}`, shell);
+      move(
+        half,
+        'translateX(0)',
+        `translateX(${i ? 101 : -101}%)`,
+        timing.exitStart,
+        650,
+      );
+    }
+    // Restrained opening-only decoration disappears before the later scene.
+    const seal = el('gt-deal-seal', shell, '?');
+    fade(seal, 1, 0, timing.covered - 150, 150);
+    const copy = el('gt-deal-copy', shell);
+    const info = el('gt-deal-info', copy);
+    el('gt-deal-kicker', info, '每日谜题');
+    el('gt-deal-title', info, '模一把');
+    el('gt-deal-note', info, '七条线索，锁定一个名字。');
+    const clues = el('gt-deal-clues', info);
+    const dwell = timing.exitStart - timing.covered;
+    for (let i = 0; i < 7; i++) {
+      const clue = el('gt-deal-clue', clues, String(i + 1).padStart(2, '0'));
+      track(
+        clue,
+        [
+          { opacity: 0.18, transform: 'translateY(3px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        timing.covered + (dwell * i) / 10,
+        Math.min(160, dwell * 0.35),
+      );
+    }
+    const symbol = el('gt-deal-symbol', copy);
+    el('gt-deal-orbit', symbol);
+    el('gt-deal-mystery', symbol, '?');
+    el('gt-deal-count', symbol, '08');
+    el('gt-deal-count-label', symbol, '次机会');
+    const sheen = el('gt-deal-sheen', symbol);
+    track(
+      sheen,
+      [
+        { transform: 'translateX(-160%) rotate(-20deg)', opacity: 0 },
+        {
+          transform: 'translateX(0) rotate(-20deg)',
+          opacity: 0.22,
+          offset: 0.45,
+        },
+        { transform: 'translateX(180%) rotate(-20deg)', opacity: 0 },
+      ],
+      timing.covered + 50,
+      dwell + 80,
+      'cubic-bezier(.22,.6,.3,1)',
+    );
+    track(
+      copy,
+      [
+        { opacity: 0, transform: 'translateY(9px)', offset: 0 },
+        { opacity: 1, transform: 'translateY(0)', offset: 0.2 },
+        { opacity: 1, transform: 'translateY(0)', offset: 0.8 },
+        { opacity: 0, transform: 'translateY(-8px)', offset: 1 },
+      ],
+      timing.covered,
+      dwell + 150,
+      'linear',
+    );
+    move(
+      symbol,
+      'perspective(1000px) rotateY(-18deg) rotate(-6deg)',
+      'perspective(1000px) rotateY(-3deg) rotate(1deg)',
+      timing.covered,
+      dwell + 150,
+    );
   } else {
     // The colored edges and dark occlusion share one clock, so the full-screen
     // cover remains continuous while the route changes underneath.

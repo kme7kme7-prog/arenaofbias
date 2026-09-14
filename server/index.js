@@ -25,7 +25,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
@@ -256,6 +256,27 @@ const MIGRATIONS = [
         CREATE UNIQUE INDEX IF NOT EXISTS reactions_slot
           ON reactions (user_id, prompt_id, mid);
         CREATE INDEX IF NOT EXISTS reactions_prompt ON reactions (prompt_id);
+      `);
+    },
+  },
+  {
+    // 006 · 模一把游玩数据（后台「模一把」页）：一局结束前端匿名上报一行。
+    // answer_id 由服务端按 day_key+难度 自行派生（客户端报的是结果不是答案）。
+    // 无需登录、可伪造但没有收益；ip_hash 当日盐，仅作粗略去重观察。
+    up() {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS guess_results (
+          id         TEXT PRIMARY KEY NOT NULL,
+          day_key    TEXT NOT NULL,
+          difficulty INTEGER NOT NULL,
+          answer_id  TEXT NOT NULL,
+          won        INTEGER NOT NULL,
+          attempts   INTEGER NOT NULL,
+          ip_hash    TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS guess_results_day ON guess_results (day_key);
+        CREATE INDEX IF NOT EXISTS guess_results_answer ON guess_results (answer_id);
       `);
     },
   },
@@ -1298,7 +1319,39 @@ const {
   modelById: guessModelById,
   resolveGuess: resolveGuessByName,
   judge: judgeGuess,
+  poolForDifficulty: guessPoolFor,
+  dailyPool: guessDailyPool,
+  registerExtraModels: guessRegisterExtra,
+  VENDOR_REGION: guessVendorRegion,
+  GUESS_EPOCH: guessEpoch,
 } = guessModule;
+
+// 后台手动追加的模型（决策 063）：增量文件住 data/，与主数据集同口径、
+// 只允许追加到末尾。注册进模块后候选/判定/每日派生即时生效；文件损坏
+// 只记日志不影响启动（基础集照常可用）。
+const guessExtraPath = path.join(dataDir, 'guess-models-extra.json');
+const guessExtraIds = new Set();
+try {
+  if (fs.existsSync(guessExtraPath)) {
+    const extra = JSON.parse(fs.readFileSync(guessExtraPath, 'utf8'));
+    for (const entry of extra.models ?? [])
+      for (const v of entry.variants?.length ? entry.variants : [entry])
+        guessExtraIds.add(v.id);
+    console.log(
+      `[arenaofbias] 模一把增量模型 ${guessRegisterExtra(extra)} 个（${guessExtraPath}）`,
+    );
+  }
+} catch (error) {
+  console.error(
+    `[arenaofbias] 模一把增量文件加载失败（已跳过）: ${error.message}`,
+  );
+}
+
+// 三档难度（决策 060）：答案池互不重叠。参数非法时回落简单档
+const parseGuessDifficulty = (value) => {
+  const n = Number(value);
+  return n === 2 || n === 3 ? n : 1;
+};
 
 // 公开字段：比 GuessModel 少不了什么（答案本身就是公开模型），但保持
 // 「服务端→前端」的显式白名单，未来数据集加私密字段（如出题权重）不会
@@ -1316,6 +1369,8 @@ const publicGuessModel = (m) => ({
   // 都下发：格子显示用档位，揭晓条展示具体价格
   priceOut: m.priceOut,
   priceTier: m.priceTier,
+  // 难度分池标记下发，前端按所选难度过滤候选与搜索（答案仍只在服务端派生）
+  difficulty: m.difficulty,
 });
 
 app.get('/api/guess/today', (_req, res) => {
@@ -1348,8 +1403,23 @@ app.post('/api/guess/check', limiter, (req, res) => {
       .status(400)
       .set(noStore)
       .json({ code: 'unknown-model', error: '没有找到这个模型' });
+  // 两种模式（决策 064）：带 gameId = 练习模式（答案在练习局表里，见下）；
+  // 不带 = 每日一题（每日池=简单+标准派生，困难档不进每日）
+  const gameId =
+    typeof req.body?.gameId === 'string' ? req.body.gameId : null;
+  let answer;
+  if (gameId) {
+    const game = guessPracticeGames.get(gameId);
+    if (!game)
+      return res
+        .status(404)
+        .set(noStore)
+        .json({ code: 'game-expired', error: '这局练习已过期，开一把新的吧' });
+    answer = game.answer;
+  } else {
+    answer = guessAnswerForDate(new Date(), guessDailyPool(guessModels));
+  }
   try {
-    const answer = guessAnswerForDate();
     const feedback = judgeGuess(guess, answer);
     // 猜中或最后一次：随反馈附带答案（前端揭晓用）；否则不给，防试探
     res.set(noStore).json({
@@ -1358,6 +1428,276 @@ app.post('/api/guess/check', limiter, (req, res) => {
     });
   } catch {
     res.status(503).set(noStore).json({ error: '暂时判不了，稍后再试？' });
+  }
+});
+
+// ── 练习模式（决策 064）：三档难度随机出题、不限次、可「再来一把」──
+// 答案服务端持有（与每日一题同一个防偷看口径），开局发 gameId，判定走
+// /api/guess/check 带 gameId。局全在内存：服务器重启即失效（前端收到
+// game-expired 会开新局），不为练习局落库。练习不计战绩也不上报统计——
+// 无限刷的局统计胜率没意义。
+const guessPracticeGames = new Map(); // gameId → { answer, createdAt }
+const GUESS_PRACTICE_MAX_GAMES = 5000;
+
+app.post('/api/guess/practice/start', limiter, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  try {
+    const difficulty = parseGuessDifficulty(req.body?.difficulty);
+    const pool = guessPoolFor(guessModels, difficulty);
+    // 随机选一槽（合并组算一槽），组内再随机一个版本——练习局用真随机，
+    // 不需要每日题那种可复现派生
+    const slots = new Map();
+    for (const m of pool) {
+      const key = m.groupId ?? m.id;
+      if (!slots.has(key)) slots.set(key, []);
+      slots.get(key).push(m);
+    }
+    const groups = [...slots.values()];
+    const slot = groups[randomInt(groups.length)];
+    const answer = slot[randomInt(slot.length)];
+    // 容量兜底：超上限时从最老的开始清（Map 迭代即插入序）
+    if (guessPracticeGames.size >= GUESS_PRACTICE_MAX_GAMES) {
+      const excess = guessPracticeGames.size - GUESS_PRACTICE_MAX_GAMES + 1;
+      let i = 0;
+      for (const key of guessPracticeGames.keys()) {
+        guessPracticeGames.delete(key);
+        if (++i >= excess) break;
+      }
+    }
+    const gameId = randomBytes(12).toString('hex');
+    guessPracticeGames.set(gameId, { answer, createdAt: Date.now() });
+    res.set(noStore).json({ gameId });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时开不了局，稍后再试？' });
+  }
+});
+
+// 游玩数据上报：一局结束时前端报一次（与本地战绩结算同一时机，一局一条）。
+// 匿名、无需登录——对局本来就在浏览器本地；answer_id 由服务端按 dayKey 从
+// 每日池（决策 064：简单+标准）重新派生，客户端只报「几步、中没中」，伪造不了
+// 答案归属。可刷假数据但没有收益，限流兜底；多刷也只是把统计弄脏。
+// 决策 064 起只有每日一题上报（练习模式不限次、不上报）；请求不再带
+// difficulty，guess_results.difficulty 对每日题记 0，历史 1-3 记录保留。
+const insertGuessResult = db.prepare(
+  `INSERT INTO guess_results (id, day_key, difficulty, answer_id, won, attempts, ip_hash, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+app.post('/api/guess/result', limiter, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  try {
+    const won = req.body?.won === true;
+    const attempts = Number(req.body?.attempts);
+    const reportDay =
+      typeof req.body?.dayKey === 'string' ? req.body.dayKey : guessDayKeyOf();
+    if (!Number.isInteger(attempts) || attempts < 1 || attempts > 8)
+      return res.status(400).set(noStore).json({ error: '步数无效' });
+    // 只收 epoch 起到今天的 UTC+8 日历日；'YYYY-MM-DD' 字典序即日期序
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(reportDay) ||
+      reportDay < guessEpoch ||
+      reportDay > guessDayKeyOf()
+    )
+      return res.status(400).set(noStore).json({ error: '日期无效' });
+    const answer = guessAnswerForDate(
+      new Date(`${reportDay}T00:00:00+08:00`),
+      guessDailyPool(guessModels),
+    );
+    const now = Date.now();
+    insertGuessResult.run(
+      randomBytes(8).toString('hex'),
+      reportDay,
+      0, // difficulty=0 表示每日一题（064 起）；练习模式不上报
+      answer.id,
+      won ? 1 : 0,
+      attempts,
+      ipHashOfDay(req.ip || 'unknown', dayKey(now)),
+      now,
+    );
+    res.set(noStore).status(204).end();
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时记不了，不影响这局' });
+  }
+});
+
+// ── 后台「模一把」页：游玩统计 + 数据集清单 + 手动追加模型 ──
+
+app.get('/api/admin/guess/stats', requireAdmin, (_req, res) => {
+  try {
+    const totals = db
+      .prepare(
+        `SELECT COUNT(*) AS played, COALESCE(SUM(won), 0) AS won,
+                AVG(CASE WHEN won = 1 THEN attempts END) AS avgSteps
+         FROM guess_results`,
+      )
+      .get();
+    const todayRow = db
+      .prepare(
+        `SELECT COUNT(*) AS played, COALESCE(SUM(won), 0) AS won
+         FROM guess_results WHERE day_key = ?`,
+      )
+      .get(guessDayKeyOf());
+    const byDifficulty = db
+      .prepare(
+        `SELECT difficulty, COUNT(*) AS played, SUM(won) AS won,
+                AVG(CASE WHEN won = 1 THEN attempts END) AS avgSteps
+         FROM guess_results GROUP BY difficulty ORDER BY difficulty`,
+      )
+      .all();
+    const byDay = db
+      .prepare(
+        `SELECT day_key AS day, COUNT(*) AS played, SUM(won) AS won
+         FROM guess_results GROUP BY day_key ORDER BY day_key DESC LIMIT 14`,
+      )
+      .all()
+      .reverse();
+    const byModel = db
+      .prepare(
+        `SELECT answer_id AS id, COUNT(*) AS times, SUM(won) AS won,
+                AVG(CASE WHEN won = 1 THEN attempts END) AS avgSteps
+         FROM guess_results GROUP BY answer_id ORDER BY times DESC, id`,
+      )
+      .all()
+      .map((row) => ({
+        ...row,
+        name: guessModelById.get(row.id)?.name ?? row.id,
+      }));
+    res.set(noStore).json({
+      day: guessDayKeyOf(),
+      totals,
+      today: todayRow,
+      byDifficulty,
+      byDay,
+      byModel,
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '统计数据暂时无法加载' });
+  }
+});
+
+// 模型清单：后台加模型时参照（厂商下拉、查重）。extra 标记 = 来自增量文件
+app.get('/api/admin/guess/models', requireAdmin, (_req, res) => {
+  try {
+    const vendors = [
+      ...new Map(
+        guessModels.map((m) => [m.vendor, m.region]),
+      ).entries(),
+    ].map(([org, region]) => ({ org, region }));
+    res.set(noStore).json({
+      total: guessModels.length,
+      extraCount: guessExtraIds.size,
+      vendors,
+      models: guessModels.map((m) => ({
+        id: m.id,
+        name: m.name,
+        vendor: m.vendor,
+        released: m.released,
+        difficulty: m.difficulty,
+        extra: guessExtraIds.has(m.id),
+      })),
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '清单暂时无法加载' });
+  }
+});
+
+// 手动追加模型：写入 data/guess-models-extra.json 末尾并即时注册进内存，
+// 不重启即生效。候选与练习池立即包含新模型；每日题从追加次日起才可能抽到
+// 它（sinceDay，见 guess-logic 的 answerForDate）——当天与历史答案不受追加
+// 影响。已有条目不可改（改难度会重排历史答案，要走改主数据集 + 人工拍板
+// 的流程）。
+app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const bad = (message) => res.status(400).set(noStore).json({ error: message });
+  try {
+    const body = req.body ?? {};
+    const name = String(body.name ?? '').trim();
+    const org = String(body.org ?? '').trim();
+    if (!name || name.length > 60) return bad('显示名必填（60 字内）');
+    if (!org || org.length > 60) return bad('厂商名必填（60 字内）');
+    if (resolveGuessByName(name))
+      return bad('已存在同名模型（不区分大小写）');
+    const year = Number(body.year);
+    const month = Number(body.month);
+    if (!Number.isInteger(year) || year < 2015 || year > 2100)
+      return bad('发布年份无效');
+    if (!Number.isInteger(month) || month < 1 || month > 12)
+      return bad('发布月份无效');
+    const difficulty = Number(body.difficulty);
+    if (![1, 2, 3].includes(difficulty)) return bad('难度必须是 1/2/3');
+    const knownModalities = new Set(['text', 'image', 'audio', 'video']);
+    const modalities = [
+      ...new Set(Array.isArray(body.modalities) ? body.modalities : []),
+    ];
+    if (
+      !modalities.includes('text') ||
+      modalities.some((m) => !knownModalities.has(m))
+    )
+      return bad('模态至少包含 text，且只能是 text/image/audio/video');
+    const nullableNumber = (v) =>
+      v === null || v === undefined || v === '' ? null : Number(v);
+    const contextK = nullableNumber(body.contextK);
+    const priceOut = nullableNumber(body.priceOut);
+    if (contextK !== null && (!Number.isFinite(contextK) || contextK <= 0))
+      return bad('上下文窗口须为正数（K token），未公开留空');
+    if (priceOut !== null && (!Number.isFinite(priceOut) || priceOut < 0))
+      return bad('输出单价须为非负数（$/M），无一手价留空');
+    const popularity = Number(body.popularity);
+    if (!Number.isInteger(popularity) || popularity < 0 || popularity > 100)
+      return bad('知名度须为 0-100 的整数');
+    const slug = String(body.id ?? '').trim() || name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    if (!/^[\w.-]+$/.test(slug)) return bad('id 只能含字母数字与 - _ .');
+    if (guessModelById.has(slug)) return bad(`id「${slug}」已被占用`);
+    // 新厂商必须登记地区码（决策 062 的 VENDOR_REGION 契约）；
+    // 已有厂商沿用登记，以数据集口径为准
+    let region = null;
+    if (!guessVendorRegion[org]) {
+      region = String(body.region ?? '')
+        .trim()
+        .toUpperCase();
+      if (!/^[A-Z]{2}$/.test(region))
+        return bad('新厂商需要登记两位地区码（如 CN/US/JP）');
+    }
+    const entry = {
+      id: slug,
+      name,
+      org,
+      year,
+      month,
+      openWeights: body.openWeights === true,
+      contextK,
+      modality: modalities.join('+'),
+      reasoning: body.reasoning === true,
+      priceOut,
+      popularity,
+      difficulty,
+      // 追加次日起才参与每日题派生（answerForDate 的追加槽机制）：当天与
+      // 历史答案不受影响，正在进行的对局不会被换答案；候选与练习池立即生效
+      sinceDay: guessDayNumber() + 1,
+    };
+    const file = fs.existsSync(guessExtraPath)
+      ? JSON.parse(fs.readFileSync(guessExtraPath, 'utf8'))
+      : { models: [] };
+    file.models = [...(file.models ?? []), entry];
+    if (region)
+      file.vendorRegions = { ...file.vendorRegions, [org]: region };
+    fs.writeFileSync(guessExtraPath, `${JSON.stringify(file, null, 2)}\n`);
+    guessRegisterExtra({
+      models: [entry],
+      vendorRegions: region ? { [org]: region } : {},
+    });
+    guessExtraIds.add(slug);
+    res.set(noStore).json({ ok: true, model: publicGuessModel(guessModelById.get(slug)) });
+  } catch {
+    res.status(503).set(noStore).json({ error: '保存失败，稍后再试' });
   }
 });
 
