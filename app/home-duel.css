@@ -1,0 +1,718 @@
+/* Home edition 3 "duel": the whole page is one enlarged A|B match-up.
+   Palette stays on the site baseline (decisions 002/027/067): paper / ink / acid,
+   with the arena's red/blue team accents only as hairlines on the two panels. */
+.duel-home {
+  --duel-pad: clamp(24px, 4vw, 72px);
+  --duel-red: var(--red);
+  --duel-blue: var(--blue);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.duel-home::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(#71806a12 1px, transparent 1px),
+    linear-gradient(90deg, #71806a12 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(180deg, #000 0, transparent 62%);
+}
+
+/* header */
+.duel-header {
+  height: 88px;
+  margin: 0 var(--duel-pad);
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  border-bottom: 1px solid #81907b66;
+  flex-shrink: 0;
+}
+.duel-brand {
+  font-size: 22px;
+}
+.duel-header nav {
+  margin-left: auto;
+  display: flex;
+  gap: 34px;
+}
+.duel-header nav a {
+  position: relative;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 6px 0;
+}
+.duel-header nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease-out);
+}
+.duel-header nav a:hover::after {
+  transform: scaleX(1);
+}
+.duel-utilities {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* hero copy */
+.duel-hero {
+  margin: 0 var(--duel-pad);
+  padding: clamp(28px, 4.5vh, 56px) 0 clamp(28px, 4vh, 44px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: clamp(32px, 5vw, 96px);
+  align-items: end;
+}
+.duel-kicker {
+  display: flex;
+  gap: 26px;
+  margin: 0 0 22px;
+  font: 12px var(--mono);
+  letter-spacing: 0.14em;
+  color: #5d6b52;
+}
+.duel-kicker span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.duel-kicker span::before {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: #8b9a7b;
+}
+.duel-hero h1 {
+  margin: 0;
+  font-size: clamp(60px, 7.8vw, 128px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.06em;
+  white-space: nowrap;
+}
+.duel-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+.duel-line > span {
+  display: inline-block;
+  animation: duel-lift 0.9s var(--ease-out) both;
+}
+.duel-line:nth-child(2) > span {
+  animation-delay: 0.1s;
+}
+.duel-hero h1 em {
+  font-style: normal;
+  color: #7f8f3e;
+}
+.duel-hero-side {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding-bottom: 0.2em;
+  animation: duel-rise 0.9s 0.25s var(--ease-out) both;
+}
+.duel-intro {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.85;
+  color: #3b463f;
+}
+.duel-enter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  padding: 26px 28px;
+  background: var(--ink);
+  color: var(--acid);
+  border: 0;
+  border-radius: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 5px 6px 0 #9aa77a;
+  transition:
+    transform 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
+}
+.duel-enter svg {
+  transition: transform 0.25s var(--ease-out);
+}
+.duel-enter:hover:not(:disabled) {
+  transform: translate(-2px, -3px);
+  box-shadow: 8px 10px 0 #9aa77a;
+}
+.duel-enter:hover:not(:disabled) svg {
+  transform: translateX(6px);
+}
+.duel-enter:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow: 0 0 0 #9aa77a;
+}
+.duel-secondary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+}
+.duel-secondary > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4d5a47;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  transition: color 0.2s;
+}
+.duel-secondary > *:hover {
+  color: var(--ink);
+}
+.duel-random {
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink) !important;
+}
+
+/* stage: two panels cut by a diagonal */
+.duel-stage {
+  --duel-cut: 64px;
+  position: relative;
+  margin: 0 var(--duel-pad);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: clamp(360px, 48vh, 540px);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+}
+.duel-side {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    opacity 0.45s var(--ease-out),
+    filter 0.45s var(--ease-out);
+}
+.duel-side-a {
+  background: var(--ink);
+  color: #e6ebe0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--duel-cut)) 100%, 0 100%);
+  animation: duel-from-left 1s 0.35s var(--ease-out) both;
+}
+.duel-side-b {
+  background: #e9ede4;
+  color: var(--ink);
+  margin-left: calc(var(--duel-cut) * -1);
+  clip-path: polygon(var(--duel-cut) 0, 100% 0, 100% 100%, 0 100%);
+  animation: duel-from-right 1s 0.35s var(--ease-out) both;
+}
+.duel-home[data-focus='a'] .duel-side-b,
+.duel-home[data-focus='b'] .duel-side-a {
+  opacity: 0.55;
+  filter: saturate(0.4);
+}
+.duel-side-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+.duel-side-b .duel-side-bar {
+  padding-left: calc(var(--duel-cut) + 24px);
+}
+.duel-side-bar b {
+  font: 800 18px/1 'MiSans', var(--mono);
+  padding: 6px 9px;
+  color: var(--ink);
+  background: var(--duel-red);
+}
+.duel-side-b .duel-side-bar b {
+  background: var(--duel-blue);
+}
+.duel-side-work {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  animation: duel-fade 0.6s var(--ease-out) both;
+}
+.duel-side-a .duel-side-work {
+  padding-right: var(--duel-cut);
+}
+.duel-side-b .duel-side-work {
+  padding-left: var(--duel-cut);
+}
+.duel-side-letter {
+  position: absolute;
+  z-index: -2;
+  left: 3%;
+  bottom: -0.2em;
+  font: 800 clamp(140px, 18vw, 280px)/1 'MiSans', sans-serif;
+  letter-spacing: -0.06em;
+  color: #ffffff0a;
+  pointer-events: none;
+}
+.duel-side-b .duel-side-letter {
+  color: #1c24230d;
+  left: auto;
+  right: 3%;
+}
+.duel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 60% center;
+  transition: transform 1.4s var(--ease-out);
+}
+.duel-side:hover .duel-image {
+  transform: scale(1.03);
+}
+.duel-web {
+  height: 100%;
+  padding: 88px 40px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.duel-side-b .duel-web {
+  padding-left: calc(var(--duel-cut) + 40px);
+}
+.duel-web small {
+  font: 11px var(--mono);
+  letter-spacing: 0.3em;
+  opacity: 0.7;
+}
+.duel-web h2 {
+  position: relative;
+  z-index: 1;
+  margin: 34px 0 26px;
+  font: 700 clamp(34px, 3.4vw, 56px)/1.02 Arial, sans-serif;
+  letter-spacing: -0.02em;
+}
+.duel-side-b .duel-web h2 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+.duel-web > span {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 3px;
+}
+.duel-planet {
+  position: absolute;
+  right: -12%;
+  bottom: -30%;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 26%, #dfe8b8, #7d9686 46%, #142627 80%);
+}
+.duel-side-b .duel-planet {
+  background: radial-gradient(circle at 30% 26%, #f4f7ea, #b9c9a6 50%, #5c7360 82%);
+}
+.duel-letter {
+  height: 100%;
+  padding: 88px 40px 40px;
+  display: flex;
+  flex-direction: column;
+}
+.duel-side-b .duel-letter {
+  padding-left: calc(var(--duel-cut) + 40px);
+}
+.duel-letter small {
+  font: 11px var(--mono);
+  letter-spacing: 0.25em;
+  opacity: 0.7;
+}
+.duel-letter h2 {
+  margin: 28px 0 22px;
+  font: 600 clamp(26px, 2.4vw, 38px)/1.3 'MiSans', sans-serif;
+}
+.duel-letter p {
+  margin: 0 0 8px;
+  max-width: 34em;
+  font-size: 14px;
+  line-height: 2;
+  opacity: 0.9;
+}
+.duel-letter > span {
+  margin-top: auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.duel-vs {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  background: var(--acid);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  transform: translate(-50%, -50%) rotate(-6deg);
+  animation: duel-pop 0.6s 0.9s var(--ease-out) both;
+  pointer-events: none;
+}
+.duel-vs span {
+  font: 800 34px/1 'MiSans', var(--mono);
+  font-style: italic;
+  letter-spacing: -0.04em;
+}
+.duel-stage-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 46px;
+}
+.duel-stage-foot > span {
+  font: 11px var(--mono);
+  letter-spacing: 0.08em;
+  color: #6c7a60;
+}
+.duel-stage-foot fieldset {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.duel-stage-foot button {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5c6a52;
+  transition: background 0.2s;
+}
+.duel-stage-foot button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--acid);
+}
+.duel-stage-foot button:hover:not([aria-pressed='true']) {
+  background: #c9d3bf;
+}
+
+/* ticker */
+.duel-ticker {
+  margin: 78px 0 0;
+  border-top: 1px solid #81907b66;
+  border-bottom: 1px solid #81907b66;
+  padding: 14px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.duel-ticker-track {
+  display: inline-flex;
+  animation: duel-scroll 48s linear infinite;
+}
+.duel-ticker-track > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 28px;
+  padding-right: 28px;
+  font: 12px var(--mono);
+  letter-spacing: 0.18em;
+  color: #5d6b52;
+}
+.duel-ticker-track i {
+  width: 6px;
+  height: 6px;
+  background: var(--acid);
+  outline: 1px solid var(--ink);
+}
+
+/* shared states */
+.duel-home button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.duel-home :focus-visible {
+  outline: 2px solid #718522;
+  outline-offset: 4px;
+}
+
+@keyframes duel-lift {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes duel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes duel-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes duel-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes duel-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-18deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1);
+  }
+}
+@keyframes duel-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes duel-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* english */
+:lang(en) .duel-hero h1 {
+  font-size: clamp(52px, 6.4vw, 108px);
+  letter-spacing: -0.045em;
+}
+:lang(en) .duel-hero h1 em {
+  margin-left: 0;
+}
+
+/* tablet */
+@media (max-width: 1100px) {
+  .duel-header {
+    gap: 24px;
+  }
+  .duel-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 34px;
+  }
+  .duel-hero h1 {
+    font-size: clamp(60px, 10vw, 110px);
+  }
+  .duel-hero-side {
+    max-width: 520px;
+  }
+  .duel-stage {
+    --duel-cut: 44px;
+    height: clamp(340px, 46vh, 480px);
+  }
+  .duel-web,
+  .duel-letter {
+    padding: 72px 28px 28px;
+  }
+  .duel-side-b .duel-web,
+  .duel-side-b .duel-letter {
+    padding-left: calc(var(--duel-cut) + 28px);
+  }
+}
+
+/* phone: panels stack, the cut goes horizontal */
+@media (max-width: 760px) {
+  .duel-header {
+    height: auto;
+    padding: 18px 0 14px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .duel-brand {
+    font-size: 16px;
+  }
+  .duel-brand .lobby-mark {
+    font-size: 36px;
+    width: 34px;
+    height: 34px;
+  }
+  .duel-header nav {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    gap: 22px;
+  }
+  .duel-header nav a {
+    font-size: 12px;
+  }
+  .duel-utilities {
+    margin-left: auto;
+    gap: 8px;
+  }
+  .duel-utilities .language-switch span {
+    display: none;
+  }
+  .duel-hero {
+    padding: 34px 0 30px;
+    gap: 28px;
+  }
+  .duel-kicker {
+    gap: 14px;
+    font-size: 10px;
+    margin-bottom: 22px;
+  }
+  .duel-kicker span::before {
+    width: 10px;
+  }
+  .duel-hero h1 {
+    font-size: clamp(54px, 15.5vw, 84px);
+  }
+  .duel-intro {
+    font-size: 15px;
+  }
+  .duel-enter {
+    padding: 20px 20px;
+    font-size: 16px;
+  }
+  .duel-secondary {
+    gap: 6px 18px;
+  }
+  .duel-stage {
+    --duel-cut: 34px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: auto;
+    min-height: 560px;
+  }
+  .duel-side-a {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--duel-cut)), 0 100%);
+  }
+  .duel-side-b {
+    margin-left: 0;
+    margin-top: calc(var(--duel-cut) * -1);
+    clip-path: polygon(0 var(--duel-cut), 100% 0, 100% 100%, 0 100%);
+  }
+  .duel-side-b .duel-side-bar {
+    padding: calc(var(--duel-cut) + 16px) 18px 0;
+  }
+  .duel-side-a .duel-side-bar {
+    padding: 16px 18px 0;
+  }
+  .duel-side-a .duel-side-work,
+  .duel-side-b .duel-side-work {
+    padding: 0;
+  }
+  .duel-side-b .duel-side-work {
+    padding-top: var(--duel-cut);
+  }
+  .duel-web,
+  .duel-letter,
+  .duel-side-b .duel-web,
+  .duel-side-b .duel-letter {
+    padding: 60px 20px 24px;
+  }
+  .duel-web h2 {
+    font-size: 30px;
+    margin: 22px 0 18px;
+  }
+  .duel-letter h2 {
+    font-size: 22px;
+  }
+  .duel-letter p {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .duel-side-letter {
+    font-size: 150px;
+  }
+  .duel-side-b .duel-side-letter {
+    left: auto;
+    right: 4%;
+  }
+  .duel-vs {
+    width: 64px;
+    height: 64px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .duel-vs span {
+    font-size: 24px;
+  }
+  .duel-stage-foot {
+    position: static;
+    height: auto;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .duel-stage-foot > span {
+    font-size: 9px;
+  }
+  .duel-ticker {
+    margin-top: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-home *,
+  .duel-home *::before,
+  .duel-home *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

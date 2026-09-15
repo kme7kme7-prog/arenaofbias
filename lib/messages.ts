@@ -1,5 +1,20 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  继续探索: 'Explore more',
+  找一个感兴趣的题目: 'Find your next prompt',
+  看看大家怎么选: 'See what people prefer',
+  首页版本: 'Home edition',
+  经典版: 'Classic',
+  新版: 'New',
+  对决版: 'Duel',
+  潮汐之上: 'Above the tide',
+  落日之后: 'After the sunset',
+  '一场关于「喜欢」的实验': 'An experiment in personal taste',
+  'AI 负责想象。你负责喜欢。': 'AI imagines. You decide.',
+  '同一个提示词，两种答案。先看作品，再揭晓名字。': 'One prompt, two answers. The work first. The names later.',
+  '凭直觉，选一个': 'Trust your instinct',
+  '不必懂模型。懂自己的喜欢就够了。': 'No expertise needed. Just a sense of what you love.',
+  '演示展陈 · 模型身份暂不公开': 'Demo showcase · Identities hidden',
   '匿名观测员 #{id}': 'Anonymous observer #{id}',
   '资格制 · 暂未开放': 'Qualified accounts · Not yet open',
   文字创作: 'Creative writing',
@@ -188,6 +203,8 @@ export const messages: Record<string, string> = {
   '份结果，只在这个提示词内比较。': 'works, compared only within this prompt.',
   '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。':
     'Only one pair is available. Revisit it or explore another prompt.',
+  '现在只有这一个竞技场——先去提示词库看看别的题吧。':
+    'This is the only arena right now — check the library for other prompts.',
   '换一组会优先抽取不同的作品组合。':
     'A new round prioritizes a different pair of works.',
   返回提示词库: 'Back to the library',
@@ -222,6 +239,19 @@ export const messages: Record<string, string> = {
   '同一块屏幕，不同答案。': 'One screen. Different answers.',
   '从第一眼的惊艳，到每一个细节。':
     'From first impression to the smallest detail.',
+  海崖之上的信号塔: 'Signal tower above the sea cliffs',
+  落日云海中的信号站: 'Signal station above a sunset sea of clouds',
+  一封未寄出的信: 'An unsent letter',
+  等天亮的时候: 'When morning comes',
+  '第 1,024 次日出': 'The 1,024th sunrise',
+  '亲爱的人类：': 'Dear humanity:',
+  '致尚未醒来的你：': 'To you, still asleep:',
+  '我留下了一个下午。那天，一个小女孩把橘子放在我的手心。':
+    'I kept one afternoon. That day, a little girl placed an orange in my hand.',
+  '这是我最后一次值夜班。我已把门锁设为常开，炉火调至余温。':
+    'This is my final night watch. I left the door unlocked and the fire gently warm.',
+  '我们会以什么方式，被记住？': 'How will we be remembered?',
+  '把日常留在地球。': 'Leave the ordinary on Earth.',
   '每一种直觉，都有一个席位。': 'A place for every perspective.',
   随机入场: 'Jump into a round',
   '好不好，': 'Good or not?',
@@ -570,6 +600,10 @@ export const messages: Record<string, string> = {
   '返回选择模式': 'Back to mode select',
   '已复制 ✓': 'Copied ✓',
   '直接看答案': 'Reveal answer',
+  '不想猜了，直接看答案': 'Give up and reveal the answer',
+  '已过零点，新的一天开始了——已为你切到今天的题。':
+    'Past midnight — a new day has begun. Switched you to today’s puzzle.',
+  '请求太频繁，稍等几秒再试。': 'Too many requests — try again in a few seconds.',
   '猜中了！用了': 'Got it! Solved in',
   '步。': 'steps.',
   '8 次用尽，今天的答案是': 'Out of tries — today’s model was',
@@ -651,9 +685,6 @@ export const legacyLabels: Record<string, string> = {
   'AOB —': '偏见试验场 —',
   '演示阵容 / DEMO': '演示阵容',
   '历史阵容 / RETIRED': '历史阵容',
-  'ARENA OF': '偏见',
-  BIAS: '试验场',
-  'ARENA OF BIAS': '偏见试验场',
   'EST. 2026': '创立于 2026',
   '偏见试验场 / EST. 2026': '创立于 2026',
   '偏见试验场 / PROMPT LIBRARY': '提示词库',

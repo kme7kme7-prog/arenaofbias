@@ -67,7 +67,9 @@ export type GuessStats = {
 export const MAX_ATTEMPTS = 8;
 
 const STATS_KEY = 'guess-stats';
-/** 战绩里最近一天的 dayKey 快照（判断连胜：最后一条记录是否昨天） */
+/** 战绩里最近一天的 dayKey 快照。连胜是宽松口径（只有「玩了且输了」才断，
+ *  隔天没玩不断——见 settleStats），本键目前只写不读，留给将来收紧口径用；
+ *  若要改成「连续日历日」才+1，读它之前先过用户拍板（行为会变） */
 const LAST_DAY_KEY = 'guess-last-day';
 /** 「某日战绩已结算」标记（一天一条，防反复进出刷战绩与重复上报） */
 const settledKey = (dayKey: string) => `guess-settled:${dayKey}`;
@@ -194,6 +196,10 @@ export type CheckResponse = {
 /** 练习局已过期（服务器重启清内存）的信号：404 + code=game-expired */
 export class PracticeExpiredError extends Error {}
 
+/** 服务端限流（429）的信号：checkGuess 抛出，界面给「稍等几秒」的提示，
+ *  不再与普通失败混在一起显示「网络不给力」 */
+export class RateLimitedError extends Error {}
+
 /** 提交一次猜测；final=第 8 次（用尽），服务端会附带答案。
  *  每日一题不带 gameId（种子派生答案）；练习模式带 gameId（服务端持答案） */
 export async function checkGuess(
@@ -209,11 +215,16 @@ export async function checkGuess(
     });
     if (!response.ok) {
       if (response.status === 404) throw new PracticeExpiredError();
+      if (response.status === 429) throw new RateLimitedError();
       return null;
     }
     return (await response.json()) as CheckResponse;
   } catch (error) {
-    if (error instanceof PracticeExpiredError) throw error;
+    if (
+      error instanceof PracticeExpiredError ||
+      error instanceof RateLimitedError
+    )
+      throw error;
     return null;
   }
 }

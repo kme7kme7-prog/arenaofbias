@@ -316,7 +316,12 @@ let placeholderCache: { key: string; results: ModelResult[] } | null = null;
 export function currentResults(): ModelResult[] {
   const settings = readDevSettings();
   if (!settings.placeholderMode) return currentWorks();
-  const key = `ph:${settings.placeholderModelCount}`;
+  // 缓存键带上题库指纹（2026-09-15 修复）：占位结果按当时的题目清单生成，
+  // 远端题库晚到（如新增 008）后缓存不失效，新题永远「未就绪」直到改模型数
+  const promptsNow = currentPrompts();
+  const key = `ph:${settings.placeholderModelCount}:${promptsNow.length}:${
+    promptsNow[promptsNow.length - 1]?.id ?? ''
+  }`;
   if (placeholderCache?.key === key) return placeholderCache.results;
   const results = buildPlaceholderResults(settings.placeholderModelCount);
   placeholderCache = { key, results };

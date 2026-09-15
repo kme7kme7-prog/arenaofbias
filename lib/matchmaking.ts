@@ -1,14 +1,18 @@
 // 轻量匹配机制（决策 046）：按声望分「软性回避」处刑局，不做强匹配。
 //
-// 声望分（内部暗分）：新模型 1000 起步，按 votes 表全量重放 K=32 的简易 Elo
-//（与榜单前台口径同公式但独立维护——前台榜单永远只由真实票重放得出，
-// 本模块的分数只供配对参考，两者不互相喂养）。服务端 /api/ratings 由此重放。
+// 声望分（内部暗分）：新模型 1200 起步（与 computeRatings / 服务端 /api/ratings
+// 的重放基准一致——2026-09-15 修正：曾用 1000，比 Elo 基准低 200，导致无票
+// 模型被隔两个档位、90% 同档匹配永远配不上它们），按 votes 表全量重放 K=32
+// 的简易 Elo（与榜单前台口径同公式但独立维护——前台榜单永远只由真实票重放
+// 得出，本模块的分数只供配对参考，两者不互相喂养）。
 //
 // 配对规则（参数集中在 MATCH_CONFIG，上线后可按真实数据微调）：
 //   1. 档位：模型按声望分每 TIER_WIDTH 分一档；抽对局时 90% 在同档内随机、
 //      10% 全池随机（保底锚——防止档位漂移、也给新模型跨档曝光机会）。
-//   2. 熔断：同档抽出的对局若双方分差超过 BLOWOUT_GAP（大到闭眼知胜负），
-//      重抽，最多 REROLL_LIMIT 次；重抽仍不行就照常返回（流程优先于回避）。
+//   2. 熔断：全池分支抽出的对局若双方分差超过 BLOWOUT_GAP（大到闭眼知胜负），
+//      重抽，最多 REROLL_LIMIT 次（同档宽 150 分，同档内分差上限 149，
+//      恒小于 400，熔断实际只由 10% 全池分支触发）；重抽仍不行就照常返回
+//      （流程优先于回避）。
 //   3. 「换一组」的上轮作品回避（防身份泄漏，见 arena.ts pickMatchup）叠加在
 //      之上：先按档位抽，再检查上轮回避；两者都尽量满足，满足不了优先保流程。
 // 占位模式不经本模块（占位作品无真实票，维持纯随机演示）。
@@ -18,19 +22,19 @@ import { eligiblePairs, type Matchup, type ModelResult } from '@/lib/arena';
 export type Ratings = Record<string, number>;
 
 export const MATCH_CONFIG = {
-  /** 新模型的初始声望分 */
-  baseRating: 1000,
+  /** 新模型的初始声望分（须与 computeRatings 的 BASE 一致，见文件头） */
+  baseRating: 1200,
   /** 档位宽度（分）：每档的声望分跨度 */
   tierWidth: 150,
   /** 同档抽取的概率（其余走全池随机保底） */
   sameTierRate: 0.9,
-  /** 触发重抽的分差上限（同档内也可能出现大分差） */
+  /** 触发重抽的分差上限（实际只拦 10% 全池分支抽出的对局） */
   blowoutGap: 400,
   /** 分差熔断的重抽上限 */
   rerollLimit: 2,
 } as const;
 
-/** 档位号：声望分 → 档（未知模型按基础分算，落在中间档） */
+/** 档位号：声望分 → 档（未知模型按基准分算，与有票模型的起步档一致） */
 export function tierOf(rating: number | undefined): number {
   return Math.floor((rating ?? MATCH_CONFIG.baseRating) / MATCH_CONFIG.tierWidth);
 }

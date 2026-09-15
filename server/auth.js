@@ -214,32 +214,57 @@ export function installAuth(app, db, sameOrigin) {
   // 账号首次使用时创建，密码随机生成且不留存，无人能凭密码登录。
   const isLoopback = (ip) =>
     ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
-  app.post('/api/auth/dev', async (req, res) => {
-    if (!(isLoopback(req.ip) || process.env.ALLOW_DEV_LOGIN === '1'))
-      return res
-        .status(403)
-        .json({ error: '开发者登录未开放（仅本机回环或 ALLOW_DEV_LOGIN=1）。' });
-    let user = getUser.get('dev');
-    if (!user) {
-      const salt = randomBytes(16).toString('hex');
-      const hash = await derive(randomBytes(32).toString('hex'), salt);
-      const candidate = { id: randomUUID(), username: 'dev' };
-      try {
-        db.prepare(
-          'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-        ).run(candidate.id, 'dev', `scrypt:${salt}:${hash.toString('hex')}`, Date.now());
-        user = candidate;
-      } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') user = getUser.get('dev');
-        else throw error;
+  // 反代防误开（2026-09-15）：请求带 X-Forwarded-For 说明前面有代理。若未设
+  // TRUST_PROXY（或设成了信任一切的 true），req.ip 是代理地址——同机 nginx
+  // 恒为 127.0.0.1，回环判定对全世界恒真，dev 登录等于公开的管理员后门。
+  // 此时直接拒绝，逼部署者显式配置 TRUST_PROXY（白名单）或 ALLOW_DEV_LOGIN。
+  const proxyTrusted = () => {
+    const setting = app.get('trust proxy');
+    return setting !== false && setting !== true;
+  };
+  const behindProxy = (req) =>
+    'x-forwarded-for' in req.headers || 'x-real-ip' in req.headers;
+  app.post('/api/auth/dev', async (req, res, next) => {
+    try {
+      if (
+        behindProxy(req) &&
+        !proxyTrusted() &&
+        process.env.ALLOW_DEV_LOGIN !== '1'
+      )
+        return res.status(403).json({
+          error:
+            '检测到反向代理但未配置 TRUST_PROXY，开发者登录已禁用（设 TRUST_PROXY 白名单或 ALLOW_DEV_LOGIN=1 显式开启）。',
+        });
+      if (!(isLoopback(req.ip) || process.env.ALLOW_DEV_LOGIN === '1'))
+        return res
+          .status(403)
+          .json({ error: '开发者登录未开放（仅本机回环或 ALLOW_DEV_LOGIN=1）。' });
+      let user = getUser.get('dev');
+      if (!user) {
+        const salt = randomBytes(16).toString('hex');
+        const hash = await derive(randomBytes(32).toString('hex'), salt);
+        const candidate = { id: randomUUID(), username: 'dev' };
+        try {
+          db.prepare(
+            'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
+          ).run(candidate.id, 'dev', `scrypt:${salt}:${hash.toString('hex')}`, Date.now());
+          user = candidate;
+        } catch (error) {
+          if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') user = getUser.get('dev');
+          else throw error;
+        }
       }
+      // dev 是本机专用账号（创建入口就有回环门禁），登录即管理员——
+      // 省去本地开发还要设 ADMIN_OWNER 的麻烦（决策 041 补充）
+      if (user.role !== 'admin') {
+        db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', user.id);
+        user = getUser.get('dev');
+      }
+      res.status(201).json({ user: login(req, res, user) });
+    } catch (error) {
+      // Express 4 不接 async handler 的 rejection：不转给错误中间件，
+      // 一次 DB 异常就会变 unhandledRejection 直接退出进程
+      next(error);
     }
-    // dev 是本机专用账号（创建入口就有回环门禁），登录即管理员——
-    // 省去本地开发还要设 ADMIN_OWNER 的麻烦（决策 041 补充）
-    if (user.role !== 'admin') {
-      db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', user.id);
-      user = getUser.get('dev');
-    }
-    res.status(201).json({ user: login(req, res, user) });
   });
 }

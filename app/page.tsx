@@ -55,6 +55,7 @@ import {
   type Side,
 } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
+import { subscribeWorks } from '@/lib/works';
 import {
   appendPlaceholderVote,
   currentMatchup,
@@ -445,6 +446,18 @@ export default function Arena({
     },
   );
   const [pair, setPair] = useState<Matchup>(() => currentMatchup(prompt.id)!);
+  // 远端清单晚到时重算对局（2026-09-15 修复）：应用启动先以内置花名册起画，
+  // /api/works 返回后若不重算，棋盘还是内置作品而统计区已切远端数据——
+  // 票面与服务端作品表核对不上，投票会 400。订阅 works 变化重抽一组。
+  useEffect(
+    () =>
+      subscribeWorks(() => {
+        setPair(
+          (current) => currentMatchup(prompt.id, current) ?? current,
+        );
+      }),
+    [prompt.id],
+  );
   const pairCount = currentPairs(prompt.id).length;
   const resultCount = currentResultsForPrompt(prompt.id).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
@@ -458,6 +471,18 @@ export default function Arena({
     getServerMotionPreference,
   );
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
+  // 只剩当前一个可用竞技场时，随机入口会抽回同一题——hash 不变不触发路由，
+  // 按钮看起来就像失灵了。提示一句代替静默无反应（2026-09-15）
+  const [soloNotice, setSoloNotice] = useState(false);
+  const gotoRandomArena = () => {
+    const next = currentRandomArenaHash(prompt.id);
+    if (next === window.location.hash) {
+      setSoloNotice(true);
+      setTimeout(() => setSoloNotice(false), 3000);
+      return;
+    }
+    window.location.hash = next;
+  };
   const stageRef = useRef<HTMLDivElement>(null);
   const briefingRef = useRef<HTMLElement>(null);
   const cardA = useRef<HTMLDivElement>(null);
@@ -1334,7 +1359,7 @@ export default function Arena({
                 className={`next-button next-topic ${state.phase === 'result' ? 'highlight' : ''}`}
                 onClick={() => {
                   // 娱乐模式：下一题随机抽题（排除当前题），hash 切题由路由重挂载
-                  window.location.hash = currentRandomArenaHash(prompt.id);
+                  gotoRandomArena();
                 }}
                 disabled={blocked}
               >
@@ -1401,15 +1426,16 @@ export default function Arena({
               {t('返回提示词库')}
               <ArrowUpRight size={16} />
             </a>
-            <button
-              onClick={() => {
-                window.location.hash = currentRandomArenaHash(prompt.id);
-              }}
-            >
+            <button onClick={gotoRandomArena}>
               {t('随机换个竞技场')}
               <ArrowRight size={16} />
             </button>
           </div>
+          {soloNotice && (
+            <p className="placeholder-note" aria-live="polite">
+              {t('现在只有这一个竞技场——先去提示词库看看别的题吧。')}
+            </p>
+          )}
         </section>
       </main>
 

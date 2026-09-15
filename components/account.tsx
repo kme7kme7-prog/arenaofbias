@@ -69,13 +69,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
     const focus = () => {
+      // 正在登录/注册表单里输入时跳过焦点刷新：别的标签页刚登录成功的话，
+      // 这里一刷新会把表单突变成会员视图，已输入的账号密码直接丢失
+      //（2026-09-15 修复——想看最新状态，关掉表单或提交即可）
+      if (!user && (username || password)) return;
       void refresh();
     };
     window.addEventListener('focus', focus);
     return () => {
       window.removeEventListener('focus', focus);
     };
-  }, [refresh]);
+  }, [refresh, user, username, password]);
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);

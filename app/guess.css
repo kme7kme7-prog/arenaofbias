@@ -751,6 +751,24 @@
   border: 0;
   color: #d8f36a;
 }
+/* 对局进行中的「直接看答案」入口（2026-09-15 从结果面板移到搜索区，
+   原位置的显示条件永远不成立，按钮一直点不到） */
+.guess-search-section .guess-reveal {
+  display: block;
+  margin: -14px 0 18px;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.guess-search-section .guess-reveal:hover:not(:disabled) {
+  opacity: 1;
+}
+.guess-search-section .guess-reveal:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
 
 /* 模式选择：每日挑战为主，三档练习为次。 */
 .guess-difficulty {

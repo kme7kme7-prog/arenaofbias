@@ -10,7 +10,11 @@
 //   PORT            监听端口，默认 3000
 //   HOST            监听地址，默认 0.0.0.0
 //   DATA_DIR        SQLite 文件目录，默认 <项目根>/data
-//   RATE_LIMIT_PER_MIN  每个 IP 每分钟可 POST 的条数，默认 10
+//   RATE_LIMIT_PER_MIN  限流基础额度（每 IP 每分钟），默认 10；社交接口按原值、
+//                     猜模型判定 ×3、埋点 ×6（分组见 limiterFor）
+//   TRUST_PROXY     反代部署必设（如 loopback 或代理 IP 白名单）——不设时
+//                   req.ip 是代理地址，/api/auth/dev 等回环门禁不可信
+//   APP_ORIGIN      站点完整来源（如 https://example.com），反代后必设
 
 import express from 'express';
 import { installAuth } from './auth.js';
@@ -441,20 +445,30 @@ const isSameVote = (saved, vote, userId) =>
   saved.outcome === vote.outcome;
 
 // ---------- 演示级限流（内存滑动窗口，按真实客户端 IP） ----------
-
+// 按路由分组各自计桶（2026-09-15 拆分）：原先全站 POST 共享一个 10 次/分钟
+// 桶，模一把一局要 8 次判定 + 1 次上报正好占满，紧接着开练习局会中途 429。
+// social=评论/投票/反应（维持原额度）；guess=猜模型判定与上报（高频路径，
+// 额度×3）；track=匿名埋点（正常导航连开几页就会触发，额度×6 最宽）。
+// RATE_LIMIT_PER_MIN 仍是总开关：测试环境调大后各组同步放大。
+const RATE_GROUPS = {
+  social: { max: postsPerMinute, error: '发言太快了，歇一分钟再试。' },
+  guess: { max: postsPerMinute * 3, error: '请求太频繁，稍等几秒再试。' },
+  track: { max: postsPerMinute * 6, error: '请求太频繁，稍后再试。' },
+};
 const windows = new Map();
-const limiter = (req, res, next) => {
-  const ip = req.ip;
-  const now = Date.now();
-  const windowStart = now - 60_000;
-  const hits = (windows.get(ip) || []).filter((t) => t > windowStart);
-  if (hits.length >= postsPerMinute) {
-    return res.status(429).json({ error: '发言太快了，歇一分钟再试。' });
-  }
-  hits.push(now);
-  windows.set(ip, hits);
-  req.clientIp = ip;
-  next();
+const limiterFor = (group) => {
+  const { max, error } = RATE_GROUPS[group];
+  return (req, res, next) => {
+    const key = `${group}:${req.ip}`;
+    const now = Date.now();
+    const windowStart = now - 60_000;
+    const hits = (windows.get(key) || []).filter((t) => t > windowStart);
+    if (hits.length >= max) return res.status(429).json({ error });
+    hits.push(now);
+    windows.set(key, hits);
+    req.clientIp = req.ip;
+    next();
+  };
 };
 setInterval(() => {
   const cutoff = Date.now() - 60_000;
@@ -513,7 +527,7 @@ app.get('/api/comments', (req, res) => {
   }
 });
 
-app.post('/api/comments', limiter, (req, res) => {
+app.post('/api/comments', limiterFor('social'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
@@ -631,13 +645,17 @@ app.get('/api/votes', (_req, res) => {
   }
 });
 
-app.post('/api/votes', limiter, (req, res) => {
+app.post('/api/votes', limiterFor('social'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
   if (!req.user) return res.status(401).json({ error: '请先登录再投票。' });
   const vote = validateVote(req.body);
   if (!vote) return res.status(400).json({ error: '投票内容无效' });
+  // 正式测评资格制（决策 026）：前端菜单只对管理员解锁，这里服务端再拦一道——
+  // 任何登录用户直接输 #formal/xxx 的 hash 也进不了正式榜（2026-09-15 收口）
+  if (vote.mode === 'formal' && req.user.role !== 'admin')
+    return res.status(403).json({ error: '正式测评为资格制，暂未开放。' });
   const pairKey = pairKeyOf(vote.winnerRid, vote.loserRid);
   try {
     const existing = selectVoteIdByPair.get(req.user.id, pairKey);
@@ -688,7 +706,7 @@ app.post('/api/votes', limiter, (req, res) => {
 
 const REACTION_KINDS = new Set(['up', 'down', 'laugh']);
 // 反应跟着题号走（跨对局累计同一模型在这道题下的反应），换态度覆盖不叠票
-app.post('/api/reactions', limiter, (req, res) => {
+app.post('/api/reactions', limiterFor('social'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
@@ -1387,7 +1405,7 @@ app.get('/api/guess/today', (_req, res) => {
   }
 });
 
-app.post('/api/guess/check', limiter, (req, res) => {
+app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
@@ -1439,7 +1457,7 @@ app.post('/api/guess/check', limiter, (req, res) => {
 const guessPracticeGames = new Map(); // gameId → { answer, createdAt }
 const GUESS_PRACTICE_MAX_GAMES = 5000;
 
-app.post('/api/guess/practice/start', limiter, (req, res) => {
+app.post('/api/guess/practice/start', limiterFor('guess'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
@@ -1484,7 +1502,7 @@ const insertGuessResult = db.prepare(
   `INSERT INTO guess_results (id, day_key, difficulty, answer_id, won, attempts, ip_hash, created_at)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
-app.post('/api/guess/result', limiter, (req, res) => {
+app.post('/api/guess/result', limiterFor('guess'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
@@ -1495,15 +1513,20 @@ app.post('/api/guess/result', limiter, (req, res) => {
       typeof req.body?.dayKey === 'string' ? req.body.dayKey : guessDayKeyOf();
     if (!Number.isInteger(attempts) || attempts < 1 || attempts > 8)
       return res.status(400).set(noStore).json({ error: '步数无效' });
-    // 只收 epoch 起到今天的 UTC+8 日历日；'YYYY-MM-DD' 字典序即日期序
+    // 只收 epoch 起到今天的 UTC+8 日历日；'YYYY-MM-DD' 字典序即日期序。
+    // 再做一次往返核对挡幽灵日期（'2026-11-31' 这类不存在的日子会被 V8
+    // 进位成 12-01，不核对就能落库、answer_id 却按 12-01 派生）
+    const reportDate = new Date(`${reportDay}T00:00:00+08:00`);
     if (
       !/^\d{4}-\d{2}-\d{2}$/.test(reportDay) ||
+      Number.isNaN(reportDate.getTime()) ||
+      guessDayKeyOf(reportDate) !== reportDay ||
       reportDay < guessEpoch ||
       reportDay > guessDayKeyOf()
     )
       return res.status(400).set(noStore).json({ error: '日期无效' });
     const answer = guessAnswerForDate(
-      new Date(`${reportDay}T00:00:00+08:00`),
+      reportDate,
       guessDailyPool(guessModels),
     );
     const now = Date.now();
@@ -1689,7 +1712,11 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
     file.models = [...(file.models ?? []), entry];
     if (region)
       file.vendorRegions = { ...file.vendorRegions, [org]: region };
-    fs.writeFileSync(guessExtraPath, `${JSON.stringify(file, null, 2)}\n`);
+    // 原子写（2026-09-15）：先写临时文件再改名——直接覆盖原文件时进程若在
+    // 写入中途崩溃，文件损坏会让下次启动整体跳过，此前追加的模型全部失效
+    const tmpPath = `${guessExtraPath}.tmp`;
+    fs.writeFileSync(tmpPath, `${JSON.stringify(file, null, 2)}\n`);
+    fs.renameSync(tmpPath, guessExtraPath);
     guessRegisterExtra({
       models: [entry],
       vendorRegions: region ? { [org]: region } : {},
@@ -1701,8 +1728,10 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
   }
 });
 
-app.post('/api/track', (req, res) => {
-  // 同源即可上报，无需登录（访客也要统计）；失败吞错不影响页面
+app.post('/api/track', limiterFor('track'), (req, res) => {
+  // 同源即可上报，无需登录（访客也要统计）；失败吞错不影响页面。
+  // 限流 2026-09-15 补上：这是唯一匿名写库的接口，不限流可被脚本无限刷
+  // page_views（DB 膨胀 + 后台访客统计失真）；额度最宽，正常导航不受影响
   try {
     if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
     const path = String(req.body?.path || '/').slice(0, 64);
@@ -1720,9 +1749,21 @@ app.post('/api/track', (req, res) => {
 app.post('/api/dev/clear-my-votes', (req, res) => {
   const isLoopback = (ip) =>
     ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  // 反代防误开（与 /api/auth/dev 同一口径）：见 auth.js 的说明——
+  // 带 X-Forwarded-For 且未配置 TRUST_PROXY 时 req.ip 恒为代理地址，回环不可信
+  const proxyTrusted = () => {
+    const setting = app.get('trust proxy');
+    return setting !== false && setting !== true;
+  };
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.user || req.user.username !== 'dev')
     return res.status(403).json({ error: '仅 dev 账号可用' });
+  if (
+    ('x-forwarded-for' in req.headers || 'x-real-ip' in req.headers) &&
+    !proxyTrusted() &&
+    process.env.ALLOW_DEV_LOGIN !== '1'
+  )
+    return res.status(403).json({ error: '检测到反向代理但未配置 TRUST_PROXY，该接口已禁用。' });
   if (!(isLoopback(req.ip) || process.env.ALLOW_DEV_LOGIN === '1'))
     return res.status(403).json({ error: '仅本机可用' });
   try {

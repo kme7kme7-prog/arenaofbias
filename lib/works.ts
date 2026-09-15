@@ -3,7 +3,7 @@
 // 拉不到时调用方回退到 lib/arena.ts 的内置花名册，站点行为与改造前一致。
 // 后台内容管理（登记/发布开关）落地后，这里就是「后台点了、前台即刻生效」的通道。
 
-import { modelResults } from '@/lib/arena';
+import { knownContentKinds, modelResults } from '@/lib/arena';
 import type { ModelResult } from '@/lib/arena';
 
 // /api/works 返回的行：身份字段与 ModelResult 同构，content 是 JSON 字符串
@@ -35,7 +35,10 @@ function parseWorkRow(row: unknown): ModelResult | null {
   if (
     !content ||
     typeof content !== 'object' ||
-    typeof (content as Record<string, unknown>).kind !== 'string'
+    typeof (content as Record<string, unknown>).kind !== 'string' ||
+    // kind 白名单与内置花名册同一套（2026-09-15）：未知类型不让进清单，
+    // 渲染层对陌生 kind 是未定义行为——坏行按「单行损坏」口径跳过
+    !knownContentKinds.has((content as Record<string, unknown>).kind as string)
   )
     return null;
   return {

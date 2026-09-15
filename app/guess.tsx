@@ -45,6 +45,7 @@ import {
   markCounted,
   MAX_ATTEMPTS,
   PracticeExpiredError,
+  RateLimitedError,
   reportResult,
   settleStats,
   startPractice,
@@ -58,6 +59,7 @@ import {
   PRICE_TIERS,
   DIFFICULTY_INFO,
   GUESS_DIFFICULTIES,
+  guessDayKey,
   type GuessDifficulty,
 } from '@/lib/guess-logic';
 
@@ -469,8 +471,25 @@ export default function GuessPage() {
     setError(t('上一局已过期，已为你开新的一局。'));
   }
 
+  // 跨零点守护（UTC+8，2026-09-15）：页面跨过东八区零点后，服务端的「今天」
+  // 已换题——旧棋盘继续猜会把两个答案混进一局，战绩也记错日子。提交前比对
+  // dayKey，过期就拉新 today 并切到新一天的棋盘（这次提交不计）。练习模式的
+  // 答案在服务端局内存里，不受影响；对照页的 'preview-day' 等非日历 key 跳过。
+  async function dailyRolledOver(): Promise<boolean> {
+    if (mode !== 'daily' || !today) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(today.dayKey)) return false;
+    if (guessDayKey() === today.dayKey) return false;
+    const fresh = await fetchToday();
+    if (!mounted.current) return true;
+    if (fresh) enterDaily(fresh);
+    else setSession(emptySession());
+    setError(t('已过零点，新的一天开始了——已为你切到今天的题。'));
+    return true;
+  }
+
   async function submit(model: GuessApiModel) {
     if (!today || mode === null || !canGuess || pendingRef.current) return;
+    if (await dailyRolledOver()) return;
     pendingRef.current = true;
     setPending(true);
     setError(null);
@@ -490,6 +509,10 @@ export default function GuessPage() {
       }
       pendingRef.current = false;
       setPending(false);
+      if (error instanceof RateLimitedError) {
+        setError(t('请求太频繁，稍等几秒再试。'));
+        return;
+      }
       throw error;
     }
     pendingRef.current = false;
@@ -513,9 +536,13 @@ export default function GuessPage() {
     setSession(next);
   }
 
-  // 手动看答案：final=false 的请求不会带答案，单独发一次 final 请求拿答案
+  // 手动看答案：final=false 的请求不会带答案，单独发一次 final 请求拿答案。
+  // 按钮在对局进行中且已猜过至少一次时可见（2026-09-15 修复：原先放在
+  // 结果面板里，而 finished 与 revealed 恒同时翻转，按钮永远渲染不出来）
   async function revealAnswer() {
     if (!today || !session || mode === null || pendingRef.current) return;
+    if (!session.guesses.length) return; // 拿已猜过的模型再问一次，没猜过无从发起
+    if (await dailyRolledOver()) return;
     pendingRef.current = true;
     setPending(true);
     setError(null);
@@ -535,6 +562,10 @@ export default function GuessPage() {
       }
       pendingRef.current = false;
       setPending(false);
+      if (error instanceof RateLimitedError) {
+        setError(t('请求太频繁，稍等几秒再试。'));
+        return;
+      }
       throw error;
     }
     pendingRef.current = false;
@@ -1038,6 +1069,15 @@ export default function GuessPage() {
                       {t('回车提交')}
                     </span>
                   </p>
+                  {attempts > 0 && (
+                    <button
+                      className="guess-reveal"
+                      disabled={pending}
+                      onClick={() => void revealAnswer()}
+                    >
+                      {t('不想猜了，直接看答案')}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1104,14 +1144,6 @@ export default function GuessPage() {
                       </button>
                     )}
                   </div>
-                  {!won && !revealed && (
-                    <button
-                      className="guess-reveal"
-                      onClick={() => void revealAnswer()}
-                    >
-                      {t('直接看答案')}
-                    </button>
-                  )}
                 </div>
               )}
 

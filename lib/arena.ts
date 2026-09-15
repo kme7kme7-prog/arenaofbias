@@ -154,6 +154,8 @@ export type ModelResult = {
 // 这份数组是「内置兜底清单」：站点在拉到服务端作品清单（lib/works.ts → GET /api/works）
 // 之前、或拉取失败时使用；服务端首次启动时也用它作 works 表的种子。
 const KNOWN_CONTENT_KINDS = new Set(['image', 'text', 'web', 'html']);
+/** 作品 content.kind 的合法值（works.ts 解析远端行时复用同一白名单） */
+export const knownContentKinds = KNOWN_CONTENT_KINDS;
 const roster = rosterData as unknown as ModelResult[];
 for (const work of roster) {
   // JSON 手改漏配 content 会在启动时立刻暴露，而不是渲染成空白作品

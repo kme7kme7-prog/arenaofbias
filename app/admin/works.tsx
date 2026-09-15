@@ -34,6 +34,8 @@ export function AdminWorks() {
   const [draftTitle, setDraftTitle] = useState('');
   const [draftModel, setDraftModel] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // 行内字段错误（2026-09-15）：就近显示在保存按钮旁，顶部错误不易被长表格下方看到
+  const [fieldError, setFieldError] = useState('');
   const requestId = useRef(0);
 
   const load = useCallback(() => {
@@ -73,7 +75,10 @@ export function AdminWorks() {
     void load();
   };
 
-  // 发布开关：乐观翻转，失败回滚。切换即时写库，前台拉 /api/works 时生效
+  // 发布开关：乐观翻转，失败回滚。切换即时写库，前台拉 /api/works 时生效。
+  // 成功后以服务端返回行回写（2026-09-15）：请求在途时若改了筛选/点了刷新，
+  // 列表会被旧数据覆盖而成功路径不再回写——现在工具栏在 busy 期间禁用，
+  // 且成功时直接采用 PATCH 返回的该行真相
   const togglePublish = (work: AdminWork) => {
     if (busyId) return;
     setBusyId(work.id);
@@ -88,14 +93,20 @@ export function AdminWorks() {
       body: JSON.stringify({ published: !work.published }),
     })
       .then(async (response) => {
-        if (!response.ok) {
-          const data = (await response.json().catch(() => ({}))) as {
-            error?: string;
-          };
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          work?: AdminWork;
+        };
+        if (!response.ok || !data.work)
           throw new Error(data.error || '保存失败，稍后再试。');
-        }
+        return data.work;
       })
-      .then(() => setError(''))
+      .then((fresh) => {
+        setWorks((rows) =>
+          rows.map((row) => (row.id === work.id ? fresh : row)),
+        );
+        setError('');
+      })
       .catch((saveError: unknown) => {
         setWorks((rows) =>
           rows.map((row) =>
@@ -111,6 +122,13 @@ export function AdminWorks() {
 
   const saveEdit = (work: AdminWork) => {
     if (busyId) return;
+    // 就近校验（2026-09-15）：空值直接在保存按钮旁报出，不等服务端 400——
+    // 错误原来只显示在页面顶部，长表格下方不易察觉
+    if (!draftTitle.trim() || !draftModel.trim()) {
+      setFieldError('标题与模型名不能为空');
+      return;
+    }
+    setFieldError('');
     setBusyId(work.id);
     fetch(`/api/admin/works/${encodeURIComponent(work.id)}`, {
       method: 'PATCH',
@@ -147,8 +165,11 @@ export function AdminWorks() {
         出于投票流水完整性不提供删除，下架请用发布开关。
       </p>
       <div className="admin-toolbar">
+        {/* 保存请求在途时禁用筛选与刷新（2026-09-15）：中途换筛选会让列表
+            重载出旧状态，盖掉刚翻转的发布开关 */}
         <select
           value={prompt}
+          disabled={!!busyId}
           onChange={(event) => {
             setPrompt(event.target.value);
             setLimit(50);
@@ -164,6 +185,7 @@ export function AdminWorks() {
         </select>
         <select
           value={status}
+          disabled={!!busyId}
           onChange={(event) => {
             setStatus(event.target.value as 'all' | 'published' | 'draft');
             setLimit(50);
@@ -183,6 +205,7 @@ export function AdminWorks() {
         >
           <input
             value={q}
+            disabled={!!busyId}
             onChange={(event) => setQ(event.target.value)}
             // 无 submit 按钮的单输入表单，Enter 隐式提交在部分浏览器不可靠，显式处理
             onKeyDown={(event) => {
@@ -196,7 +219,7 @@ export function AdminWorks() {
             aria-label="搜索作品"
           />
         </form>
-        <button className="reload" onClick={reload}>
+        <button className="reload" onClick={reload} disabled={!!busyId}>
           刷新
         </button>
       </div>
@@ -287,10 +310,21 @@ export function AdminWorks() {
                         </button>
                         <button
                           className="admin-mini"
-                          onClick={() => setEditingId(null)}
+                          onClick={() => {
+                            setEditingId(null);
+                            setFieldError('');
+                          }}
                         >
                           取消
                         </button>
+                        {fieldError && (
+                          <span
+                            className="muted"
+                            style={{ color: '#d67070', fontSize: 12 }}
+                          >
+                            {fieldError}
+                          </span>
+                        )}
                       </>
                     ) : (
                       <button
@@ -299,6 +333,7 @@ export function AdminWorks() {
                           setEditingId(work.id);
                           setDraftTitle(work.title);
                           setDraftModel(work.modelName);
+                          setFieldError('');
                         }}
                       >
                         编辑

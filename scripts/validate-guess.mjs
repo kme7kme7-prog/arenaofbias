@@ -190,8 +190,13 @@ try {
       for (const f of [
         'id', 'name', 'org', 'year', 'month',
         'openWeights', 'modality', 'reasoning', 'popularity', 'difficulty',
+        'sinceDay',
       ])
         assert.notEqual(e[f], undefined, `${e.id} 缺字段 ${f}`);
+      assert.ok(
+        Number.isInteger(e.sinceDay) && e.sinceDay >= 0,
+        `${e.id} sinceDay 须为非负整数（缺了会落进基础槽、改历史答案）`,
+      );
       assert.ok(!baseIds.has(e.id) && !seen.has(e.id), `增量 id 冲突: ${e.id}`);
       assert.ok(!baseNames.has(e.name.toLowerCase()), `增量 name 冲突: ${e.name}`);
       assert.ok(regions[e.org], `${e.id} 厂商 ${e.org} 未登记地区`);
@@ -680,16 +685,62 @@ try {
               id: 'zz-ok-entry', name: 'ZZ OK', org: 'OpenAI', year: 2026,
               month: 9, openWeights: false, contextK: 64, modality: 'text',
               reasoning: false, priceOut: 1, popularity: 0, difficulty: 1,
+              sinceDay: tomorrow,
             },
             {
               id: extraId, name: 'Dup', org: 'OpenAI', year: 2026, month: 9,
               openWeights: false, contextK: 64, modality: 'text',
               reasoning: false, priceOut: 1, popularity: 0, difficulty: 1,
+              sinceDay: tomorrow,
             },
           ],
         }),
       );
       assert.equal(fresh.GUESS_MODELS.length, sizeBefore, '坏批次不应部分注册');
+      // 2026-09-15 收紧：缺 sinceDay 的增量条目整批拒收（防落进基础槽改历史答案）
+      assert.throws(() =>
+        fresh.registerExtraModels({
+          models: [
+            {
+              id: 'zz-no-since', name: 'ZZ No Since', org: 'OpenAI', year: 2026,
+              month: 9, openWeights: false, contextK: 64, modality: 'text',
+              reasoning: false, priceOut: 1, popularity: 0, difficulty: 1,
+            },
+          ],
+        }),
+      );
+      assert.equal(
+        fresh.GUESS_MODELS.length,
+        sizeBefore,
+        '缺 sinceDay 的批次不应部分注册',
+      );
+      assert.ok(!fresh.GUESS_MODELS.some((m) => m.id === 'zz-no-since'));
+      // 坏批次时 vendorRegions 整体回滚，不残留半套映射
+      const zzOrg = 'ZZ Test Lab';
+      assert.throws(() =>
+        fresh.registerExtraModels({
+          vendorRegions: { [zzOrg]: 'CN' },
+          models: [
+            {
+              id: 'zz-vendor-bad', name: 'ZZ Vendor Bad', org: 'OpenAI',
+              year: 2026, month: 9, openWeights: false, contextK: 64,
+              modality: 'text', reasoning: false, priceOut: 1, popularity: 0,
+              difficulty: 1, sinceDay: tomorrow,
+            },
+            {
+              id: 'zz-vendor-bad', name: 'ZZ Dup 2', org: 'OpenAI', year: 2026,
+              month: 9, openWeights: false, contextK: 64, modality: 'text',
+              reasoning: false, priceOut: 1, popularity: 0, difficulty: 1,
+              sinceDay: tomorrow,
+            },
+          ],
+        }),
+      );
+      assert.equal(
+        fresh.VENDOR_REGION[zzOrg],
+        undefined,
+        '坏批次后 vendorRegions 未回滚',
+      );
     });
   });
 

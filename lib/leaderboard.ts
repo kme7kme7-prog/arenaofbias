@@ -167,12 +167,10 @@ export function leaderboardData(
 ): BoardData {
   const kinds = promptKindMap();
   const meta = modelMeta(votes);
-  // 先过阵容：阵容 = 已发布作品 ∪ 流水历史模型（决策 045 ⑤），票面只要认识
-  // 双方模型就计入；服务端写入时已按作品清单核对票面，客户端不重复设防
-  const known = votes.filter(
-    (vote) => meta.has(vote.winnerId) && meta.has(vote.loserId),
-  );
-  const scoped = known.filter(
+  // 阵容 = 已发布作品 ∪ 流水历史模型（决策 045 ⑤）：modelMeta 已把每条流水
+  // 出现过的模型全部登记进 meta，meta.has 恒真，无需再按票面过滤（原先的
+  // known 过滤是死代码，2026-09-15 移除）；服务端写入时也已核对过票面
+  const scoped = votes.filter(
     (vote) =>
       matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
       (scope === 'mixed' || vote.mode === 'formal'),

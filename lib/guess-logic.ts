@@ -140,7 +140,8 @@ export type RawModel = {
   priceOut: number | null;
   popularity: number;
   difficulty?: number;
-  /** 每日派生生效日（dayNumber）；主数据集不写此字段（恒生效） */
+  /** 每日派生生效日（dayNumber）；主数据集不写此字段（恒生效）。
+   *  增量条目必填（registerExtraModels 校验）——缺了会落进基础槽改历史答案 */
   sinceDay?: number;
   variants?: RawModel[];
 };
@@ -196,20 +197,51 @@ export type ExtraModelsFile = {
 
 /**
  * 注册增量模型：先合并厂商地区映射（toModel 取 region 依赖它），再把条目
- * 展开追加到数据集末尾。sinceDay 未写的条目视为恒生效（兼容旧增量文件）。
- * id 冲突或格式非法抛 GuessError——启动时让 server 记日志、接口层转 400。
+ * 展开追加到数据集末尾。追加契约（2026-09-15 收紧）：增量条目**必须带
+ * sinceDay**——缺了会落进基础槽，改变当天与全部历史的每日答案；合并组
+ * （variants）只允许维护主数据集，这里拒收。id 冲突（含批次内）或格式
+ * 非法抛 GuessError——启动时让 server 记日志、接口层转 400；vendorRegions
+ * 在批次失败时整体回滚，不残留半套映射。
  */
 export function registerExtraModels(extra: ExtraModelsFile): number {
-  if (extra.vendorRegions) Object.assign(VENDOR_REGION, extra.vendorRegions);
+  // 地区映射先记快照：批次校验失败时回滚（两阶段提交对 vendorRegions 也成立）
+  const savedRegions: [string, string | undefined][] = [];
+  if (extra.vendorRegions)
+    for (const [org, region] of Object.entries(extra.vendorRegions)) {
+      savedRegions.push([org, VENDOR_REGION[org]]);
+      VENDOR_REGION[org] = region;
+    }
+  const rollbackRegions = () => {
+    for (const [org, old] of savedRegions)
+      if (old === undefined) delete VENDOR_REGION[org];
+      else VENDOR_REGION[org] = old;
+  };
   // 两阶段：先整体归一与查重，全部通过才合并——坏条目不让前面的条目
   // 残留在数据集里（启动时每次重放都停在同一个坏条目，等于后面的全丢）
   const batch: GuessModel[] = [];
-  for (const entry of extra.models ?? []) {
-    for (const m of normalizeEntry(entry)) {
-      if (modelById.has(m.id))
-        throw new GuessError('unknown-model', `增量模型 id 重复: ${m.id}`);
-      batch.push(m);
+  const batchIds = new Set<string>();
+  try {
+    for (const entry of extra.models ?? []) {
+      if (entry.variants?.length)
+        throw new GuessError(
+          'unknown-model',
+          `增量模型不支持合并组（请维护主数据集）: ${entry.name}`,
+        );
+      if (!Number.isInteger(entry.sinceDay) || (entry.sinceDay ?? -1) < 0)
+        throw new GuessError(
+          'unknown-model',
+          `增量模型必须带 sinceDay（每日派生生效日，dayNumber 口径）: ${entry.name}`,
+        );
+      for (const m of normalizeEntry(entry)) {
+        if (modelById.has(m.id) || batchIds.has(m.id))
+          throw new GuessError('unknown-model', `增量模型 id 重复: ${m.id}`);
+        batchIds.add(m.id);
+        batch.push(m);
+      }
     }
+  } catch (error) {
+    rollbackRegions();
+    throw error;
   }
   for (const m of batch) {
     GUESS_MODELS.push(m);

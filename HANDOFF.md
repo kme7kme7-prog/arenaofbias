@@ -2,6 +2,55 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
+## 2026-09-15 · 全站代码审查与全部修复（当前轮）
+
+- 用户要求完整代码审查找 BUG（需要跑项目时用不常用端口），审查后拍板「全部修复」。审查范围：当轮未提交的首页三版改动（逐行精读，未发现 BUG）+ 后端/模一把/页面组件/lib 模块四个并行审查任务；高危发现均由本人二次核验属实。修复批次记为决策 070。
+- **修复清单（全部完成）**：
+  - **H1 反代管理员后门**：`/api/auth/dev` 检测到 XFF 且未设 `TRUST_PROXY` 时拒绝（`/api/dev/clear-my-votes` 同口径）；dev 路由补 try/catch（原先唯一裸奔 async 路由，DB 异常会杀进程）。**部署硬前提新增：反代必设 `TRUST_PROXY` 白名单**。
+  - **H2 增量契约后门**：`registerExtraModels` 强制 sinceDay（缺失整批拒绝）、拒 variants、批次内 id 查重、vendorRegions 坏批次回滚；`validate:guess` 增量文件校验与追加契约断言同步收紧。
+  - **M1 看答案按钮不可达**：移到搜索框下方（对局中、已猜 ≥1 次可见），原结果面板位置的显示条件恒假；`revealAnswer` 补无猜测守卫。
+  - **M2 formal 投票污染**：服务端对非 admin 的 formal 票 403。
+  - **M3 匹配基准分**：`baseRating` 1000→1200，与 Elo 重放基准一致（无票模型不再被隔两档）。
+  - **M4 跨零点**：每日题提交/看答案前比对 dayKey，过期自动切新一天的题并提示。
+  - **M5/M6 限流分组**：social 10 / guess 30 / track 60（按 IP 独立桶，`RATE_LIMIT_PER_MIN` 为基础额度）；`/api/track` 补限流；checkGuess 429 抛 `RateLimitedError`、前端提示「请求太频繁」。
+  - **低危批**：extra 文件原子写（tmp+rename）；result 上报幽灵日期往返核对；竞技场远端清单晚到重算对局（`subscribeWorks`）；后台发布开关以 PATCH 返回回写+busy 期禁工具栏；后台作品/模一把表单就近校验（行内/表单内错误）；单竞技场随机入口提示而非静默；登录表单输入中不被焦点刷新顶掉；占位缓存键带题库指纹；works 行 kind 白名单；leaderboard 死过滤移除；matchmaking/guess.ts 误导注释修正。
+- **验证**：typecheck、定向 oxlint（仅剩 account.tsx 既有历史问题）、validate-locale、`validate:guess` 34 项（含新断言：缺 sinceDay 拒收+不部分注册、vendorRegions 回滚）、validate:matchmaking 7 项、validate:votes 12 项、validate:comments、validate:admin 11 项、validate:arena、validate:leaderboard 10 项、check:game、build 全过。隔离实例（8642 端口 + 临时 DATA_DIR，已清理）实测：dev 登录回环 201 / 带 XFF 403、普通用户 formal 票 403 而 blind 票 201、guess 桶第 31 次 429 新文案且 social 桶不受影响、幽灵日期 400 合法日期 204、后台追加模型 sinceDay=次日且无 .tmp 残留；浏览器实测每日题猜一次→「直接看答案」出现→点击揭晓 Grok 4.3→负场结算 played+1、settled 标记写入。M4 跨零点守护未做真实跨日实测（逻辑简单+guessDayKey 已有断言覆盖）。IAB 无焦点标签页的 rAF 冻结会让 folio 过场卡住（测试环境现象，刷新即恢复，非本轮引入）。
+- 前端打包泄漏 `answerForDate`（PRICE_TIERS 打进前端包）仍是已知待拍板项，本轮未动。未 commit、未 push。
+
+## 2026-09-15 · 首页第三版「对决版」
+
+- 用户觉得新版"还可以更好看"但说不出具体点，全权交给我审美，允许新增一版供三版对比切换。未推翻新版，**新增第三版**：`app/home-duel.tsx` / `home-duel.css`，底部切换扩为「经典版 / 新版 / 对决版」（`aob-home-edition` 值 `old|new|duel`，默认仍 new）。
+- 设计：整屏即一场放大的 A|B 对决——上半大标题（纯墨色，只保留句号点色）+ 右侧深墨主按钮与三条次级链接；下半横跨全宽的斜切双面板（A 深墨 / B 纸色，红蓝队色只作 A/B 角标）+ 中央酸黄 VS；悬停一侧另一侧退焦（呼应决策 003）；底部 mono 跑马灯。删掉新版里的小标签噪点与 BIAS 水印，酸黄只落在主按钮与 VS。守 067 色彩基线与 MiSans 字标；手机端面板上下堆叠、斜切改横向；遵守 reduced-motion。
+- `lib/messages.ts` 补 `对决版: 'Duel'` 及书信/网页展陈文案英文；`app/home.tsx` 只改 edition 类型与分支。
+- 用户指出左上角字标被翻成中文：是 056 单语化时 `legacyLabels` 顺带翻的。已移除 `ARENA OF` / `BIAS` / `ARENA OF BIAS` 三条映射，全站页头（首页三版、题库、榜单、菜单、模一把、竞技场页脚等共 10 处 `t('ARENA OF')`）中英文都显示 "ARENA OF BIAS"；小字仍随语言（创立于 2026 / Est. 2026）。记为决策 068；对决版记为决策 069。
+- 验证：typecheck、定向 oxlint、build、validate-locale、diff --check 通过；Tabbit 1440×900 中英文、三类展陈、390×844 无横向溢出，作品未被面板遮挡，首屏可见底部说明与类型切换。未做实体手机验收。未 commit、未 push。
+
+## 2026-09-15 · 标题强调再收敛
+
+- 用户否定酸黄圆环句点。移除自绘圆环，恢复原字体句号，仅在“算”字下加 3px 细短线，不延伸到句号；题库/偏好榜新入口保留。typecheck 通过，已浏览器目验；本轮未重跑纯视觉之外的导航测试。未提交。
+
+## 2026-09-15 · 标题句点与次级入口打磨（圆环已被否）
+
+- 用户认为“算”下方荧光长条突兀，同时题库/偏好榜不够显眼，授权直接打磨。
+- `home-next.tsx/css`：移除横压标题的黄条，改为句尾酸黄底、深墨圆环的小句点；保留视觉落点，缩小强调面积。主按钮下新增“提示词库 / 偏好榜”双入口带，图标、说明、整块链接与悬停反馈，页头链接保留；继续调用原 convoy / bands，不改主入口和经典版。
+- 三条新文案补入 messages。验证：typecheck、定向 oxlint、build、validate-locale、diff --check 通过；Tabbit 实测两条新增链接及原转场正常，桌面与手机中英文 CSS 390×844 无横向溢出；已查看桌面及英文手机截图。未做实体手机验收。未 commit、未 push。
+
+## 2026-09-15 · 首页重做：恢复全站视觉基线
+
+- 用户否定上一轮暖白/朱红方案，要求认真读 README 并对照现有色彩样式重做。已完整重读 README，核对决策 002/013/023/027 与 globals.css；新方案记录为 067，不能把 066 的自由设计理解为另换品牌。
+- 重写 `app/home-next.css`，调整 `home-next.tsx`：直接使用全站 `--paper` #dfe3dd、`--ink` #1c2423、`--acid` #d9fb51；恢复原 `lobby-brand` / MiSans 字标。移除朱红、暖纸纹、a/b 替代标志、旋转画框及圆印章，改为细网格、低对比斜面、错位双窗口、酸黄强调和深墨主入口。入场短位移、标题强调展开、悬停微抬；遵守 reduced-motion。
+- 继续保留经典版/新版切换、原导航功能、演示类型切换与两张遗留图片；不改模一把和共享转场。新版是本轮待用户体验的修订稿，不视为已验收。
+- 本轮验证：typecheck、build、定向 oxlint、validate-locale、git diff --check 通过。Tabbit 桌面 CSS 1440 宽、手机 CSS 390×844 中英文无横向溢出；实际目验桌面与英文手机，新旧切换、三类展陈、主入口及返回、reduced-motion 主入口通过。实际计算色值与三项全站变量一致。未重跑未改动的共享转场全套断言，上一轮已通过。
+- 浏览器留在中文桌面新版：`http://localhost:5173/#home`。未 commit、未 push。
+
+## 2026-09-15 · 首页新版 Hero 与新旧切换（朱红视觉已被否，见上方修订）
+
+- 用户要求成品级首页，风格与模一把区分。新增 `app/home-next.tsx` / `home-next.css`：暖白纸纹、朱红重点色、大字排版、双作品展陈、短入场和悬停动作；保留图片/文字/网页演示切换，手机与英文适配，尊重 reduced-motion。
+- `app/home.tsx` 保留原首页，新旧共用现有进入玩法菜单与随机入场逻辑；底部“经典版 / 新版”切换默认新版，localStorage `aob-home-edition` 记住选择，存储不可用时退回会话内切换。新版保留题库 convoy、榜单 bands、语言与账号入口。未改动模一把或共享转场实现。
+- 用户追加定位：主要比较前端、网页等作品，不做生图测评；两张信号塔图是早期遗留，暂留作首页演示。已记录决策 066 与 PRODUCT，不据此扩展新赛道。
+- 验证：typecheck、build、定向 oxlint、validate-locale、check:game、git diff --check 通过。Tabbit 实测桌面 CSS 1440 宽与手机 CSS 390×844 无横向溢出；新旧切换和刷新记忆、三类预览、主入口/题库/榜单/随机入场、reduced-motion 主入口通过；补主入口结束时复位 leaving，快速返回首页不残留禁用，并已复测；英文手机版完成目验。未做真实手机设备测试。
+- 预览：`http://localhost:5173/#home`，开发服务已启动（`npm run dev`）。工作区基线 98c9b0c；本轮未 commit、未 push。
+
 ## 2026-09-14 · 模一把对局不再落盘（当前轮）
 
 - 用户拍板：去掉保存对局——练习模式退出重进=服务端重新出题；每日一题同样不保存（每次进入全新棋盘），但答案仍是当日种子派生的同一道。

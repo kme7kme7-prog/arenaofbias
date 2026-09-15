@@ -100,6 +100,8 @@ export function AdminGuess() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [models, setModels] = useState<ModelsResponse | null>(null);
   const [error, setError] = useState('');
+  // 表单内就近错误（2026-09-15）：客户端校验/保存失败直接显示在表单里
+  const [formError, setFormError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
@@ -142,6 +144,33 @@ export function AdminGuess() {
 
   const save = () => {
     if (busy) return;
+    // 就近校验（2026-09-15，与服务端规则同口径）：错误直接显示在表单上方，
+    // 不再只靠服务端 400 报到页面顶部、长表单下方难以察觉
+    const name = form.name.trim();
+    const org = form.org.trim();
+    const year = Number(form.year);
+    const month = Number(form.month);
+    const contextK = form.contextK === '' ? null : Number(form.contextK);
+    const priceOut = form.priceOut === '' ? null : Number(form.priceOut);
+    const popularity = Number(form.popularity);
+    const bad = (message: string) => {
+      setFormError(message);
+      return;
+    };
+    if (!name || name.length > 60) return bad('显示名必填（60 字内）');
+    if (!org || org.length > 60) return bad('厂商名必填（60 字内）');
+    if (!Number.isInteger(year) || year < 2015 || year > 2100)
+      return bad('发布年份无效（2015–2100）');
+    if (!Number.isInteger(month) || month < 1 || month > 12)
+      return bad('发布月份无效（1–12）');
+    if (contextK !== null && (!Number.isFinite(contextK) || contextK <= 0))
+      return bad('上下文窗口须为正数（K token），未公开留空');
+    if (priceOut !== null && (!Number.isFinite(priceOut) || priceOut < 0))
+      return bad('输出单价须为非负数（$/M），无一手价留空');
+    if (!Number.isInteger(popularity) || popularity < 0 || popularity > 100)
+      return bad('知名度须为 0-100 的整数');
+    if (!orgKnown && !/^[A-Z]{2}$/.test(form.region.trim().toUpperCase()))
+      return bad('新厂商需要登记两位地区码（如 CN/US/JP）');
     setBusy(true);
     setNotice('');
     fetch('/api/admin/guess/models', {
@@ -176,10 +205,11 @@ export function AdminGuess() {
         setForm(EMPTY_FORM);
         setShowForm(false);
         setError('');
+        setFormError('');
         void load();
       })
       .catch((saveError: unknown) =>
-        setError(
+        setFormError(
           saveError instanceof Error ? saveError.message : '保存失败，稍后再试。',
         ),
       )
@@ -348,6 +378,7 @@ export function AdminGuess() {
         {showForm && (
           <div className="admin-form">
             <h2>追加新模型</h2>
+            {formError && <div className="admin-error">{formError}</div>}
             <p className="admin-note">
               只能追加到数据集末尾。保存后立即生效：马上可被猜、进练习池；每日题从
               明天起才可能抽到它（当天与历史答案不变）。已有条目不可在此修改
