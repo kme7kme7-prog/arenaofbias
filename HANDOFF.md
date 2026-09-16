@@ -2,6 +2,27 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
+## 2026-09-16 · 模一把层叠分池 + 第一版映射落地（当前轮，待体验）
+
+- 用户交接文件 `Temp/guess-pool-task.md` + `guess-pool-mapping.json`（用后已删）：分池从「4 个互斥池」改为「**4 个层叠池**」——`difficulty` = 最低从哪一档开始出现，难度 k 的池 = `difficulty ≤ k`（地狱=全库）；第 2 档「标准」改名「普通 / Common」（「中等」仍被价格档占用）。记为决策 **081**（080 被并行 AI 的价格口径批次先占了编号，注意别引用错）。
+- 数据集落地（`lib/guess-models.json`）：29 个困难档条目退役入地狱（含 Claude 3.x Sonnet/Haiku 两个**合并组**，改组条目变体继承）、66 条新模型 **append 数组末尾**（二选一里选了 append：追加契约口径一致、diff 干净可审计；字段剔除冗余的 `region`，地区登记走代码侧 `VENDOR_REGION` +10 家）。updatedAt/source 同步。落地后专属档（槽）40/33/66/29，层叠池 40/73/139/168 槽，总 168 槽 / 204 可猜名。**每日题答案本轮起全部重排**（用户明确豁免：没上线不管历史）。
+- 层叠化改动：`poolForDifficulty` 与 `dailyPool` 改 `<=` 过滤；`app/guess.tsx` 练习池与选择屏候选数改层叠（59/106/173/204 模型）；blurb 四档文案换层叠表述；地狱卡不再禁用。`validate:guess` 断言改层叠（⊆ 链、地狱=全集、单调不减、每档专属非空、答案 difficulty ≤ d）；冻结指纹改钉「每档专属槽集合」（`difficulty === k`）并重算；「十年槽位命中」阈值改随槽数走（0.5×/1.6× 均值，168 槽下旧绝对值失效）。`_dataset-review.md` 已按新数据重出。
+- 验证：typecheck 零错（Temp 外部项目的 TS5097 噪音除外，与本轮无关）、oxlint 0、validate:guess **35 项**全过、validate-locale 过、diff --check 过。Tabbit 实测：四档卡全部可选、层叠候选数单调递增；地狱档真实开局（chip=Hell、204 models）→ 提交 Llama 3.3 70B 出七格反馈、机会 08→07、chip 返回选择屏正常；中英选择屏文案正确。候选下拉用 fill() 一次性注入时偶发不出（pressSequentially 逐键输入正常）——Playwright 手法问题非代码 bug。
+- **并行提示**：另一个 AI 正在做价格口径批次（决策 080），接下来会动数据集 `priceOut`——它**不应**碰 `difficulty` 与数组顺序；若它改了分池，指纹断言会拦。合并时注意 json 冲突。
+- 收尾清理（主 agent）：`messages.ts` 死键「先选一个难度。三档各出一道题…」已删（全仓库无引用）；`/Temp/` 加入 `.gitignore` 并同步写进 `tsconfig.json` 的 `exclude`（此前该 44MB 外部项目既可能被 `git add -A` 扫入、又让裸跑 `npx tsc` 报 563 个无关 TS5097 错；现在 typecheck 真正零错）。
+- dev server 后台跑着（5173+3000）。本轮已按用户授权提交（起点 `bbe294e`）；**未 push**，待用户确认。
+
+## 2026-09-16 · 模一把四档难度（新增「地狱」）+ 分池冻结指纹（上一版，分池语义已被 081 层叠取代；冻结机制保留并改专属集合口径）
+
+- 用户任务：练习模式三档扩四档（新增第 4 档「地狱 / Hell」），每日池维持简单+标准不动；同时把「重新分池」从口头红线变成显式、可审计、机器拦截的操作。逐模型的地狱档归属由用户手工给映射，本轮不动 `lib/guess-models.json` 的任何归属（地狱池当前为空）。记为决策 079。
+- 全链路：`lib/guess-logic.ts`（GuessDifficulty 1-4、DIFFICULTY_INFO 加地狱、DAILY_DIFFICULTIES 不动）；`server/index.js`（`parseGuessDifficulty` 与后台追加校验改吃 `GUESS_DIFFICULTIES`、`practice/start` 空池显式 503「这一档还没有收录模型」）；`app/admin/guess.tsx`（POOL_LABEL 加 4 地狱、追加表单第 4 选项；DIFFICULTY_LABEL 注释说明流水永不出现 4——练习不上报）；`app/guess.tsx`（选择屏第 4 张卡、forced 钩子支持 1-4、角标 /03→动态 /04、两处每日池过滤从 `!==3` 修为按 DAILY_DIFFICULTIES 正向过滤——旧写法会把地狱档混进每日候选）；`lib/messages.ts`（地狱/Hell 等中英文案）。
+- **地狱入口设计**（用户要求低调、视觉第一）：选择屏前三档栅格原样不动，地狱卡横跨栅格整行成一条矮横条（骷髅图标 + 余烬橙点缀），池空时禁用并显示「筹备中」，收录后自动开放、无需改代码。
+- **分池冻结（B 项核心）**：`validate:guess` 新增「分池冻结」断言——`POOL_FINGERPRINTS` 钉住主数据集各档槽位构成（组算一槽，槽 id 排序 sha256 前 16 位；当前 简单 39 / 标准 26 / 困难 37 / 地狱 0 槽），不经意调 difficulty 直接验证失败。定稿流程（唯一合法调档路径）写入 `docs/games/guess.md`：用户给映射 → 改数据集 → 重算指纹 → DECISIONS 记一条。此后普通开发不得再随手调档。
+- 验证：typecheck 非 Temp 零错误（Temp/ai-model-directory-main 是用户放进来的外部项目，被 tsc 扫到报 TS5097，与本轮无关）、oxlint 定向 0 错、diff --check、validate:guess **35 项**全过（新增：冻结指纹断言、四池并集/不重叠改写、非空池≥10+空池允许、每日池≥20、地狱空池 503 断言）、validate-locale 过。Tabbit 实测：桌面 1440 地狱横条全宽禁用态（筹备中/候选 0）、英文 Hell/Coming soon、手机 390 无横向溢出；后台「追加模型」表单出现第 4 选项；force-mode=4 静默留选择屏（练习分支读旧 state 的既有问题，对照页只用 daily，未修）。
+- **oxfmt 注意**：`server/index.js` 与 `scripts/validate-guess.mjs` 在 HEAD 本来就过不了 `oxfmt --check`（项目惯例是 oxlint + diff --check），全量格式化会产生数百行无关 diff，本轮不做；新代码按周围格式手写。
+- dev server 后台跑着（5173+3000），可直接打开 `#guess` 体验。未 commit、未 push。
+- 待拍板：地狱档收录哪些模型（用户给映射后走定稿流程落数据）；`messages.ts` 死键「先选一个难度。三档各出一道题…」（无页面引用，未动）。
+
 ## 2026-09-16 · 下一题区域斜幕 + 巡览开关去酸黄（当前版本，待体验）
 
 - 用户指出「下一题」硬切无过渡很奇怪，要求画出区域（实时对比行→作品区→操作行）用色块横推过渡、其余区域照常恢复；巡览开关的亮黄滑块看不清且丑，记为决策 078。

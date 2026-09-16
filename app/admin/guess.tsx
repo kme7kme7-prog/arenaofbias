@@ -43,7 +43,8 @@ type ModelsResponse = {
   models: ModelRow[];
 };
 
-// difficulty=0 是 064 起的每日一题；1-3 是 060 三档时期的历史记录
+// difficulty=0 是 064 起的每日一题；1-3 是 060 三档时期的历史记录。
+// 练习模式永不上报（064），所以流水里不会出现 4（地狱档）——4 只属于现行分池
 const DIFFICULTY_LABEL: Record<number, string> = {
   0: '每日一题',
   1: '简单（旧）',
@@ -51,11 +52,13 @@ const DIFFICULTY_LABEL: Record<number, string> = {
   3: '困难（旧）',
 };
 // 数据集清单用现行难度名——「（旧）」是 guess_results 历史流水的口径，
-// 现行数据集的 1/2/3 就是现行三档，别混用
+// 现行数据集的 1/2/3/4 是现行四档（079 扩档、081 改层叠：字段值 = 「最低从
+// 哪档开始出现」，清单显示的即是该字段，不是池成员身份），别混用
 const POOL_LABEL: Record<number, string> = {
   1: '简单',
-  2: '标准',
+  2: '普通',
   3: '困难',
+  4: '地狱',
 };
 
 const pct = (won: number, played: number) =>
@@ -451,7 +454,7 @@ export function AdminGuess() {
                 />
               </label>
               <label>
-                难度 *（练习分池；每日池=简单+标准）
+                难度 *（层叠分池：值=最低出现档；每日池=简单+普通）
                 <select
                   value={form.difficulty}
                   onChange={(event) =>
@@ -459,8 +462,9 @@ export function AdminGuess() {
                   }
                 >
                   <option value="1">简单</option>
-                  <option value="2">标准</option>
+                  <option value="2">普通</option>
                   <option value="3">困难</option>
+                  <option value="4">地狱</option>
                 </select>
               </label>
               <label>

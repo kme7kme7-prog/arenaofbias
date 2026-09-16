@@ -37,7 +37,9 @@ export type GuessModel = {
   priceTier: number | null;
   /** 知名度分（数据集自带，0-85）。当前只用于搜索默认候选排序 */
   popularity: number;
-  /** 难度分池：1 简单 / 2 中等 / 3 困难。玩家选难度后只在该池里出题与搜索 */
+  /** 难度分池（层叠，决策 081）：1 简单 / 2 普通 / 3 困难 / 4 地狱——
+   *  语义是「最低从哪一档开始出现」：难度 k 的池 = difficulty ≤ k 的全部模型，
+   *  越高的档越全（地狱 = 全库）。4 = 够冷够老，连困难都不进，只在地狱出现 */
   difficulty: GuessDifficulty;
   /** 每日派生生效日（dayNumber 口径）：后台追加的模型从该日起参与每日题
    *  取模，当天与历史答案不受追加影响；undefined = 主数据集基础槽，恒生效 */
@@ -47,31 +49,34 @@ export type GuessModel = {
   groupId?: string;
 };
 
-/** 三档难度（决策 060）：答案池互不重叠，各玩各的 */
-export type GuessDifficulty = 1 | 2 | 3;
-export const GUESS_DIFFICULTIES: GuessDifficulty[] = [1, 2, 3];
-/** 难度显示文案（zh/en），index 0/1/2 对应难度 1/2/3。
- *  中档用「标准」不用「中等」——「中等」已被价格档占用（en=Mid），文案表按中文键查 */
+/** 四档难度（决策 060 三档 → 079 扩四档 → 081 改层叠）：池是**层叠包含**的——
+ *  难度 k 的池 = difficulty ≤ k 的全部模型（简单 ⊂ 普通 ⊂ 困难 ⊂ 地狱=全库）。
+ *  分池已冻结（validate:guess 的槽位指纹断言把关）——调整 difficulty 必须
+ *  走 docs/games/guess.md 的「分池定稿」流程，不得随手改 */
+export type GuessDifficulty = 1 | 2 | 3 | 4;
+export const GUESS_DIFFICULTIES: GuessDifficulty[] = [1, 2, 3, 4];
+/** 难度显示文案（zh/en），index 0-3 对应难度 1-4。
+ *  中档用「普通」不用「中等」——「中等」已被价格档占用（en=Mid），文案表按中文键查 */
 export const DIFFICULTY_INFO: { zh: string; en: string }[] = [
   { zh: '简单', en: 'Easy' },
-  { zh: '标准', en: 'Normal' },
+  { zh: '普通', en: 'Common' },
   { zh: '困难', en: 'Hard' },
+  { zh: '地狱', en: 'Hell' },
 ];
 
-/** 某难度的候选池（答案与搜索候选都只从池里出）。数据集顺序即热度降序，过滤保持原序 */
+/** 某难度的候选池（层叠：difficulty ≤ k，保持数据集原序即热度降序） */
 export function poolForDifficulty(
   models: GuessModel[],
   difficulty: GuessDifficulty,
 ): GuessModel[] {
-  return models.filter((m) => m.difficulty === difficulty);
+  return models.filter((m) => m.difficulty <= difficulty);
 }
 
-/** 每日一题的答案池（决策 063）：只从简单+标准出，困难池不进每日——
- *  每日题是全球同题的分享型玩法，答案太冷门不利于传播；
- *  困难档留给练习模式（随机出题、不限次） */
+/** 每日一题的答案池：普通池上限 = 2（层叠语义下 = difficulty ≤ 2，即简单+普通），
+ *  困难与地狱不进每日——每日题是全球同题的分享型玩法，答案太冷门不利于传播 */
 export const DAILY_DIFFICULTIES: readonly GuessDifficulty[] = [1, 2];
 export function dailyPool(models: GuessModel[]): GuessModel[] {
-  return models.filter((m) => DAILY_DIFFICULTIES.includes(m.difficulty));
+  return models.filter((m) => m.difficulty <= 2);
 }
 
 // ── 数据集适配层 ──
@@ -106,6 +111,8 @@ export const VENDOR_REGION: Record<string, string> = {
   'Baidu': 'CN',
   'ByteDance': 'CN',
   '01.AI': 'CN',
+  'inclusionAI': 'CN',
+  'Meituan': 'CN',
   // 美国
   'OpenAI': 'US',
   'Anthropic': 'US',
@@ -116,8 +123,17 @@ export const VENDOR_REGION: Record<string, string> = {
   'Thinking Machines': 'US',
   'LMSYS': 'US',
   'Stanford': 'US',
+  'NVIDIA': 'US',
+  'Poolside': 'US',
+  'Amazon': 'US',
+  'Inception': 'US',
+  'Aion Labs': 'US',
+  'Sao10K': 'US',
+  'IBM': 'US',
   // 法国
   'Mistral': 'FR',
+  // 韩国
+  'Upstage': 'KR',
 };
 
 function priceBandOf(priceOut: number | null): number | null {
@@ -466,10 +482,12 @@ export function dayNumber(date: Date = new Date()): number {
  * 在数组里相邻，直接取模会连续几天出同一家族，可玩性差。这里做两层
  * 散列混合：day 先乘素数再折叠，把相邻日期打散到数组的不同区域。
  *
- * 难度（决策 060）：三个难度各用各的池（poolForDifficulty 过滤后的子数组），
- * 同一天三个难度的答案各自独立；dayNumber 共享，分享文案按难度区分。
- * 池内下标散列，所以**调整某模型的 difficulty 会重排两个池的历史答案**——
- * 与追加契约同理，上线后难度归档冻结，只能用户显式推翻。
+ * 难度（决策 060/079/081）：池是层叠的——难度 k 的池 = difficulty ≤ k 的模型
+ * （poolForDifficulty），档越高池越全；同一天各档的答案各自独立；
+ * dayNumber 共享，分享文案按难度区分。
+ * 池内下标散列，所以**调整某模型的 difficulty 会重排历史答案**（层叠下会
+ * 波及 ≥该档的所有池）——与追加契约同理，难度归档冻结（validate:guess
+ * 槽位指纹断言把关），只能用户显式拍板后走 guess.md 的「分池定稿」流程。
  *
  * 合并组（决策 061）：同线小版本（如 Qwen3.5/3.6/3.8 27B）在数据集里并入
  * 一个组条目，答案池里只占一个槽——否则五六个近亲会把同一张脸刷成常客。

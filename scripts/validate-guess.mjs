@@ -3,6 +3,7 @@
 // 后半段起真实 server 比对 /api/guess/* 接口的判定口径。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -32,10 +33,26 @@ const {
   PRICE_BAND_EDGES,
   PRICE_TIERS,
   GUESS_DIFFICULTIES,
+  DAILY_DIFFICULTIES,
   poolForDifficulty,
   dailyPool,
   VENDOR_REGION,
 } = logic;
+
+// ── 分池冻结（决策 079，081 改层叠语义）──
+// 钉住主数据集每档的专属槽位构成（difficulty === k；组算一槽，槽 id 排序后
+// sha256 前 16 位）。层叠池（≤k）由它推导——专属集合不变，池就不会变。
+// 改任何模型的 difficulty 都会让指纹断言失败——「重新分池」从靠人记住红线
+// 变成机器拦意外。有意的调整走 docs/games/guess.md「分池定稿」流程：
+// 用户拍板 → 改数据集 → 重算并更新这里的指纹 → DECISIONS.md 记一条。
+// 只覆盖主数据集（lib/guess-models.json）；后台增量条目走 sinceDay 契约，
+// 不进本指纹。本版指纹 = 2026-09-16 第一版映射（29 条退役入地狱 + 66 条新增）。
+const POOL_FINGERPRINTS = {
+  1: { slots: 40, hash: '2661a1ade90a0bb3' },
+  2: { slots: 33, hash: 'd17136db3a6b2d4f' },
+  3: { slots: 66, hash: '775d5c3cdf953475' },
+  4: { slots: 29, hash: '5001a15d88c8f56f' },
+};
 
 try {
   // ── 数据集完整性 ──
@@ -205,27 +222,69 @@ try {
     }
   });
 
-  // ── 难度分池（决策 060）──
-  await check('难度：difficulty ∈ 1-3，三池非空且互不重叠、并集为全集', () => {
+  // ── 难度分池（决策 060 三档 → 079 四档 → 081 层叠）──
+  await check('难度：difficulty ∈ 1-4，四池层叠包含、每档有专属模型', () => {
     for (const m of GUESS_MODELS)
       assert.ok(
         GUESS_DIFFICULTIES.includes(m.difficulty),
         `${m.name}: difficulty=${m.difficulty}`,
       );
     const pools = GUESS_DIFFICULTIES.map((d) => poolForDifficulty(GUESS_MODELS, d));
-    for (const [i, pool] of pools.entries())
-      assert.ok(pool.length >= 10, `难度 ${i + 1} 池太小: ${pool.length}`);
-    const union = new Set(pools.flat().map((m) => m.id));
-    assert.equal(union.size, GUESS_MODELS.length, '三池并集应恰好覆盖全部模型');
-    assert.equal(
-      pools[0].length + pools[1].length + pools[2].length,
-      GUESS_MODELS.length,
-      '三池不应重叠',
+    const idSets = pools.map((pool) => new Set(pool.map((m) => m.id)));
+    // 层叠：pool₁ ⊆ pool₂ ⊆ pool₃ ⊆ pool₄，且地狱池 = 全集
+    for (let i = 0; i < idSets.length - 1; i++)
+      for (const id of idSets[i])
+        assert.ok(idSets[i + 1].has(id), `难度 ${i + 1} 池的 ${id} 不在难度 ${i + 2} 池里`);
+    assert.equal(idSets[3].size, GUESS_MODELS.length, '地狱池应是全库');
+    // 池大小单调不减
+    for (let i = 0; i < pools.length - 1; i++)
+      assert.ok(
+        pools[i + 1].length >= pools[i].length,
+        `难度 ${i + 2} 池（${pools[i + 1].length}）小于难度 ${i + 1} 池（${pools[i].length}）`,
+      );
+    // 每档都有专属模型（difficulty === k 非空）——任一档空了说明分档塌了
+    for (const d of GUESS_DIFFICULTIES)
+      assert.ok(
+        GUESS_MODELS.some((m) => m.difficulty === d),
+        `难度 ${d} 没有专属模型`,
+      );
+    // 简单池与每日池（≤2）是可玩性基本盘，单独保底
+    assert.ok(pools[0].length >= 10, `简单池太小: ${pools[0].length}`);
+    assert.ok(
+      dailyPool(GUESS_MODELS).length >= 20,
+      `每日池太小: ${dailyPool(GUESS_MODELS).length}`,
     );
+  });
+
+  await check('分池冻结：各档专属槽位构成与 081 指纹一致', () => {
+    const slotOf = (m) => m.groupId ?? m.id;
+    const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0); // code-unit 序，与默认字符串排序一致
+    for (const d of GUESS_DIFFICULTIES) {
+      const slots = [
+        ...new Set(GUESS_MODELS.filter((m) => m.difficulty === d).map(slotOf)),
+      ].sort(cmp);
+      const hash = createHash('sha256')
+        .update(slots.join(','))
+        .digest('hex')
+        .slice(0, 16);
+      const frozen = POOL_FINGERPRINTS[d];
+      assert.ok(frozen, `难度 ${d} 缺少冻结指纹`);
+      assert.equal(
+        slots.length,
+        frozen.slots,
+        `难度 ${d} 专属槽数变了：${frozen.slots} → ${slots.length}（分池调整须走 081 定稿流程并更新指纹）`,
+      );
+      assert.equal(
+        hash,
+        frozen.hash,
+        `难度 ${d} 专属槽位构成变了（分池调整须走 081 定稿流程并更新指纹）`,
+      );
+    }
   });
 
   await check('难度：各池答案派生确定、相邻两天不同题、十年全覆盖', () => {
     for (const d of GUESS_DIFFICULTIES) {
+      // 层叠语义下各池必非空（「每档有专属模型」断言先行保证），不再有空池分支
       const pool = poolForDifficulty(GUESS_MODELS, d);
       // 同日确定性
       const noon = new Date('2026-10-01T04:00:00Z');
@@ -242,12 +301,13 @@ try {
         assert.notEqual(a.id, b.id, `难度 ${d} day ${i} 与次日同题`);
       }
       // 答案必在池内 + 十年全槽位覆盖、组内版本均被实例化（决策 061）
+      // 层叠语义（081）：池 = difficulty ≤ d，答案的 difficulty ≤ d 即在池内
       const slotOf = (m) => m.groupId ?? m.id;
       const counts = new Map();
       const variantSeen = new Set();
       for (let i = 0; i < 3650; i++) {
         const a = answerForDate(new Date(2026, 8, 13 + i), pool);
-        assert.equal(a.difficulty, d, `难度 ${d} 出了池外模型 ${a.name}`);
+        assert.ok(a.difficulty <= d, `难度 ${d} 出了池外模型 ${a.name}`);
         counts.set(slotOf(a), (counts.get(slotOf(a)) ?? 0) + 1);
         variantSeen.add(a.id);
       }
@@ -418,8 +478,17 @@ try {
     for (const m of GUESS_MODELS)
       assert.ok(variantSeen.has(m.id), `${m.name} 十年从未被实例化为答案`);
     const values = [...slotCounts.values()];
-    assert.ok(Math.min(...values) >= 20, `最少 ${Math.min(...values)} 次`);
-    assert.ok(Math.max(...values) <= 55, `最多 ${Math.max(...values)} 次`);
+    // 命中次数阈值随槽数走（均值 3650/槽数，081 数据集扩到 168 槽后绝对阈值失效）：
+    // 下限 0.5×均值防「某槽几乎抽不到」，上限 1.6×均值防「某槽被刷爆」
+    const avg = 3650 / slotTotal;
+    assert.ok(
+      Math.min(...values) >= Math.floor(avg * 0.5),
+      `最少 ${Math.min(...values)} 次（均值 ${avg.toFixed(1)}）`,
+    );
+    assert.ok(
+      Math.max(...values) <= Math.ceil(avg * 1.6),
+      `最多 ${Math.max(...values)} 次（均值 ${avg.toFixed(1)}）`,
+    );
   });
 
   await check('dayNumber：epoch 当天为 0、次日为 1', () => {
@@ -477,9 +546,12 @@ try {
       assert.ok(today.models.every((m) => GUESS_DIFFICULTIES.includes(m.difficulty)));
 
       const origin = 'http://127.0.0.1:3997';
-      // 每日一题（决策 064）：答案从每日池（简单+标准）派生，困难档不进每日
+      // 每日一题（决策 064/079）：答案从每日池（简单+标准）派生，困难与地狱档不进每日
       const answer = answerForDate(new Date(), dailyPool(GUESS_MODELS));
-      assert.notEqual(answer.difficulty, 3, '每日题不应出困难档');
+      assert.ok(
+        DAILY_DIFFICULTIES.includes(answer.difficulty),
+        '每日题只应从简单+标准池出',
+      );
       const someOther = GUESS_MODELS.find((m) => m.id !== answer.id);
 
       // 错误猜测：不给答案
@@ -534,14 +606,30 @@ try {
           body: JSON.stringify({ guessId: someOther.id, final: true, gameId: start.gameId }),
         })
       ).json();
-      // 练习答案在该难度池里（困难档），且与每日答案无关
-      assert.equal(practiceGuess.answer.difficulty, 3);
+      // 练习答案在该难度池里（层叠：≤所选档），且与每日答案无关
+      assert.ok(practiceGuess.answer.difficulty <= 3);
       const expired = await fetch('http://127.0.0.1:3997/api/guess/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Origin: origin },
         body: JSON.stringify({ guessId: someOther.id, gameId: 'no-such-game' }),
       });
       assert.equal(expired.status, 404);
+
+      // 地狱档（079）：当前为空池，开局应被明确拒绝（503 带文案），
+      // 而不是炸在空池取模；收录模型后应能正常开局
+      const hellStart = await fetch(
+        'http://127.0.0.1:3997/api/guess/practice/start',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Origin: origin },
+          body: JSON.stringify({ difficulty: 4 }),
+        },
+      );
+      assert.equal(
+        hellStart.status,
+        poolForDifficulty(GUESS_MODELS, 4).length ? 200 : 503,
+        '地狱档空池应明确拒开局，收录后应正常开局',
+      );
 
       // 跨源拒绝
       const xorigin = await fetch('http://127.0.0.1:3997/api/guess/check', {

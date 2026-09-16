@@ -1342,6 +1342,7 @@ const {
   registerExtraModels: guessRegisterExtra,
   VENDOR_REGION: guessVendorRegion,
   GUESS_EPOCH: guessEpoch,
+  GUESS_DIFFICULTIES: guessDifficulties,
 } = guessModule;
 
 // 后台手动追加的模型（决策 063）：增量文件住 data/，与主数据集同口径、
@@ -1365,10 +1366,11 @@ try {
   );
 }
 
-// 三档难度（决策 060）：答案池互不重叠。参数非法时回落简单档
+// 四档难度（决策 060 三档 → 079 四档 → 081 层叠）：难度 k 的池 = difficulty ≤ k
+// 的全部模型（地狱=全库）。参数非法时回落简单档
 const parseGuessDifficulty = (value) => {
   const n = Number(value);
-  return n === 2 || n === 3 ? n : 1;
+  return guessDifficulties.includes(n) ? n : 1;
 };
 
 // 公开字段：比 GuessModel 少不了什么（答案本身就是公开模型），但保持
@@ -1422,7 +1424,7 @@ app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
       .set(noStore)
       .json({ code: 'unknown-model', error: '没有找到这个模型' });
   // 两种模式（决策 064）：带 gameId = 练习模式（答案在练习局表里，见下）；
-  // 不带 = 每日一题（每日池=简单+标准派生，困难档不进每日）
+  // 不带 = 每日一题（每日池=简单+普通派生，困难与地狱档不进每日）
   const gameId =
     typeof req.body?.gameId === 'string' ? req.body.gameId : null;
   let answer;
@@ -1449,7 +1451,7 @@ app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
   }
 });
 
-// ── 练习模式（决策 064）：三档难度随机出题、不限次、可「再来一把」──
+// ── 练习模式（决策 064/079）：四档难度随机出题、不限次、可「再来一把」──
 // 答案服务端持有（与每日一题同一个防偷看口径），开局发 gameId，判定走
 // /api/guess/check 带 gameId。局全在内存：服务器重启即失效（前端收到
 // game-expired 会开新局），不为练习局落库。练习不计战绩也不上报统计——
@@ -1464,6 +1466,13 @@ app.post('/api/guess/practice/start', limiterFor('guess'), (req, res) => {
   try {
     const difficulty = parseGuessDifficulty(req.body?.difficulty);
     const pool = guessPoolFor(guessModels, difficulty);
+    // 空池守卫：新档（如地狱档）尚未收录模型时明确拒绝，别让空池取模
+    // 炸成不明所以的 503
+    if (!pool.length)
+      return res
+        .status(503)
+        .set(noStore)
+        .json({ error: '这一档还没有收录模型，先玩别的难度吧' });
     // 随机选一槽（合并组算一槽），组内再随机一个版本——练习局用真随机，
     // 不需要每日题那种可复现派生
     const slots = new Map();
@@ -1494,7 +1503,7 @@ app.post('/api/guess/practice/start', limiterFor('guess'), (req, res) => {
 
 // 游玩数据上报：一局结束时前端报一次（与本地战绩结算同一时机，一局一条）。
 // 匿名、无需登录——对局本来就在浏览器本地；answer_id 由服务端按 dayKey 从
-// 每日池（决策 064：简单+标准）重新派生，客户端只报「几步、中没中」，伪造不了
+// 每日池（决策 064/081：简单+普通）重新派生，客户端只报「几步、中没中」，伪造不了
 // 答案归属。可刷假数据但没有收益，限流兜底；多刷也只是把统计弄脏。
 // 决策 064 起只有每日一题上报（练习模式不限次、不上报）；请求不再带
 // difficulty，guess_results.difficulty 对每日题记 0，历史 1-3 记录保留。
@@ -1652,7 +1661,8 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
     if (!Number.isInteger(month) || month < 1 || month > 12)
       return bad('发布月份无效');
     const difficulty = Number(body.difficulty);
-    if (![1, 2, 3].includes(difficulty)) return bad('难度必须是 1/2/3');
+    if (!guessDifficulties.includes(difficulty))
+      return bad(`难度必须是 ${guessDifficulties.join('/')}`);
     const knownModalities = new Set(['text', 'image', 'audio', 'video']);
     const modalities = [
       ...new Set(Array.isArray(body.modalities) ? body.modalities : []),

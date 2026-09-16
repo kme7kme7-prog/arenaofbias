@@ -37,6 +37,7 @@ import {
   Sprout,
   Compass,
   Flame,
+  Skull,
 } from 'lucide-react';
 import {
   checkGuess,
@@ -59,6 +60,7 @@ import {
   PRICE_TIERS,
   DIFFICULTY_INFO,
   GUESS_DIFFICULTIES,
+  DAILY_DIFFICULTIES,
   guessDayKey,
   type GuessDifficulty,
 } from '@/lib/guess-logic';
@@ -178,16 +180,19 @@ function buildShareText(
   return [head, ...lines].join('\n');
 }
 
-// ── 双模式入口（决策 064）──
-// 进游戏先选模式：每日一题（全球同题，种子派生，只从简单+标准池出）；
-// 练习模式（三档难度随机出题、不限次、可再来一把，不计战绩）。
-// 对照页用 localStorage 键 guess-force-mode（'daily' | '1' | '2' | '3'）跳过本屏。
+// ── 双模式入口（决策 064/081）──
+// 进游戏先选模式：每日一题（全球同题，种子派生，只出普通池=简单+普通）；
+// 练习模式（四档难度随机出题、不限次、可再来一把，不计战绩）。池是层叠的：
+// 难度 k 的池 = difficulty ≤ k 的全部模型（地狱=全库）。地狱卡横跨栅格整行、
+// 低一层视觉层级；空池时禁用（防御，收录后自动开放）。
+// 对照页用 localStorage 键 guess-force-mode（'daily' | '1'-'4'）跳过本屏。
 
-const DIFFICULTY_ICONS = [Sprout, Compass, Flame] as const;
+const DIFFICULTY_ICONS = [Sprout, Compass, Flame, Skull] as const;
 const DIFFICULTY_BLURBS = [
   '热门模型专场，都叫得上名字',
-  '主流全家桶，答案得绕点弯',
-  '经典与冷门，硬核玩家专场',
+  '热门与主流都在场，答案得绕点弯',
+  '上面两档之外，经典与冷门也进场',
+  '全库上阵，含只在这里出没的化石与传说',
 ] as const;
 
 type PlayMode = 'daily' | GuessDifficulty;
@@ -204,7 +209,7 @@ function dailyStatus(dayKey: string): ModeStatus {
 export default function GuessPage() {
   const { t } = useI18n();
   const [today, setToday] = useState<TodayResponse | null>(null);
-  // null = 还在选模式；'daily' = 每日一题；1/2/3 = 练习模式对应难度
+  // null = 还在选模式；'daily' = 每日一题；1-4 = 练习模式对应难度
   const [mode, setMode] = useState<PlayMode | null>(null);
   const [session, setSession] = useState<GuessSession | null>(null);
   // 练习模式的服务端局号（每日一题没有——答案种子派生，无局号）
@@ -350,7 +355,7 @@ export default function GuessPage() {
         }
       })();
       if (forced === 'daily') enterDaily(data);
-      else if (forced === '1' || forced === '2' || forced === '3')
+      else if (GUESS_DIFFICULTIES.includes(Number(forced) as GuessDifficulty))
         void enterPractice(Number(forced) as GuessDifficulty);
     });
     return () => {
@@ -374,12 +379,15 @@ export default function GuessPage() {
     }, 'back');
   }
 
-  // 当前模式的答案池：每日=简单+标准；练习=所选难度。只决定「答什么」，
-  // 搜索候选不限于此（见下）
+  // 当前模式的答案池（层叠，081）：每日=普通池（≤2）；练习=≤所选难度。
+  // 只决定「答什么」，搜索候选不限于此（见下）
   const pool = useMemo(() => {
     if (!today || mode === null) return [];
-    if (mode === 'daily') return today.models.filter((m) => m.difficulty !== 3);
-    return today.models.filter((m) => m.difficulty === mode);
+    if (mode === 'daily')
+      return today.models.filter((m) =>
+        DAILY_DIFFICULTIES.includes(m.difficulty),
+      );
+    return today.models.filter((m) => m.difficulty <= mode);
   }, [today, mode]);
 
   const usedIds = useMemo(
@@ -693,8 +701,8 @@ export default function GuessPage() {
             </div>
             {(() => {
               const status = dailyStatus(today.dayKey);
-              const dailyCount = today.models.filter(
-                (m) => m.difficulty !== 3,
+              const dailyCount = today.models.filter((m) =>
+                DAILY_DIFFICULTIES.includes(m.difficulty),
               ).length;
               return (
                 <button
@@ -744,16 +752,19 @@ export default function GuessPage() {
               {GUESS_DIFFICULTIES.map((d) => {
                 const info = DIFFICULTY_INFO[d - 1];
                 const Icon = DIFFICULTY_ICONS[d - 1];
+                // 层叠池（081）：难度 k 的候选 = difficulty ≤ k 的全部模型
                 const count = today.models.filter(
-                  (m) => m.difficulty === d,
+                  (m) => m.difficulty <= d,
                 ).length;
+                // 空池禁用入口（防御：服务端对空池拒开局），收录后自动开放
+                const unavailable = count === 0;
                 return (
                   <button
                     key={d}
                     type="button"
                     className="guess-difficulty-card"
                     data-level={d}
-                    disabled={pending || switching}
+                    disabled={pending || switching || unavailable}
                     onClick={() => void enterPractice(d, true)}
                   >
                     <span className="guess-difficulty-icon" aria-hidden="true">
@@ -761,7 +772,10 @@ export default function GuessPage() {
                     </span>
                     <span className="guess-difficulty-name">
                       <b>{t(info.zh)}</b>
-                      <small>{String(d).padStart(2, '0')} / 03</small>
+                      <small>
+                        {String(d).padStart(2, '0')} /{' '}
+                        {String(GUESS_DIFFICULTIES.length).padStart(2, '0')}
+                      </small>
                     </span>
                     <span className="guess-difficulty-blurb">
                       {t(DIFFICULTY_BLURBS[d - 1])}
@@ -769,7 +783,9 @@ export default function GuessPage() {
                     <span className="guess-difficulty-meta">
                       <span>{t('候选 {n} 个模型', { n: count })}</span>
                       <span className="guess-difficulty-status is-fresh">
-                        {t('随机出题 · 不限次数')}
+                        {unavailable
+                          ? t('筹备中')
+                          : t('随机出题 · 不限次数')}
                       </span>
                     </span>
                     <ArrowUpRight
@@ -793,7 +809,7 @@ export default function GuessPage() {
               </p>
             )}
             <p className="guess-difficulty-foot">
-              {t('每日一题不出困难档；练习不限次，战绩只记每日题。')}
+              {t('每日一题只从简单与普通池出；练习不限次，战绩只记每日题。')}
             </p>
           </section>
         ) : (

@@ -1009,6 +1009,52 @@
   font-size: 10px;
   line-height: 1.8;
 }
+/* 地狱档（决策 079）：横跨栅格整行的低调横条，比前三档低一个视觉层级，
+   不抢三张主卡的风头；池未收录时禁用（全局 button:disabled 半透明兜底），
+   数据集收录该档模型后自动开放。点缀用克制的余烬橙，落在图标与大字号上 */
+.guess-difficulty-card[data-level='4'] {
+  grid-column: 1 / -1;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 16px 22px;
+  background: #131d17;
+  border-color: #2c3a32;
+}
+.guess-difficulty-card[data-level='4']:hover:not(:disabled) {
+  background: #182720;
+  border-color: #5a6b52;
+  transform: none;
+}
+.guess-difficulty-card[data-level='4']:before {
+  font-size: 42px;
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-icon {
+  width: 34px;
+  height: 34px;
+  color: #d08a5a;
+  border-bottom-color: #d08a5a40;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-name b {
+  font-size: 19px;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-blurb {
+  flex: 1 1 200px;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-meta {
+  width: auto;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-go {
+  position: static;
+}
 .guess-picker-pending {
   font-size: 12px;
   color: #c1d79c;

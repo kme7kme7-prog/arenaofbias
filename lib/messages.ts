@@ -575,15 +575,17 @@ export const messages: Record<string, string> = {
     'Copy failed — long-press to select and copy manually.',
   '分享战绩': 'Share result',
   '重玩今天': 'Replay today',
-  // 难度选择（三档分池，各自独立出题与战绩）。中档键用「标准」——「中等」是价格档
+  // 难度选择（四档层叠分池：难度 k 的池 = difficulty ≤ k，081；各自独立出题与战绩）。
+  // 中档键用「普通」——「中等」是价格档（en=Mid）
   '简单': 'Easy',
-  '标准': 'Normal',
+  '普通': 'Common',
   '困难': 'Hard',
+  '地狱': 'Hell',
   '热门模型专场，都叫得上名字': 'Only the household names.',
-  '主流全家桶，答案得绕点弯': 'Mainstream pool, takes some triangulating.',
-  '经典与冷门，硬核玩家专场': 'Classics and deep cuts — for the obsessed.',
-  '先选一个难度。三档各出一道题，进度和战绩各自独立。':
-    'Pick a difficulty first. Each tier has its own puzzle, progress, and record.',
+  '热门与主流都在场，答案得绕点弯': 'Household and mainstream alike — takes some triangulating.',
+  '上面两档之外，经典与冷门也进场': 'Everything above, plus classics and deep cuts.',
+  '全库上阵，含只在这里出没的化石与传说': 'The whole vault — including fossils and legends that appear nowhere else.',
+  '筹备中': 'Coming soon',
   '每天一道全世界同题；或者选个难度练习，随机出题不限次。':
     'One shared puzzle a day — or pick a difficulty and practice with random puzzles, no limits.',
   '每日一题': 'Daily puzzle',
@@ -591,8 +593,8 @@ export const messages: Record<string, string> = {
     'One puzzle for the whole world, drawn from the well-known and mainstream. Share your result.',
   '继续上次 · 已猜 {n} 次': 'Resume · {n} guesses in',
   '随机出题 · 不限次数': 'Random puzzles · Unlimited',
-  '每日一题不出困难档；练习不限次，战绩只记每日题。':
-    'Hard tier stays out of the daily puzzle. Practice is unlimited; only daily games count toward your record.',
+  '每日一题只从简单与普通池出；练习不限次，战绩只记每日题。':
+    'The daily puzzle draws only from the Easy and Common pools. Practice is unlimited; only daily games count toward your record.',
   '练习模式': 'Practice',
   '随机出题': 'Random puzzle',
   '本局结束': 'Round over',
@@ -608,8 +610,8 @@ export const messages: Record<string, string> = {
   '进行中 · 已猜 {n} 次': 'In progress · {n} guesses in',
   '今日战绩已记录': 'Today’s result logged',
   '今天还没玩': 'Not played yet',
-  '答案池互不重叠：简单只出热门，困难只出经典与冷门。':
-    'Pools never overlap: Easy draws only hits, Hard only classics and deep cuts.',
+  '池子层叠放大：难度越高，越老越冷的模型越可能出现。':
+    'Pools stack upward: the higher the tier, the older and more obscure the models that can appear.',
   '返回选择模式': 'Back to mode select',
   '已复制 ✓': 'Copied ✓',
   '直接看答案': 'Reveal answer',

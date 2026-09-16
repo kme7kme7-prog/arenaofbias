@@ -46,3 +46,6 @@ next-env.d.ts
 # local test samples (real model outputs, not for repo)
 /public/works/004/
 /新建文件夹/
+
+# local scratch: third-party dumps, temp handoff files (not for repo)
+/Temp/
