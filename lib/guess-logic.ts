@@ -341,6 +341,51 @@ export function resolveGuess(name: string): GuessModel | null {
   return GUESS_MODELS.find((m) => m.name.toLowerCase() === key) ?? null;
 }
 
+// 搜索规范化：剥掉大小写与一切分隔符（空格/连字符/小数点等）。
+// 玩家不会按数据集的标点习惯敲键盘——"gpt 5"、"gpt5"、"sonnet4.5"
+// 都应命中 "GPT-5"、"Claude Sonnet 4.5"、"Llama 3.3 70B"。
+function normalizeGuessKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/** 搜索框补全候选（前端用，纯函数）：规范化子串匹配 + 多词乱序兜底。
+ *  档位：规范化全等 > 前缀 > 名字/id 子串 > 逐词全命中（处理 "5.6 luna"
+ *  这类词序颠倒）；同档内按 released 倒序——新模型排前面（"gpt-" 先出
+ *  GPT-6 Astra 而不是 GPT-3），再按名字字典序。全等档不可缺：否则输
+ *  "gpt-5" 时更新的 GPT-5.6 会抢在 GPT-5 前面，回车猜错模型。 */
+export function searchGuessModels<
+  T extends { id: string; name: string; released?: string },
+>(models: readonly T[], rawQuery: string, limit = 8): T[] {
+  const q = normalizeGuessKey(rawQuery);
+  if (!q) return [];
+  const tokens = rawQuery
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  const scored = models
+    .map((m) => {
+      const name = normalizeGuessKey(m.name);
+      const id = normalizeGuessKey(m.id);
+      if (name === q) return { m, rank: 0 };
+      if (name.startsWith(q)) return { m, rank: 1 };
+      if (name.includes(q) || id.includes(q)) return { m, rank: 2 };
+      if (
+        tokens.length > 1 &&
+        tokens.every((tk) => name.includes(tk) || id.includes(tk))
+      )
+        return { m, rank: 3 };
+      return null;
+    })
+    .filter((x): x is { m: T; rank: number } => x !== null);
+  scored.sort(
+    (a, b) =>
+      a.rank - b.rank ||
+      (b.m.released ?? '').localeCompare(a.m.released ?? '') ||
+      a.m.name.localeCompare(b.m.name),
+  );
+  return scored.slice(0, limit).map((x) => x.m);
+}
+
 function judgeNumeric(
   guessValue: number | null,
   answerValue: number | null,

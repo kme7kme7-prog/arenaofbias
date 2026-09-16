@@ -62,6 +62,7 @@ import {
   GUESS_DIFFICULTIES,
   DAILY_DIFFICULTIES,
   guessDayKey,
+  searchGuessModels,
   type GuessDifficulty,
 } from '@/lib/guess-logic';
 
@@ -397,23 +398,14 @@ export default function GuessPage() {
 
   // 搜索候选（2026-09-14 用户拍板）：补全式——输入后才出匹配项，且在全量
   // 模型库里找（不按当前答案池过滤：猜池外模型也返回正常反馈，等于自愿
-  // 加难度）。已猜过的排除。
+  // 加难度）。已猜过的排除。匹配规则见 searchGuessModels：分隔符不敏感，
+  // "gpt 5"/"gpt5"/"sonnet4.5" 都能命中。
   const candidates = useMemo(() => {
     if (!today) return [];
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    const scored = today.models
-      .filter((m) => !usedIds.has(m.id))
-      .map((m) => {
-        const name = m.name.toLowerCase();
-        if (name.startsWith(q)) return { m, rank: 0 };
-        if (m.id.includes(q)) return { m, rank: 1 };
-        if (name.includes(q)) return { m, rank: 2 };
-        return null;
-      })
-      .filter((x): x is { m: GuessApiModel; rank: number } => x !== null);
-    scored.sort((a, b) => a.rank - b.rank || a.m.name.localeCompare(b.m.name));
-    return scored.slice(0, 8).map((x) => x.m);
+    return searchGuessModels(
+      today.models.filter((m) => !usedIds.has(m.id)),
+      query,
+    );
   }, [today, query, usedIds]);
 
   useEffect(() => {

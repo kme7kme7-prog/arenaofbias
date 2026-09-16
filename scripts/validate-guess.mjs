@@ -29,6 +29,7 @@ const {
   dayNumber,
   guessDayKey,
   resolveGuess,
+  searchGuessModels,
   GUESS_EPOCH,
   PRICE_BAND_EDGES,
   PRICE_TIERS,
@@ -511,6 +512,42 @@ try {
     assert.equal(resolveGuess(any.name.toUpperCase())?.id, any.id);
     assert.equal(resolveGuess('  ' + any.name + '  ')?.id, any.id);
     assert.equal(resolveGuess('不存在的模型xyz'), null);
+  });
+
+  // ── searchGuessModels（搜索框补全）──
+  await check('searchGuessModels：分隔符不敏感、乱序多词、前缀优先', () => {
+    const has = (q, id) =>
+      searchGuessModels(GUESS_MODELS, q, 50).some((m) => m.id === id);
+    // 空格代替连字符 / 完全省略分隔符 / 省略小数点 都应命中
+    assert.ok(has('gpt 5', 'gpt-5'));
+    assert.ok(has('gpt5', 'gpt-5'));
+    assert.ok(has('sonnet4.5', 'claude-sonnet-4-5'));
+    assert.ok(has('llama3.3', 'llama-3-3-70b'));
+    assert.ok(has('deepseekv3.2', 'deepseek-v3-2'));
+    // 多词乱序（规范化子串拼不上，逐词全命中兜底）
+    assert.ok(has('5.6 luna', 'gpt-5-6-luna'));
+    assert.ok(has('luna gpt', 'gpt-5-6-luna'));
+    // 前缀优先：精确前缀结果排在最前
+    assert.equal(
+      searchGuessModels(GUESS_MODELS, 'gpt-5', 8)[0].name,
+      'GPT-5',
+    );
+    // 同档按 released 倒序：最新模型排最前
+    const gptAll = searchGuessModels(GUESS_MODELS, 'gpt-', 50);
+    assert.equal(gptAll[0].id, 'gpt-6-astra');
+    for (let i = 1; i < gptAll.length; i++)
+      assert.ok(
+        gptAll[i - 1].released >= gptAll[i].released,
+        `${gptAll[i - 1].name} 不应排在 ${gptAll[i].name} 前`,
+      );
+    // 全等档：输入完整旧名不被更新的兄弟抢走第一
+    assert.equal(
+      searchGuessModels(GUESS_MODELS, 'gpt-5', 8)[0].id,
+      'gpt-5',
+    );
+    // 空查询与无命中
+    assert.deepEqual(searchGuessModels(GUESS_MODELS, '   '), []);
+    assert.deepEqual(searchGuessModels(GUESS_MODELS, '不存在的模型xyz'), []);
   });
 
   // ── 真实 server：/api/guess/* 与本地判定同口径 ──

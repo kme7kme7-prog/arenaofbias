@@ -2,6 +2,15 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
+## 2026-09-16 · 模一把搜索补全分隔符不敏感（当前轮，待体验）
+
+- 用户报「模一把的输入自动补全有点问题」。Tabbit 实测复现：候选匹配是原样小写 `includes`，数据集名含 `-`/`.`/空格，按自然习惯输入即落空——`"gpt 5"`、`"gpt5"`、`"sonnet4.5"`、`"llama3.3"`、`"glm5"`、`"deepseekv3.2"` 全部显示「没有找到这个模型」。
+- 修复：匹配逻辑抽成 `lib/guess-logic.ts` 的纯函数 `searchGuessModels`（与判定核心同模块、可断言）——先规范化（小写 + 剥掉非字母数字分隔符）再做 前缀 > 子串 排序，多词乱序（"5.6 luna"、"luna gpt"）走逐词全命中兜底（rank 2）。`app/guess.tsx` 的 `candidates` 改为调用它（已猜排除不变，仍全库搜、8 条上限）。
+- 追加（用户要求）：同档候选按 `released` 倒序——`"gpt-"` 首条 = GPT-6 Astra；为此新增「规范化全等」最高档，输入完整旧名（如 `gpt-5`）仍命中 GPT-5 本身、不被更新的 5.6 抢走第一。
+- `validate:guess` 新增断言（36 项）：分隔符不敏感命中、乱序多词、前缀优先、同档 released 单调倒序、全等档优先、空查询与无命中。`docs/games/guess.md` 搜索口径同步。
+- 验证：typecheck、build、validate:guess 36 项、validate-locale、定向 oxlint 0 错、diff --check 通过。Tabbit 实测原落空输入全部出候选；`gpt-` 首条 GPT-6 Astra (2026-09)、`claude` 首条 Claude Fable 5.1、`gpt-5` 首条仍为 GPT-5；乱输入仍正确报无匹配。
+- 未 commit、未 push。
+
 ## 2026-09-16 · 模一把层叠分池 + 第一版映射落地（当前轮，待体验）
 
 - 用户交接文件 `Temp/guess-pool-task.md` + `guess-pool-mapping.json`（用后已删）：分池从「4 个互斥池」改为「**4 个层叠池**」——`difficulty` = 最低从哪一档开始出现，难度 k 的池 = `difficulty ≤ k`（地狱=全库）；第 2 档「标准」改名「普通 / Common」（「中等」仍被价格档占用）。记为决策 **081**（080 被并行 AI 的价格口径批次先占了编号，注意别引用错）。
