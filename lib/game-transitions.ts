@@ -65,10 +65,12 @@ export type GameTransitionKind =
   | 'bands'
   | 'convoy'
   | 'deal'
-  | 'folio';
+  | 'folio'
+  | 'match';
 export interface GameTransitionOptions {
   parent?: HTMLElement;
   title?: string;
+  index?: string;
   speed?: number;
   hold?: number;
   reduced?: boolean;
@@ -82,6 +84,7 @@ export interface GameTransitionOptions {
 }
 
 export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
+  if (kind === 'match') return { covered: 420, exitStart: 760, duration: 1260 };
   if (kind === 'folio') return { covered: 230, exitStart: 310, duration: 570 };
   const covered = kind === 'frame' ? 420 : kind === 'deal' ? 720 : 520;
   const exitStart =
@@ -156,7 +159,41 @@ export function createGameTransition(
       'linear',
     );
 
-  if (kind === 'folio') {
+  if (kind === 'match') {
+    // Two opaque half sheets share a composition. The 1px overlap avoids a
+    // fractional-pixel seam; both remain closed through the route commit.
+    for (const [i, side] of ['upper', 'lower'].entries()) {
+      const leaf = el(`gt-match-leaf gt-match-${side}`);
+      const face = el('gt-match-face', leaf);
+      const register = el('gt-match-register', face);
+      el('gt-match-register-label', register, 'NEXT MATCH');
+      el('gt-match-register-mark', register, '↗');
+      el('gt-match-index', face, options.index || '→');
+      const content = el('gt-match-content', face);
+      el('gt-match-eyebrow', content, 'NEXT / ARENA OF BIAS');
+      el('gt-match-title', content, title);
+      const rule = el('gt-match-rule', content);
+      el('gt-match-red', rule);
+      el('gt-match-blue', rule);
+      el('gt-match-caption', content, '下一场，凭直觉。 / MAKE YOUR CHOICE');
+      el('gt-match-corner', face, 'A / B');
+      const duel = el('gt-match-duel', face);
+      el('gt-match-side gt-match-side-a', duel, 'A');
+      el('gt-match-link gt-match-link-a', duel);
+      el('gt-match-joint', duel, '×');
+      el('gt-match-link gt-match-link-b', duel);
+      el('gt-match-side gt-match-side-b', duel, 'B');
+      track(leaf, [
+        { transform: `translate(${i === 0 ? '-101%' : '101%'}, 0)`, offset: 0, easing: ease },
+        { transform: 'translate(0, 0)', offset: timing.covered / timing.duration },
+        { transform: 'translate(0, 0)', offset: timing.exitStart / timing.duration, easing: ease },
+        { transform: `translate(0, ${i === 0 ? '-101%' : '101%'})`, offset: 1 },
+      ], 0, timing.duration, 'linear');
+      move(content, 'translateY(14px)', 'translateY(0)', 180, 360);
+      track(rule, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], 260, 400);
+      track(duel, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], 240, 340);
+    }
+  } else if (kind === 'folio') {
     const leaf = el('gt-folio-leaf');
     const sign = options.direction === 'back' ? -1 : 1;
     track(

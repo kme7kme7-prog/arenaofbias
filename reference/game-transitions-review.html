@@ -251,7 +251,7 @@
   </head>
   <body>
     <header>
-      <b>ARENA OF BIAS</b><span>MOTION STUDIES / 001—005</span
+      <b>ARENA OF BIAS</b><span>MOTION STUDIES / 001—006</span
       ><a href="/reference/wipe-review.html">原横扫对照 ↗</a>
     </header>
     <main>
@@ -260,7 +260,7 @@
           <div class="eyebrow">REFERENCE / GAME TRANSITIONS</div>
           <h1>让切换成为一次入场。</h1>
           <p>
-            五套过场对比。拖动时间轴看构图，播放看节奏；全屏查看实际过场尺度。
+            六套过场对比。拖动时间轴看构图，播放看节奏；全屏查看实际过场尺度。
           </p>
         </div>
         <div class="tabs">
@@ -268,7 +268,8 @@
           ><button id="bands" aria-selected="false">02 斜向切片</button
           ><button id="convoy" aria-selected="false">03 一体斜幕</button
           ><button id="deal" aria-selected="false">04 今日密牌</button
-          ><button id="folio" aria-selected="false">05 轻翻页</button>
+          ><button id="folio" aria-selected="false">05 轻翻页</button
+          ><button id="match" aria-selected="false">06 双页换场</button>
         </div>
       </div>
       <div class="workspace">
@@ -379,6 +380,7 @@
         const options = {
           parent: full ? undefined : $('screen'),
           title: $('title').value,
+          index: kind === 'match' ? '003' : undefined,
           hold: Number($('hold').value),
           speed: Number($('speed').value),
           direction: $('direction').value,
@@ -402,9 +404,13 @@
         controller = createGameTransition(kind, options);
         controller.seek(0);
         $('stages').innerHTML =
-          `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : kind === 'deal' ? '抽出密牌' : kind === 'folio' ? '轻翻页' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
+          `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : kind === 'deal' ? '抽出密牌' : kind === 'folio' ? '轻翻页' : kind === 'match' ? '双页合拢' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
       }
       const descriptions = {
+        match: [
+          '06 / 双页换场',
+          '竞技场专用：上下纸幕合拢，双侧对决标记与细线向中缝汇合，题号索引浮现；盖满后换题，再上下揭幕。场内版本跟随文档滚动并重新对齐新题区域。旧版 03 保留对照。420 / 760 / 1260ms。',
+        ],
         folio: [
           '05 / 轻翻页',
           '模式选择与游戏之间的短切换，约半秒；返回时反向播放。',
@@ -428,13 +434,15 @@
       };
       function select(next) {
         kind = next;
-        for (const name of ['frame', 'bands', 'convoy', 'deal', 'folio'])
+        for (const name of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match'])
           $(name).setAttribute('aria-selected', String(kind === name));
-        $('hold').disabled = kind === 'folio';
+        $('hold').disabled = kind === 'folio' || kind === 'match';
         $('direction').disabled = kind !== 'folio';
         $('title').disabled = kind === 'deal' || kind === 'folio';
         $('study-note').textContent =
-          kind === 'deal'
+          kind === 'match'
+            ? '竞技场下一题专用，真实模块同源。420ms 盖满才切路由，1260ms 清理后新题入场。纸色双页、实际题号、红蓝细线；保留 03 旧版供对照。'
+            : kind === 'deal'
             ? '模一把专属入场：抽牌、七条线索、中央揭幕。实际菜单入口同一份实现；标题随主站语言切换。'
             : '纸灰绿、深墨与酸黄。方形档案锁定、三条斜向索引切片与一体斜幕，共用本站的过场语言。';
         $('study-source').innerHTML =
@@ -448,6 +456,7 @@
       $('convoy').onclick = () => select('convoy');
       $('deal').onclick = () => select('deal');
       $('folio').onclick = () => select('folio');
+      $('match').onclick = () => select('match');
       $('play').onclick = () => {
         build();
         $('pause').textContent = '暂停';
@@ -489,7 +498,7 @@
       });
       const initial = new URLSearchParams(location.search).get('study');
       select(
-        ['frame', 'bands', 'convoy', 'deal', 'folio'].includes(initial)
+        ['frame', 'bands', 'convoy', 'deal', 'folio', 'match'].includes(initial)
           ? initial
           : 'convoy',
       );

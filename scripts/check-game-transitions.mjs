@@ -61,7 +61,7 @@ const step = (stamp) => {
   raf.clear();
   callbacks.forEach((fn) => fn(stamp));
 };
-for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
+for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
   tracks = [];
   let covered = 0,
     finished = 0;
@@ -71,7 +71,20 @@ for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
   });
   assert.equal(run.layer.parent, document.body);
   assert.equal(run.layer['aria-hidden'], 'true');
-  if (kind === 'bands') {
+  if (kind === 'match') {
+    const leaves = tracks.filter((t) => t.owner?.startsWith('gt-match-leaf '));
+    assert.equal(leaves.length, 2);
+    for (const leaf of leaves) {
+      assert.equal(leaf.frames[1].transform, 'translate(0, 0)');
+      assert.equal(leaf.frames[2].transform, 'translate(0, 0)');
+      assert.equal(leaf.frames[1].offset, run.timing.covered / run.timing.duration);
+      assert.equal(leaf.frames[2].offset, run.timing.exitStart / run.timing.duration);
+    }
+    assert.ok(leaves[0].frames.at(-1).transform.includes('-101%'));
+    assert.ok(leaves[1].frames.at(-1).transform.includes('101%'));
+    assert.equal(run.timing.duration, 1260);
+    console.log('PASS match: two opaque leaves hold coverage until coordinated opening');
+  } else if (kind === 'bands') {
     const field = tracks.find((t) => t.owner === 'gt-ink-field');
     const bands = tracks.filter((t) => t.owner?.startsWith('gt-band gt-band-'));
     assert.ok(field, 'the ink field must own route coverage');
@@ -217,7 +230,7 @@ for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
     new URL('../app/game-transitions.css', import.meta.url),
     'utf8',
   );
-  for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
+  for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
     const bare = new RegExp(`(^|})\\s*\\.gt-${kind}\\s*[,{]`, 'm');
     assert.ok(
       !bare.test(css),
@@ -227,7 +240,7 @@ for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio']) {
   console.log('PASS kind styles never match the transition layer itself');
 }
 console.log(
-  'Game transition invariant checks passed (frame, bands, convoy, deal, folio).',
+  'Game transition invariant checks passed (frame, bands, convoy, deal, folio, match).',
 );
 
 // Both menu transitions share a navigation lock; reduced motion releases it too.

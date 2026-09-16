@@ -69,7 +69,7 @@ import { submitVote } from '@/lib/votes';
 import { submitReaction, type ReactionKind } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
-import { schedulePromptScroll } from '@/lib/arena-scroll';
+import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
@@ -508,7 +508,7 @@ export default function Arena({
       return;
     }
     if (arenaTransition.current) return;
-    // 娱乐模式「下一题」：斜幕色块横推只盖住场内区域（field-meta → 操作行），
+    // 娱乐模式「下一题」：双页纸幕只盖住场内区域（field-meta → 操作行），
     // 盖满时切 hash。层必须挂在 body 上才能活过组件卸载完成扫出；
     // 新竞技场的开场牌有 .game-transition 等待门控，会自动接在扫出之后。
     const terminal = terminalRef.current;
@@ -525,13 +525,12 @@ export default function Arena({
     }
     const rects = parts.map((el) => el.getBoundingClientRect());
     const top = Math.min(...rects.map((r) => r.top));
-    const left = Math.min(...rects.map((r) => r.left));
-    const right = Math.max(...rects.map((r) => r.right));
     const bottom = Math.max(...rects.map((r) => r.bottom));
-    const transition = createGameTransition('convoy', {
-      title: currentPrompts().find((item) => `#arena/${item.id}` === next)
-        ?.name,
-      speed: 1.25,
+    const destination = currentPrompts().find((item) => `#arena/${item.id}` === next);
+    const transition = createGameTransition('match', {
+      title: destination?.name,
+      index: destination?.id,
+      onFrame: () => alignArenaTransition(transition.layer),
       onCovered: () => {
         window.location.hash = next;
       },
@@ -541,18 +540,18 @@ export default function Arena({
     });
     arenaTransition.current = transition;
     const layerStyle = transition.layer.style;
-    layerStyle.top = `${top}px`;
-    layerStyle.left = `${left}px`;
-    layerStyle.right = 'auto';
-    layerStyle.bottom = 'auto';
-    layerStyle.width = `${right - left}px`;
-    layerStyle.height = `${bottom - top}px`;
+    alignArenaTransition(transition.layer);
+    // Long mobile stages extend beyond the viewport. Keep the interlude's
+    // title in the visible portion without changing the area being covered.
+    const visibleTop = Math.max(0, top);
+    const visibleBottom = Math.min(window.innerHeight, bottom);
+    layerStyle.setProperty('--gt-match-center', `${(visibleTop + visibleBottom) / 2 - top}px`);
     transition.play();
   };
   const stageRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLElement>(null);
   const briefingRef = useRef<HTMLElement>(null);
-  // 「下一题」区域斜幕的防重入锁：层挂 body 活过组件卸载，onFinish 才释放
+  // 「下一题」区域纸幕的防重入锁：层挂 body 活过组件卸载，onFinish 才释放
   const arenaTransition = useRef<ReturnType<
     typeof createGameTransition
   > | null>(null);

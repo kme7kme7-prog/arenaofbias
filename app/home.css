@@ -940,3 +940,20 @@ a.play-classic-item:active {
   font-size: 11px;
   color: #7c887b;
 }
+
+/* 窄屏：编号/名称/进入留第一行，描述独占第二行——否则 320px 下
+   描述列只剩十几像素，被挤成一行一个字 */
+@media (max-width: 700px) {
+  .play-classic-item {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 18px 4px;
+  }
+  .play-classic-desc {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .play-classic-go {
+    margin-left: auto;
+  }
+}

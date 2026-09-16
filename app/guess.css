@@ -1336,8 +1336,12 @@
 }
 @media (max-width: 600px) {
   .guess-header {
-    height: 65px;
-    padding: 0 18px;
+    /* 一行放不下品牌+语言切换+登录按钮，允许折行，否则登录按钮被挤出屏外 */
+    height: auto;
+    min-height: 65px;
+    padding: 10px 18px;
+    flex-wrap: wrap;
+    row-gap: 8px;
   }
   .guess-header .lobby-brand {
     font-size: 11px;

@@ -985,7 +985,9 @@
 
 @media (max-width: 1050px) {
   .rank-workspace {
-    grid-template-columns: 1fr;
+    /* 必须是 minmax(0,1fr)：裸 1fr 的轨道最小值是内容最小宽度，榜单内容
+       会把单列撑到 445px，手机布局视口被顶宽后整页被迫缩小 */
+    grid-template-columns: minmax(0, 1fr);
   }
   .rank-workspace aside {
     position: static;
@@ -1053,6 +1055,21 @@
   }
   .rank-tab {
     padding: 10px 17px;
+  }
+  /* 窄屏：赛道切换与只看正式/重播一行放不下，允许折行；各按钮文字禁止
+     折行，否则被压成一列一个字的竖条 */
+  .rank-controls {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .rank-actions {
+    flex-wrap: wrap;
+  }
+  .rank-tabs,
+  .rank-scope,
+  .rank-replay {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .rank-empty {
     padding: 30px 22px;

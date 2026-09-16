@@ -2,6 +2,20 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
+## 2026-09-17 · 双页换场细节与滚轮跟随（最新，待体验）
+
+- 用户认可纸色双页，要求填补空感，并报连续上下滚轮时过场悬空；决策 083。新增顶部场次标记、题号淡点阵、下部 A/B 红蓝端点连线；保留时长、纸色、题名和身份解密。
+- `lib/arena-scroll.ts` 新增 `alignArenaTransition`：body 层 absolute 文档坐标定位；`onFrame` 每帧重取当前竞技场区域，跟随滚动、换题及尺寸变化。没有新增全局监听器，无需用锁滚动遮掩。脚本先补文档锚点/滚动/跨路由节点替换/缺失节点保持断言，对照页同步。
+- 验证：typecheck、build、check:motion 全套、定向 oxlint、diff --check 通过。Tabbit 正常滚轮上下 6 次，覆盖前后路由 003→001，各采样层与场内区域 top 差均为 0，结束后无层残留；CSS 391×844 的标题/装饰不重叠、无横向溢出。桌面参考构图已目验，手机截图受滚动时机影响，只确认几何断言，不宣称实体手机验收。
+- 累计改动仍未 commit、未 push。
+## 2026-09-17 · 竞技场下一题双页换场（上一版，跟随与细节以 083 为准）
+
+- 已重新核对 AGENTS、HANDOFF、README、PRODUCT、ARCHITECTURE、DECISIONS、最新归档与相关代码；接手 HEAD `d722512`，工作区干净。部分旧产品描述（模一把档数/数据数等）已落后于最新交接，本轮不扩范围修订。
+- 用户否定 078 局部 convoy 过场的巨型深色底，授权完全重做；记为 082。新增 `createGameTransition('match')`：双张纸色半页左右合拢、真实目的题号轮廓、深墨标题与红蓝细线，盖满后上下打开。只替换娱乐下一题/随机换场；其他导航过场、正式换组、投票文案及身份解密保持原实现。
+- 动效规范：先扩展 `scripts/check-game-transitions.mjs` 与 `reference/game-transitions-review.html`（新增 06，保留旧 03 对照），再实现与接入；420/760/1260ms 覆盖/开幕/结束，共享 WAAPI 轨道和原安全门控。手机场景标题居于可见区域中部，半页重叠 2px 防亚像素漏缝。
+- 验证：typecheck、build、check:motion 全套、validate:arena 12 项、check-vote-split、validate-locale、定向 oxlint、diff --check 通过。Tabbit 实际桌面换题：盖满切 hash、intro 与过场零重叠；CSS 391×844：盖满时两页无缝覆盖、标题在视口内、无横向溢出、连点仅一层、结束无残留；reduced-motion 直接换题并清层。浏览器调度使正常实测总时长约 1.7s，轨道理想值 1.26s；未做实体手机验收。
+- 预览：`http://127.0.0.1:5173/#arena/003`；可拖轴对照：`/reference/game-transitions-review.html?study=match`。
+- 未 commit、未 push。
 ## 2026-09-16 · 模一把搜索补全分隔符不敏感（当前轮，待体验）
 
 - 用户报「模一把的输入自动补全有点问题」。Tabbit 实测复现：候选匹配是原样小写 `includes`，数据集名含 `-`/`.`/空格，按自然习惯输入即落空——`"gpt 5"`、`"gpt5"`、`"sonnet4.5"`、`"llama3.3"`、`"glm5"`、`"deepseekv3.2"` 全部显示「没有找到这个模型」。

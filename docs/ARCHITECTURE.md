@@ -37,7 +37,7 @@
 | `lib/comments.ts` | 评论类型与校验（与后端一致） |
 | `lib/placeholder.ts` | 开发者占位符系统：播种伪随机占位模型/结果/投票；隔离方式见文件头 |
 | `lib/track.ts` | 访客统计上报（042）：页面加载 POST /api/track 一次，失败静默 |
-| `lib/game-transitions.ts` + `game-transitions.css` | 过场核心 `createGameTransition`（frame/bands/convoy/deal/folio，031-034/049/052/059/065）：rAF 推进 WAAPI 轨道、盖满才回调。**不能加模块导入**（check 脚本转译为 data: URL 测试） |
+| `lib/game-transitions.ts` + `game-transitions.css` | 过场核心 `createGameTransition`（frame/bands/convoy/deal/folio/match，031-034/049/052/059/065/082）：rAF 推进 WAAPI 轨道、盖满才回调。**不能加模块导入**（check 脚本转译为 data: URL 测试） |
 | `lib/ui-transitions.ts` | `SurfaceTransition` 可打断界面过渡；`wipeNavigate` 全屏横扫换页（随机入场在用） |
 | `lib/scroll-tour.ts` / `lib/arena-scroll.ts` | 长文自动滚动巡览 / 竞技场命题定位 |
 | `lib/decryption.ts` | 盲测揭晓「文档解密」：遮黑条错峰退开（用户点名保留，071） |
@@ -132,7 +132,7 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 过场与首页版本（落点速查）
 
-- 过场分工（052/059/065/078）：首页→菜单走 `frame`；首页→题库、菜单→测评走 `convoy`；首页→榜单走 `bands`（字带=声望分前二模型名）；菜单→模一把走 `deal`；模一把内部选择↔游戏走 `folio`；娱乐「下一题」走 convoy 区域过场（层挂 body、按场内 rect 定位）；页眉「随机入场」走 `wipeNavigate`。竞技场返回、特别赛页内未接入。
+- 过场分工（052/059/065/082）：首页→菜单走 `frame`；首页→题库、菜单→测评走 `convoy`；首页→榜单走 `bands`（字带=声望分前二模型名）；菜单→模一把走 `deal`；模一把内部选择↔游戏走 `folio`；娱乐「下一题」走 match 双页纸幕区域过场（层挂 body、absolute 文档坐标随滚动、每帧重取新题场内 rect）；页眉「随机入场」走 `wipeNavigate`。竞技场返回、特别赛页内未接入。
 - 调参：`reference/game-transitions-review.html`；节奏数值以 `gameTransitionTiming` 与对照页为准，不在文档复述。
 - 防重入：模块自身不设跨实例全局锁（对照页要多实例预览），接入侧用模块级锁补齐。
 - 首页三版（066-069）：`app/home.tsx`（经典）/ `home-next.tsx`（新版，默认）/ `home-duel.tsx`（对决版），`aob-home-edition` 记忆；哪版定稿待用户拍板。
