@@ -1074,7 +1074,7 @@ kbd {
   color: #f2f7e9;
   background: var(--ink);
   border-left: 5px solid var(--acid);
-  animation: round-intro 1.3s var(--ease-in-out) both;
+  animation: round-intro 0.9s var(--ease-in-out) both;
   pointer-events: none;
 }
 .intro-label > span {
@@ -1981,13 +1981,19 @@ kbd {
 @keyframes round-intro {
   0% {
     clip-path: inset(0 100% 0 0);
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.97);
   }
   20%,
   64% {
     clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
-    clip-path: inset(0 0 0 100%);
+    clip-path: inset(0 0 0 0);
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.98);
     visibility: hidden;
   }
 }

@@ -23,6 +23,7 @@ import {
   Crosshair,
   Expand,
   Eye,
+  GalleryHorizontal,
   Fingerprint,
   ImageIcon,
   Laugh,
@@ -69,10 +70,24 @@ import { submitReaction, type ReactionKind } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll } from '@/lib/arena-scroll';
+import { createGameTransition } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
+import { AudienceVerdict } from '@/components/vote-split';
 
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
+const ARENA_TIMING = {
+  introLead: 1000,
+  introReplayLead: 220,
+  introFocus: 700,
+  introStaticHold: 950,
+  introScrollLead: 300,
+  introScrollSettle: 520,
+  introReturn: 500,
+  introGap: 200,
+  introSettle: 300,
+  resultReveal: 1350,
+} as const;
 // 「无法抉择」按钮的中文主标：每轮对局随机换一个（决策 048）
 const DRAW_LABELS = [
   '不分伯仲',
@@ -465,6 +480,17 @@ export default function Arena({
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
+  // 「逐个巡览」开关（aob-arena-tour）：关闭后入场只保留开场牌一拍，
+  // 不再依次放大 A/B 两份作品，直接开放投票。
+  const [tour, setTour] = useState(() => {
+    try {
+      return localStorage.getItem('aob-arena-tour') !== 'off';
+    } catch {
+      return true;
+    }
+  });
+  // 路由过场层（convoy / page-wipe）未离场前不挂开场牌，避免两段动画叠放
+  const [arrivalReady, setArrivalReady] = useState(false);
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     getMotionPreference,
@@ -481,10 +507,55 @@ export default function Arena({
       setTimeout(() => setSoloNotice(false), 3000);
       return;
     }
-    window.location.hash = next;
+    if (arenaTransition.current) return;
+    // 娱乐模式「下一题」：斜幕色块横推只盖住场内区域（field-meta → 操作行），
+    // 盖满时切 hash。层必须挂在 body 上才能活过组件卸载完成扫出；
+    // 新竞技场的开场牌有 .game-transition 等待门控，会自动接在扫出之后。
+    const terminal = terminalRef.current;
+    const parts = terminal
+      ? [
+          terminal.querySelector('.field-meta'),
+          stageRef.current,
+          terminal.querySelector('.round-console'),
+        ].filter((el): el is HTMLElement => el instanceof HTMLElement)
+      : [];
+    if (!parts.length) {
+      window.location.hash = next;
+      return;
+    }
+    const rects = parts.map((el) => el.getBoundingClientRect());
+    const top = Math.min(...rects.map((r) => r.top));
+    const left = Math.min(...rects.map((r) => r.left));
+    const right = Math.max(...rects.map((r) => r.right));
+    const bottom = Math.max(...rects.map((r) => r.bottom));
+    const transition = createGameTransition('convoy', {
+      title: currentPrompts().find((item) => `#arena/${item.id}` === next)
+        ?.name,
+      speed: 1.25,
+      onCovered: () => {
+        window.location.hash = next;
+      },
+      onFinish: () => {
+        arenaTransition.current = null;
+      },
+    });
+    arenaTransition.current = transition;
+    const layerStyle = transition.layer.style;
+    layerStyle.top = `${top}px`;
+    layerStyle.left = `${left}px`;
+    layerStyle.right = 'auto';
+    layerStyle.bottom = 'auto';
+    layerStyle.width = `${right - left}px`;
+    layerStyle.height = `${bottom - top}px`;
+    transition.play();
   };
   const stageRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<HTMLElement>(null);
   const briefingRef = useRef<HTMLElement>(null);
+  // 「下一题」区域斜幕的防重入锁：层挂 body 活过组件卸载，onFinish 才释放
+  const arenaTransition = useRef<ReturnType<
+    typeof createGameTransition
+  > | null>(null);
   const cardA = useRef<HTMLDivElement>(null);
   const cardB = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
@@ -597,8 +668,7 @@ export default function Arena({
         fill: 'both',
       });
       animations.current.push(animation);
-      await animation.finished;
-      if (signal.aborted) throw new Error(ABORTED);
+      await delay(duration, signal);
     };
     const sequence = async () => {
       resetScroll();
@@ -607,8 +677,21 @@ export default function Arena({
         dispatch({ type: 'READY' });
         return;
       }
-      // Let long-form work get into its reading motion a touch sooner.
-      await delay(prompt.kind === 'text' ? 500 : 600, signal);
+      // 菜单→竞技场的过场层还挂在 body 上时等它扫出完毕：开场牌从过场
+      // 结束才开始播，不与色块叠放。封顶等待兜底过场异常滞留。
+      for (let waited = 0; waited < 2600; waited += 40) {
+        if (!document.querySelector('.game-transition, .page-wipe')) break;
+        await delay(40, signal);
+      }
+      setArrivalReady(true);
+      await delay(
+        state.run === 0 ? ARENA_TIMING.introLead : ARENA_TIMING.introReplayLead,
+        signal,
+      );
+      if (!tour) {
+        dispatch({ type: 'READY' });
+        return;
+      }
       for (const side of ['a', 'b'] as const) {
         const element = side === 'a' ? cardA.current : cardB.current;
         const stage = stageRef.current;
@@ -633,22 +716,22 @@ export default function Arena({
             { transform: 'translate3d(0,35px,0) scale(.94)', opacity: 0.45 },
             { transform: focusTransform, opacity: 1 },
           ],
-          780,
+          ARENA_TIMING.introFocus,
         );
         const scrollable =
           element.querySelector<HTMLElement>('[data-tour-scroll]');
-        if (scrollable) {
-          // Long-form work begins reading sooner; the first beat is still
-          // long enough to establish the enlarged frame before motion starts.
-          await delay(500, signal);
+        const hasScrollTour =
+          !!scrollable && scrollable.scrollHeight - scrollable.clientHeight > 1;
+        if (scrollable && hasScrollTour) {
+          await delay(ARENA_TIMING.introScrollLead, signal);
           await scrollWorkToBottom(
             scrollable,
             signal,
             prompt.kind === 'text' ? 48 : 62,
           );
-          await delay(1300, signal);
+          await delay(ARENA_TIMING.introScrollSettle, signal);
         } else {
-          await delay(1550, signal);
+          await delay(ARENA_TIMING.introStaticHold, signal);
         }
         await animate(
           element,
@@ -656,12 +739,13 @@ export default function Arena({
             { transform: focusTransform },
             { transform: 'translate3d(0,0,0) scale(1)' },
           ],
-          680,
+          ARENA_TIMING.introReturn,
         );
         if (scrollable) scrollable.scrollTop = 0;
         setSpotlight(null);
-        await delay(180, signal);
+        await delay(ARENA_TIMING.introGap, signal);
       }
+      await delay(ARENA_TIMING.introSettle, signal);
       play('reveal');
       dispatch({ type: 'READY' });
     };
@@ -676,7 +760,15 @@ export default function Arena({
       resetScroll();
       setSpotlight(null);
     };
-  }, [state.phase, state.run, state.round, prompt.kind, reducedMotion, play]);
+  }, [
+    state.phase,
+    state.run,
+    state.round,
+    prompt.kind,
+    reducedMotion,
+    play,
+    tour,
+  ]);
 
   useEffect(() => {
     const timeout =
@@ -694,7 +786,7 @@ export default function Arena({
                 play('reveal');
                 dispatch({ type: 'REVEAL' });
               },
-              reducedMotion ? 80 : 1150,
+              reducedMotion ? 80 : ARENA_TIMING.resultReveal,
             )
           : null;
     return () => {
@@ -840,6 +932,16 @@ export default function Arena({
     if (enabled) play('move');
   };
 
+  const toggleTour = () => {
+    setTour((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem('aob-arena-tour', next ? 'on' : 'off');
+      } catch {}
+      return next;
+    });
+  };
+
   const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     else document.documentElement.requestFullscreen?.().catch(() => {});
@@ -910,7 +1012,7 @@ export default function Arena({
         </div>
       </header>
 
-      <main className="main-terminal">
+      <main className="main-terminal" ref={terminalRef}>
         <div className="spatial-session" aria-label={t('评审进度')}>
           <span>
             {t('OBSERVATION /')}
@@ -1021,6 +1123,17 @@ export default function Arena({
         </div>
 
         <div className="arena-stage" ref={stageRef}>
+          {(state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' && (
+            <AudienceVerdict
+              key={state.run}
+              promptId={prompt.id}
+              leftRid={pair[0].id}
+              rightRid={pair[1].id}
+              choice={state.choice}
+              settled={voteOutcome.state !== 'saving' && voteOutcome.state !== 'idle'}
+              placeholder={isPlaceholderMode()}
+            />
+          )}
           <div className="stage-watermark" aria-hidden="true">
             {localize(spotlight ? spotlight.toUpperCase() : 'VS')}
           </div>
@@ -1045,6 +1158,11 @@ export default function Arena({
                     <span className="entry-number">
                       {localize(round.code)} / 0{index + 1}
                     </span>
+                    {chosen && (
+                      <span className="identity-pick">
+                        <Check size={14} />{t('YOUR PICK')}
+                      </span>
+                    )}
                     <span className="panel-lock">
                       {revealed ? <Eye size={15} /> : <LockKeyhole size={15} />}
                     </span>
@@ -1096,12 +1214,6 @@ export default function Arena({
                     >
                       <Expand size={17} />
                     </button>
-                    {chosen && (
-                      <div className="chosen-stamp">
-                        <Check size={17} />
-                        <span>{t('YOUR PICK')}</span>
-                      </div>
-                    )}
                   </div>
                   <div className="panel-bottom">
                     <span>
@@ -1206,7 +1318,7 @@ export default function Arena({
 
             <div className="spine-line" />
           </div>
-          {state.phase === 'intro' && (
+          {state.phase === 'intro' && state.run === 0 && arrivalReady && (
             <div className="intro-label" key={state.run} aria-hidden="true">
               <span>{t('NEW ENCOUNTER')}</span>
               <strong>
@@ -1227,23 +1339,6 @@ export default function Arena({
             <span>{t('SWITCHING FREQUENCY')}</span>
             <b>{localize(String(state.pendingRound + 1).padStart(2, '0'))}</b>
           </div>
-          {state.phase === 'locking' && (
-            <div className="lock-announcement" aria-hidden="true">
-              <Crosshair size={28} />
-              <span>
-                {localize(
-                  state.choice === 'draw' ? '平局已锁定' : '直觉已锁定',
-                )}
-              </span>
-              <small>
-                {localize(
-                  state.choice === 'draw'
-                    ? 'CALL IT A DRAW'
-                    : 'JUDGEMENT REGISTERED',
-                )}
-              </small>
-            </div>
-          )}
         </div>
 
         {state.phase === 'result' && (
@@ -1324,6 +1419,17 @@ export default function Arena({
             </div>
           )}
           <div className="round-actions">
+            <button
+              type="button"
+              className={`text-button tour-toggle ${tour ? 'on' : ''}`}
+              onClick={toggleTour}
+              aria-pressed={tour}
+              title={t('入场时依次放大展示两份作品')}
+            >
+              <GalleryHorizontal size={14} />
+              {t('逐个巡览')}
+              <i className="tour-switch" aria-hidden="true" />
+            </button>
             {state.phase === 'intro' ? (
               <button
                 className="text-button"

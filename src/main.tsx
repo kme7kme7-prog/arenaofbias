@@ -61,7 +61,13 @@ function Routes() {
   // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
   useSyncExternalStore(subscribePrompts, getPromptsState);
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const arenaPromptId = route.startsWith('#arena/')
+      ? route.slice(7)
+      : route.startsWith('#formal/')
+        ? route.slice(8)
+        : '';
+    if (!arenaPromptId || currentPairs(arenaPromptId).length === 0)
+      window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
       window.location.replace(currentRandomArenaHash());
     }

@@ -168,9 +168,9 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
 /** 拉全量投票流水；失败返回 null（调用方区分「无票」与「加载失败」）。
  * 不按题号白名单过滤（决策 045 ⑤：下架题/下架作品的历史票保留在榜单），
  * 形态非法的行跳过 */
-export async function fetchVotes(): Promise<VoteFlowRow[] | null> {
+export async function fetchVotes(signal?: AbortSignal): Promise<VoteFlowRow[] | null> {
   try {
-    const response = await fetch('/api/votes');
+    const response = await fetch('/api/votes', { signal });
     if (!response.ok) return null;
     const data = (await response.json()) as { votes?: unknown };
     if (!Array.isArray(data.votes)) return null;

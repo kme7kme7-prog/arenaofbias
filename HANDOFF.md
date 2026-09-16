@@ -2,6 +2,78 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
+## 2026-09-16 · 下一题区域斜幕 + 巡览开关去酸黄（当前版本，待体验）
+
+- 用户指出「下一题」硬切无过渡很奇怪，要求画出区域（实时对比行→作品区→操作行）用色块横推过渡、其余区域照常恢复；巡览开关的亮黄滑块看不清且丑，记为决策 078。
+- `app/page.tsx` `gotoRandomArena`：改经 `createGameTransition('convoy', {speed:1.25, title: 下一题题目名})`——层挂 `document.body` 活过组件卸载（卸载时不得 dispose），点击时用 `.field-meta`+`.arena-stage`+`.round-console` 并集 rect 以 fixed 定位到场内区域，`onCovered` 才切 hash。新竞技场的 intro 沿用 `.game-transition` 等待门控，斜幕扫出后开场牌才开始。防重入锁 `arenaTransition` ref。
+- 巡览开关开态改为深墨轨道 + 纸色滑块，不再使用酸黄（`arena-refinement.css`）。
+- `check-arena-scroll.mjs` 新增断言：convoy 区域过场、onCovered 切 hash、rect 定位、卸载不 dispose。
+- 验证：typecheck、build、validate:arena 12 项、check:motion 全套、check-vote-split、validate-locale、oxlint、diff --check 通过。Tabbit 实测 003→001：层 119ms 起、rect 188–926×1440 精确等于画出区域、非全屏；1438ms 盖满切 hash 时层仍在；新开场牌 2364ms 出现、严格在层离场（2280ms）后，零叠放；截图目验 A 聚焦巡览正常。
+- 本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 入场等过场离场、巡览放慢并可开关（上一版，开关配色与下一题过场以 078 为准）
+
+- 用户体验后指出菜单→竞技场的过场动画与 Round Start 开场牌重合、逐个展示过快，并要求增加挨个显示的开关，记为决策 077。
+- 重合根因：convoy/page-wipe 在盖满（convoy 约 520ms、wipe 约 360ms）时切路由，色块要再过约 900/550ms 才扫出完毕；竞技场挂载后 intro 立即播开场牌，两段动画叠放。现 intro 序列先等 `.game-transition`/`.page-wipe` 离开 body（40ms 轮询、2600ms 封顶兜底），`.intro-label` 由新状态 `arrivalReady` 门控，过场离场后才挂载播放；直达或 hash 换题无层时零等待。
+- 巡览放慢（`ARENA_TIMING`）：introLead 1000、聚焦 700、静态停留 950、回位 500、间隔 200，新增收尾静止拍 introSettle 300；无溢出内容首入理想 6.0s、重播内部 5.2s。真实溢出长文仍走滚动巡览（引入 300、收尾 520）。
+- 新增「逐个巡览」开关：底部操作行 text-button 带细线小拨杆（开=酸黄滑块），`localStorage` 键 `aob-arena-tour` 默认开；关闭时入场只保留开场牌一拍（首入约 1s 即开放投票），跳过 A/B 聚焦，重播同理约 0.5s。开关在 intro 中途切换会以可取消序列安全重启。
+- `scripts/check-vote-split.mjs` 断言更新为 6.0s/5.2s 节拍（含 introSettle），新增过场等待、arrivalReady 门控、`aob-arena-tour` 键与 `!tour` 提前 READY 断言；对照页同步口径。
+- 验证：typecheck、build、validate:arena 12 项、check:motion 全套、check-vote-split、validate-locale 通过。Tabbit 实测：菜单→003 convoy 期间开场牌零叠放（labelWhileLayer=false，开场牌在层离场后出现）；tour=on 首入 6.09s 解锁、A 0.95→3.08s、B 3.37→5.50s 无重叠；tour=off 重播 1.08s 可投、无 spotlight、无 transform 残留；开关写入 localStorage 并跨刷新保持。CSS 391×844 reduced-motion 163ms 到可投、开关在视口内、无横向溢出。
+- 注意：Tabbit 后台标签 rAF 被节流时 convoy 层停留会被拉长（实测 4.3s 而非 1.4s），属环境特征非代码问题；前台实际节奏以固定时长为准。本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 竞技场完整时间轴根修（上一版，入场节奏与过场衔接以 077 为准）
+
+- 用户体验后仍认为时间轴混乱，并指出入场存在严重问题。完整量化发现 003 从 intro 到可投实测被拖到 13.47s（代码理想时钟也约 7.48s）：1.3s 开场牌与 0.6s 开始的首件聚焦重叠；每件作品串行放大、空等、停留、回位、再空等；无溢出网页也等待滚动节奏；更严重的是状态机 `await animation.finished`，浏览器掉帧/调度会直接延迟投票解锁。记为决策 076。
+- `app/page.tsx` 新增集中 `ARENA_TIMING`：首入开场牌完整播放 900ms 后才聚焦 A；每侧聚焦 460ms、无滚动停留 520ms、回位 380ms、间隔 100ms，两侧总计后首入理想 3.82s。只有 `scrollHeight > clientHeight` 的真实长内容才运行滚动巡览，普通网页不再假等。WAAPI 只画画面，流程由可取消 `delay(duration)` 推进，不再等待 `animation.finished`。
+- 重播已有 610ms 全屏切换幕，不再重复挂开场标题牌；幕结束后只留 180ms 呼吸再进入 A/B 聚焦，内部 intro 理想 3.10s。`round-intro` 退场由裁成黑色竖条改为淡出上移。浏览器实测：首入 3.74s 解锁；重播含切换幕 3.91s、无第二张标题牌；跳过后两件作品 transform=none、无 spotlight 残留。
+- 结果段重新与反馈牌交接：反馈约 49ms 出现、1.27s 开始退场；1.50s 进入身份解密，反馈在 1.56s 完全离场；解密约 2.39s 完成，随后反应 2.51s、提示词 2.64s、结果操作 2.72s、评论 2.89s 接力，不再让反馈牌和解密长时间重叠。
+- `scripts/check-vote-split.mjs` 增加首入 3.82s、重播 3.10s、真实溢出判断、开场牌 0.9s、禁止 `await animation.finished`、反馈→解密交接和结果顺序断言。对照页同步完整验收口径。
+- 验证：typecheck、build、validate:arena 12 项、check:motion 全套、check-vote-split、validate-locale、定向 oxlint 与 diff --check 通过。Tabbit 1440×900 三段截图目验开场/A/B 聚焦；CSS 391×844 reduced-motion 约 1.77s（含重载与资源）到可投、无 transform/spotlight/横向溢出。测试投票 POST 拦截，不写真实票。
+- 本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 竞技场时间轴与换题滚动收束（上一版，完整时间轴以后续修订为准）
+
+- 用户指出结果卡里的「看看偏好榜」样式怪、全页动效虽好看但时间轴混乱、每次下一题浏览器会跳，并要求首页默认显示新版且保留切换，记为决策 075（首页默认沿用既有 069）。
+- 偏好榜入口的怪异断角来自 refinement 清掉边框/背景后漏清旧硬阴影；现改为无底色的单线文字入口，显式清除各态阴影，hover 只横移 3px，不与「下一题」争主按钮层级。
+- 结果时间轴改为单向接力：点击后反馈牌约 0.12s 出现；锁定 0.8s 后开始身份解密；两侧判断约 1.42s、反应条约 1.91s、提示词条约 2.07s、结果操作约 2.17s、评论区约 2.34s 依次出现。反馈牌仍在 1.9s 内结束；reduced-motion 全部取消延迟直接显示。`scripts/check-vote-split.mjs` 新增顺序递增断言。
+- 下一题跳动根因为 `src/main.tsx` 路由 effect 先 `scrollTo(0,0)`，竞技场下一帧又平滑定位命题，形成两次反向滚动。有效 arena/formal 路由不再执行全局归顶，只保留 `schedulePromptScroll` 的一次命题定位；浏览器实测从结果区 636 直接到新题 147，未经过 0。`check-arena-scroll` 补全局归顶守卫断言。
+- `app/home.tsx` 代码本来已经是无历史偏好默认 `new`（决策 069），无需制造无效改动；本地预览已将 `aob-home-edition` 设为 `new`，并实测切经典版写入 old、切回新版写入 new，三版切换与记忆保留。
+- 验证：typecheck、build、validate:arena 12 项、check:motion 全套、check-vote-split、validate-locale、定向 oxlint 与 diff --check 通过。Tabbit 1440×900 目验结果区及新偏好榜入口；CSS 391×844 reduced-motion 下五层结果内容均无延迟且无横向溢出。测试投票 POST 拦截，不写真实票。
+- 本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 选择反馈即时化与成品级重做（上一版，整体时间轴以后续修订为准）
+
+- 用户体验后指出上一版仍丑且存在明确 BUG：点击后隔一阵才显示。实测点击到可见约 1996ms，根因是反馈被限制到 1150ms 锁定阶段结束后的 result，再等待提交与人数读取；用户要求改为成品级，记为决策 074。
+- `app/page.tsx` 恢复 locking 即挂载；`components/vote-split.tsx` 点击后先出现有明确汇总动势的选择反馈牌，提交结束再把真实人数无缝填入，不再让网络决定出现时机。GET 超时收紧到 1200ms，1550ms 开始退场、1850ms 卸载；按 run 清理请求与定时器、正式模式不显示等边界不变。
+- `app/arena-refinement.css` 推翻上一版调试 HUD 式细条：新牌面用切角深墨底、红蓝两翼、酸黄锁定章、选中侧内描边、中央比例轨、扫光与向心收束退场；桌面约 500×164，手机约 371×157。人数未到时红蓝脉冲轨有意反馈“正在汇总”，到达后两侧数字从相反方向落位。
+- 浏览器原生事件时间戳实测：点击后约 49ms 进入 DOM，模拟 POST 延迟 350ms 时约 479–509ms 填入人数，约 1605ms 开始退场、1899ms 完全移除。CSS 391×844 边界在可视区内且无横向溢出；reduced-motion 无装饰动画。投票 POST 拦截，不写真实票。
+- 验证：typecheck、build、validate:arena 12 项、validate-locale、check-vote-split、定向 oxlint 与 diff --check 通过。
+- 本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 竞技场选择反馈再收束（上一版，即时性与视觉以后续修订为准）
+
+- 用户根据截图指出选择人数弹层太丑、太大、停留太久且动效不足，平局按钮几乎看不见；要求反馈 2 秒内自动关闭，并保留平局按钮透明、低干扰的设计，记为决策 073。
+- `components/vote-split.tsx` 改为结果阶段且人数读取完成后才出现，不再用大面板等待网络；反馈压成约 540×130px 的横向结果条，保留左右人数、红蓝比例与平局数，移除重复标题层级。入场、顶边扫描、数字错峰、比例展开和退场组成短动效，1450ms 开始退场、1800ms 卸载；失败与占位提示同样短暂显示，减少动态效果时直接呈现但仍按时收起。
+- `app/arena-refinement.css` 将透明平局按钮由 190×38 提至 238×42，增强双细边、文字、图标与键位提示，静态仍无填色，仅 hover/选中时出现反馈；反馈条桌面不再遮满作品中心，窄屏限制在可视区内。`scripts/check-vote-split.mjs` 补短生命周期与退场状态断言，真实对照页同步验收口径。
+- 验证：typecheck、build、validate:arena 12 项、validate-locale、check-vote-split、定向 oxlint 与 diff --check 通过。Tabbit 1440×900 实测弹层由约 440×324 缩至约 535×130，1515ms 进入退场、1820ms 完全卸载；1024×720 目验透明平局入口；CSS 391×844 reduced-motion 下反馈约 359×126、无横向溢出、1811ms 卸载。投票 POST 继续拦截，不写真实票。
+- 本轮仍未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 选择人数弹层与按钮再修订（上一版，反馈尺寸与时长以后续修订为准）
+
+- 用户否定平局胶囊、下一题内嵌方块，并要求明显弹出反馈，展示左右人数与红蓝拼接条，记为决策 072。平局按钮改直线双细边，下一题改统一深墨切角、独立酸黄箭头；名字解密保留。
+- `components/vote-split.tsx` 在娱乐测评选择后弹出反馈，提交结束再调用现有 `/api/votes`；`lib/vote-split.ts` 只聚合当前题当前作品对，按作品 id 对应左右。平局单列，零票不画假比例；占位模式、失败、读取中均有明确文案。读数或错误显示 6 秒后收起，可关闭；按 run 挂载，清理请求与定时器，GET 10 秒超时。正式模式不展示。复用全量流水接口，仍适用于当前演示规模，未新增服务端接口。
+- 新增 `scripts/check-vote-split.mjs` 覆盖换边、平局、排除其他题/作品对、重复 id、零票和单边票；更新真实对照页、PRODUCT 和中英文文案。
+- 验证：typecheck、build、validate:arena 12 项、validate-locale、定向 oxlint 与 diff --check 通过。Tabbit CSS 1440×900 查看真实统计弹出（左右各 1 票）与遮黑解密；拦截响应验证 6:3 + 1 平局、67/33 比例、零票、503、关闭、自动收起和重播取消晚到响应。CSS 391×844 英文面板边界在视口内、页面无横向溢出，截图有浏览器捕获裁切，未据此认定手机完整视觉验收。投票 POST 全部拦截，不新增真实票；测试路由已清理。
+- 另通过 validate:votes 12 项（临时 SQLite 实例），浏览器已恢复正常动态效果并留在中文 003。本轮与上一轮修改均未 commit、未 push，待用户体验。
+
+## 2026-09-16 · 竞技场视觉收束（上一版，按钮与反馈以后续修订为准）
+
+- 用户授权打磨顶部/外框、简化锁定反馈、重做结果区和「下一题」、微调平局按钮；明确保留名字揭晓特效、两侧投票文案不动，记为决策 071。
+- `app/page.tsx`：移除中央锁定浮层，将「你的选择」移入身份栏，不再盖住作品。`app/arena-refinement.css`：压缩顶部、减薄外框、未选作品仅轻微退焦；结果身份字号增大，保留原 DocumentDecryption 的遮黑错峰解密与触发时机；整理反应条和结果操作栏，平局改低对比圆角胶囊，「下一题」深墨底加酸黄箭头。作品预览尺寸和投票/换题逻辑未改。
+- 更新 `reference/arena-layout-review.html` 验收指引。未添加新的动效生命周期；既有 validate:arena 的锁定、揭晓、重播、平局、换题 12 项通过。
+- 验证：typecheck、build、validate:arena、validate-locale、定向 oxlint、diff --check 通过。Tabbit 实际 CSS 1920×1333 桌面投票/结果截图目验通过，锁定无中央遮挡、最终解密遮罩清理；CSS 391×844 英文结果无横向溢出，reduced-motion 重播→平局→下一题通过（003→001）。浏览器投票 POST 拦截返回 401，不写真实票。
+- 手机结果截图工具超时；随后重试成功，已目验中文 001 投票首屏，英文手机结果仅检查布局与操作。未做实体手机验收，无完整正常速度解密过程录像。浏览器留在中文 003 预览（CSS 1440×900）。未 commit、未 push。
+
 ## 2026-09-15 · 全站代码审查与全部修复（当前轮）
 
 - 用户要求完整代码审查找 BUG（需要跑项目时用不常用端口），审查后拍板「全部修复」。审查范围：当轮未提交的首页三版改动（逐行精读，未发现 BUG）+ 后端/模一把/页面组件/lib 模块四个并行审查任务；高危发现均由本人二次核验属实。修复批次记为决策 070。
@@ -179,33 +251,21 @@
 4. 按需阅读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/DECISIONS.md`；首次接手读 `README.md`。
 5. 上一远端批次见 [本地同步、鹈鹕接入与主站语言视觉整理](docs/handoff/2026-09-13-本地同步鹈鹕接入与主站语言视觉整理-Atmeplz.md)。`docs/IDEAS.md` 是候选库，不是授权任务清单。
 
-## 当前状态（2026-09-13 晚）
+## 当前状态速览
 
-- **代码基线**：main 与远端同步于 `261ad29`；「模一把」玩法及视觉改动**未提交**。2026-09-14 用户已确认当前视觉版本，提交/推送仍须另行明确授权。
-- **本轮新玩法**：玩法菜单第四项「模一把」（`#guess`，决策 057）——Wordle 式每日猜 AI 模型，8 次机会、七属性绿/黄/灰/?反馈+箭头、每日一题全世界同题（UTC+8 零点切换）、emoji 格局分享、对局与战绩存浏览器本地。用户已体验通过基本流程。
-- **数据集**：`lib/guess-models.json` 102 个答案槽 / 138 个可猜模型名（含 21 个 `variants` 合并组，决策 061；models.dev 快照+人工整理，外部 AI 联网整理产出、经适配字段）。**追加新模型只放数组末尾**、组内版本只加 `variants` 末尾——每日答案按条目下标散列派生，插入/重排/调难度都会改变历史答案（契约见 `lib/guess-logic.ts` 文件头与 `docs/games/guess.md`）。
-- **价格档已定稿（方案 A）**：`priceOut`=官方一手输出单价（$/M），档位由我方代码 `PRICE_BAND_EDGES` 划定（<$0.5 近免费/<$2 便宜/<$8 中等/<$25 贵/≥$25 旗舰）；数据集旧字符串档 `priceTier` 已弃用仅留 diff 校验。33 条无一手价的老模型走「?」口径。规则详见 `docs/games/guess.md`。
-- **本地服务**：`npm run dev`，前端 `http://localhost:5173/`、API 3000；模一把入口 `http://localhost:5173/#guess`。
-- **多实例坑**：本轮开发中 vite HMR 多文件更新出现过白屏（root 无子节点）——硬刷新即恢复，与上轮 HANDOFF 记录一致，不是代码 bug。
+- **代码基线**：以 `git log` 为准（多批已 commit 未 push 的工作叠加在工作区，上方按日期排列的各轮即工作日志，push 前按模板归档进 `docs/handoff/`）。
+- **模一把**：每日一题（简单+标准池）+ 三档随机练习双模式（064）；数据集 102 答案槽/138 可猜名（061 合并组）；厂商同国给黄（062）；后台有游玩统计与追加模型页（063）；对局不落盘、只存结算标记与战绩（09-14）。
+- **竞技场**：入场/结果时间轴与「下一题」区域过场为 076-078 定稿口径；「逐个巡览」开关默认开。
+- **本地服务**：`npm run dev`，前端 `http://localhost:5173/`、API 3000；模一把入口 `#guess`。
+- **多实例坑**：vite HMR 多文件更新偶发白屏（root 无子节点）——硬刷新即恢复，不是代码 bug。
 
 ## 模一把实现要点（接手改动前必读）
 
 - 判定核心 `lib/guess-logic.ts` 是纯函数，**前端类型与后端判定是同一份文件**：服务端用 jiti 加载（`server/index.js`），验证脚本同法。改判定规则只改这一处。
-- 答案永不下发：`/api/guess/check` 只有猜中或 `final:true`（第 8 次）才附答案。对局无状态、全在客户端 localStorage。
-- 每日一题答案派生：每日池（简单+标准，064）槽位 `dayNumber × 2654435761` 散列取模 + 组内命中次序轮转（061 两级派生），无随机源；epoch=2026-09-13。练习模式答案由服务端开局随机抽取、内存持有（practice/start + gameId）。
-- **视觉维护入口**：页面与样式在 `app/guess.tsx` / `app/guess.css`，反馈格保留 hit/near/miss/unknown 四种语义 class，配色集中在 `--guess-*` 变量。动效先在 `reference/guess-review.html` 查看；规则阈值在 `GUESS_CONFIG`，不要通过改判定规则实现视觉效果。
-- **玩法规则独立成篇**：`docs/games/guess.md`（AGENTS.md 文档地图已收录）——规则口径、判定阈值、每日派生、数据集维护契约以它为准；PRODUCT.md 只留一段概述外链。
-- 已知小瑕疵（未修，不阻塞）：战绩条在结算当次不实时刷新，刷新页面后正确显示；「直接看答案」按钮在 `revealed` 后不再显示属预期但 `finished` 逻辑路径可再简化。
-
-## 验证（本轮实际跑过）
-
-- `npm run typecheck`、`npm run build`、`npm run check:motion`、`node scripts/validate-locale.mjs`：通过。
-- `npm run validate:guess`（新脚本，26 项）：数据完整性/判定规则/答案派生确定性/价格档边界与分布/真实 server 接口比对全过。
-- 定向 oxlint（本轮新文件 4 个）：0 错误。
-- 浏览器目验：首猜反馈着色与数值正确（计算样式审计）、猜中全绿+揭晓、分享 emoji 格局剪贴板正确、刷新接档、390px 窄屏无横向溢出（表格内滚）、语言切换中英完整。
-- 未跑完整 lint（既有 account/dev-panel 两项历史问题仍在，非本轮引入）；未跑 validate:votes/comments/admin 等后端回归（本轮未动这些业务，避免写库）。
-
-## 接手时仍须遵守的既有边界
+- 答案永不下发：每日题只有猜中或 `final:true`（第 8 次）才附答案；练习局答案服务端内存持有。**已知待拍板**：前端打包会把 `answerForDate` 打进 bundle（引 PRICE_TIERS 的连带），控制台可算当日答案——修法是把 PRICE_TIERS 挪独立模块。
+- 每日一题派生：每日池（简单+标准，064）`dayNumber × 2654435761` 散列选槽 + 组内命中次序轮转（061 两级派生），无随机源；epoch=2026-09-13；追加条目（含增量文件）必须带 sinceDay（070）。
+- **视觉维护入口**：`app/guess.tsx` / `app/guess.css`，反馈格保留 hit/near/miss/unknown 四种语义 class，配色集中在 `--guess-*` 变量；规则阈值在 `GUESS_CONFIG`，不要通过改判定规则实现视觉效果。
+- **玩法规则独立成篇**：`docs/games/guess.md`——规则口径、判定阈值、每日派生、数据集维护契约以它为准；PRODUCT.md 只留概述外链。
 
 - 过场分工：题库与菜单进测评用 convoy 一体斜幕，榜单入口用 bands（决策 052）；模一把走独立 `deal` 今日密牌（决策 059，不再走 convoy）。
 - 娱乐结果主按钮「下一题」随机排除当前题；正式测评维持同题换组（053）。
