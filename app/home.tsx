@@ -5,12 +5,17 @@ import { HomeDuel } from './home-duel';
 import './home-duel.css';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createGameTransition,
   bandsNavigate,
   convoyNavigate,
 } from '@/lib/game-transitions';
+import {
+  HOME_EDITION_CHANGED,
+  readHomeEdition,
+  type HomeEdition,
+} from '@/lib/home-edition';
 import { currentRatings } from '@/lib/ratings';
 // 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
 // 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
@@ -56,14 +61,14 @@ let frameTransitionRunning = false;
 
 export default function Home() {
   const { t, localize } = useI18n();
-  const [edition, setEdition] = useState<'old' | 'new' | 'duel'>(() => {
-    try {
-      const stored = localStorage.getItem('aob-home-edition');
-      return stored === 'old' || stored === 'duel' ? stored : 'new';
-    } catch {
-      return 'new';
-    }
-  });
+  // 版本定稿新版，三版对比入口收进开发者面板（决策 086）；
+  // 面板写入后靠事件即时换版，不刷新页面
+  const [edition, setEdition] = useState<HomeEdition>(readHomeEdition);
+  useEffect(() => {
+    const sync = () => setEdition(readHomeEdition());
+    window.addEventListener(HOME_EDITION_CHANGED, sync);
+    return () => window.removeEventListener(HOME_EDITION_CHANGED, sync);
+  }, []);
   const [format, setFormat] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const stage = useRef<HTMLElement>(null);
@@ -97,45 +102,16 @@ export default function Home() {
       note: 'YOUR INSTINCT MATTERS.',
       title: 'Round Start',
     });
-  const editionSwitch = (
-    <fieldset className="home-edition" aria-label={t('首页版本')}>
-      <span>{t('首页版本')}</span>
-      {(['old', 'new', 'duel'] as const).map((value) => (
-        <button
-          key={value}
-          disabled={leaving}
-          aria-pressed={edition === value}
-          onClick={() => {
-            setEdition(value);
-            try {
-              localStorage.setItem('aob-home-edition', value);
-            } catch {
-              /* Session-only preference. */
-            }
-          }}
-        >
-          {t(value === 'old' ? '经典版' : value === 'new' ? '新版' : '对决版')}
-        </button>
-      ))}
-    </fieldset>
-  );
   if (edition === 'new')
     return (
-      <>
-        <HomeNext enter={enter} enterRandom={enterRandom} leaving={leaving} />
-        {editionSwitch}
-      </>
+      <HomeNext enter={enter} enterRandom={enterRandom} leaving={leaving} />
     );
   if (edition === 'duel')
     return (
-      <>
-        <HomeDuel enter={enter} enterRandom={enterRandom} leaving={leaving} />
-        {editionSwitch}
-      </>
+      <HomeDuel enter={enter} enterRandom={enterRandom} leaving={leaving} />
     );
   return (
-    <>
-      <div className="lobby">
+    <div className="lobby">
         <div className="lobby-grid" aria-hidden="true" />
         <header className="lobby-header">
           <a className="lobby-brand" href="#home" aria-label={t('回到首页')}>
@@ -403,7 +379,5 @@ export default function Home() {
           </span>
         </footer>
       </div>
-      {editionSwitch}
-    </>
   );
 }

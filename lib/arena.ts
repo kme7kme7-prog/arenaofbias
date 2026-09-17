@@ -137,8 +137,8 @@ export type ResultContent =
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'text'; story: Story }
   | { kind: 'web'; template: Side }
-  | { kind: 'html'; src: string }
-  | { kind: 'html'; html: string };
+  | { kind: 'html'; src: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number } }
+  | { kind: 'html'; html: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number } };
 
 export type ModelResult = {
   id: string;

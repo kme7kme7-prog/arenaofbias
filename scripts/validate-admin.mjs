@@ -426,6 +426,27 @@ try {
     let publicWorks = await (await robustFetch(`${base}/api/works`)).json();
     assert.ok(publicWorks.works.some((item) => item.id === '001-test-model'));
 
+    // Calibration is persisted metadata; public rendering consumes it unchanged.
+    const calibration = { width: 1280, height: 1200, zoom: 1.25, offsetX: .1, offsetY: -.15 };
+    const patchFrame = (framing, cookie = ownerCookie) => robustFetch(`${base}/api/admin/works/001-test-model`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', origin: base, cookie },
+      body: JSON.stringify({ framing }),
+    });
+    assert.equal((await patchFrame(calibration, userCookie)).status, 404);
+    for (const bad of [{ ...calibration, height: 0 }, { ...calibration, zoom: 9 }, { ...calibration, offsetX: 2 }, { ...calibration, width: '1280' }, { ...calibration, surprise: 1 }])
+      assert.equal((await patchFrame(bad)).status, 400);
+    const sourceBefore = await (await robustFetch(`${base}${work.src}`)).text();
+    const savedFrame = await patchFrame(calibration);
+    assert.equal(savedFrame.status, 200);
+    assert.deepEqual((await savedFrame.json()).work.content.framing, calibration);
+    publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.deepEqual(JSON.parse(publicWorks.works.find(item => item.id === '001-test-model').content).framing, calibration);
+    assert.equal(await (await robustFetch(`${base}${work.src}`)).text(), sourceBefore, 'source HTML is untouched');
+    assert.equal((await patchFrame(null)).status, 200);
+    publicWorks = await (await robustFetch(`${base}/api/works`)).json();
+    assert.equal(JSON.parse(publicWorks.works.find(item => item.id === '001-test-model').content).framing, undefined);
+    console.log('PASS calibration: admin-only, numeric bounds, persisted public metadata, reset, unchanged HTML');
+
     // 同模型第二件自动让位 -2（modelName 必填——UI 表单会带出建议值）
     response = await register({
       name: '另一个，test-model.html',

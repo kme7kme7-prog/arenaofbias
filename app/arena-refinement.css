@@ -419,6 +419,12 @@ html[lang='zh-CN'] .brand strong {
   transform: translateX(11px);
   background: #e8ecdf;
 }
+/* 移动端巡览整体下线（决策 090）：窄屏隐藏开关，入场序列同样跳过 */
+@media (max-width: 699px) {
+  .arena-shell .tour-toggle {
+    display: none;
+  }
+}
 .arena-shell .next-button {
   font-size: 12px;
   min-height: 36px;
@@ -758,7 +764,9 @@ html[lang='en'] .arena-shell .vote-copy strong {
   .arena-shell .identity-pick { font-size: 9px; gap: 3px; }
   .arena-shell .entry-number { display: none; }
   .arena-shell .round-console.show-result { padding: 16px; flex-direction: column; align-items: stretch; }
-  .arena-shell .round-actions { width: 100%; justify-content: space-between; gap: 10px; }
+  .arena-shell .round-actions { width: 100%; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .arena-shell .round-actions .text-button { flex-shrink: 0; white-space: nowrap; }
+  .arena-shell .round-actions .next-button { flex: 1; }
   .arena-shell .next-button, .arena-shell .next-button.next-topic { min-width: 150px; }
   .arena-shell .draw-row { gap: 12px; }
 }

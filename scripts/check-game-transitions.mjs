@@ -21,6 +21,7 @@ const raf = new Map();
 function element() {
   return {
     children: [],
+    dataset: {},
     style: { setProperty() {} },
     setAttribute(k, v) {
       this[k] = v;
@@ -83,6 +84,15 @@ for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
     assert.ok(leaves[0].frames.at(-1).transform.includes('-101%'));
     assert.ok(leaves[1].frames.at(-1).transform.includes('101%'));
     assert.equal(run.timing.duration, 1260);
+    // 阶段标记（089）：exitStart 前 entry、之后 exit，开场牌门控据此提前接入
+    run.seek(run.timing.exitStart - 1);
+    assert.equal(run.layer.dataset.gtPhase, 'entry');
+    run.seek(run.timing.exitStart);
+    assert.equal(
+      run.layer.dataset.gtPhase,
+      'exit',
+      'layer must mark the exit phase for gate consumers',
+    );
     console.log('PASS match: two opaque leaves hold coverage until coordinated opening');
   } else if (kind === 'bands') {
     const field = tracks.find((t) => t.owner === 'gt-ink-field');
@@ -238,6 +248,18 @@ for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
     );
   }
   console.log('PASS kind styles never match the transition layer itself');
+  // 窄屏锁定构图回归：frame 全靠 cqw 定尺寸，竖屏会缩成邮票——
+  // 必须有 @container 窄屏规则覆盖 .gt-mark 方框与 .gt-wordmark 字标。
+  const narrow = /@container\s*\(max-width:\s*720px\)\s*\{([\s\S]*?)\n\}/.exec(
+    css,
+  );
+  assert.ok(narrow, 'frame transition needs a narrow-container override');
+  for (const sel of ['.gt-mark', '.gt-wordmark', '.gt-corner'])
+    assert.ok(
+      narrow[1].includes(sel),
+      `narrow-container override must restyle ${sel}`,
+    );
+  console.log('PASS frame: narrow container overrides the locked composition');
 }
 console.log(
   'Game transition invariant checks passed (frame, bands, convoy, deal, folio, match).',
@@ -264,6 +286,12 @@ assert.equal(document.body.children.length, 0);
 convoyNavigate('#event');
 assert.equal(window.location.hash, '#event');
 assert.equal(document.body.children.length, 0);
+// 窄屏菜单进测评改走双页过场：matchMedia 命中 max-width 时
+// convoyNavigate 不得再创建 convoy 斜幕轨道。
+assert.ok(
+  tracks.some((t) => t.owner?.startsWith('gt-match-leaf')),
+  'narrow screens must route convoy navigation through the match leaves',
+);
 console.log(
   'PASS menu navigation: duplicate/cross-entry lock, covered routing, normal and reduced cleanup',
 );

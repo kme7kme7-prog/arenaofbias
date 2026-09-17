@@ -1,0 +1,35 @@
+.fixed-html-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #e8ebe1;
+}
+.fixed-html-frame {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: block;
+  border: 0;
+  max-width: none;
+  transform-origin: 0 0;
+}
+.fixed-html-stage {
+  position: absolute;
+  overflow: hidden;
+}
+/* Keep the task's display ratio independent of viewport height and breakpoints. */
+.arena-shell .work-viewport.is-fixed-canvas {
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+}
+.arena-shell .is-fixed-canvas > .work-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.exhibit-dialog .expanded-work.is-fixed-canvas {
+  height: min(68svh, 720px);
+  min-height: 0;
+  overflow: hidden;
+}

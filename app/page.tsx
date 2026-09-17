@@ -1,6 +1,8 @@
 'use client';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
+import { FixedHtmlWork } from '@/components/fixed-html-work';
+import { workCanvas } from '@/lib/work-framing';
 
 import { AccountButton, useAccount } from '@/components/account';
 
@@ -68,6 +70,11 @@ import {
 import { submitVote } from '@/lib/votes';
 import { submitReaction, type ReactionKind } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
+import {
+  armTextSwap,
+  consumeTextSwap,
+  textSwapMask,
+} from '@/lib/text-swap-mask';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
@@ -79,6 +86,7 @@ const motionQuery = '(prefers-reduced-motion: reduce)';
 const ARENA_TIMING = {
   introLead: 1000,
   introReplayLead: 220,
+  introGateTail: 240,
   introFocus: 700,
   introStaticHold: 950,
   introScrollLead: 300,
@@ -393,6 +401,15 @@ function Work({
     return <WebWork side={result.content.template} interactive={expanded} />;
   if (result.content.kind === 'html') {
     const { content } = result;
+    const canvas = workCanvas(result);
+    if (canvas) return (
+      <FixedHtmlWork
+        content={content}
+        title={result.title}
+        canvas={canvas}
+        interactive={interactive}
+      />
+    );
     // 内联占位作品（srcDoc）不加载外部资源，沙箱保持最小权限
     const inline = 'html' in content;
     // 取景参数只随预览态注入：作品内补丁据此切换「预览取景 / 放大后看原始全貌」
@@ -480,13 +497,15 @@ export default function Arena({
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [sound, setSound] = useState(false);
-  // 「逐个巡览」开关（aob-arena-tour）：关闭后入场只保留开场牌一拍，
+  // 「逐个巡览」开关（aob-arena-tour，决策 077/090）：桌面默认关闭、
+  // 用户手动开过才记 'on'；移动端该功能整体下线（有严重 bug），
+  // 开关隐藏、入场序列也不跑巡览。关闭时入场只保留开场牌一拍，
   // 不再依次放大 A/B 两份作品，直接开放投票。
   const [tour, setTour] = useState(() => {
     try {
-      return localStorage.getItem('aob-arena-tour') !== 'off';
+      return localStorage.getItem('aob-arena-tour') === 'on';
     } catch {
-      return true;
+      return false;
     }
   });
   // 路由过场层（convoy / page-wipe）未离场前不挂开场牌，避免两段动画叠放
@@ -539,6 +558,10 @@ export default function Arena({
       },
     });
     arenaTransition.current = transition;
+    // 纸幕只盖场内区域；盖区外会变动的文本行先用纸条遮住（决策 089），
+    // 新页挂载后由 consumeTextSwap + reveal 接手错峰揭开
+    armTextSwap();
+    textSwapMask.cover(terminal, reducedMotion);
     const layerStyle = transition.layer.style;
     alignArenaTransition(transition.layer);
     // Long mobile stages extend beyond the viewport. Keep the interlude's
@@ -678,8 +701,20 @@ export default function Arena({
       }
       // 菜单→竞技场的过场层还挂在 body 上时等它扫出完毕：开场牌从过场
       // 结束才开始播，不与色块叠放。封顶等待兜底过场异常滞留。
+      // 例外（决策 089）：match 双页扫出尾段提前放牌，让牌面入场与
+      // 下方作品揭幕并行落点；其余过场仍等整层离场。
       for (let waited = 0; waited < 2600; waited += 40) {
-        if (!document.querySelector('.game-transition, .page-wipe')) break;
+        const layer = document.querySelector<HTMLElement>(
+          '.game-transition, .page-wipe',
+        );
+        if (!layer) break;
+        if (
+          layer.classList.contains('gt-match') &&
+          layer.dataset.gtPhase === 'exit'
+        ) {
+          await delay(ARENA_TIMING.introGateTail, signal);
+          break;
+        }
         await delay(40, signal);
       }
       setArrivalReady(true);
@@ -687,7 +722,8 @@ export default function Arena({
         state.run === 0 ? ARENA_TIMING.introLead : ARENA_TIMING.introReplayLead,
         signal,
       );
-      if (!tour) {
+      // 移动端巡览整体下线（决策 090）：窄屏无论开关如何都跳过 A/B 聚焦
+      if (!tour || window.innerWidth < 700) {
         dispatch({ type: 'READY' });
         return;
       }
@@ -808,6 +844,16 @@ export default function Arena({
     }
     return () => decryption.dispose();
   }, [revealed, state.mode, reducedMotion]);
+
+  // 换题文字纸条的下半程（决策 089）：上一页 cover 已遮住旧文本行，
+  // 本页挂载后立即按新行位铺纸条（layout effect 保证用户看不到未遮盖的
+  // 新文字），再错峰退开。只在本页经「下一题」换场到达时才揭——
+  // 菜单入场/首次加载未遮过字，consumeTextSwap 返回 false 不动作。
+  useLayoutEffect(() => {
+    if (consumeTextSwap() && terminalRef.current)
+      textSwapMask.reveal(terminalRef.current, reducedMotion);
+    return () => textSwapMask.dispose();
+  }, [reducedMotion]);
 
   // 反馈与提交时所属的对局（run）绑定：换组、重播、切模式都会递增 run，
   // 旧 run 的提交结果——包括网络晚到的响应——不会再覆盖新一轮的反馈
@@ -1065,7 +1111,7 @@ export default function Arena({
             <Crosshair size={19} />
             <span>
               {t('Round Start')}
-              <b>{localize(round.id)}</b>
+              <b data-swap>{localize(round.id)}</b>
             </span>
           </div>
           <div className="briefing-copy">
@@ -1073,18 +1119,22 @@ export default function Arena({
             {round.prompt.length > 90 ? (
               <details className="prompt-disclosure" key={round.id}>
                 <summary>
-                  <span>{round.name}</span>
+                  <span data-swap>{round.name}</span>
                   <span className="prompt-disclosure-label">
                     {t('查看完整提示词')}
                   </span>
                 </summary>
-                <p>{round.prompt}</p>
+                <p data-swap>{round.prompt}</p>
               </details>
             ) : (
-              <h2 key={round.id}>{round.prompt}</h2>
+              <h2 key={round.id} data-swap>
+                {round.prompt}
+              </h2>
             )}
           </div>
-          <span className="briefing-detail">{round.detail}</span>
+          <span className="briefing-detail" data-swap>
+            {round.detail}
+          </span>
           <div className="briefing-corner" aria-hidden="true" />
         </section>
 
@@ -1097,7 +1147,7 @@ export default function Arena({
             <Mark small />
             {t('评审附言')}
           </span>
-          <p>“{round.commentary}”</p>
+          <p data-swap>“{round.commentary}”</p>
         </aside>
         <div className="field-meta">
           <span>
@@ -1167,13 +1217,13 @@ export default function Arena({
                     </span>
                   </div>
                   <div
-                    className={`work-viewport ${prompt.kind === 'text' ? 'is-story' : ''}`}
+                    className={`work-viewport ${prompt.kind === 'text' ? 'is-story' : ''} ${workCanvas(result) ? 'is-fixed-canvas' : ''}`}
                   >
                     <div
                       className="work-inner"
                       key={`${state.round}-${side}`}
                       data-tour-scroll={
-                        prompt.kind === 'web' ? true : undefined
+                        prompt.kind === 'web' && !workCanvas(result) ? true : undefined
                       }
                     >
                       <Work
@@ -1504,9 +1554,9 @@ export default function Arena({
         >
           <div className="selector-heading">
             <span className="section-code">{t('ONE PROMPT / ONE ARENA')}</span>
-            <strong>{prompt.name}</strong>
+            <strong data-swap>{prompt.name}</strong>
           </div>
-          <p>
+          <p data-swap>
             {t(
               '本场收录 {models} 个模型的 {works} 份结果，只在这个提示词内比较。',
               {
@@ -1519,7 +1569,7 @@ export default function Arena({
               },
             )}
           </p>
-          <p>
+          <p data-swap>
             {localize(
               pairCount === 1
                 ? '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。'
@@ -1589,7 +1639,7 @@ export default function Arena({
               <X size={22} />
             </button>
           </div>
-          <div className="expanded-work">
+          <div className={`expanded-work ${expanded && workCanvas(pair[expanded === 'a' ? 0 : 1]) ? 'is-fixed-canvas' : ''}`}>
             {expanded && (
               <Work
                 result={pair[expanded === 'a' ? 0 : 1]}

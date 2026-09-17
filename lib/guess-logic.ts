@@ -442,17 +442,16 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
     GUESS_CONFIG.contextNearRatio,
   );
 
-  // 模态：全等=绿；有交集=黄；无交集=灰（答案集∩猜测集）
-  const overlap = answer.modalities.filter((m) =>
-    guess.modalities.includes(m),
-  );
+  // 模态（2026-09-17 用户拍板改为二元判定）：属性只有「纯文本 / 多模态」两个取值，
+  // 不细究图/音/视的差别——集合级差异会退化成背规格，同类即算接近。
+  // 同纯文本=绿；同多模态=黄（恒黄，即使两边模态集合完全相同）；一纯一多=灰。
+  // 旧的「集合全等=绿、有交集=黄」已废弃：它让两个多模态模型互给绿，与二元口径冲突。
+  const guessMulti = guess.modalities.some((m) => m !== 'text');
+  const answerMulti = answer.modalities.some((m) => m !== 'text');
   attributes.modalities =
-    guess.modalities.length === answer.modalities.length &&
-    overlap.length === answer.modalities.length
-      ? { state: 'hit', arrow: null }
-      : overlap.length > 0
-        ? { state: 'near', arrow: null }
-        : { state: 'miss', arrow: null };
+    guessMulti !== answerMulti
+      ? { state: 'miss', arrow: null }
+      : { state: answerMulti ? 'near' : 'hit', arrow: null };
 
   // 推理模型：二值
   attributes.reasoning =

@@ -17,6 +17,7 @@
 //   APP_ORIGIN      站点完整来源（如 https://example.com），反代后必设
 
 import express from 'express';
+import { validWorkFraming } from './work-framing.js';
 import { installAuth } from './auth.js';
 import {
   insertWork,
@@ -887,8 +888,9 @@ const selectWorkById = db.prepare(
 const adminWorkView = (row) => {
   if (!row) return null;
   let src = null;
+  let content = null;
   try {
-    const content = JSON.parse(row.content);
+    content = JSON.parse(row.content);
     if (content && typeof content.src === 'string') src = content.src;
   } catch {
     // content 损坏时预览留空，不影响列表与管理
@@ -903,6 +905,7 @@ const adminWorkView = (row) => {
     published: !!row.published,
     createdAt: row.createdAt,
     src,
+    content,
   };
 };
 
@@ -953,10 +956,20 @@ app.patch('/api/admin/works/:id', requireAdmin, (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
-  const row = db.prepare('SELECT id FROM works WHERE id = ?').get(req.params.id);
+  const row = db.prepare('SELECT id, content FROM works WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: '作品不存在' });
   const body = req.body || {};
   const updates = {};
+  if (body.framing !== undefined) {
+    let content;
+    try { content = JSON.parse(row.content); } catch { /* Invalid source metadata cannot be calibrated. */ }
+    if (content?.kind !== 'html') return res.status(400).json({ error: '仅 HTML 作品支持画布校准' });
+    if (body.framing !== null && !validWorkFraming(body.framing))
+      return res.status(400).json({ error: '画布参数无效：宽 320–3840、高 240–3840，缩放 0.25–4，位置 -1–1' });
+    if (body.framing === null) delete content.framing;
+    else content.framing = body.framing;
+    updates.content = JSON.stringify(content);
+  }
   if (body.title !== undefined) {
     if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 120)
       return res.status(400).json({ error: '标题须为 1–120 字' });
@@ -1817,6 +1830,9 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
       },
     }),
   );
+  app.get(['/admin', '/admin/'], (_req, res) => {
+    res.set('Cache-Control', 'no-cache').sendFile(path.join(distDir, 'admin.html'));
+  });
   // SPA 回退：未知 GET 路径交给前端入口。
   app.use((req, res, next) => {
     if (req.method !== 'GET') return next();

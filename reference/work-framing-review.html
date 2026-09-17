@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HTML 画布适配检查</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #e8ebe1;
+        color: #20392f;
+        font: 14px/1.6 system-ui;
+      }
+      main {
+        max-width: 1280px;
+        margin: auto;
+      }
+      h1 {
+        margin: 0 0 12px;
+      }
+      label {
+        display: inline-flex;
+        gap: 10px;
+        margin: 8px 20px 8px 0;
+        align-items: center;
+      }
+      select {
+        max-width: 90vw;
+        padding: 8px;
+      }
+      #sample {
+        width: min(100%, 800px);
+        aspect-ratio: 16/9;
+        border: 1px solid #233c3260;
+        margin: 20px 0;
+      }
+      a {
+        color: inherit;
+      }
+      input {
+        max-width: 35vw;
+      }
+      #status {
+        font: 12px monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>固定画布 · HTML 作品适配</h1>
+      <p>
+        与竞技场使用同一组件。拖动宽度时，HTML 始终在 1280×720
+        下运行；整幅等比缩放，不启用旧 aob=prev 取景补丁。
+      </p>
+      <label>作品<select id="works" aria-label="作品"></select></label>
+      <label
+        >卡片宽度<input
+          id="width"
+          type="range"
+          min="260"
+          max="1280"
+          value="800"
+      /></label>
+      <label
+        >容器比例<select id="ratio">
+          <option value="16/9">16:9 卡片</option>
+          <option value="1/1">1:1 留白检查</option>
+          <option value="9/16">9:16 留白检查</option>
+        </select></label
+      >
+      <div id="sample"></div>
+      <p id="status"></p>
+      <a id="original" target="_blank" rel="noopener">打开原作 ↗</a>
+    </main>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { FixedHtmlWork } from '/components/fixed-html-work.tsx';
+      import { fetchWorks } from '/lib/works.ts';
+      import { workCanvas } from '/lib/work-framing.ts';
+      const works = ((await fetchWorks()) || []).filter(
+        (w) => !w.isDemo && workCanvas(w),
+      );
+      const select = document.querySelector('#works');
+      for (const work of works) {
+        const option = document.createElement('option');
+        option.value = work.id;
+        option.textContent = work.title;
+        select.append(option);
+      }
+      const sample = document.querySelector('#sample');
+      const root = createRoot(sample);
+      function render() {
+        const work = works.find((w) => w.id === select.value);
+        if (!work) return;
+        root.render(
+          React.createElement(FixedHtmlWork, {
+            key: work.id,
+            content: work.content,
+            title: work.title,
+            canvas: workCanvas(work),
+            interactive: true,
+          }),
+        );
+        document.querySelector('#original').href = work.content.src;
+      }
+      select.onchange = render;
+      document.querySelector('#width').oninput = (e) => {
+        sample.style.width = `min(100%,${e.target.value}px)`;
+      };
+      document.querySelector('#ratio').onchange = (e) => {
+        sample.style.aspectRatio = e.target.value;
+      };
+      new ResizeObserver(() => {
+        document.querySelector('#status').textContent =
+          `作品 ${works.length} 份 · 容器 ${sample.clientWidth} × ${sample.clientHeight} · 内部 1280 × 720`;
+      }).observe(sample);
+      render();
+    </script>
+  </body>
+</html>

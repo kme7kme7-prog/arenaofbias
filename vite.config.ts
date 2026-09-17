@@ -9,7 +9,19 @@ import { defineConfig } from 'vite';
 // 托管构建产物。开发模式下由 Vite 起 5173 并代理 /api 到 3000。
 export default defineConfig({
   css: { postcss: { plugins: [tailwindcss()] } },
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'admin-entry-alias',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url && /^\/admin\/?(?:\?|$)/.test(req.url))
+            req.url = req.url.replace(/^\/admin\/?/, '/admin.html');
+          next();
+        });
+      },
+    },
+  ],
   resolve: {
     alias: {
       // 保持 '@/' 指向项目根目录（与 tsconfig paths 一致）。

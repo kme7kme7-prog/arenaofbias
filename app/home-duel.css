@@ -652,6 +652,10 @@
   .duel-side-b .duel-side-bar {
     padding: calc(var(--duel-cut) + 16px) 18px 0;
   }
+  /* 中央 VS 章压住 B 顶栏中段，身份标注右移避开 */
+  .duel-side-b .duel-side-bar span {
+    margin-left: auto;
+  }
   .duel-side-a .duel-side-bar {
     padding: 16px 18px 0;
   }

@@ -13,6 +13,11 @@ import {
   writePlaceholderVotes,
   type DevSettings,
 } from '@/lib/placeholder';
+import {
+  readHomeEdition,
+  writeHomeEdition,
+  type HomeEdition,
+} from '@/lib/home-edition';
 
 const MODEL_COUNT_OPTIONS = [2, 4, 6, 8, 10, 12, 14, 16];
 const GENERATED_VOTE_COUNT = 200;
@@ -27,6 +32,7 @@ export function DevPanel() {
   const [status, setStatus] = useState('');
   const [devBusy, setDevBusy] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
+  const [homeEdition, setHomeEdition] = useState<HomeEdition>(readHomeEdition);
   const { user, refresh: refreshAccount } = useAccount();
 
   // 清空 dev 自己的真实投票（服务端 DELETE + 榜单刷新），本地反复测试用。
@@ -163,6 +169,20 @@ export function DevPanel() {
     notifyVotesChanged();
   };
 
+  // 首页版本定稿新版后，三版对比入口收进面板（决策 086）：
+  // 写入后派事件，首页即时换版；其他页面下次进首页重读
+  const changeHomeEdition = (value: HomeEdition) => {
+    writeHomeEdition(value);
+    setHomeEdition(value);
+    setStatus(
+      t('已切换首页版本：{name}（在首页打开面板时立即生效）', {
+        name: t(
+          value === 'old' ? '经典版' : value === 'duel' ? '对决版' : '新版',
+        ),
+      }),
+    );
+  };
+
   // 同一页面内 localStorage 写入不会触发 storage 事件，
   // 榜单页靠这个自定义事件立即重读占位投票（否则要手动「重播入场」）
   const notifyVotesChanged = () => {
@@ -225,6 +245,22 @@ export function DevPanel() {
             {localize(devBusy ? '登录中…' : '免登录进入')}
           </button>
         </div>
+        <label className="dev-row">
+          <span>
+            {t('首页版本')}
+            <small>{t('三版首页对比入口，默认新版')}</small>
+          </span>
+          <select
+            value={homeEdition}
+            onChange={(event) =>
+              changeHomeEdition(event.target.value as HomeEdition)
+            }
+          >
+            <option value="new">{t('新版')}</option>
+            <option value="old">{t('经典版')}</option>
+            <option value="duel">{t('对决版')}</option>
+          </select>
+        </label>
         <label className="dev-row">
           <span>
             {t('占位符模式')}

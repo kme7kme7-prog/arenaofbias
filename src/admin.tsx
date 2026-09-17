@@ -105,16 +105,26 @@ function AdminShell({ user, section, onSection }: {
   );
 }
 
+function readSection(): SectionKey {
+    const key = window.location.hash.slice(1);
+    return SECTIONS.some(item => item.key === key) ? key as SectionKey : 'dashboard';
+}
+
 function App() {
   const { user, loading } = useSession();
-  const [section, setSection] = useState<SectionKey>('dashboard');
+  const [section, setSection] = useState<SectionKey>(readSection);
+  useEffect(() => {
+    const sync = () => setSection(readSection());
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
   // 会话确认前的空白，避免闪现 404
   if (loading) return <div className="admin-loading" />;
   // 未登录或非管理员：与未知路由一致的 404，不泄露后台存在
   if (!user || user.role !== 'admin') return <NotFound />;
   return (
     <StrictMode>
-      <AdminShell user={user} section={section} onSection={setSection} />
+    <AdminShell user={user} section={section} onSection={key => { window.location.hash = key; setSection(key); }} />
     </StrictMode>
   );
 }

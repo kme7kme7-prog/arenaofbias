@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>文字换场研究室 · ARENA OF BIAS</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e8ebe1;
+        color: #262c25;
+        font-family: Arial, 'Microsoft YaHei', sans-serif;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      header {
+        padding: 28px 4vw 20px;
+        border-bottom: 1px solid #aab2a3;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+      }
+      header b {
+        font-size: 24px;
+        letter-spacing: -1px;
+      }
+      header span,
+      .eyebrow {
+        font: 11px monospace;
+        letter-spacing: 2px;
+      }
+      a {
+        color: inherit;
+      }
+      main {
+        max-width: 1500px;
+        margin: auto;
+        padding: 28px 4vw;
+      }
+      .intro {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 52px);
+        letter-spacing: -2px;
+        margin: 12px 0;
+      }
+      .intro p {
+        font-size: 13px;
+        line-height: 1.8;
+        color: #5d6657;
+        margin: 8px 0;
+        max-width: 640px;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      .tabs button {
+        padding: 14px 20px;
+        border: 1px solid #333d2b;
+        background: transparent;
+      }
+      .tabs button[aria-selected='true'] {
+        background: #273024;
+        color: #deef7d;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 24px;
+      }
+      .workspace > * {
+        min-width: 0;
+      }
+      /* ---- 模拟竞技场 ---- */
+      .arena-mock {
+        background: #dfe3dd;
+        border: 1px solid #273024;
+        padding: 22px 26px;
+        font-size: 13px;
+        line-height: 1.75;
+        color: #2a332c;
+      }
+      .mock-briefing {
+        display: flex;
+        gap: 22px;
+        align-items: flex-start;
+        border-bottom: 1px solid #b7bfae;
+        padding-bottom: 16px;
+      }
+      .mock-tag {
+        flex-shrink: 0;
+        font: 10px monospace;
+        letter-spacing: 1.5px;
+        border: 1px solid #79856a;
+        padding: 7px 10px;
+        line-height: 1.4;
+      }
+      .mock-tag b {
+        display: block;
+        font-size: 16px;
+        letter-spacing: 0;
+      }
+      .mock-prompt {
+        flex: 1;
+      }
+      .mock-prompt > span {
+        display: block;
+        font: 9px monospace;
+        letter-spacing: 2px;
+        color: #79856a;
+        margin-bottom: 5px;
+      }
+      .mock-prompt h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.7;
+      }
+      .mock-commentary {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        margin: 14px 0 18px;
+        font-size: 12px;
+        color: #5d6657;
+      }
+      .mock-commentary span {
+        flex-shrink: 0;
+        font: 9px monospace;
+        letter-spacing: 2px;
+        color: #79856a;
+      }
+      .mock-commentary p {
+        margin: 0;
+        font-style: italic;
+      }
+      .mock-stage-wrap {
+        position: relative;
+        border: 1px solid #273024;
+        overflow: hidden;
+      }
+      .mock-meta {
+        display: flex;
+        justify-content: space-between;
+        font: 9px monospace;
+        letter-spacing: 1.5px;
+        padding: 8px 12px;
+        border-bottom: 1px solid #273024;
+        background: #d4d9cf;
+      }
+      .mock-stage {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: #273024;
+      }
+      .mock-card {
+        background: #e9ede2;
+        min-height: 170px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+      }
+      .mock-card header {
+        border: 0;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        font: 10px monospace;
+      }
+      .mock-canvas {
+        flex: 1;
+        margin: 10px 0;
+        display: grid;
+        place-items: center;
+        font-size: 44px;
+        background:
+          radial-gradient(ellipse at 70% 30%, #b4d39360, transparent 55%),
+          linear-gradient(140deg, #cdd5c4, #aebfa0);
+        border: 1px solid #9aa78c;
+      }
+      .mock-card footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #5d6657;
+      }
+      .mock-console {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-top: 1px solid #273024;
+        background: #d4d9cf;
+        font-size: 11px;
+      }
+      .mock-console b {
+        background: #273024;
+        color: #d9fb51;
+        padding: 6px 14px;
+        font-weight: 600;
+      }
+      .mock-console span {
+        font: 9px monospace;
+        letter-spacing: 1px;
+        color: #79856a;
+      }
+      .mock-context {
+        border-top: 1px solid #b7bfae;
+        margin-top: 18px;
+        padding-top: 14px;
+      }
+      .mock-context .section-code {
+        display: block;
+        font: 9px monospace;
+        letter-spacing: 2px;
+        color: #79856a;
+      }
+      .mock-context strong {
+        display: block;
+        font-size: 15px;
+        margin: 4px 0 8px;
+      }
+      .mock-context p {
+        margin: 4px 0;
+        color: #5d6657;
+        font-size: 12px;
+      }
+      .mock-links {
+        display: flex;
+        gap: 14px;
+        margin-top: 10px;
+        font-size: 11px;
+      }
+      .mock-links a {
+        border: 1px solid #79856a;
+        padding: 6px 12px;
+        text-decoration: none;
+      }
+      /* ---- 效果样式 ---- */
+      .tw-cursor {
+        display: inline-block;
+        width: 0.55em;
+        margin-left: 1px;
+        background: #273024;
+        color: transparent;
+        animation: tw-blink 0.7s steps(1) infinite;
+        vertical-align: -0.08em;
+      }
+      @keyframes tw-blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .document-redacted {
+        position: relative;
+      }
+      .document-redaction-window {
+        position: absolute;
+        display: block;
+        overflow: hidden;
+        pointer-events: none;
+        user-select: none;
+        z-index: 1;
+      }
+      .document-redaction-ink {
+        position: absolute;
+        inset: 0;
+        display: block;
+        background: #20221d;
+        will-change: transform;
+      }
+      .paper-redaction-window {
+        position: absolute;
+        display: block;
+        overflow: hidden;
+        pointer-events: none;
+        user-select: none;
+        z-index: 1;
+      }
+      .paper-redaction-ink {
+        position: absolute;
+        inset: 0;
+        display: block;
+        background: #eef1e6;
+        border-bottom: 1px solid #b7bfae;
+        will-change: transform;
+      }
+      /* ---- 控件 ---- */
+      .transport {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .transport button {
+        padding: 10px 16px;
+        background: #283024;
+        color: #e7eecc;
+        border: 0;
+      }
+      .transport button.secondary {
+        background: transparent;
+        border: 1px solid #8b9680;
+        color: #283024;
+      }
+      .transport output {
+        margin-left: auto;
+        font: 12px monospace;
+      }
+      .steps {
+        border-top: 1px solid #aab2a3;
+        padding-top: 15px;
+      }
+      .steps b {
+        font-size: 13px;
+      }
+      .steps p {
+        font-size: 13px;
+        line-height: 1.8;
+        color: #5d6657;
+        margin: 8px 0;
+      }
+      .panel {
+        border-top: 3px solid #303a2a;
+        padding-top: 16px;
+      }
+      .panel label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 24px;
+      }
+      .panel select {
+        width: 100%;
+        padding: 10px;
+        margin-top: 9px;
+        background: transparent;
+        border: 1px solid #a2ac97;
+      }
+      .panel h3 {
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin: 4px 0 25px;
+      }
+      .panel > p {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #5d6657;
+      }
+      .links {
+        font: 11px monospace;
+        line-height: 2;
+        margin-top: 24px;
+      }
+      @media (max-width: 850px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .intro {
+          display: block;
+        }
+        .tabs {
+          margin-top: 20px;
+        }
+        .mock-briefing {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>ARENA OF BIAS</b><span>MOTION STUDIES / TEXT SWAP</span
+      ><a href="/reference/game-transitions-review.html?study=match">双页过场对照 ↗</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <div class="eyebrow">REFERENCE / TEXT TRANSITIONS</div>
+          <h1>纸幕盖不到的地方，文字怎么换。</h1>
+          <p>
+            双页纸幕只盖场内区域（LIVE COMPARISON → 操作行），顶部命题与底部题解裸露在盖区外。
+            这里模拟真实换题：纸幕合拢盖满时切内容，四种文字换场在盖区外同步发生。
+          </p>
+        </div>
+        <div class="tabs">
+          <button id="scramble" aria-selected="true">01 乱码回归</button
+          ><button id="paper" aria-selected="false">02 纸色条揭开</button
+          ><button id="typewriter" aria-selected="false">03 打字机</button
+          ><button id="redact" aria-selected="false">04 黑条解密</button>
+        </div>
+      </div>
+      <div class="workspace">
+        <div>
+          <div class="arena-mock" id="arena">
+            <div class="mock-briefing">
+              <div class="mock-tag">
+                ROUND START
+                <b data-fx="id">001</b>
+              </div>
+              <div class="mock-prompt">
+                <span>本轮命题</span>
+                <h2 data-fx="prompt" data-cursor></h2>
+              </div>
+            </div>
+            <div class="mock-commentary">
+              <span>评审附言</span>
+              <p data-fx="commentary"></p>
+            </div>
+            <div class="mock-stage-wrap" id="stage-wrap">
+              <div class="mock-meta">
+                <span>◆ LIVE COMPARISON / WEB</span>
+                <span>◐ IDENTITY ENCRYPTED</span>
+              </div>
+              <div class="mock-stage">
+                <article class="mock-card">
+                  <header><b>A</b><span>UNKNOWN MODEL</span></header>
+                  <div class="mock-canvas" data-art="a"></div>
+                  <footer><span>我寻思这边能行</span><span>↗</span></footer>
+                </article>
+                <article class="mock-card">
+                  <header><b>B</b><span>UNKNOWN MODEL</span></header>
+                  <div class="mock-canvas" data-art="b"></div>
+                  <footer><span>显然是这边厉害</span><span>↗</span></footer>
+                </article>
+              </div>
+              <div class="mock-console">
+                <span>01 作品入场 — 02 直觉投票 — 03 身份揭晓</span>
+                <span>逐个巡览 ⟳ 重播入场</span>
+                <b>下一题 →</b>
+              </div>
+            </div>
+            <div class="mock-context">
+              <span class="section-code">ONE PROMPT / ONE ARENA</span>
+              <strong data-fx="name"></strong>
+              <p data-fx="stat"></p>
+              <p data-fx="pool"></p>
+              <div class="mock-links">
+                <a href="#">返回提示词库 ↗</a>
+                <a href="#">随机换个竞技场 →</a>
+              </div>
+            </div>
+          </div>
+          <div class="transport">
+            <button id="play">换题 ↗</button
+            ><button class="secondary" id="solo">只看文字效果</button
+            ><output id="clock"></output>
+          </div>
+          <div class="steps">
+            <b id="description-title"></b>
+            <p id="description"></p>
+          </div>
+        </div>
+        <aside class="panel">
+          <h3>PLAYBACK SETTINGS</h3>
+          <label
+            >文字效果速度<select id="speed">
+              <option value="1">1× 正常</option>
+              <option value="0.6">0.6× 慢放</option>
+              <option value="1.5">1.5× 紧凑</option>
+            </select></label
+          >
+          <label><input type="checkbox" id="reduced" /> 模拟减少动态效果</label>
+          <p id="study-note">
+            纸幕盖满约 420ms 时切换内容——文字效果从这一刻开始，与纸幕打开并行。连续点「换题」轮换三道不同长度的模拟命题。
+          </p>
+          <div class="links">
+            <span>模块：lib/game-transitions.ts（match）<br />解密：lib/decryption.ts</span>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script type="module">
+      import { createGameTransition } from '/lib/game-transitions.ts';
+      import '/app/game-transitions.css';
+      import { DocumentDecryption } from '/lib/decryption.ts';
+      const $ = (id) => document.getElementById(id);
+
+      const rounds = [
+        {
+          id: '001',
+          prompt: '创建一个HTML，内容是SVG绘制一个鹈鹕骑自行车的2D动画。',
+          commentary: '“长喙、双轮，看看谁能上它真正骑起来。”',
+          name: '鹈鹕大挑战',
+          stat: '本场收录 17 个模型的 20 份结果，只在这个提示词内比较。',
+          pool: '换一组会优先抽取不同的作品组合。',
+          art: ['🚲', '🎡'],
+        },
+        {
+          id: '004',
+          prompt:
+            '用不到200行的JavaScript实现一个可交互的太阳系模型：行星按真实比例沿轨道公转，支持滚轮缩放查看，点击任意行星弹出它的简介卡片。',
+          commentary: '“比例可以骗人，但轨道不会。”',
+          name: '微型太阳系',
+          stat: '本场收录 9 个模型的 14 份结果，只在这个提示词内比较。',
+          pool: '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。',
+          art: ['🪐', '☀️'],
+        },
+        {
+          id: '007',
+          prompt:
+            '写一封信：以一台即将退役的自动售货机的口吻，向每天来买咖啡的写字楼告别。',
+          commentary: '“最后一罐咖啡，留给最常来的人。”',
+          name: '售货机告别信',
+          stat: '本场收录 12 个模型的 18 份结果，只在这个提示词内比较。',
+          pool: '换一组会优先抽取不同的作品组合。',
+          art: ['✉️', '🏢'],
+        },
+      ];
+      let roundIndex = 0;
+      let effect = 'scramble';
+      let busy = false;
+
+      const fxEls = () => [...$('arena').querySelectorAll('[data-fx]')];
+      const reduced = () =>
+        $('reduced').checked ||
+        matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const scale = () => 1 / Number($('speed').value);
+
+      function applyRound(round) {
+        fxEls().forEach((el) => {
+          el.textContent = round[el.dataset.fx];
+        });
+        document.querySelector('[data-art="a"]').textContent = round.art[0];
+        document.querySelector('[data-art="b"]').textContent = round.art[1];
+      }
+
+      /* ---- 效果循环：统一可取消（换题中途旧效果不得盖掉新文字） ---- */
+      const fxCancels = new Set();
+      function fxLoop(tick, duration, delay = 0) {
+        let dead = false;
+        const cancel = () => (dead = true);
+        fxCancels.add(cancel);
+        const start = performance.now() + delay;
+        const run = (now) => {
+          if (dead) return;
+          const t = Math.min(1, Math.max(0, (now - start) / duration));
+          tick(t);
+          if (t < 1) requestAnimationFrame(run);
+          else fxCancels.delete(cancel);
+        };
+        requestAnimationFrame(run);
+      }
+      function killFx() {
+        fxCancels.forEach((cancel) => cancel());
+        fxCancels.clear();
+        decryption.dispose();
+        $('arena')
+          .querySelectorAll('.paper-redaction-window')
+          .forEach((w) => w.remove());
+      }
+
+      /* ---- 效果 01：乱码回归 ---- */
+      const CJK = '天地玄黄宇宙洪荒日月盈昃辰宿列张律吕调阳云腾致雨露结为霜';
+      const GLYPH = '█▓▒░◢◣◤◥#%&@$§×+≈';
+      const rand = (pool) => pool[(Math.random() * pool.length) | 0];
+      const isCJK = (ch) => ch.charCodeAt(0) > 0x2e7f;
+      function scrambleIn(el, delay, duration) {
+        const final = el.dataset.final ?? el.textContent;
+        const len = final.length;
+        if (!len) return;
+        // 每个字符的归位时刻：整体偏左→右，加少量噪声，分行也原地归位
+        const thresholds = [...final].map(
+          (_, i) => (i / len) * 0.72 + Math.random() * 0.28,
+        );
+        fxLoop((t) => {
+          if (t >= 1) {
+            el.textContent = final;
+            return;
+          }
+          let out = '';
+          for (let i = 0; i < len; i++) {
+            const ch = final[i];
+            if (thresholds[i] <= t || /\s/.test(ch)) out += ch;
+            else out += isCJK(ch) ? rand(CJK) : rand(GLYPH);
+          }
+          el.textContent = out;
+        }, duration, delay);
+      }
+
+      /* ---- 效果 02/04：逐行纸条（02 纸色先遮后揭 / 04 深墨走真实类） ---- */
+      function measureLines(el) {
+        el.classList.add('document-redacted');
+        const bounds = el.getBoundingClientRect();
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const lines = [];
+        let node;
+        while ((node = walker.nextNode())) {
+          if (!node.textContent?.trim()) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          for (const rect of range.getClientRects()) {
+            if (!rect.width || !rect.height) continue;
+            const y = rect.top - bounds.top;
+            const line = lines.find((entry) => Math.abs(entry.y - y) < 6);
+            if (line) {
+              line.x = Math.min(line.x, rect.left - bounds.left);
+              line.right = Math.max(line.right, rect.right - bounds.left);
+              line.bottom = Math.max(line.bottom, rect.bottom - bounds.top);
+            } else
+              lines.push({
+                x: rect.left - bounds.left,
+                y,
+                right: rect.right - bounds.left,
+                bottom: rect.bottom - bounds.top,
+              });
+          }
+        }
+        return lines;
+      }
+      function makeCovers(el, lines) {
+        return lines.map((line, order) => {
+          const win = document.createElement('span');
+          win.className = 'paper-redaction-window';
+          win.setAttribute('aria-hidden', 'true');
+          const left = Math.max(0, line.x - 1);
+          const right = Math.min(el.clientWidth, line.right + 1);
+          win.style.cssText = `left:${left}px;top:${line.y - 1}px;width:${right - left}px;height:${line.bottom - line.y + 2}px`;
+          const ink = document.createElement('span');
+          ink.className = 'paper-redaction-ink';
+          win.append(ink);
+          el.append(win);
+          return { win, ink, order };
+        });
+      }
+      // 遮入：纸条从左滑入盖住旧文字（与纸幕合拢同拍，~340ms）
+      function lineCover(el, delay, duration) {
+        const covers = makeCovers(el, measureLines(el));
+        covers.forEach((c) => (c.ink.style.transform = 'translateX(-101%)'));
+        fxLoop((t) => {
+          const count = Math.max(1, covers.length - 1);
+          for (const cover of covers) {
+            const d = (cover.order / count) * 0.25;
+            const p = Math.min(1, Math.max(0, (t - d) / 0.75));
+            const eased = 1 - (1 - p) ** 3;
+            cover.ink.style.transform = `translateX(${-101 + eased * 101}%)`;
+          }
+        }, duration, delay);
+      }
+      // 揭开：纸条已盖住新文字，错峰向右退开
+      function lineReveal(el, delay, duration) {
+        const covers = makeCovers(el, measureLines(el));
+        fxLoop((t) => {
+          const count = Math.max(1, covers.length - 1);
+          for (const cover of covers) {
+            const d = (cover.order / count) * 0.22;
+            const p = Math.min(1, Math.max(0, (t - d) / 0.78));
+            const eased =
+              p < 0.2 ? 0.4 * (p / 0.2) ** 2 : 1 - 0.6 * ((1 - p) / 0.8) ** (16 / 3);
+            cover.ink.style.transform = `translateX(${eased * 101}%)`;
+          }
+          if (t >= 1) covers.forEach((c) => c.win.remove());
+        }, duration, delay);
+      }
+      const decryption = new DocumentDecryption('[data-fx]');
+
+      /* ---- 效果 03：打字机（删除旧字 → 打新字） ---- */
+      function typeDelete(el, duration) {
+        const text = el.textContent;
+        fxLoop(
+          (t) => {
+            el.textContent = text.slice(0, Math.ceil(text.length * (1 - t)));
+          },
+          duration,
+        );
+      }
+      function typeIn(el, delay, cps) {
+        const final = el.dataset.final ?? '';
+        const caret =
+          el.dataset.cursor !== undefined ? document.createElement('span') : null;
+        if (caret) {
+          caret.className = 'tw-cursor';
+          caret.textContent = '|';
+        }
+        fxLoop(
+          (t) => {
+            el.textContent = final.slice(0, Math.floor(t * final.length));
+            if (caret) el.append(caret);
+            if (t >= 1) caret?.remove();
+          },
+          (final.length / cps) * 1000,
+          delay,
+        );
+      }
+
+      /* ---- 编排：模拟真实换题 ---- */
+      function swapText(round) {
+        const s = scale();
+        killFx(); // 旧页阶段的遮字/退字到此为止
+        const els = fxEls();
+        if (effect === 'typewriter') {
+          els.forEach((el, i) => {
+            el.dataset.final = round[el.dataset.fx];
+            el.textContent = '';
+            typeIn(el, i * 90 * s, 34 * Number($('speed').value));
+          });
+          return;
+        }
+        applyRound(round);
+        if (reduced()) return;
+        if (effect === 'scramble') {
+          els.forEach((el, i) => scrambleIn(el, i * 55 * s, 620 * s));
+        } else if (effect === 'paper') {
+          // 起揭延迟 240ms：纸条先盖着，等纸幕开始打开才错峰退开
+          els.forEach((el, i) => lineReveal(el, (240 + i * 70) * s, 700 * s));
+        } else {
+          decryption.reset($('arena'), false);
+          decryption.reveal(false);
+        }
+      }
+
+      function nextRound() {
+        if (busy) return;
+        busy = true;
+        roundIndex = (roundIndex + 1) % rounds.length;
+        const round = rounds[roundIndex];
+        if (reduced()) {
+          applyRound(round);
+          busy = false;
+          return;
+        }
+        const s = scale();
+        // 旧字退场与纸幕合拢同拍：打字机退格 / 纸条遮入
+        if (effect === 'typewriter') {
+          fxEls().forEach((el) => typeDelete(el, 380));
+        } else if (effect === 'paper') {
+          fxEls().forEach((el, i) => lineCover(el, i * 40 * s, 340 * s));
+        }
+        const transition = createGameTransition('match', {
+          parent: $('stage-wrap'),
+          title: round.name,
+          index: round.id,
+          onCovered: () => swapText(round),
+          onFinish: () => {
+            busy = false;
+            $('clock').value = '';
+          },
+          onFrame: (time, duration) => {
+            $('clock').value = `${Math.round(time)} / ${duration} ms`;
+          },
+        });
+        transition.play();
+      }
+
+      function solo() {
+        if (busy) return;
+        busy = true;
+        roundIndex = (roundIndex + 1) % rounds.length;
+        const round = rounds[roundIndex];
+        if (reduced()) {
+          applyRound(round);
+          busy = false;
+          return;
+        }
+        const s = scale();
+        // 先遮/先退，再换再揭——与换题同一套编排
+        if (effect === 'typewriter') {
+          fxEls().forEach((el) => typeDelete(el, 300 * s));
+          setTimeout(() => swapText(round), 340 * s);
+          setTimeout(() => (busy = false), 3200 * s);
+        } else if (effect === 'paper') {
+          fxEls().forEach((el, i) => lineCover(el, i * 40 * s, 340 * s));
+          setTimeout(() => swapText(round), 430 * s);
+          setTimeout(() => (busy = false), 1500 * s);
+        } else {
+          swapText(round);
+          setTimeout(() => (busy = false), 1100 * s);
+        }
+      }
+
+      const descriptions = {
+        scramble: [
+          '01 / 乱码回归',
+          '每个字符原地从随机字形收敛成正确字：新文本先按最终形态排版，布局零位移，多行、长文都一样稳；时长恒定约 620ms，与纸幕打开并行。字形池按全角/半角分池，行宽不跳。',
+        ],
+        paper: [
+          '02 / 纸色条先遮后揭',
+          '与纸幕合拢同拍：纸色细条先从左滑入遮住旧文字行（~340ms），纸幕盖满瞬间换文字，纸条再错峰向右揭开新行。与中间纸幕同材质，语义上不抢身份揭晓的黑条。',
+        ],
+        typewriter: [
+          '03 / 打字机',
+          '纸幕合拢期间旧字先退格（旧 DOM 盖满前还活着，可行），盖满后新字逐字打出，光标只在主命题与题名上。节奏最慢——长命题打完要 1.5s+，每次换题都这么等会拖。',
+        ],
+        redact: [
+          '04 / 黑条解密',
+          '真实 DocumentDecryption：逐行遮黑条、错峰退开，0.95s 扫完。效果最成熟，但已是身份揭晓的专属语言，换题复用会稀释那个时刻。',
+        ],
+      };
+      function select(next) {
+        effect = next;
+        for (const name of ['scramble', 'paper', 'typewriter', 'redact'])
+          $(name).setAttribute('aria-selected', String(effect === name));
+        $('description-title').textContent = descriptions[effect][0];
+        $('description').textContent = descriptions[effect][1];
+      }
+      $('scramble').onclick = () => select('scramble');
+      $('paper').onclick = () => select('paper');
+      $('typewriter').onclick = () => select('typewriter');
+      $('redact').onclick = () => select('redact');
+      $('play').onclick = nextRound;
+      $('solo').onclick = solo;
+      applyRound(rounds[0]);
+      const initial = new URLSearchParams(location.search).get('fx');
+      select(
+        ['scramble', 'paper', 'typewriter', 'redact'].includes(initial)
+          ? initial
+          : 'scramble',
+      );
+    </script>
+  </body>
+</html>

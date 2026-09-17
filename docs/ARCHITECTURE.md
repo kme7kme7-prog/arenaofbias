@@ -14,7 +14,7 @@
 | 文件 / 目录 | 职责 |
 | --- | --- |
 | `src/main.tsx` | 入口与 hash 路由分发；`AccountProvider` 包裹全站；不启用 StrictMode（防入场动画 effect 开发模式重复执行）；`#arena`/`#random` 重定向随机竞技场 |
-| `app/home.tsx` 等 | 首页三版 Hero（经典 `home` / 新版 `home-next` / 对决版 `home-duel`，决策 066-069），底部切换 `aob-home-edition` |
+| `app/home.tsx` 等 | 首页三版 Hero（经典 `home` / 新版 `home-next` / 对决版 `home-duel`，决策 066-069）；定稿新版为默认，三版切换收进开发者面板（086） |
 | `app/prompt-library.tsx` | 提示词库：目录/单题档案、搜索筛选、键盘选题；library.css 供预览页与首页公共片段 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页 |
 | `app/ranking.tsx` | 偏好榜 `#rank`：三赛道 tab、Elo 排行、模型档案卡（主题色染头部，决策 017） |
@@ -41,12 +41,14 @@
 | `lib/ui-transitions.ts` | `SurfaceTransition` 可打断界面过渡；`wipeNavigate` 全屏横扫换页（随机入场在用） |
 | `lib/scroll-tour.ts` / `lib/arena-scroll.ts` | 长文自动滚动巡览 / 竞技场命题定位 |
 | `lib/decryption.ts` | 盲测揭晓「文档解密」：遮黑条错峰退开（用户点名保留，071） |
+| `lib/text-swap-mask.ts` | 换题盖区外文字的纸色条先遮后揭（089）：`[data-swap]` 行级测量、`armed` 跨路由标记 |
 | `lib/library-motion.ts` | 题库目录/档案错峰入场（047） |
 | `lib/messages.ts` / `lib/locale.ts` | 中英 i18n（056）：中文键→英文值；语言存 `arena-language`；品牌字标不翻译（068） |
 | `components/account.tsx` | 账号 Provider/登录注册 Dialog/账号按钮 |
 | `components/afterparty.tsx` | 评论区：登录门槛、幂等 id、匿名观测员显示 |
 | `components/vote-split.tsx` + `lib/vote-split.ts` | 选择人数反馈牌（072-074）：点击即时挂载、数据只负责填充、2 秒内收起 |
-| `components/dev-panel.tsx` | 开发者面板：dev 免登录、占位符开关、清票重投 |
+| `components/dev-panel.tsx` | 开发者面板：dev 免登录、首页版本切换、占位符开关、清票重投 |
+| `lib/home-edition.ts` | 首页版本本地偏好：`aob-home-edition` 读写 + `aob:home-edition-changed` 事件（面板写入、首页即时换版） |
 | `components/ui/` | 只保留实际使用的 shadcn 组件（按需 add，016） |
 | `server/index.js` | Express 全家桶：静态双入口、评论/作品/题目/投票/反应/模一把/访客统计 API、`PRAGMA user_version` 迁移、`/api/admin/*` 管理组、限流分组（070）、同源校验、`TRUST_PROXY`/`APP_ORIGIN` |
 | `server/auth.js` | 账号：scrypt、cookie+sessions、`/api/auth/dev` 免登录（回环/XFF 门禁，070）、`users.role` 管理员 |
@@ -132,7 +134,21 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 过场与首页版本（落点速查）
 
-- 过场分工（052/059/065/082）：首页→菜单走 `frame`；首页→题库、菜单→测评走 `convoy`；首页→榜单走 `bands`（字带=声望分前二模型名）；菜单→模一把走 `deal`；模一把内部选择↔游戏走 `folio`；娱乐「下一题」走 match 双页纸幕区域过场（层挂 body、absolute 文档坐标随滚动、每帧重取新题场内 rect）；页眉「随机入场」走 `wipeNavigate`。竞技场返回、特别赛页内未接入。
+- 过场分工（052/059/065/082/084/089）：首页→菜单走 `frame`；首页→题库、桌面菜单→测评走 `convoy`；首页→榜单走 `bands`（字带=声望分前二模型名）；菜单→模一把走 `deal`；模一把内部选择↔游戏走 `folio`；娱乐「下一题」与窄屏菜单→测评走 match 双页纸幕（层挂 body、absolute 文档坐标随滚动、每帧重取新题场内 rect），盖区外 `[data-swap]` 文本行走 `TextSwapMask` 纸条先遮后揭；页眉「随机入场」走 `wipeNavigate`。竞技场返回、特别赛页内未接入。
 - 调参：`reference/game-transitions-review.html`；节奏数值以 `gameTransitionTiming` 与对照页为准，不在文档复述。
 - 防重入：模块自身不设跨实例全局锁（对照页要多实例预览），接入侧用模块级锁补齐。
-- 首页三版（066-069）：`app/home.tsx`（经典）/ `home-next.tsx`（新版，默认）/ `home-duel.tsx`（对决版），`aob-home-edition` 记忆；哪版定稿待用户拍板。
+- 首页三版（066-069/086）：`app/home.tsx`（经典）/ `home-next.tsx`（新版，定稿默认）/ `home-duel.tsx`（对决版），`aob-home-edition` 记忆；切换入口在开发者面板，不再出现在首页界面。
+
+## 固定画布 HTML 适配（087）
+
+- `lib/work-framing.ts`：`PROMPT_CANVASES` 按题启用（目前仅 001，1280×720），`WORK_CANVASES` 可按稳定作品 ID 配置内部尺寸例外。不要按 modelName 或 A/B 位置配置，也不要默认套给响应式网页题。
+- `components/fixed-html-work.tsx/.css`：原 iframe 固定尺寸；ResizeObserver 测外层布局尺寸、contain 缩放居中，cleanup disconnect。React 仅更新外层 transform，不重载源文件；卡片与弹窗共用。作品内部滚动及布局问题仍是作品自身行为。
+- `/reference/work-framing-review.html` 读取实际作品、宽度/比例测试；`node scripts/check-work-framing.mjs` 验证核心尺寸口径。旧 `scripts/frame-pelicans.mjs` 和作品内补丁仍留存，但 001 新渲染不传 `aob=prev`，不应为了适配屏幕再运行脚本改原文件。
+
+## 逐作品校准与后台列表（088）
+
+- 后台入口 /admin 或 /admin.html，hash #works 可直接进入作品管理。列表自动搜索（250ms 防抖/请求取消）、按题与发布状态筛选、每页 30 条；编辑标题/显示名不改变稳定 ID。
+- app/admin/work-calibration.tsx 使用真实 FixedHtmlWork 预览，拖动更新归一化 offsetX/offsetY，完整画布可拖右下角调整尺寸；配置为 {width,height,zoom,offsetX,offsetY}。
+- PATCH /api/admin/works/:id 接收 framing 对象或 null（移除覆盖）。server/work-framing.js 验证内部宽 320–3840、高 240–3840（整数）、zoom 0.25–4、偏移 -1–1。沿用管理员与同源保护；配置存于现有 content JSON，无数据库迁移，不写源文件。
+- workCanvas 优先读取 content.framing；framedCanvas 先求 16:9 取景窗口，再 contain 内部画布并叠加缩放/偏移，展开弹窗也保持相同取景。无作品配置时沿用 087 默认。
+- npm run validate:admin 在临时数据库验证权限、非法配置、公开端读取、重置和原文件不变；node scripts/check-work-framing.mjs 验证不同显示尺寸下的构图一致。

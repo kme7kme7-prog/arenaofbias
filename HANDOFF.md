@@ -2,20 +2,29 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
-## 2026-09-17 · 双页换场细节与滚轮跟随（最新，待体验）
+## 2026-09-17 · 后台逐作品画布校准与作品列表（本轮）
 
-- 用户认可纸色双页，要求填补空感，并报连续上下滚轮时过场悬空；决策 083。新增顶部场次标记、题号淡点阵、下部 A/B 红蓝端点连线；保留时长、纸色、题名和身份解密。
-- `lib/arena-scroll.ts` 新增 `alignArenaTransition`：body 层 absolute 文档坐标定位；`onFrame` 每帧重取当前竞技场区域，跟随滚动、换题及尺寸变化。没有新增全局监听器，无需用锁滚动遮掩。脚本先补文档锚点/滚动/跨路由节点替换/缺失节点保持断言，对照页同步。
-- 验证：typecheck、build、check:motion 全套、定向 oxlint、diff --check 通过。Tabbit 正常滚轮上下 6 次，覆盖前后路由 003→001，各采样层与场内区域 top 差均为 0，结束后无层残留；CSS 391×844 的标题/装饰不重叠、无横向溢出。桌面参考构图已目验，手机截图受滚动时机影响，只确认几何断言，不宣称实体手机验收。
-- 累计改动仍未 commit、未 push。
-## 2026-09-17 · 竞技场下一题双页换场（上一版，跟随与细节以 083 为准）
+- 用户授权在作品管理增加拖动校准并改善管理体验，决策 088。入口 http://127.0.0.1:5173/admin#works（兼容 admin.html）。
+- 新增 app/admin/work-calibration.tsx、work-types.ts、works.css；重做 works.tsx：自动搜索、题目/状态筛选、30 条分页、行内信息编辑、明确发布/下架、原作入口、校准状态。
+- 校准：内部宽高输入及完整画布右下角拖柄；拖动取景、缩放、水平/垂直滑杆；桌面/手机预览；保存、恢复默认、未保存关闭提醒。编辑作品信息期间暂禁列表筛选和其他行操作，避免误丢草稿。
+- server/work-framing.js 验证配置；PATCH admin works 将 framing 写入现有 content JSON，公开端随作品返回。无需迁移，未改 data/public 原作。FixedHtmlWork/framedCanvas 共用 16:9 构图，手机/展开一致；其他 HTML 仅主动保存校准后启用。
+- 验证通过：typecheck、build、定向 oxlint、check-work-framing、validate:admin（含临时数据库保存/重置、权限/参数保护、原 HTML 不变）。Tabbit 实机验收受阻：reload/只读 title 等连续超时，恢复任务后仍无法读取页面；未宣称截图或拖动操作已实测。没有改动任何真实作品的校准数据。
+- 待用户浏览器体验视觉和拖动手感；保留此前工作区改动，未 commit、未 push。
+## 2026-09-17 · HTML 固定画布预览（前轮）
 
-- 已重新核对 AGENTS、HANDOFF、README、PRODUCT、ARCHITECTURE、DECISIONS、最新归档与相关代码；接手 HEAD `d722512`，工作区干净。部分旧产品描述（模一把档数/数据数等）已落后于最新交接，本轮不扩范围修订。
-- 用户否定 078 局部 convoy 过场的巨型深色底，授权完全重做；记为 082。新增 `createGameTransition('match')`：双张纸色半页左右合拢、真实目的题号轮廓、深墨标题与红蓝细线，盖满后上下打开。只替换娱乐下一题/随机换场；其他导航过场、正式换组、投票文案及身份解密保持原实现。
-- 动效规范：先扩展 `scripts/check-game-transitions.mjs` 与 `reference/game-transitions-review.html`（新增 06，保留旧 03 对照），再实现与接入；420/760/1260ms 覆盖/开幕/结束，共享 WAAPI 轨道和原安全门控。手机场景标题居于可见区域中部，半页重叠 2px 防亚像素漏缝。
-- 验证：typecheck、build、check:motion 全套、validate:arena 12 项、check-vote-split、validate-locale、定向 oxlint、diff --check 通过。Tabbit 实际桌面换题：盖满切 hash、intro 与过场零重叠；CSS 391×844：盖满时两页无缝覆盖、标题在视口内、无横向溢出、连点仅一层、结束无残留；reduced-motion 直接换题并清层。浏览器调度使正常实测总时长约 1.7s，轨道理想值 1.26s；未做实体手机验收。
-- 预览：`http://127.0.0.1:5173/#arena/003`；可拖轴对照：`/reference/game-transitions-review.html?study=match`。
-- 未 commit、未 push。
+- 用户授权实施固定内部画布/外部等比缩放方案，决策 087。新增 `lib/work-framing.ts` 的题级/作品 ID 级配置与 contain 计算；001 HTML 默认为 1280×720，普通网页/其他题不自动启用。
+- 新增 `components/fixed-html-work.tsx/.css`：ResizeObserver 读 layout 尺寸（不把入场 transform 算进去），iframe 内部尺寸保持不变，外层整体缩放居中，异比例留白。更新布局不重新挂载 iframe，动画不会因窗口 resize 重播。卡片 16:9、手机上下排沿用现有布局；弹窗同样固定画布适配容器。
+- `app/page.tsx` 001 跳过旧 `aob=prev` 补丁参数并退出长页自动滚动目标，保留互动/沙箱；data/public 原作文件和旧修补脚本未修改。其他未提交改动为前轮/其他工作，未整理、未覆盖。
+- 新增真实组件检查页 `/reference/work-framing-review.html`（20 份已发布作品选择、宽度与比例切换、原作入口）；`node scripts/check-work-framing.mjs` 验证 opt-in、网页不套用、横竖容器 contain/居中/零尺寸。
+- 验证通过：typecheck、build、validate:arena 12 项、check-vote-split、定向 oxlint。Tabbit：20 份真实作品内部 1280×720 且未启用旧预览类；调整 320/640/1280 外宽不重新加载文档；9:16 容器完整居中。实际竞技场桌面每侧约 648×364，CSS 320×604 手机为上下排列、16:9 且无横向溢出，弹窗仍 1280×720 并完整容纳；003 网页未套组件，001 正常入场聚焦期间尺寸不变。未做实体手机验收，不宣称所有原作自身构图问题已修复。
+- 开发态格式化触发 HMR 后浏览器记录过 NotFoundError；冷刷新后完整入场到 voting 观察 8 秒无 pageerror，未在冷加载复现，未扩大范围改揭晓/热更新逻辑。
+- 未实现：主体裁切/AI 修复/后台校准器/手势缩放。本轮聚焦容器适配，原作主体小等质量差异保留。
+- 未 commit、未 push。体验入口 `http://127.0.0.1:5173/#arena/001`。
+## 2026-09-17 · 真机移动端巡检与换场文字过场（已归档）
+
+- 本轮已归档：`docs/handoff/2026-09-17-真机移动端巡检与换场文字过场-Devin.md`，决策 082/083/084/086/089/090。要点：真机链路（无线 ADB + CDP + screencap）与全功能巡检；移动端三处修复；窄屏菜单→测评走 match 双页；首页版本定稿新版、切换收进 dev 面板；换题盖区外文字用 `lib/text-swap-mask.ts` 纸条先遮后揭（`[data-swap]` + `armed` 跨路由），并做时间轴对齐（`data-gt-phase` + `introGateTail` 提前放牌）；逐个巡览窄屏下线、桌面 opt-in。
+- 开发态注意：改 `lib/game-transitions.ts` 触发 HMR 会把 `translateTransition` 重置成原样输出，过场文案暂时显示英文——整页刷新即恢复，非 bug。
+- 仍未 commit、未 push；连同此前全部累计改动一起待提交。
 ## 2026-09-16 · 模一把搜索补全分隔符不敏感（当前轮，待体验）
 
 - 用户报「模一把的输入自动补全有点问题」。Tabbit 实测复现：候选匹配是原样小写 `includes`，数据集名含 `-`/`.`/空格，按自然习惯输入即落空——`"gpt 5"`、`"gpt5"`、`"sonnet4.5"`、`"llama3.3"`、`"glm5"`、`"deepseekv3.2"` 全部显示「没有找到这个模型」。
@@ -310,6 +319,7 @@
 - 每日一题派生：每日池（简单+标准，064）`dayNumber × 2654435761` 散列选槽 + 组内命中次序轮转（061 两级派生），无随机源；epoch=2026-09-13；追加条目（含增量文件）必须带 sinceDay（070）。
 - **视觉维护入口**：`app/guess.tsx` / `app/guess.css`，反馈格保留 hit/near/miss/unknown 四种语义 class，配色集中在 `--guess-*` 变量；规则阈值在 `GUESS_CONFIG`，不要通过改判定规则实现视觉效果。
 - **玩法规则独立成篇**：`docs/games/guess.md`——规则口径、判定阈值、每日派生、数据集维护契约以它为准；PRODUCT.md 只留概述外链。
+- **模态判定是二元口径（085）**：只分「纯文本 / 多模态」——同纯文本=绿、同多模态=黄（恒黄，不细究图/音/视差别）、一纯一多=灰。数据集 `modality` 仍记细分集合，判定不看细节。改模态**不影响历史答案与分池指纹**（实证 365 天 0 变化），故修正模态数据不必走分池定稿流程。
 
 - 过场分工：题库与菜单进测评用 convoy 一体斜幕，榜单入口用 bands（决策 052）；模一把走独立 `deal` 今日密牌（决策 059，不再走 convoy）。
 - 娱乐结果主按钮「下一题」随机排除当前题；正式测评维持同题换组（053）。

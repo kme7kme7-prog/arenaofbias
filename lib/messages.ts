@@ -490,6 +490,10 @@ export const messages: Record<string, string> = {
     'Random strength disabled. Rankings are reproducible again.',
   '已切换占位模型数量，原有占位投票已清空':
     'Model count changed. Previous placeholder votes cleared.',
+  '三版首页对比入口，默认新版':
+    'Compare the three home editions; New is the default',
+  '已切换首页版本：{name}（在首页打开面板时立即生效）':
+    'Home edition switched to {name} (applies immediately on the home page)',
   已清空占位投票: 'Placeholder votes cleared',
   '占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动 #rank 偏好榜演示，仅存本地不入库。开发者身份走 /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。':
     'Placeholder data stays separate from real data. Switching modes reloads the page. Placeholder votes remain local. Developer login requires loopback access or server authorization.',

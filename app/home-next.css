@@ -606,47 +606,11 @@
   letter-spacing: 1px;
   color: #8e9a7e;
 }
-.home-edition {
-  position: fixed;
-  z-index: 45;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  white-space: nowrap;
-  background: #dfe3ddf5;
-  border: 1px solid #a3af94;
-  padding: 4px;
-  margin: 0;
-  min-width: 0;
-  color: var(--ink);
-  box-shadow: 0 4px 14px #1c24230b;
-}
-.home-edition > span {
-  font: 9px var(--mono);
-  margin: 0 10px;
-  color: #748163;
-}
-.home-edition button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 10px;
-  padding: 8px 15px;
-}
-.home-edition button[aria-pressed='true'] {
-  background: var(--ink);
-  color: var(--acid);
-}
-.next-home button:disabled,
-.home-edition button:disabled {
+.next-home button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
-.next-home :focus-visible,
-.home-edition :focus-visible {
+.next-home :focus-visible {
   outline: 2px solid #718522;
   outline-offset: 4px;
 }

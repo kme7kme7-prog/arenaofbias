@@ -446,6 +446,60 @@
   width: 1px;
   background: #63714f;
 }
+/* 窄屏：cqw 全盘等比缩小会把锁定构图压成邮票，改按竖屏重排——
+   方框与回声放大到视口宽度量级，字标回到可读字号。 */
+@container (max-width: 720px) {
+  .gt-echo {
+    width: 66cqw;
+    height: 66cqw;
+    left: 17%;
+    top: calc(50% - 33cqw);
+  }
+  .gt-mark {
+    left: calc(50% - 30.5cqw);
+    top: calc(50% - 30.5cqw);
+    width: 61cqw;
+    height: 61cqw;
+  }
+  .gt-corner {
+    width: 5.6cqw;
+    height: 5.6cqw;
+  }
+  .gt-index {
+    top: 2.8cqw;
+    left: 3.2cqw;
+    font-size: 2.2cqw;
+    letter-spacing: 0.64cqw;
+  }
+  .gt-registration {
+    bottom: 2.2cqw;
+    right: 3.3cqw;
+    font-size: 4.8cqw;
+  }
+  .gt-headline {
+    padding: 1.1cqw 0;
+  }
+  .gt-wordmark {
+    font-size: 7.9cqw;
+    letter-spacing: -0.39cqw;
+  }
+  .gt-kicker {
+    margin-bottom: 4.1cqw;
+    font-size: 2.3cqw;
+    letter-spacing: 0.46cqw;
+  }
+  .gt-caption {
+    margin-top: 4.1cqw;
+    font-size: 2.1cqw;
+    letter-spacing: 0.24cqw;
+  }
+  .gt-signal {
+    gap: 1.05cqw;
+  }
+  .gt-signal-bar {
+    width: 2px;
+  }
+}
 /* 模一把 · 今日密牌。遮挡由两块实色半屏承担，文字和线索不参与导航时钟。 */
 .gt-deal-shell,
 .gt-deal-back {

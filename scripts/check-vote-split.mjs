@@ -108,11 +108,19 @@ assert.match(pageSource, /state\.run === 0 \? ARENA_TIMING\.introLead/);
 // 开场牌等路由过场层离场后才挂载；逐个巡览可开关，关闭即跳过 A/B 聚焦
 assert.match(
   pageSource,
-  /document\.querySelector\('\.game-transition, \.page-wipe'\)/,
+  /document\.querySelector(<HTMLElement>)?\(\s*'\.game-transition, \.page-wipe'/,
 );
 assert.match(pageSource, /state\.run === 0 && arrivalReady/);
 assert.match(pageSource, /aob-arena-tour/);
-assert.match(pageSource, /if \(!tour\) \{\s*dispatch\(\{ type: 'READY' \}\)/);
+// 巡览开关桌面默认关（090）：只有显式 'on' 才开；移动端整体下线
+assert.match(
+  pageSource,
+  /localStorage\.getItem\('aob-arena-tour'\) === 'on'/,
+);
+assert.match(
+  pageSource,
+  /if \(!tour \|\| window\.innerWidth < 700\) \{\s*dispatch\(\{ type: 'READY' \}\)/,
+);
 assert.ok(1200 < timing.resultReveal && timing.resultReveal < 1450);
 const resultDelays = [
   /phase-result \.side-result \{ animation: text-enter \.4s ([\d.]+)s/.exec(cssSource),

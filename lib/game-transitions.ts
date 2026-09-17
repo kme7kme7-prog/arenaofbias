@@ -35,14 +35,27 @@ let convoyNavRunning = false;
 export function convoyNavigate(hash: string, title?: string) {
   if (convoyNavRunning) return;
   convoyNavRunning = true;
+  const swap = () => {
+    window.location.hash = hash;
+  };
+  const release = () => {
+    convoyNavRunning = false;
+  };
+  // 窄屏下斜幕盖满即成全墨平板、文字按 cqw 缩到不可读（用户拍板）：
+  // ≤720px 菜单进测评改走双页纸色过场，桌面保持原斜幕。
+  if (window.matchMedia('(max-width: 720px)').matches) {
+    createGameTransition('match', {
+      title,
+      index: '↗',
+      onCovered: swap,
+      onFinish: release,
+    }).play();
+    return;
+  }
   createGameTransition('convoy', {
     title,
-    onCovered: () => {
-      window.location.hash = hash;
-    },
-    onFinish: () => {
-      convoyNavRunning = false;
-    },
+    onCovered: swap,
+    onFinish: release,
   }).play();
 }
 
@@ -511,6 +524,10 @@ export function createGameTransition(
     animations.forEach((animation) => {
       animation.currentTime = time;
     });
+    // 阶段标记供外部对齐（决策 089）：竞技场开场牌在 match 扫出
+    // 尾段提前接入，与作品揭幕并行落点，不干等整层移除
+    const phase = time >= timing.exitStart ? 'exit' : 'entry';
+    if (layer.dataset.gtPhase !== phase) layer.dataset.gtPhase = phase;
     options.onFrame?.(time, timing.duration);
   };
   const pause = () => {

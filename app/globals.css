@@ -3511,6 +3511,34 @@ kbd {
   display: none;
 }
 
+/* 换题文字纸条：双页只盖场内，盖区外变动的文本行先遮后揭（决策 089）。
+   与解密黑条同族机制、不同语义与材质——纸色，与 match 纸幕一致。 */
+.text-swap-masked {
+  position: relative;
+}
+
+.swap-mask-window {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+
+.swap-mask-ink {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: #eef1e6;
+  border-bottom: 1px solid #b7bfae;
+  will-change: transform;
+}
+
+.reduced-motion .swap-mask-window {
+  display: none;
+}
+
 /* 终端索引细节：刻度尺细线（仪器式排版）
    主刻度每 72px 全高，次刻度每 12px 半高 */
 .term-ticks {
