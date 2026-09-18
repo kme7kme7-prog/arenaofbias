@@ -17,15 +17,21 @@ type Strip = { win: HTMLElement; ink: HTMLElement; order: number };
 
 // 跨路由标记：旧页 cover 已遮 → 新页挂载必须揭。模块级单例，
 // 与 transition 层挂 body 活过卸载是同一套生命周期思路。
+// armed 带 TTL：目的地不是竞技场时（如 pairs 清空落进 PromptPreview）
+// 无人消费，标记若永久残留，之后随便进哪个竞技场都会凭空揭一次字。
+// 正常路径 cover→切 hash→新页挂载在 1 秒内完成，TTL 给足余量。
+const ARMED_TTL_MS = 5000;
 let armed = false;
+let armedAt = 0;
 
 export function armTextSwap() {
   armed = true;
+  armedAt = Date.now();
 }
 
 /** 新竞技场挂载时调用：仅上一轮换题真遮过字才返回 true，读取即复位。 */
 export function consumeTextSwap(): boolean {
-  const value = armed;
+  const value = armed && Date.now() - armedAt <= ARMED_TTL_MS;
   armed = false;
   return value;
 }

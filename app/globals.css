@@ -853,6 +853,39 @@ kbd {
   opacity: 0.4;
   filter: saturate(0.45);
 }
+/* 作品就绪门控（2026-09-18）：大体量作品加载期间藏住作品区与「本轮开始」标记，
+   就绪后统一揭幕淡入，入场编排在作品可见后才开演——长加载不再出现「加载完后半段
+   直接没了」；「本轮开始」只是点缀，与作品同拍出现 */
+.arena-shell.works-hold .work-panel {
+  opacity: 0;
+}
+.arena-shell.works-reveal .work-panel {
+  animation: work-reveal 0.55s var(--ease-out) both;
+}
+.arena-shell.works-reveal .work-panel + .work-panel {
+  animation-delay: 0.08s;
+}
+.arena-shell.works-hold .briefing .round-tag {
+  opacity: 0;
+}
+.arena-shell.works-reveal .briefing .round-tag {
+  animation: work-reveal 0.55s 0.12s var(--ease-out) both;
+}
+@keyframes work-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-shell.works-hold .work-panel,
+  .arena-shell.works-reveal .work-panel,
+  .arena-shell.works-reveal .briefing .round-tag {
+    animation: none;
+  }
+}
 .phase-voting .vote-button {
   animation: button-ready 0.7s var(--ease-out) both;
 }

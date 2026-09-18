@@ -390,6 +390,7 @@ function judgeNumeric(
   guessValue: number | null,
   answerValue: number | null,
   nearThreshold: number,
+  mode: 'diff' | 'ratio',
 ): Feedback {
   // 未公开：只标 unknown，不给箭头（答案也不知道，方向无从谈起）
   if (guessValue === null || answerValue === null)
@@ -397,9 +398,11 @@ function judgeNumeric(
   if (guessValue === answerValue) return { state: 'hit', arrow: null };
   const arrow: 'up' | 'down' =
     answerValue > guessValue ? 'up' : 'down';
-  // 「接近」= 差值不超过阈值（数值型：绝对差；比值型：倍数）
+  // 「接近」由 mode 决定口径：diff=绝对差 ≤ 阈值；ratio=倍数 ≤ 阈值。
+  // 不能按阈值大小猜（旧写法 >1 就走比值）：发布时间的阈值 6（个月）
+  // 会被错送进比值分支，月份序号是 24000 量级、比值恒 ≈1，灰灯永远不出现
   const near =
-    nearThreshold > 1
+    mode === 'ratio'
       ? Math.max(guessValue, answerValue) / Math.min(guessValue, answerValue) <=
         nearThreshold
       : Math.abs(guessValue - answerValue) <= nearThreshold;
@@ -422,11 +425,12 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
         ? { state: 'near', arrow: null }
         : { state: 'miss', arrow: null };
 
-  // 发布时间：月序号比较；near 阈值按月
+  // 发布时间：月序号比较；near 阈值按月（绝对差口径，见 GUESS_CONFIG）
   attributes.released = judgeNumeric(
     monthIndex(guess.released),
     monthIndex(answer.released),
     GUESS_CONFIG.releasedNearMonths,
+    'diff',
   );
 
   // 开放权重：二值
@@ -435,11 +439,12 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
       ? { state: 'hit', arrow: null }
       : { state: 'miss', arrow: null };
 
-  // 上下文窗口：比值接近（nearThreshold>1 走倍数分支）
+  // 上下文窗口：比值接近（ratio 口径）
   attributes.contextK = judgeNumeric(
     guess.contextK,
     answer.contextK,
     GUESS_CONFIG.contextNearRatio,
+    'ratio',
   );
 
   // 模态（2026-09-17 用户拍板改为二元判定）：属性只有「纯文本 / 多模态」两个取值，

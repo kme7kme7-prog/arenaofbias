@@ -298,7 +298,10 @@ export default function GuessPage() {
     answer: null,
   });
 
-  // 进每日一题：每次都是全新棋盘（答案仍是当日种子派生的同一道），战绩照常读
+  // 进每日一题：每次都是全新棋盘（答案仍是当日种子派生的同一道），战绩照常读。
+  // settledRef 必须重置：跨零点自动换题（dailyRolledOver→enterDaily）不清它的话，
+  // 新一天的结算会被残留标记挡下，战绩与上报静默丢失（走选择屏的路径由
+  // backToPicker 重置，无此问题）
   function enterDaily(data: TodayResponse, animate = false) {
     const commit = () => {
       setError(null);
@@ -306,6 +309,7 @@ export default function GuessPage() {
       setStats(loadStats());
       setGameId(null);
       setMode('daily');
+      settledRef.current = false;
     };
     if (animate) changeScreen(commit);
     else commit();

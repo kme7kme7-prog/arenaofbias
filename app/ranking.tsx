@@ -15,15 +15,16 @@ import { RollingNumber } from '@kitlangton/rolling-number/react';
 import '@kitlangton/rolling-number/styles.css';
 import {
   BOARD_CATEGORIES,
+  computeRadarProfiles,
   leaderboardData,
+  RADAR_BASE,
   RADAR_LABELS,
-  radarAverage,
-  radarProfile,
 } from '@/lib/leaderboard';
 import type {
   BoardCategory,
   BoardRow,
   BoardScope,
+  RadarProfiles,
   VoteRecord,
 } from '@/lib/leaderboard';
 import { isPlaceholderMode, readPlaceholderVotes } from '@/lib/placeholder';
@@ -90,8 +91,10 @@ function useBoardVotes(replaySeed: number): {
 
 const CENTER_X = 220;
 const CENTER_Y = 207;
+// 起始角 -180°（平顶六边形）：视觉设计/空间营造/动态表现落在左上半，
+// 文字表达/思辨推理/创意构思落在右下半（决策 091）
 const coord = (i: number, r: number): [number, number] => {
-  const angle = ((i * 60 - 90) * Math.PI) / 180;
+  const angle = ((i * 60 - 180) * Math.PI) / 180;
   return [CENTER_X + Math.cos(angle) * r, CENTER_Y + Math.sin(angle) * r];
 };
 const toPoints = (values: number[]) =>
@@ -137,7 +140,7 @@ function Radar({
     <svg
       className="rank-radar"
       viewBox="0 0 440 410"
-      aria-label={t('六项模拟指标：{labels}', {
+      aria-label={t('六维评分：{labels}', {
         labels: labels
           .map((label, i) => `${t(label)} ${Math.round(display[i])}`)
           .join(', '),
@@ -212,12 +215,14 @@ function ProfilePanel({
   category,
   totalTopics,
   wipeSeed,
+  radar,
 }: {
   row: BoardRow;
   rank: number;
   category: BoardCategory;
   totalTopics: number;
   wipeSeed: number;
+  radar: RadarProfiles | null;
 }) {
   const { t, localize } = useI18n();
   const [shown, setShown] = useState(row);
@@ -249,10 +254,10 @@ function ProfilePanel({
   }, [row, rank, category, shown, shownCategory, wipeSeed]);
 
   const radarValues = useMemo(
-    () => radarProfile(shown.modelId, shownCategory),
-    [shown.modelId, shownCategory],
+    () => radar?.profiles.get(shown.modelId) ?? Array(6).fill(RADAR_BASE),
+    [radar, shown.modelId],
   );
-  const average = useMemo(() => radarAverage(shownCategory), [shownCategory]);
+  const average = radar?.average ?? Array(6).fill(RADAR_BASE);
   const labels = RADAR_LABELS[shownCategory];
 
   return (
@@ -372,6 +377,10 @@ export default function Ranking() {
   const allData = useMemo(
     () => (votes ? leaderboardData('all', votes, scope) : null),
     [scope, votes],
+  );
+  const radar = useMemo(
+    () => (votes ? computeRadarProfiles(category, votes, scope) : null),
+    [category, scope, votes],
   );
   const selected =
     data?.rows.find((row) => row.modelId === selectedId) ??
@@ -821,8 +830,8 @@ export default function Ranking() {
                 <span>
                   {localize(
                     placeholder
-                      ? '占位数据 · 评分与排名均为演示'
-                      : '评分与排名均为演示',
+                      ? '占位数据 · 评分与名次为演示口径'
+                      : '评分与名次为演示口径 · 六维画像按真实投票重放',
                   )}
                 </span>
               </div>
@@ -836,14 +845,15 @@ export default function Ranking() {
                     category={category}
                     totalTopics={data!.promptCount}
                     wipeSeed={replaySeed}
+                    radar={radar}
                   />
                 </div>
                 <div className="rank-panel-caption">
                   {t(
-                    '指标结构演示 · 六个维度均为模拟数据，尚未建立实际测量规则。',
+                    '六维画像按真实投票重放得出：每道题带一组维度权重，一票的分量按权重落到各维度。',
                   )}
                   <br />
-                  {t('虚线表示阵容平均值；切换赛道可查看不同的指标组合。')}
+                  {t('虚线表示阵容平均值；切换赛道可查看对应赛道的画像。')}
                 </div>
               </aside>
             )}

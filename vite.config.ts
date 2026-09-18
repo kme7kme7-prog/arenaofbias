@@ -30,6 +30,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Temp/ 放着用户的大型外部数据（如「超级结果」43 万文件）——不让 watcher
+    // 监视：否则每次外部改动都触发全页 reload，且 Windows 目录句柄会锁住
+    // 收件箱搬移；watcher 也曾因此被撑爆（2026-09-18）
+    watch: { ignored: ['**/Temp/**'] },
     proxy: {
       // changeOrigin 必须为 false：保留浏览器的 Host 头，服务端 sameOrigin 校验
       // （origin === http://<host>）才能通过；改写 Host 会让评论/登录/投票在

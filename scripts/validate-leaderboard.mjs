@@ -92,8 +92,9 @@ const {
   clearPlaceholderVotes,
   leaderboardData,
   currentVotes,
-  radarProfile,
-  radarAverage,
+  computeRadarProfiles,
+  PROMPT_DIMENSION_WEIGHTS,
+  RADAR_BASE,
   RADAR_LABELS,
   TRIAL_GAME_THRESHOLD,
 } = module;
@@ -283,17 +284,55 @@ check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史�
   assert.equal(nameless.rows.find((row) => row.modelId === 'gone-c')?.name, 'gone-c');
 });
 
-check('雷达维度：同一模型同一赛道两次生成完全一致，值域 60–100', () => {
+check('六维画像（决策 091）：重放确定、值域 0–100、每题权重归一', () => {
   const data = leaderboardData('all');
-  const id = data.rows[0].modelId;
-  assert.deepEqual(radarProfile(id, 'all'), radarProfile(id, 'all'));
+  assert.ok(data.rows.length > 0);
   for (const category of ['all', 'text', 'web']) {
     assert.equal(RADAR_LABELS[category].length, 6);
-    for (const v of radarProfile(id, category)) {
-      assert.ok(v >= 60 && v <= 100);
+    const a = computeRadarProfiles(category);
+    const b = computeRadarProfiles(category);
+    assert.deepEqual([...a.profiles], [...b.profiles]);
+    assert.deepEqual(a.average, b.average);
+    for (const values of a.profiles.values()) {
+      assert.equal(values.length, 6);
+      for (const v of values) assert.ok(v >= 0 && v <= 100);
     }
-    assert.equal(radarAverage(category).length, 6);
+    assert.equal(a.average.length, 6);
+    for (const v of a.average) assert.ok(v >= 0 && v <= 100);
   }
+  // 权重表：六维、和为 1、值域 0–1
+  for (const weights of Object.values(PROMPT_DIMENSION_WEIGHTS)) {
+    assert.equal(weights.length, 6);
+    for (const w of weights) assert.ok(w >= 0 && w <= 1);
+    assert.ok(Math.abs(weights.reduce((s, w) => s + w, 0) - 1) < 1e-9);
+  }
+});
+
+check('六维画像权重语义：001 胜局只动带权维度，零权重维度停在基准', () => {
+  const synthetic = [
+    { promptId: '001', winnerId: 'radar-a', loserId: 'radar-b', ts: 1 },
+    { promptId: '002', winnerId: 'radar-a', loserId: 'radar-b', ts: 2 },
+  ];
+  const { profiles } = computeRadarProfiles('all', synthetic);
+  const a = profiles.get('radar-a');
+  // 001（动态 0.6/视觉 0.3/创意 0.1）+ 002（文字 0.7/创意 0.3）连赢两题：
+  // 带权维度高于基准，空间营造/思辨推理从未加权、必须精确停在基准
+  assert.ok(a[0] > RADAR_BASE && a[2] > RADAR_BASE && a[5] > RADAR_BASE && a[3] > RADAR_BASE);
+  assert.equal(a[1], RADAR_BASE);
+  assert.equal(a[4], RADAR_BASE);
+  // 败者带权维度低于基准
+  const b = profiles.get('radar-b');
+  assert.ok(b[2] < RADAR_BASE && b[3] < RADAR_BASE);
+  // 平局（决策 048）：各得半分——先分出胜负拉开分差，再打平，
+  // 强方回落、弱方回补，画像确实因平局变动
+  const win = { promptId: '001', winnerId: 'radar-c', loserId: 'radar-d', ts: 1 };
+  const g1 = computeRadarProfiles('all', [win]);
+  const g2 = computeRadarProfiles('all', [
+    win,
+    { ...win, ts: 2, outcome: 'draw' },
+  ]);
+  assert.notDeepEqual(g1.profiles.get('radar-c'), g2.profiles.get('radar-c'));
+  assert.notDeepEqual(g1.profiles.get('radar-d'), g2.profiles.get('radar-d'));
 });
 
 check('行元数据：占位模型带 PH 编号 sigil 与强调色，demo 结果不进榜', () => {

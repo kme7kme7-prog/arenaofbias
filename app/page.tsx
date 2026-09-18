@@ -95,6 +95,9 @@ const ARENA_TIMING = {
   introGap: 200,
   introSettle: 300,
   resultReveal: 1350,
+  // 双方作品就绪门控的上限：大体量作品（004–007 构建产物）慢网络下入场
+  // 不该开着投票等灰板；超时放行，个别作品加载失败不锁死入口
+  worksLoadCap: 8000,
 } as const;
 // 「无法抉择」按钮的中文主标：每轮对局随机换一个（决策 048）
 const DRAW_LABELS = [
@@ -481,12 +484,25 @@ export default function Arena({
   // 远端清单晚到时重算对局（2026-09-15 修复）：应用启动先以内置花名册起画，
   // /api/works 返回后若不重算，棋盘还是内置作品而统计区已切远端数据——
   // 票面与服务端作品表核对不上，投票会 400。订阅 works 变化重抽一组。
+  // 2026-09-17 收紧：当前对局在新清单里仍然成立就原样保留——每次 emit 都
+  // 无条件重抽会把 voting/result 阶段脚下的对局整个换掉，旧票的选中态与
+  // 人数牌平移到没见过的新对局上；只有对局已失效（花名册 id 对不上远端）
+  // 才重抽，此时保住旧对局反而会让投票必 400。
   useEffect(
     () =>
       subscribeWorks(() => {
-        setPair(
-          (current) => currentMatchup(prompt.id, current) ?? current,
-        );
+        setPair((current) => {
+          if (
+            current &&
+            currentPairs(prompt.id).some(
+              (candidate) =>
+                candidate[0].id === current[0].id &&
+                candidate[1].id === current[1].id,
+            )
+          )
+            return current;
+          return currentMatchup(prompt.id) ?? current;
+        });
       }),
     [prompt.id],
   );
@@ -510,6 +526,9 @@ export default function Arena({
   });
   // 路由过场层（convoy / page-wipe）未离场前不挂开场牌，避免两段动画叠放
   const [arrivalReady, setArrivalReady] = useState(false);
+  // 作品就绪门控的揭幕状态：等待期藏住作品区（works-hold），就绪后统一淡入揭幕
+  // （works-reveal）——入场编排在作品可见后才开演，长加载不再出现「后半段直接没了」
+  const [worksSettled, setWorksSettled] = useState(false);
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     getMotionPreference,
@@ -579,6 +598,9 @@ export default function Arena({
     typeof createGameTransition
   > | null>(null);
   const cardA = useRef<HTMLDivElement>(null);
+  // 已通过探针（作品内渲染循环首帧 postMessage，见 data-aob-probe 注入约定）
+  // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
+  const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
   const cardB = useRef<HTMLDivElement>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
@@ -672,6 +694,13 @@ export default function Arena({
     if (state.phase !== 'intro') return;
     const controller = new AbortController();
     const signal = controller.signal;
+    // 场景型作品经探针上报「渲染循环已启动」（data-aob-probe 注入约定）；
+    // 只信来自浏览器窗口的消息，来源对不上就当没收到
+    const onWorkReady = (event: MessageEvent) => {
+      if (event.data === 'aob:work-ready' && event.source)
+        readyWindows.current.add(event.source as Window);
+    };
+    window.addEventListener('message', onWorkReady);
     const resetScroll = () => {
       stageRef.current
         ?.querySelectorAll<HTMLElement>('[data-tour-scroll]')
@@ -694,8 +723,44 @@ export default function Arena({
     };
     const sequence = async () => {
       resetScroll();
+      setWorksSettled(false);
+      // 双方作品就绪门控：HTML 作品挂同源沙箱 iframe，读 contentDocument
+      // 的地址与 readyState；非 iframe 作品（文字/模板/图片）视为即时就绪。
+      // 就绪线 = DOM 解析完且模块脚本已执行（interactive）——灰板对应 loading，
+      // interactive 时页面已有内容；图片等收尾资源不再拦。初始 about:blank
+      // 算未就绪——防 src 导航尚未提交时的假阳性。不透明源（内联 srcDoc
+      // 占位）读不到文档，视为就绪不拦。
+      // 探针作品（index.html 注入 data-aob-probe）在文档就绪后还要等它上报
+      // 「渲染循环已启动」（首帧 rAF / DOMContentLoaded+250ms 兜底）——场景型
+      // 作品不放到「脚本跑着、画面还没画」的中间态；无探针作品不等人。
+      const workReady = (card: HTMLElement | null): boolean => {
+        const frame = card?.querySelector('iframe');
+        if (!frame) return true;
+        try {
+          const doc = frame.contentDocument;
+          if (!doc) return true;
+          if (doc.location.href === 'about:blank') return false;
+          if (doc.readyState === 'loading') return false;
+          if (
+            doc.querySelector('script[data-aob-probe]') &&
+            (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow))
+          )
+            return false;
+          return true;
+        } catch {
+          return true;
+        }
+      };
+      const waitWorksLoaded = async (abort: AbortSignal) => {
+        const start = performance.now();
+        while (performance.now() - start < ARENA_TIMING.worksLoadCap) {
+          if (workReady(cardA.current) && workReady(cardB.current)) return;
+          await delay(60, abort);
+        }
+      };
       if (reducedMotion) {
-        await delay(200, signal);
+        await Promise.all([delay(200, signal), waitWorksLoaded(signal)]);
+        setWorksSettled(true);
         dispatch({ type: 'READY' });
         return;
       }
@@ -718,10 +783,17 @@ export default function Arena({
         await delay(40, signal);
       }
       setArrivalReady(true);
-      await delay(
-        state.run === 0 ? ARENA_TIMING.introLead : ARENA_TIMING.introReplayLead,
-        signal,
-      );
+      // 开场牌在 introLead 里照常出现；两侧作品没加载完就不往下走
+      //（与等待并行，加载快时不多花一毫秒），空格跳过仍然有效
+      await Promise.all([
+        delay(
+          state.run === 0 ? ARENA_TIMING.introLead : ARENA_TIMING.introReplayLead,
+          signal,
+        ),
+        waitWorksLoaded(signal),
+      ]);
+      // 作品就绪：揭幕淡入，入场编排在作品可见后才开演
+      setWorksSettled(true);
       // 移动端巡览整体下线（决策 090）：窄屏无论开关如何都跳过 A/B 聚焦
       if (!tour || window.innerWidth < 700) {
         dispatch({ type: 'READY' });
@@ -790,6 +862,7 @@ export default function Arena({
     });
     return () => {
       controller.abort();
+      window.removeEventListener('message', onWorkReady);
       animations.current.forEach((animation) => animation.cancel());
       animations.current = [];
       resetScroll();
@@ -1009,7 +1082,13 @@ export default function Arena({
 
   return (
     <div
-      className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''}`}
+      className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
+        state.phase === 'intro' && !worksSettled
+          ? 'works-hold'
+          : worksSettled
+            ? 'works-reveal'
+            : ''
+      }`}
     >
       <div className="ambient-grid" aria-hidden="true" />
 
@@ -1581,7 +1660,7 @@ export default function Arena({
               {t('返回提示词库')}
               <ArrowUpRight size={16} />
             </a>
-            <button onClick={gotoRandomArena}>
+            <button onClick={gotoRandomArena} disabled={blocked}>
               {t('随机换个竞技场')}
               <ArrowRight size={16} />
             </button>

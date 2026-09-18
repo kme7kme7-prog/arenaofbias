@@ -2,7 +2,34 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
-## 2026-09-17 · 后台逐作品画布校准与作品列表（本轮）
+## 2026-09-18 · 接入测试样本与超级结果处理（本轮，已归档）
+
+- 本轮已归档：`docs/handoff/2026-09-18-接入测试样本与超级结果处理-kme7kme7-prog.md`，决策 091。要点：**榜单六维画像接真实评分**（按题维度权重分维 Elo 重放，标签与方向定稿）、**004–007 样本全量接入**（24 份作品，每题 6 模型）、**入场作品就绪门控 + 揭幕编排**（`?aob=prev` 预览隐藏、探针握手、round-tag 与作品同拍）、**超级结果库处理**（库区地图 `Temp/超级结果/README.md` 建档；UI 隐藏注入库内 70 份 + 站上 15 份；探针库内 220 份 + 站上 24 份全覆盖）、**vite watcher 忽略 Temp/**。
+- 计数口径速查：站上作品 = 24 份（001 的 20 份鹈鹕另有登记）；库内 = 32 组合 × 8 用例、约 12GB。
+- 未 push。工作区另含并行 AI 的 09-17 审查修复批次（同批提交，详见归档「改动 F」）。
+
+## 2026-09-17 · 全站代码审查第二轮 + 六处修复（审查修复批次，已随 09-18 提交）
+
+- 用户要求全站代码审查（需起项目时用不常用端口）。5 路并行审查（后端 / 模一把 / 竞技场动效 / 管理后台 / 公共前端），高危发现本人二次核验；用户拍板修复「确认 BUG + 竞技场时序竞态」共 6 处。
+- **修复清单**：
+  - **模一把发布灯灰档失效（高）**：`lib/guess-logic.ts` 的 `judgeNumeric` 旧按「阈值>1 走比值分支」猜口径，发布时间阈值 6（个月）被错送进比值分支，月序号比值恒≈1 → 任意不同月恒黄、灰灯永不出现。现加显式 `mode: 'diff' | 'ratio'` 参数（released=diff、contextK=ratio）。`validate:guess` 补发布时间状态断言（36→**37 项**，合成模型钉差 1 月黄/差 7 月灰/跨年箭头）。
+  - **跨零点战绩丢失（中）**：`app/guess.tsx` `enterDaily` 不重置 `settledRef`，「重玩今天→跨零点→自动换新题」后新一天的结算/上报被残留标记永久挡下。现 commit 里重置。
+  - **后台作品管理卡死（中）**：`app/admin/works.tsx` 重复点击已选中状态筛选时 `filters()` 无条件 `setLoading(true)` 而依赖不变、effect 不重跑，页面永久「加载中」。现重复点击只回第一页（第 1 页则 no-op），不走 `filters()`。注意：别改成 effect 本体置位 loading——react-compiler lint 会拦 effect 内同步 setState。
+  - **竞技场晚到换对局（中）**：`app/page.tsx` subscribeWorks 回调改为「当前对局在新清单里仍成立就原样保留，失效才重抽」（旧每次 emit 无条件重抽，voting/result 阶段脚下对局被整个换掉；内置花名册 id 如 `001-sample` 与远端 id 不同体系，失效时仍必须重抽否则投票 400——070 的修复目标保住）。
+  - **随机换个竞技场（低）**：补 `disabled={blocked}`，重播过场中不再叠 match 纸幕。
+  - **text-swap 残留（低）**：`lib/text-swap-mask.ts` armed 标记加 5s TTL，目的地不是竞技场（如落 PromptPreview）时超时作废，之后进任意竞技场不再凭空揭字。`check-text-swap-mask.mjs` 6→**7 项**（TTL 行为断言，假时钟）；`check-arena-scroll.mjs` 补「保留有效对局」「随机入口 gating」两条静态断言。
+- 验证：typecheck 0 错、build 过、validate:guess 37 项全过、check-text-swap-mask 7 项、check-arena-scroll 过、git diff --check 过、定向 oxlint（8 个改动文件）0 错——其中 `check-text-swap-mask.mjs` 第 93/164 行有 2 个**既有** lint 错（createElement 弃用/模板串类型），不在本轮改动行，未顺手修。未做浏览器实测：发布灯判定已被 jiti 实跑断言覆盖，其余四处是纯 UI 状态逻辑。
+- 审查未修的遗留（等拍板）：DevPanel 生产无环境守卫（`src/main.tsx:121`，注释自认上线前删挂载）；TRUST_PROXY 未设时限流桶全局共享 + dev 登录后门残余（070 已记部署硬前提，代码无启动告警）；偏好榜两处运行时拼接中文英文用户可见；VENDOR_REGION 原型链查重、inbox 泄路径、PATCH prompts 可改 kind 等低危批。
+- 已随 2026-09-18 提交落库（详见该轮归档的「改动 F」）；未 push。
+
+## 2026-09-18 · 榜单六维画像接真实投票 + 雷达方向（本轮）
+
+- 用户拍板（决策 091）：雷达六维统一为 视觉设计/空间营造/动态表现/文字表达/思辨推理/创意构思（三赛道同套标签）；视觉三维度居左上半、文字三维度居右下半（平顶六边形，`app/ranking.tsx` `coord` 起始角 -180°）。
+- 六维画像弃用播种演示值：`lib/leaderboard.ts` 新增 `PROMPT_DIMENSION_WEIGHTS`（001–007 每题一组权重，006 已由用户确认同 003）与 `computeRadarProfiles`——分维 Elo 重放（基准 50、K=32×权重、平局各半、零权重维度不动），与榜单共用流水与赛道/口径过滤；`app/ranking.tsx` 页面层算好传入 ProfilePanel。
+- 权重映射中用户口语「动态交互/空间构建/推理思辨」按规范维度名落表；「前端网页设计」对应 003 环游轨道（已向用户报告，可改）。
+- 验证通过：typecheck、validate:leaderboard 11 项（新增权重归一、重放确定、合成票权重语义与平局边界断言）、validate-locale、build。未 commit、未 push。
+
+## 2026-09-17 · 后台逐作品画布校准与作品列表
 
 - 用户授权在作品管理增加拖动校准并改善管理体验，决策 088。入口 http://127.0.0.1:5173/admin#works（兼容 admin.html）。
 - 新增 app/admin/work-calibration.tsx、work-types.ts、works.css；重做 works.tsx：自动搜索、题目/状态筛选、30 条分页、行内信息编辑、明确发布/下架、原作入口、校准状态。

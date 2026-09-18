@@ -205,6 +205,25 @@ assert.equal(consumeTextSwap(), true);
 assert.equal(consumeTextSwap(), false, 'consuming must reset the flag');
 console.log('PASS arm/consume flag semantics are single-shot');
 
+// 5b. armed 标记带 TTL：目的地不是竞技场时（如落进 PromptPreview）无人
+// 消费，超时后自动作废——之后进任意竞技场不得凭空揭字
+{
+  const realNow = Date.now;
+  let fake = realNow();
+  Date.now = () => fake;
+  try {
+    armTextSwap();
+    assert.equal(consumeTextSwap(), true, 'fresh mark must still consume');
+    armTextSwap();
+    fake += 5001; // 超过 ARMED_TTL_MS
+    assert.equal(consumeTextSwap(), false, 'stale mark must expire');
+    assert.equal(consumeTextSwap(), false, 'expired read must reset the flag');
+  } finally {
+    Date.now = realNow;
+  }
+}
+console.log('PASS armed mark expires after TTL when never consumed');
+
 // 6. 目标元素获得定位类（纸条坐标挂在元素内）
 assert.ok(
   target.classList.contains('text-swap-masked'),
@@ -212,4 +231,4 @@ assert.ok(
 );
 console.log('PASS targets are marked as positioning contexts');
 
-console.log('6 text-swap-mask invariant checks passed.');
+console.log('7 text-swap-mask invariant checks passed.');

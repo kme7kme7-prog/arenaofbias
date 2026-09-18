@@ -56,4 +56,17 @@ bounds = [];
 alignArenaTransition(layer);
 assert.equal(layer.style.top, '490px', 'missing route during commit retains last bounds');
 assert.doesNotMatch(pageSource, /arenaTransition[\s\S]{0,80}dispose/, 'route-owned layer must not be disposed on unmount');
-console.log('PASS arena scroll: deferred alignment, smooth, reduced motion, cancellation, detached target, no double route reset, next-prompt regional match');
+// 远端清单晚到（2026-09-17 收紧）：当前对局在新清单里仍然成立就保留，
+// 只有失效对局才重抽——每次 emit 无条件重抽会把 voting/result 脚下对局换掉
+assert.match(
+  pageSource,
+  /subscribeWorks\(\(\) => \{[\s\S]{0,40}setPair\(\(current\) => \{[\s\S]{0,200}currentPairs\(prompt\.id\)\.some\(/,
+  'works emit must keep a still-valid pair instead of unconditional re-pair',
+);
+// 「随机换个竞技场」与「下一题」同样挂 blocked，重播过场中不得再叠 match 纸幕
+assert.match(
+  pageSource,
+  /onClick=\{gotoRandomArena\} disabled=\{blocked\}/,
+  'random-arena button must be gated by blocked like next-topic',
+);
+console.log('PASS arena scroll: deferred alignment, smooth, reduced motion, cancellation, detached target, no double route reset, next-prompt regional match, valid-pair retention, random-arena gating');

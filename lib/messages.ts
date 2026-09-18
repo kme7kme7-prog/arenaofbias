@@ -55,23 +55,12 @@ export const messages: Record<string, string> = {
   'SVG 动画': 'SVG animation',
   演示阵容: 'Demo roster',
   历史阵容: 'Retired roster',
-  指令遵循: 'Instruction following',
-  语言表达: 'Expression',
-  创意表现: 'Creativity',
-  结构组织: 'Structure',
-  实用程度: 'Usefulness',
-  完成质量: 'Finish',
-  主题贴合: 'Relevance',
-  语言质感: 'Prose',
-  叙事节奏: 'Pacing',
-  情感表达: 'Emotion',
-  内容完整: 'Completeness',
-  视觉表现: 'Visuals',
-  布局层次: 'Hierarchy',
-  交互体验: 'Interaction',
-  实现完整: 'Completeness',
-  适配能力: 'Adaptability',
-  细节质感: 'Detail',
+  视觉设计: 'Visual design',
+  空间营造: 'Spatial composition',
+  动态表现: 'Motion',
+  文字表达: 'Written expression',
+  思辨推理: 'Critical reasoning',
+  创意构思: 'Creative ideation',
   '出场稳定，偏好分布均匀，是榜单里的中坚成员。':
     'A consistent performer with evenly distributed support.',
   '在部分题目里优势明显，样本再大一些会更可靠。':
@@ -88,7 +77,7 @@ export const messages: Record<string, string> = {
     'This arena includes {works} works from {models} models, compared only within this prompt.',
   '放大查看作品 {side}': 'Expand work {side}',
   '对 {model} 的态度': 'Your reaction to {model}',
-  '六项模拟指标：{labels}': 'Six simulated metrics: {labels}',
+  '六维评分：{labels}': 'Six-dimension profile: {labels}',
   '{prompts} 道命题，{arenas} 个竞技场可进入':
     '{prompts} prompts, {arenas} arenas ready',
   '正在观测作品 {side}': 'Observing work {side}',
@@ -418,13 +407,14 @@ export const messages: Record<string, string> = {
   暂定: 'Provisional',
   '偏好 · 选择模型查看六维档案':
     'preferences · Select a model to view its profile',
-  '占位数据 · 评分与排名均为演示':
-    'Placeholder data · Demo scores and rankings',
-  评分与排名均为演示: 'Demo scores and rankings',
-  '指标结构演示 · 六个维度均为模拟数据，尚未建立实际测量规则。':
-    'Demo metrics: all six dimensions are simulated, with no measurement rules established yet.',
-  '虚线表示阵容平均值；切换赛道可查看不同的指标组合。':
-    'The dashed line shows the roster average. Switch categories to explore other metrics.',
+  '占位数据 · 评分与名次为演示口径':
+    'Placeholder data · Rating and rank are demo-caliber',
+  '评分与名次为演示口径 · 六维画像按真实投票重放':
+    'Rating and rank are demo-caliber · profile replayed from real votes',
+  '六维画像按真实投票重放得出：每道题带一组维度权重，一票的分量按权重落到各维度。':
+    'The profile is replayed from real votes: each prompt carries dimension weights, and every choice lands by weight.',
+  '虚线表示阵容平均值；切换赛道可查看对应赛道的画像。':
+    'The dashed line shows the roster average. Switch categories for that board\'s profile.',
   '频道暂时未连接，点一下重新接入。': 'Disconnected. Click to reconnect.',
   发送失败: 'Failed to send',
   '收到。你的吐槽已留在本场。': 'Your comment is now part of this round.',

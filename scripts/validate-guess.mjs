@@ -422,6 +422,26 @@ try {
     assert.deepEqual(t(2, null), { state: 'unknown', arrow: null });
   });
 
+  await check('judge：发布时间差≤6个月=黄+箭头、更远=灰+箭头、同月=绿', () => {
+    // 合成最小模型。旧实现把 6 个月的阈值错送进比值分支，月份序号比值恒
+    // ≈1，任意不同月都给黄、灰灯永不出现——这里钉住差 1 个月与差 7 个月
+    const mk = (released) => ({
+      id: `zz-rel-${released}`, name: `ZZ Rel ${released}`, vendor: 'OpenAI',
+      region: 'US', released, openWeights: false, contextK: 128,
+      modalities: ['text'], reasoning: false, priceOut: null, priceTier: 2,
+      popularity: 0, difficulty: 1,
+    });
+    const rel = (g, a) => judge(mk(g), mk(a)).attributes.released;
+    assert.deepEqual(rel('2026-01', '2026-01'), { state: 'hit', arrow: null });
+    assert.deepEqual(rel('2026-01', '2026-07'), { state: 'near', arrow: 'up' });
+    assert.deepEqual(rel('2026-07', '2026-01'), { state: 'near', arrow: 'down' });
+    // 恰好 6 个月（含首尾月）仍是黄；跨年同样按月差算
+    assert.equal(rel('2026-02', '2026-08').state, 'near');
+    assert.equal(rel('2025-11', '2026-05').state, 'near');
+    assert.deepEqual(rel('2026-01', '2026-08'), { state: 'miss', arrow: 'up' });
+    assert.equal(rel('2020-01', '2026-01').state, 'miss');
+  });
+
   // ── 每日答案派生 ──
   await check('答案派生：同一天任何时刻调用结果一致（确定性）', () => {
     const noon = new Date('2026-10-01T04:00:00Z'); // UTC+8 12:00

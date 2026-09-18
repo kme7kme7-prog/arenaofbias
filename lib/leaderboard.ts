@@ -10,7 +10,6 @@ import {
   currentResults,
   hashSeed,
   isPlaceholderMode,
-  mulberry32,
   placeholderModels,
   readPlaceholderVotes,
 } from '@/lib/placeholder';
@@ -246,22 +245,93 @@ export function leaderboardData(
 }
 
 // ---------------------------------------------------------------------------
-// 雷达维度：演示用播种值，不代表真实测量（原型 disclaimer 同款语义）
+// 六维画像（决策 091）：不再用播种演示值——把真实投票按「每道题的维度权重」
+// 重放进分维 Elo，形成模型的六维画像。用户仍只选喜欢哪一边，不填任何评分。
+// 画像与榜单共用同一套投票流水、赛道与口径过滤（category/scope）。
 // ---------------------------------------------------------------------------
 
+/** 维度顺序与 RADAR_LABELS 一致：视觉设计 / 空间营造 / 动态表现 / 文字表达 / 思辨推理 / 创意构思 */
+export const RADAR_DIMENSIONS = ['视觉设计', '空间营造', '动态表现', '文字表达', '思辨推理', '创意构思'];
+
 export const RADAR_LABELS: Record<BoardCategory, string[]> = {
-  all: ['指令遵循', '语言表达', '创意表现', '结构组织', '实用程度', '完成质量'],
-  text: ['主题贴合', '语言质感', '叙事节奏', '情感表达', '创意表现', '内容完整'],
-  web: ['视觉表现', '布局层次', '交互体验', '实现完整', '适配能力', '细节质感'],
+  all: RADAR_DIMENSIONS,
+  text: RADAR_DIMENSIONS,
+  web: RADAR_DIMENSIONS,
 };
 
-export function radarProfile(modelId: string, category: BoardCategory): number[] {
-  const rng = mulberry32(hashSeed('radar', modelId, category));
-  return Array.from({ length: 6 }, () => 62 + Math.floor(rng() * 36));
-}
+/** 画像基准（0–100 展示量程的中点）；从未被相关题目加权到的维度停在基准 */
+export const RADAR_BASE = 50;
+/** 分维 Elo 步长上限（权重 1 时一票的最大变动量级，与榜单 ELO_K 同源） */
+const RADAR_K = 32;
 
-/** 全阵容的模拟平均（虚线），按类别播种一次 */
-export function radarAverage(category: BoardCategory): number[] {
-  const rng = mulberry32(hashSeed('radar-average', category));
-  return Array.from({ length: 6 }, () => 70 + Math.floor(rng() * 12));
+/** 每道题的六维权重（2026-09-18 用户拍板，按题号配置；各题权重和为 1）。
+ * 未配置的题按六维均分兜底，保证新题投票不静默丢失。 */
+export const PROMPT_DIMENSION_WEIGHTS: Record<string, number[]> = {
+  // 001 鹈鹕大挑战（骑车动画）：动态表现 60 · 视觉设计 30 · 创意构思 10
+  '001': [0.3, 0, 0.6, 0, 0, 0.1],
+  // 002 最后一句：文字表达 70 · 创意构思 30
+  '002': [0, 0, 0, 0.7, 0, 0.3],
+  // 003 环游轨道（前端网页设计）：视觉设计 60 · 动态表现 20 · 文字表达 20
+  '003': [0.6, 0, 0.2, 0.2, 0, 0],
+  // 004 营造法式（体素中国建筑群）：空间营造 70 · 视觉设计 30
+  '004': [0.3, 0.7, 0, 0, 0, 0],
+  // 005 飞瀑穿云（体素山水）：空间营造 60 · 视觉设计 30 · 创意构思 10
+  '005': [0.3, 0.6, 0, 0, 0, 0.1],
+  // 006 整装出发（前端网页设计，2026-09-18 用户确认）：视觉设计 60 · 动态表现 20 · 文字表达 20
+  '006': [0.6, 0, 0.2, 0.2, 0, 0],
+  // 007 事件视界（黑洞可视化）：动态表现 30 · 空间营造 20 · 视觉设计 20 · 思辨推理 30
+  '007': [0.2, 0.2, 0.3, 0, 0.3, 0],
+};
+
+const UNCONFIGURED_PROMPT_WEIGHTS = RADAR_DIMENSIONS.map(() => 1 / 6);
+
+export type RadarProfiles = {
+  /** modelId → 六维分（0–100，已收敛到展示量程） */
+  profiles: Map<string, number[]>;
+  /** 阵容平均（虚线）：参与过比较的模型逐维平均 */
+  average: number[];
+};
+
+/** 按赛道与口径过滤后，把投票重放成分维 Elo。平局双方各半分（决策 048 同口径）；
+ * 权重 0 的维度不因该题变动。重放内部不截断，展示值收敛到 0–100。 */
+export function computeRadarProfiles(
+  category: BoardCategory,
+  votes: VoteRecord[] = currentVotes(),
+  scope: BoardScope = 'mixed',
+): RadarProfiles {
+  const kinds = promptKindMap();
+  const scoped = votes.filter(
+    (vote) =>
+      matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
+      (scope === 'mixed' || vote.mode === 'formal'),
+  );
+  const table = new Map<string, number[]>();
+  const touch = (id: string) => {
+    if (!table.has(id)) table.set(id, Array(6).fill(RADAR_BASE));
+  };
+  const ordered = [...scoped].sort((a, b) => a.ts - b.ts);
+  for (const vote of ordered) {
+    touch(vote.winnerId);
+    touch(vote.loserId);
+    const weights = PROMPT_DIMENSION_WEIGHTS[vote.promptId] ?? UNCONFIGURED_PROMPT_WEIGHTS;
+    const ra = table.get(vote.winnerId)!;
+    const rb = table.get(vote.loserId)!;
+    const actual = vote.outcome === 'draw' ? 0.5 : 1;
+    for (let d = 0; d < 6; d += 1) {
+      const w = weights[d];
+      if (w <= 0) continue;
+      const expected = 1 / (1 + 10 ** ((rb[d] - ra[d]) / 400));
+      ra[d] += RADAR_K * w * (actual - expected);
+      rb[d] += RADAR_K * w * (1 - actual - (1 - expected));
+    }
+  }
+  const clamp = (v: number) => Math.max(0, Math.min(100, v));
+  const profiles = new Map<string, number[]>();
+  for (const [id, values] of table) profiles.set(id, values.map(clamp));
+  const average = RADAR_DIMENSIONS.map((_, d) => {
+    let sum = 0;
+    for (const values of table.values()) sum += values[d];
+    return table.size ? clamp(sum / table.size) : RADAR_BASE;
+  });
+  return { profiles, average };
 }

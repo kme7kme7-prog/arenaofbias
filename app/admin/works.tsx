@@ -28,7 +28,6 @@ export function AdminWorks() {
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setLoading(true);
       try {
         const params = new URLSearchParams({
           limit: '30',
@@ -136,7 +135,16 @@ export function AdminWorks() {
               key={value}
               disabled={!!busy || !!editing}
               aria-pressed={status === value}
-              onClick={() => filters(() => setStatus(value))}
+              onClick={() => {
+                // 重复点击当前筛选不能走 filters()：状态全无变化时依赖不变、
+                // effect 不重跑，无条件置位的 loading 会把页面永久卡死。
+                // 仅在第 2 页起回第一页（状态变了 effect 自然重跑）
+                if (value === status) {
+                  if (page > 0) setPage(0);
+                  return;
+                }
+                filters(() => setStatus(value));
+              }}
             >
               {label}
             </button>
