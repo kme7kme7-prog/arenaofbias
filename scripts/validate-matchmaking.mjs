@@ -182,6 +182,51 @@ try {
     assert.ok(Array.isArray(fallback) && fallback.length === 2);
   });
 
+  await check('两级抽取（决策 097）：多作品模型归组同池、回避作用到作品层、模型对均匀', async () => {
+    const mk = (id, modelId) => ({
+      id,
+      promptId: '001',
+      modelId,
+      modelName: modelId,
+      title: id,
+      content: { kind: 'html', src: '/works/x.html' },
+    });
+    const results = [
+      mk('m1', 'm'), mk('m2', 'm'), mk('m3', 'm'),
+      mk('n1', 'n'), mk('n2', 'n'),
+      mk('k1', 'k'),
+    ];
+    // 空声望分 = 全员同档，走纯随机路径
+    for (let i = 0; i < 200; i++) {
+      const pair = pickMatchedMatchup('001', results, {}, undefined, Math.random);
+      assert.notEqual(pair[0].modelId, pair[1].modelId);
+    }
+    // 上轮作品不得从同模型的另一件作品漏回来（回避过的组必须用过滤后的作品）
+    for (let i = 0; i < 200; i++) {
+      const pair = pickMatchedMatchup('001', results, {}, [results[0], results[3]], Math.random);
+      assert.ok(
+        pair.every((entry) => entry.id !== 'm1' && entry.id !== 'n1'),
+        `previous work leaked: ${pair.map((e) => e.id).join(',')}`,
+      );
+    }
+    const counts = {};
+    const N = 3000;
+    for (let i = 0; i < N; i++) {
+      const key = pickMatchedMatchup('001', results, {}, undefined, Math.random)
+        .map((e) => e.modelId)
+        .sort()
+        .join('+');
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    assert.deepEqual(Object.keys(counts).sort(), ['k+m', 'k+n', 'm+n']);
+    for (const rate of Object.values(counts)) {
+      assert.ok(
+        rate / N > 0.26 && rate / N < 0.41,
+        `model pair not uniform: ${JSON.stringify(counts)}`,
+      );
+    }
+  });
+
   await check('无可配对：与 pickMatchup 一致返回 null', async () => {
     assert.equal(pickMatchedMatchup('004', makeResults(), {}, undefined, Math.random), null);
     // 004 题库里没有本作品池的结果

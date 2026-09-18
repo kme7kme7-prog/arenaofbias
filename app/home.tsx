@@ -20,7 +20,8 @@ import { currentRatings } from '@/lib/ratings';
 // 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
 // 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
 import { currentRandomArenaHash } from '@/lib/placeholder';
-import { wipeNavigate, type PageWipeCopy } from '@/lib/ui-transitions';
+import { currentPrompts } from '@/lib/prompts';
+import { enterArena } from '@/lib/works-gate';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -72,16 +73,9 @@ export default function Home() {
   const [format, setFormat] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const stage = useRef<HTMLElement>(null);
-  // 全屏横扫过渡由 lib/ui-transitions.ts 的 wipeNavigate 接管：
-  // 盖满整屏时换路由、扫出露出新页面，文案随目的地变化
-  const go = (hash: string, copy: PageWipeCopy) => {
-    if (leaving) return;
-    setLeaving(true);
-    wipeNavigate(hash, copy);
-  };
   // 决策 023：主按钮进入玩法菜单；页眉保留「随机入场」快速入口。
   // 决策 032：主按钮改走档案锁定过场（lib/game-transitions.ts 的 frame），
-  // 盖满时经 onCovered 切路由；随机入场仍走 wipeNavigate 横扫
+  // 盖满时经 onCovered 切路由；随机入场走钉住纸幕（2026-09-19，取代横扫）
   const enter = () => {
     if (leaving || frameTransitionRunning) return;
     setLeaving(true);
@@ -97,11 +91,13 @@ export default function Home() {
     });
     transition.play();
   };
-  const enterRandom = () =>
-    go(currentRandomArenaHash(), {
-      note: 'YOUR INSTINCT MATTERS.',
-      title: 'Round Start',
-    });
+  const enterRandom = () => {
+    if (leaving) return;
+    const hash = currentRandomArenaHash();
+    const prompt = currentPrompts().find((item) => `#arena/${item.id}` === hash);
+    if (!enterArena(hash, prompt?.name, prompt?.id)) return;
+    setLeaving(true);
+  };
   if (edition === 'new')
     return (
       <HomeNext enter={enter} enterRandom={enterRandom} leaving={leaving} />

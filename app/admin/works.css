@@ -135,7 +135,7 @@
 }
 .works-row {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  grid-template-columns: 34px 46px minmax(0, 1fr) auto;
   gap: 16px;
   padding: 22px;
   background: #fff;
@@ -143,6 +143,38 @@
   border-radius: 10px;
   margin-bottom: 10px;
   align-items: start;
+}
+.works-pick {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+.works-pick input {
+  width: 16px;
+  height: 16px;
+  accent-color: #285440;
+  cursor: pointer;
+}
+.works-pick input:disabled {
+  cursor: not-allowed;
+}
+.works-pickbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px dashed #98ac9d;
+  border-radius: 9px;
+  background: #f3f7f3;
+  font-size: 13px;
+  color: #34483a;
+}
+.works-pickbar small {
+  color: #718274;
+}
+.works-pickbar button {
+  padding: 6px 12px;
 }
 .works-type {
   width: 46px;
@@ -528,4 +560,47 @@
   .calibration-footer > div {
     flex-basis: 100%;
   }
+}
+/* 视角校准（决策 102）：复用画布校准弹窗外壳 */
+.work-camera .work-camera-body {
+  margin: 0 20px;
+  border: 1px solid #d2ddd2;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.work-camera .work-camera-body iframe {
+  display: block;
+  width: 100%;
+  height: min(62vh, 640px);
+  border: 0;
+}
+.work-camera .work-camera-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 20px 6px;
+}
+.work-camera .work-camera-hook {
+  font-size: 12px;
+  color: #56695a;
+}
+.work-camera .work-camera-hook.ready {
+  color: #287045;
+}
+.work-camera .work-camera-hook.none {
+  color: #a3502e;
+}
+.work-camera .work-camera-values {
+  flex: 1;
+  min-width: 220px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  color: #56695a;
+}
+.work-camera > small {
+  display: block;
+  margin: 0 20px 18px;
+  color: #718274;
 }

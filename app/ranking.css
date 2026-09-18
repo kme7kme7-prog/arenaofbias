@@ -255,15 +255,15 @@
   background: #f2f4ea;
   border-bottom: 1px solid #cdd6c1;
   isolation: isolate;
-  /* 与原型一致：换位时榜首深底、选中底色、名次投影都缓慢过渡，不瞬变 */
+  /* 选中/榜首的深底与投影缓慢过渡（行悬停、点选时不瞬变）；
+     赛道切换自 2026-09-19 起无任何换位动画，行与计分直接落位 */
   transition:
     background 0.65s,
     box-shadow 0.65s;
 }
-/* 行的入场（含计分淡入）由 ranking.tsx 的 WAAPI 播放，不再用常驻 CSS 动画：
-   常驻动画的内联 animation-delay 随名次变化会在换赛道时整段重播 */
-/* 首行的酸色扫光（原型 row-flash）：入场/重播由 CSS 类变化触发，
-   赛道切换时若首行未易主则由 ranking.tsx 的 WAAPI 重放 */
+/* 行的入场（含计分淡入）由 ranking.tsx 的 WAAPI 在挂载/重播时播放一次，
+   不再用常驻 CSS 动画：常驻动画的内联 animation-delay 随名次变化会整段重播 */
+/* 首行的酸色扫光（原型 row-flash）：入场/重播由 CSS 类变化触发 */
 @keyframes rank-row-flash {
   to {
     transform: translateX(110%);
@@ -284,7 +284,7 @@
 .rank-board .rank-row.first .rank-row-flash {
   animation: rank-row-flash 1.1s 0.4s ease-in-out;
 }
-/* 每行评分数字的上浮淡入同样走 WAAPI（入场与换位两处），CSS 不再挂动画 */
+/* 每行评分数字的上浮淡入只在入场时由 WAAPI 播放，CSS 不挂动画 */
 .rank-row.first {
   background: #26382f;
   color: #edf1e4;

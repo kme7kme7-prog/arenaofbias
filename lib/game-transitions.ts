@@ -91,10 +91,27 @@ export interface GameTransitionOptions {
   onCovered?: () => void;
   onFrame?: (time: number, duration: number) => void;
   onFinish?: () => void;
+  // 扫出门控（仅 match，决策 096）：返回 false 时纸幕钉在盖满位不扫出——
+  // 「下一题」把它接到新竞技场作品就绪门上，加载期牌面本身就是等待屏；
+  // 返回 true 且帧率恢复后才进 exit 段帧时扫出。
+  holdGate?: () => boolean;
   // bands 字带文案（三条带各一词一签）；缺省用通用品牌词
   words?: [string, string, string];
   labels?: [string, string, string];
 }
+
+// 单帧推进封顶（2026-09-19 卡顿轮）：帧间隔超过此值视为主线程饱和掉帧——
+// 时间轴原地冻住、恢复后从冻点续播，不按墙钟追进度跳段。100ms 不碰低至
+// 10fps 的正常帧率，只截真阻塞。文字纸条同规矩（lib/text-swap-mask.ts）。
+const FRAME_STEP_CAP = 100;
+// 释放后连续多少帧正常帧率才起扫：饱和期合成器产不出帧，任何按墙钟走的
+// 扫出都会被压进一两帧产帧里、看起来就是「纸幕半开突然消失」——宁可多钉
+// 一会儿幕，等帧率恢复再整段扫出。
+const SMOOTH_FRAMES = 3;
+// 帧率门的「正常帧」阈值：比推进封顶宽——重作品（WebGL 渲染循环）会把主线程
+// 压在持续 100~250ms 的帧间隔，那是本页的常态不是阻塞；只有 >250ms 的真阻塞
+// 才重置计数。阈值过紧会把扫出永久冻在低帧率页面上。
+const SMOOTH_DELTA_MS = 250;
 
 export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
   if (kind === 'match') return { covered: 420, exitStart: 760, duration: 1260 };
@@ -126,6 +143,8 @@ export function createGameTransition(
   let disposed = false;
   let covered = false;
   let previous: number | undefined;
+  let smooth = 0;
+  let smoothPinned = false;
   const el = (className: string, parent = layer, text?: string) => {
     const node = document.createElement('div');
     node.className = className;
@@ -189,6 +208,8 @@ export function createGameTransition(
       el('gt-match-red', rule);
       el('gt-match-blue', rule);
       el('gt-match-caption', content, '下一场，凭直觉。 / MAKE YOUR CHOICE');
+      // 钉幕等待期才显示的加载注记（data-gt-hold 门控）——牌面兼任加载屏
+      el('gt-match-holdnote', content, '正在接入试验场');
       el('gt-match-corner', face, 'A / B');
       const duel = el('gt-match-duel', face);
       el('gt-match-side gt-match-side-a', duel, 'A');
@@ -526,13 +547,25 @@ export function createGameTransition(
     });
     // 阶段标记供外部对齐（决策 089）：竞技场开场牌在 match 扫出
     // 尾段提前接入，与作品揭幕并行落点，不干等整层移除
-    const phase = time >= timing.exitStart ? 'exit' : 'entry';
+    // 钉幕等待（096）：门关着时纸幕停在 exitStart，仍算 entry——
+    // 新页的门控只在真正扫出后才放揭幕
+    // 帧率门（2026-09-19）：扫出未起时的钉幕仍算 entry/hold；扫出已起后的
+    // 掉帧冻结只冻时间轴，不改阶段标记——幕布视觉上停在半开位等帧率恢复
+    const held =
+      kind === 'match' &&
+      covered &&
+      ((!!options.holdGate && !options.holdGate()) ||
+        (smoothPinned && time <= timing.exitStart + 1));
+    const phase = time >= timing.exitStart && !held ? 'exit' : 'entry';
     if (layer.dataset.gtPhase !== phase) layer.dataset.gtPhase = phase;
+    if (held) layer.dataset.gtHold = '1';
+    else if (layer.dataset.gtHold !== undefined) delete layer.dataset.gtHold;
     options.onFrame?.(time, timing.duration);
   };
   const pause = () => {
     running = false;
     previous = undefined;
+    smoothPinned = false;
     cancelAnimationFrame(frame);
   };
   const dispose = () => {
@@ -549,10 +582,39 @@ export function createGameTransition(
     if (!running || disposed) return;
     const delta = previous === undefined ? 0 : stamp - previous;
     previous = stamp;
+    smooth = delta <= SMOOTH_DELTA_MS ? smooth + 1 : 0;
     // Render the fully covered frame before allowing a page change. A delayed
     // frame must not jump from pre-cover to exit while changing the destination.
-    const next = time + delta * Math.max(0.1, options.speed ?? 1);
-    seek(!covered && next >= timing.covered ? timing.covered : next);
+    // 钉幕门控（096）：holdGate 关门时把时间钳在 exitStart——纸幕保持盖满，
+    // 牌面等门开才扫出（新竞技场作品就绪/超时/跳过，见 lib/works-gate.ts）
+    const heldGate =
+      kind === 'match' &&
+      covered &&
+      !!options.holdGate &&
+      !options.holdGate();
+    // 掉帧冻结不跳段（2026-09-19 卡顿轮）：按帧间墙钟差推进时，主线程饱和
+    // 掉帧数秒会让时间轴一把追到终态——钉幕在释放帧被直接 seek 到终态、层
+    // 瞬移除（扫出整段被吃），入场/中段装饰被整段跳过。单帧推进封顶后掉帧
+    // 只冻不跳，恢复后从冻点续播；扫出段同帧时 scrub，不再交墙钟原生播放——
+    // 饱和期合成器产不出帧时，墙钟时间轴会独自跑完，产帧恢复瞬间层已该移除，
+    // 用户看到的就是半开纸幕凭空消失。
+    // 释放撞掉帧：扫出还没起就继续钉幕（加载注记仍在），等连续正常帧再起扫；
+    // 扫出已起则只冻不回弹——回弹到盖满位是另一种肉眼可见的跳变。
+    smoothPinned =
+      kind === 'match' &&
+      covered &&
+      !heldGate &&
+      time >= timing.exitStart &&
+      smooth < SMOOTH_FRAMES;
+    const advanced = smoothPinned
+      ? 0
+      : Math.min(delta, FRAME_STEP_CAP) * Math.max(0.1, options.speed ?? 1);
+    const next = heldGate
+      ? Math.min(time + advanced, timing.exitStart)
+      : time + advanced;
+    seek(!covered && next >= timing.covered ? timing.covered :
+      kind === 'match' && time < timing.exitStart && next >= timing.exitStart
+        ? timing.exitStart : next);
     if (!covered && time >= timing.covered) {
       covered = true;
       options.onCovered?.();

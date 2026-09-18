@@ -203,3 +203,95 @@
 - 2026-09-18 ｜ 用户拍板：雷达六维固定为 **视觉设计 / 空间营造 / 动态表现 / 文字表达 / 思辨推理 / 创意构思**，三个赛道同一套标签；方向上「视觉设计、空间营造、动态表现」落在左上半，「文字表达、思辨推理、创意构思」落在右下半（平顶六边形，`coord` 起始角 -180°）。
 - **评分口径**：用户仍然只选喜欢哪一边，不填任何评分。每道题预配置一组维度权重，一票的分量按该题权重落到各维度，最后重放成模型六维画像——分维 Elo（基准 50、K=32×权重、D=400），平局各半分，权重 0 的维度不因该题变动；未配置的题按六维均分兜底。与榜单偏好评分共用同一套流水与赛道/口径过滤；实现与权重表在 `lib/leaderboard.ts`（`computeRadarProfiles` / `PROMPT_DIMENSION_WEIGHTS`）。
 - **权重映射**（用户原话 → 规范维度名）：001 鹈鹕大挑战=动态表现 60·视觉设计 30·创意构思 10；002 最后一句=文字表达 70·创意构思 30；003 环游轨道（用户称「前端网页设计」）=视觉设计 60·动态表现 20·文字表达 20；004 营造法式（体素中国建筑群）=空间营造 70·视觉设计 30；005 飞瀑穿云（体素山水）=空间营造 60·视觉设计 30·创意构思 10；007 事件视界（黑洞可视化）=动态表现 30·空间营造 20·视觉设计 20·思辨推理 30。**006 整装出发也是前端网页设计，2026-09-18 用户确认同 003 权重（视觉设计 60·动态表现 20·文字表达 20）。**
+
+## 092 · 测评库全量接入：同模型多作品归组 + 防记题刷分
+
+- 2026-09-18 ｜ 用户拍板把 `Temp/超级结果` 32 个现役组合的四个网页题作品全量接入（3营造→004 / 4飞瀑→005 / 5落地页→006 / 7黑洞→007，共 124 份）。MES、小说、文章、公文用例不接；评分记录（`---本项评分结果---.md`）不进系统。
+- **同模型多作品归组**：同一模型名在多个 agent/effort 组合下的作品全部接入、共用同一 `model_id`——「选中模型时就在它的作品里随便抽一份，输赢都归在模型名下」，防止记住题目后给模型刷分。`eligiblePairs` 的 `modelId` 不等过滤保证同模型作品永不对打。已在站上的 6 个模型复用旧显示名以保持 `model_id` 一致；其余暂用文件夹基名（模型名统一是后续工作）。
+- **正本口径**：有 `dist/` 用构建产物，否则用例目录内最浅 `index.html`；glm-5.3-flash / hy4-preview 黑洞用修复变体目录（`-修复副本` / `-fix`）；hy3 落地页是未构建 JSX 工程，用 `standalone.html` 作正本。复制排除 node_modules/评分文档/任务文档/日志等开发痕迹；绝对引用一律改 `./` 相对。
+- 结果：004–006 各 38 作品/31 模型，007 有 34 作品/27 模型。脚本 `Temp/intake-library.mjs`（幂等，`intake-log.json` 记账）。
+
+## 093 · 题目六维权重搬进数据库，后台题目管理可调
+
+- 2026-09-19 ｜ 091 的权重表此前是 `lib/leaderboard.ts` 里的硬编码常量（`PROMPT_DIMENSION_WEIGHTS`），后台不可见、改一次要发版。用户要求接入「后台改 → 落库 → 前台拉」的题库既有通道：`prompts` 表加 `weights` 列（迁移 007，JSON 数组，与 `RADAR_DIMENSIONS` 同序），`/api/admin/prompts` 读写，`/api/prompts` 公开带出；`Prompt.weights?` 入库解析，默认值种在 `lib/prompts-seed.json`（前后端共享种子），硬编码表删除。
+- **重放参数语义**：权重不是票面数据——后台保存后该题**全部历史票**即时按新口径重放六维画像，榜单整个会动。校验口径：6 个 0–1 的数、合计 1（±1% 容忍，落库与提交前都归一化）；`weights: null` = 清空回「未配置」→ 前台六维均分兜底。
+- **下架题口径**：`/api/votes` 联表快照随行带 `promptWeights`（与 `promptKind` 同套路，决策 045⑤ 延伸）——下架题的历史票仍按原权重重放，不依赖题目对前台可见。查找顺序：流水行快照 → 当前题库 → 六维均分。
+- 后台表单：六个百分比输入 + 实时合计校验（≠100% 不给存）+「六维均分」快捷键；列表名称下显示非零维摘要。判定依据：`validate-admin` 题目管理用例（非法形 400/合计≠1 400/保存带出/清空）+ `validate-leaderboard` 种子权重断言。
+
+## 094 · 竞技场开场牌改为点缀：揭幕不等牌播完、牌不先走
+
+- 2026-09-19 ｜ 用户看了入场截图拍板：「本轮开始」开场牌只是点缀，不该挡着作品——第一个动画（牌入场段）结束后就显示作品，哪怕作品加载久一点。首入路径改为 `introEntranceTail`（180ms，= 牌的入场动画时长）与作品就绪门控**并行、先到即揭幕**。
+- 用户随即追加：黑洞（007）这类大作品入场时「过渡动画后半段还是容易卡没掉」。实测根因不是掉帧而是**空舞台**：007 作品就绪要 ~1.8s，牌却按固定 0.9s 自己播完退场，之后近 1 秒只剩空白，作品才淡入。现把牌拆成两段——入场 180ms 后**驻留**，退场（320ms）由揭幕触发（React 在 `worksSettled` 时给 `.intro-label` 加 `is-leaving`），作品没就绪牌就不走；揭幕后退场必须播完才离开 intro，但不再为凑 `introLead` 空等（作品慢于 1s 就绪时直接进可投，快于 1s 仍补足既有 6.0s/5.2s 节拍）。
+- 顺带修掉一个真实开销：`round-intro` 原本动画 `clip-path`，只能主线程逐帧重绘——同源重作品的渲染循环会把它整段挤掉。改为同色遮罩伪元素的 `scaleX` 横扫 + `will-change` 提层，与 `page-wipe` 既有约定一致（见 globals.css 注释）。
+- 实测（Tabbit 冷加载）：007 作品隐藏+牌驻留 1125ms → 揭幕同时牌退场 1632ms → 可投；006 同口径。**主线程仍会被两个 WebGL 作品自身的渲染循环压满**（longtask 165–255ms、截图耗时 0.6–2.4s），那是作品体量本身，不是入场动画。
+- `check-vote-split` 断言同步：双分支等待、`is-leaving` 由 `worksSettled` 驱动、CSS 两段时长与 JS 常量成对、`round-intro` 不得再出现 clip-path。
+- **后由 095 整体推翻**：开场牌横幅彻底删除（`introEntranceTail`/`introExit`/`is-leaving`/`round-intro*` 一并退役），8 秒超时放行改死等；本条只保留「clip-path 换合成器属性」与「空舞台断档」两条仍成立的结论。
+
+## 095 · 开场牌彻底下线：入场死等作品完全就绪，投票条当逐侧进度条
+
+- 2026-09-19 ｜ 用户拍板「把本轮开始的那个横幅去了吧 那个过场要保证完全加载完了再展开」：094 的折中（牌驻留到揭幕再退）仍让横幅参与入场，本轮**整块删除** `.intro-label` 及其 `round-intro / round-intro-mask / round-intro-out` 关键帧与窄屏覆盖——入场不再有任何横幅，只剩「加载过场 → 作品揭幕」两拍。
+- **死等门控**（用户口径「死等吧」）：取消 094 的 `worksLoadCap` 8 秒超时放行。`app/page.tsx` 入场序列改为 `Promise.all([waitRouteLayer, waitWorksLoaded, delay(lead - revealHold)])`——两侧作品都完全就绪（文档 interactive + `data-aob-probe` 探针首帧握手，逐侧轮询 `pollWorksReady`）才给 shell 加 `works-reveal`；`worksSettled` 后仍要播完 `introRevealHold`（320ms）才离开 intro，揭幕淡入不被卸载切走。快加载路径从 `introLead` 余量里扣揭幕段，故 6.0s 首入 / 5.2s 重播节拍断言原样成立。
+- **加载过场延到揭幕才收**：`.loading-overlay` 在 loading 与整个等待期都压着舞台，`worksSettled` 时加 `is-clearing` 用 0.32s 淡出（`overlay-clear`），CSS 时长与 `ARENA_TIMING.introRevealHold` 成对，`check-vote-split` 断言两者相等。
+- **投票条当逐侧进度条**（用户口径「下面有一个蓝红条动画 那个可以给他做成类似进度条的吗 保持美感」）：等待期把底部两条投票条浮到过场层之上（`z-index: 31`），文案隐去；未就绪一侧退成白亮空心槽 + 该队色光带往复扫（`vote-pending`），就绪即填回实心队色——A 红 B 蓝各报各的，比一根总进度条更诚实。works-hold 期间显式 `transition: none`：`.vote-button` 基类的 `background .3s` 在主线程被两个 WebGL 渲染循环压满时会拖住「就绪即填满」，实测读数停在起始值。
+- **8 秒不是放行，是给出出口**（用户口径「如果8秒没反应 就显示一个跳过此题」）：`worksSkipAt` 8s 后仍在等的只让过场层里长出「跳过此题」按钮（`worksStalled`），不替用户强行揭幕；点击按口径分流——正式模式且本题还有别组走 `nextMatchup()`「换一组作品」，否则 `gotoRandomArena()`「跳过此题」，新一轮 `worksStalled` 复位。文案进 `lib/messages.ts`。
+- 实测（Tabbit 真机）：冷加载 007 大作品 `works-hold + 双条 pending @1975ms → 两侧就绪 @5999ms → 揭幕 + 过场收场 @6169ms → 可投 @6427ms`；warm 重载 `hold @2022 → A 就绪 @2792 → 双方就绪揭幕 @3066`；挂起一侧文档请求可稳定复现「一条实心、一条空心扫光」的半就绪态；死等 8s 后跳过按钮出现，点击实测跳到 `#arena/005` 并正常进入新一轮等待。**如实记录**：`reveal → 可投` 实测间隔远超 320ms，是 `delay()` 的 setTimeout 被作品渲染循环压满主线程拖后，非门控逻辑问题。
+- `check-vote-split` 断言同步：横幅零残留、双就绪逐侧读取、死等循环、三并行揭幕条件、揭幕段播完、过场收场与 `introRevealHold` 成对、`is-pending` 与 works-hold `transition: none`、`worksSkipAt` 落在 4–15s、`worksLoadCap` 不得复活。判定依据另有 `validate:arena` 12 项与 `check:motion` 全绿。
+
+## 096 · 「下一题」纸幕钉等作品就绪：加载整拍被牌面吸收，不再有独立加载屏
+
+- 2026-09-19 ｜ 用户看入场流程截图拍板：「跳过第四个步骤（正在接入试验场），第二个步骤（纸幕牌面）的时候就进行加载，只有加载完了再执行第三步（纸幕扫出），然后到第五步（作品）」。`gt-match` 新增 `holdGate` 扫出门控：盖满切 hash 后纸幕钉在 `exitStart` 不扫出，牌面本身就是加载屏；新竞技场双侧作品就绪（或超时/跳过）才放幕扫出，揭幕直接落在就绪作品上。
+- **新模块 `lib/works-gate.ts`**（跨路由模块级状态，沿用 `text-swap-mask` 的 armed 惯例）：旧页 `armWorksGate()` → 新页 `pollWorksReady` 逐侧 `reportWorkReady` → 双侧齐 `releaseWorksGate()` 放门；`worksGateOpen()` 供纸幕每帧询问，内置 15s 兜底——新页没 mount 上也不留死幕。放门点共四处：双侧就绪、卡死计时器（落回加载屏+跳过按钮兜底）、intro 清理（空格跳过/卸载/重跑）、`gotoRandomArena` 入口的 `!worksGateOpen()` 防重入（钉幕中不叠幕）。
+- **`lib/game-transitions.ts`**：`holdGate` 关闭时 `tick` 把时间钳在 `exitStart`、压住 `nativeExit`；`seek` 里钉住态 phase 仍记 `entry`（新页 `waitRouteLayer` 只在真正扫出后放揭幕）、层打 `data-gt-hold`。牌面新增 `gt-match-holdnote`「正在接入试验场」呼吸注记；duel 两条连线当逐侧进度条——`data-gt-a/b` 门控该侧连线填成队色，与 095 投票条进度条的「各报各的」同一语言。
+- **语义不变量**：就绪线不变（文档 interactive + 探针首帧握手）；死等口径不变（超时只给跳过出口不强行揭幕）；菜单入场/重播/正式换组不受影响（只有 `gotoRandomArena` 布防）；「正在接入试验场」overlay 保留为卡死兜底与无纸幕入场路径的等待屏——只是不再出现在「下一题」正常流程里。
+- 实测（Tabbit 真机，005→006）：`纸幕钉住 gtHold=1 @450–750ms（holdnote 呼吸中）→ 双侧就绪放门 @900 → exit 扫出 → works-reveal 落扫出尾段 @1200 → overlay 淡尽层移除 @1350 → 可投`——加载屏整拍未露面。
+- `check-game-transitions` 新增钉幕断言（钳位/entry 相位/gtHold/开门接管）；`check-vote-split` 钉住布防、挂门、逐侧上报与四处放门接线。判定依据另有 typecheck、check:motion 全绿、oxlint 零告警。
+
+## 097 · 模型身份统一：变体归并为一个模型多作品，两级抽取（先抽模型再抽作品）
+
+- 2026-09-19 ｜ 用户拍板（092 轮遗留待办「模型显示名统一」）：全部显示名改成「Kimi K3 / Gemini 3.7 Flash」风格；`gpt-6-astra-0xbqp`、`gpt-6-astra-low` 这类变体尾巴**全部剥离合并**，唯一保留标注的是 `deepseek-v4-pro--0821-1ligi` →「DeepSeek V4 Pro（灰测0821凌晨）」；`dots3-note-prev`→「Dots3 Note」、`hy4-preview`→「Hy4」（用户点名不带 Preview）。45 个旧 id 归并为 36 个真实模型（演示身份 4 个不动）。
+- **合并是数据层的**（用户口径：「不要出现同名情况 改成一个模型有多个作品」）：`scripts/migrate-model-identity.mjs` 一事务改写 `works.model_id/model_name`、`votes.winner_mid/loser_mid`、`reactions.mid`（撞槽留最新），榜单一 id 一名、票面与作品表一致性复核内建；幂等可重跑。合并产生的同模型内战历史票成自票，Elo 重放不容纳，删除 7 条（全在 001、GPT-6 Astra 变体之间）。备份在 `Temp/backup-before-model-merge/`。
+- **抽取改两级**（用户口径：「随机抽取 最后都是给这个模型加分 抽到这个模型之后 从这个模型重随机抽取那个作品」）：`pickMatchup` / `pickMatchedMatchup` 从「作品对均匀抽」改为「先等概率抽两个不同模型、再各从该模型作品里随机抽一件」——作品多的模型不再靠数量刷出场，票面加分恒落模型。`lib/arena.ts` 新增 `modelGroups/modelPairIds/pickWorkFrom/groupsAvoiding/finishPair`；上轮作品回避改在分组层生效（首版曾把回避后的模型对配回未过滤分组，已修并加回归断言）。单作品组不消耗随机数，既有确定性断言的随机序列不漂移。
+- 已知语义：同模型永不对打由 modelId 判断天然保证；`gpt-6-astra` 与 `gpt-6-astra-low` 这类旧独立统计合并为一条榜上历史（票与 Elo 一并归并）；后台/登记侧模型名即显示名，modelId 仍不可改。
+- 验证：typecheck、build、validate:arena **13 项**（新增两级抽取断言）、validate:matchmaking **8 项**（新增软性路径两级断言）、validate:leaderboard 11 项、validate:votes 12 项、validate:admin 11 项、oxlint 零告；真库迁移幂等复跑通过、`/api/works` 39 模型零重名、`/api/ratings` 无旧变体残留；浏览器实测 004 双侧渲染可投、`#rank` 全站只剩规范名。
+
+## 098 · 偏好榜赛道切换零过渡：行不移动不淡入，计分不做滚动数字
+
+- 2026-09-19 ｜ 用户三轮点明：「排行榜字切换的过渡很奇怪」「我再次点击分类标签，我看到的是文字切换，但不需要有行移动、淡入」「我指的是计分！」——切赛道时只允许内容直接换成新值，任何动画都不要。
+- 落刀：`app/ranking.tsx` 删除 `[category]` 依赖的 FLIP 换位动画（行 translateY 滑位、新行淡入、计分淡入、首行扫光重放）及其配套的 `rowTops` 布局记录与 `data-mid`；行评分 `.rank-score` 与详情面板「偏好评分」从 `RollingNumber` 改为直接渲染数值（切赛道/换选中模型时数字不再滚动）。首次入场/「重播入场」的 WAAPI 动画保留（用户未点名）。`app/ranking.css` 三处注释同步改口径。
+- 保留项说明：`.rank-row` 的 `background/box-shadow 0.65s` 过渡仍在（服务点选高亮与榜首底色），首行 CSS 扫光仍由挂载触发——实测切赛道瞬间 `board.getAnimations()` 为空，无残留动画；若用户仍觉得这两处碍眼可再点。
+- 验证：typecheck、oxlint 零告、validate:leaderboard 11 项、build 通过；浏览器实测 `#rank` 切「写作」零动画、评分即刻落位。
+
+## 099 · 进竞技场统一钉幕中间态：菜单/首页/题库/事件页入场都等作品就绪才展开
+
+- 2026-09-19 ｜ 用户报卡顿并拍板：「从菜单进入测评的时候，如果里面是体素山水或者黑洞之类比较大的，有概率卡在（斜幕半扫）界面卡个两三秒，有时候衔接非常不自然（露出加载屏）；如果实在需要加载的话，就进去的时候默认就是（纸幕盖满）这样的过渡中间态，然后等到完全加载完再展开显示」。
+- 根因：096 的钉幕门只挂在场内「下一题」（`gotoRandomArena`）。菜单进测评走 convoy 斜幕、首页随机入场走 wipe 横扫、题库/事件页是裸锚点——都没有 holdGate，重作品（007 黑洞等）把主线程压满时斜幕扫出被冻在半程，或按节拍扫完直接露出「正在接入试验场」加载屏。
+- 落刀：`lib/works-gate.ts` 新增 `enterArena(hash, title, index)`——整屏 match 纸幕 + `holdGate: worksGateOpen` + 逐侧就绪回写牌面（data-gt-a/b），与「下一题」同门同口径；`app/play-menu.tsx`（娱乐/正式）、`app/home.tsx`（随机入场，取代 wipe）、`app/prompt-library.tsx`（就绪题才钉幕，未就绪仍落预览页）、`app/event.tsx`（001）统一改走它；菜单 convoy 只留给事件页，模一把抽牌过场不变。返回布尔：上一幕还钉着时静默不响应。
+- 已知残留：双侧就绪后扫出仍靠 rAF 推进到 exitStart 才交原生，主线程被重作品渲染循环占满时交棒可能晚 1–2s——期间纸幕保持全盖（不是半扫冻结），视觉上是中间态多停一会。
+- 验证：typecheck、oxlint 零告、check-vote-split（新增入场口统一断言：四个入口源都含 enterArena、菜单 convoy 只剩事件页、首页无 wipeNavigate）、check-game-transitions 全套、build 通过；浏览器实测题库进 007：纸幕 493ms 盖满钉住、牌面逐侧报进度、钉 3.4s 等黑洞作品、双侧就绪后扫出，加载屏全程未露面。
+
+## 100 · 过场与纸条时间轴帧时化：掉帧原地冻、恢复续播，扫出等帧率恢复才起
+
+- 2026-09-19 ｜ 用户第二轮卡顿报告：「加载完之后动画突然消失或者卡没，非常严重；下面这个文字也会卡，动画卡住好像直接被跳过了一段」（附场内引言文字被纸条遮尾的截图）。
+- 根因同源三层、都坏在按墙钟推进：① `tick` 帧间 delta 是墙钟——主线程饱和掉帧数秒时，门释放后第一帧 `next` 一把越过 duration，seek 把纸幕打到终态、complete 瞬移除层，扫出整段被吃；② 扫出段原先交原生 WAAPI 按墙钟走——饱和期合成器产不出帧，墙钟时间轴独自跑完，产帧恢复的瞬间层已该移除，用户看到半开纸幕凭空消失（007 实测 leafY 冻在 -280 后层移除）；③ `TextSwapMask.drive` 同追墙钟，且 reveal 挂载后固定 240ms 起揭——099 钉幕流程下文字揭幕整段播在幕布后面，幕开只剩静态文字。
+- 落刀：`lib/game-transitions.ts` 全时间轴帧时化——单帧推进封顶 `FRAME_STEP_CAP=100ms`（掉帧原地冻、恢复从冻点续播；100ms 不碰低至 10fps 的正常帧率）；**原生交棒整段移除**，扫出段同帧时 scrub（墙钟时间轴正是跳段之源）；帧率门 `SMOOTH_FRAMES=3`——门释放后还没连续 3 帧「正常帧」（帧间隔 ≤ `SMOOTH_DELTA_MS=250ms`）就继续钉幕（加载注记仍亮），帧率恢复才起扫；扫出未起遇掉帧继续钉在盖满位（幕未动视觉无差），扫出已起遇掉帧只冻不回弹（回弹到盖满位是另一种肉眼跳变；冻结态保持 exit 相位、不重打 hold）。`lib/text-swap-mask.ts` drive 同帧时累计；reveal 先轮询 `.game-transition`，进 exit 段（或层已离场）才起揭，纸条骑扫出窗口。
+- 阈值为何 250 不是 100：重作品（WebGL 渲染循环）把主线程压在持续 100~250ms 帧间隔，那是本页常态不是阻塞；阈值过紧会把扫出永久冻在低帧率页面上（实测 100ms 阈值下 007 扫出冻在 -5 达 35s）。>250ms 才当真阻塞。
+- 检查工具先行（029）：`check-game-transitions` 驱动序列改状态驱动并新增掉帧不变量（单帧阻塞数秒只前进一个封顶步、释放帧撞掉帧钉幕不吃扫出、扫出中途冻结不回弹不改相位、三常量与 nativeExit 不复存的源码断言）；`check-text-swap-mask` 改 16ms 正常帧间隔驱动，新增 cover/reveal 掉帧冻结与 reveal 等 exit 段断言（假 document 补 querySelector 与可置纸幕层）；`check-vote-split` 新增纸条模块源码不变量；`reference/game-transitions-review.html` 新增「掉帧 1.5s」「开门·掉帧 1.5s」对照按钮与钉幕等待门勾选。
+- 已知残留：持续低帧率页（007 双 WebGL）扫出尾段只能按页面自身帧率推进，最后 1~2 个产帧带走收尾段，尾缘仍有轻微跳变（实测 -280 → 移除，幕已约九成出屏）；非 match 类过场（bands/convoy/frame/deal）扫出起点无帧率门，掉帧按封顶步推进（不消失、略chunky）；偏好榜 RollingNumber 保留项与 `lib/ui-transitions.ts` 死代码清理仍待用户点名。
+- 验证：typecheck、build 通过；oxlint 本轮改动文件零告（树里另有 3 条既有告警在无关未改文件 grid-contrast-check/account/dev-panel，不动）；check-game-transitions、check-text-swap-mask、check-vote-split 全绿。浏览器实测 007：钉幕 → 释放 → 扫出连续至 -200 → 饱和 3.1s 原地冻在 -230（不回弹不改相位）→ 恢复续播 -280 → 近终态移除层；人造掉帧（释放时刻 busy 1.2s）复现旧症状口径下新语义纸幕 busy 后仍 alive 并完整扫出；轻量换题路径扫出 480ms 连续、纸条骑扫出窗口自清理。
+
+## 101 · 后台作品对比测试直达：勾两份进竞技场，测试票不落库
+
+- 2026-09-19 ｜ 用户要求：「在作品管理界面加一个测试用的，可以选中两个作品直接进入竞技场对比这两个，能直观看到画布调整效果」。
+- 通道：后台（admin.html）与主站是两个文档入口、不共享模块状态，用 localStorage `aob-test-pair` 传作品 id 对（新模块 `lib/test-pair.ts`）——一次性消费、5 分钟 TTL 防陈旧复活、2 秒重放窗（StrictMode 双跑组件初始化函数，一次性消费不被重复调用吞掉）。
+- 后台：作品管理每行左侧加复选框——仅已发布、同题、最多两份（草稿置灰注明「未发布，前台没有这份作品」，跨题/超量置灰带提示）；选择条显示已勾模型名与「进入竞技场对比 ↗」（先勾的落 A 侧），写通道后同标签页跳 `/#arena/{题目}`；换筛选清空选择、分页保留（id 不随分页失效）。
+- 前台：竞技场挂载即消费测试对（远端清单未到则 subscribeWorks 回调补消费一次）；`testing` 从 pair×testIds 派生——换组/换题/清单重算把 pair 换掉后自动失效，不用到处补复位。测试对局期间 field-meta 挂「测试对局 · 投票不落库」徽标，`recordVote` 直接返回：本地流程（锁定动画、身份揭晓、评论区）照跑，票不写库，榜单不被测试票污染。
+- 验证：typecheck、oxlint（改动文件）、build、check-vote-split / check-game-transitions / check-text-swap-mask、validate-admin 11 项全绿；浏览器实测（以真实 005 作品对直写通道模拟后台跳转）：所选两份精确落 A/B、徽标在、通道消费即清、投票后网络面板无 POST /api/votes 且身份正常揭晓。后台勾选 UI 未实测（测试浏览器无管理员会话，dev 免登录通道被安全策略拦）——待用户登录环境点验。
+
+## 102 · 视角校准：服务端注入桥钩 OrbitControls，拖到好机位存元数据，前台加载即套用
+
+- 2026-09-19 ｜ 用户拍板：黑洞作品初始机位怼脸（图一），画布校准缩出去只会留白（图三）——要能在后台把相机拉远并保存；「观感最重要，先验证再推广」，体素山水/建筑也想要。
+- 机制：新模块 `server/work-bridge.js`——服务端吐作品 HTML 时注入桥（源文件不动）。两条钩子路径：**全局 UMD**（three.min.js 作品）defineProperty 拦 `window.THREE` 与 `THREE.OrbitControls` 赋值；**importmap ESM**（CDN three 作品）改写 importmap 把 `three` / `three/addons/` 指到 `/works/__aob__/` 虚拟路由，OrbitControls.js 经包装模块 `class extends` 自登记。桥把 controls 实例登记进 `window.__AOB__`，暴露 getState/setState；作品存有视角时注入 `__AOB_SAVED__` 并在 controls 创建后与 50/150/400/900/1600ms 各套一次（压过作品自己的初始机位）。
+- 注入只在两种请求发生：作品存有 `content.camera`（前台套用），或 `?aob=bridge`（后台校准预览）——**未校准作品的响应与改造前逐字节一致**，零风险。存储沿用画布校准口径：`content.camera={position:[3],target:[3]}` 进 content JSON，PATCH 白名单加 camera（仅文件型 html；与 framing 同批序列化不互相吞）。
+- 后台 UI：作品管理行加「视角校准」弹窗（`app/admin/work-camera.tsx`）——预览 iframe 直接可拖（OrbitControls 原生交互），「抓取当前视角/套回预览/回原始视角/保存/清除」，轮询桥就绪，10s 无 controls 判「不可钩，请用画布校准」；行标「已校视角」。
+- 覆盖率实测（serve 时注入能钩到的）：**007 黑洞 27/34（79%）**——图一 muse（importmap）与 gemini（r128 全局）浏览器实测 controls=1、getState/setState 生效、截图确认拉远；**005 仅 5/38、004 仅 2/38**——体素作品绝大多数是 Vite 打包/整库内联，相机封死在压缩闭包里够不着。体素的现实路径=生成侧约定（如探针惯例，新作品自曝相机）或点名个案离线补，待用户拍板，不擅自扩范围。
+- 验证：typecheck、oxlint（改动文件）、build、`validate:camera` 新增 5 项（零注入/桥+importmap 改写/虚拟路由转发包装与非法入参/PATCH 写读删/校验口径）全绿；validate:admin 11 项回归通过。真库端到端（保存→竞技场套用）与后台弹窗操作**未实测**——测试浏览器无管理员会话且 dev 免登录被 Qoder 安全策略拦截，待用户登录后点验。

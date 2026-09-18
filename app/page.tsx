@@ -75,6 +75,14 @@ import {
   consumeTextSwap,
   textSwapMask,
 } from '@/lib/text-swap-mask';
+import {
+  armWorksGate,
+  releaseWorksGate,
+  reportWorkReady,
+  worksGateOpen,
+  worksGateSides,
+} from '@/lib/works-gate';
+import { takeTestPair } from '@/lib/test-pair';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
@@ -87,6 +95,8 @@ const ARENA_TIMING = {
   introLead: 1000,
   introReplayLead: 220,
   introGateTail: 240,
+  // 揭幕段：加载过场收场 + 作品淡入，从 introLead 余量里扣，故首入总时长不变
+  introRevealHold: 320,
   introFocus: 700,
   introStaticHold: 950,
   introScrollLead: 300,
@@ -95,9 +105,9 @@ const ARENA_TIMING = {
   introGap: 200,
   introSettle: 300,
   resultReveal: 1350,
-  // 双方作品就绪门控的上限：大体量作品（004–007 构建产物）慢网络下入场
-  // 不该开着投票等灰板；超时放行，个别作品加载失败不锁死入口
-  worksLoadCap: 8000,
+  // 双方作品就绪前不展开（用户拍板：死等）。超过这个时长仍在等的，才在加载
+  // 过场里给出「跳过此题」入口——不替用户强行揭幕，只给他离开的权利
+  worksSkipAt: 8000,
 } as const;
 // 「无法抉择」按钮的中文主标：每轮对局随机换一个（决策 048）
 const DRAW_LABELS = [
@@ -480,7 +490,17 @@ export default function Arena({
       pendingRound: promptIndex,
     },
   );
-  const [pair, setPair] = useState<Matchup>(() => currentMatchup(prompt.id)!);
+  // 测试对局（2026-09-19，后台作品管理直达）：挂载时消费一次测试对；testing
+  // 从 pair 派生——换组/换题/清单重算把 pair 换掉后自动失效，不用到处补复位
+  const [testPair] = useState(() => takeTestPair(prompt.id));
+  const [pair, setPair] = useState<Matchup>(
+    () => testPair ?? currentMatchup(prompt.id)!,
+  );
+  const [testIds, setTestIds] = useState<string[] | null>(() =>
+    testPair ? [testPair[0].id, testPair[1].id] : null,
+  );
+  const testing =
+    !!testIds && !!pair && pair[0].id === testIds[0] && pair[1].id === testIds[1];
   // 远端清单晚到时重算对局（2026-09-15 修复）：应用启动先以内置花名册起画，
   // /api/works 返回后若不重算，棋盘还是内置作品而统计区已切远端数据——
   // 票面与服务端作品表核对不上，投票会 400。订阅 works 变化重抽一组。
@@ -491,6 +511,13 @@ export default function Arena({
   useEffect(
     () =>
       subscribeWorks(() => {
+        // 挂载时远端清单还没到 → 测试对查不到作品；清单落地后补消费一次
+        const test = takeTestPair(prompt.id);
+        if (test) {
+          setTestIds([test[0].id, test[1].id]);
+          setPair(test);
+          return;
+        }
         setPair((current) => {
           if (
             current &&
@@ -515,7 +542,7 @@ export default function Arena({
   const [sound, setSound] = useState(false);
   // 「逐个巡览」开关（aob-arena-tour，决策 077/090）：桌面默认关闭、
   // 用户手动开过才记 'on'；移动端该功能整体下线（有严重 bug），
-  // 开关隐藏、入场序列也不跑巡览。关闭时入场只保留开场牌一拍，
+  // 开关隐藏、入场序列也不跑巡览。关闭时入场只保留作品揭幕一拍，
   // 不再依次放大 A/B 两份作品，直接开放投票。
   const [tour, setTour] = useState(() => {
     try {
@@ -524,11 +551,28 @@ export default function Arena({
       return false;
     }
   });
-  // 路由过场层（convoy / page-wipe）未离场前不挂开场牌，避免两段动画叠放
-  const [arrivalReady, setArrivalReady] = useState(false);
-  // 作品就绪门控的揭幕状态：等待期藏住作品区（works-hold），就绪后统一淡入揭幕
-  // （works-reveal）——入场编排在作品可见后才开演，长加载不再出现「后半段直接没了」
+  // 作品就绪门控的揭幕状态：完全就绪前不展开（加载过场压着、作品区 works-hold），
+  // 就绪后统一淡入揭幕（works-reveal）——长加载不再出现「后半段直接没了」
   const [worksSettled, setWorksSettled] = useState(false);
+  // 逐侧就绪：加载期两条投票条当进度条用，谁先加载完谁先填回队色
+  const [worksPendingBySide, setWorksPendingBySide] = useState({
+    a: true,
+    b: true,
+  });
+  // 死等超过 worksSkipAt 仍未就绪：加载过场里给出「跳过此题」
+  const [worksStalled, setWorksStalled] = useState(false);
+  // 入场等待期：数据未到或作品未完全就绪都算——加载过场压着、作品区隐藏
+  const worksLoading =
+    state.phase === 'loading' || (state.phase === 'intro' && !worksSettled);
+  useEffect(() => {
+    if (!worksLoading) return;
+    const timeout = setTimeout(() => {
+      setWorksStalled(true);
+      // 卡死也放幕：纸幕不再死等，落回「正在接入试验场」+ 跳过出口（096）
+      releaseWorksGate();
+    }, ARENA_TIMING.worksSkipAt);
+    return () => clearTimeout(timeout);
+  }, [worksLoading]);
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     getMotionPreference,
@@ -546,6 +590,8 @@ export default function Arena({
       return;
     }
     if (arenaTransition.current) return;
+    // 上一幕纸幕还被作品就绪门钉着：此刻再起一幕会两张叠放，直接不响应
+    if (!worksGateOpen()) return;
     // 娱乐模式「下一题」：双页纸幕只盖住场内区域（field-meta → 操作行），
     // 盖满时切 hash。层必须挂在 body 上才能活过组件卸载完成扫出；
     // 新竞技场的开场牌有 .game-transition 等待门控，会自动接在扫出之后。
@@ -565,10 +611,20 @@ export default function Arena({
     const top = Math.min(...rects.map((r) => r.top));
     const bottom = Math.max(...rects.map((r) => r.bottom));
     const destination = currentPrompts().find((item) => `#arena/${item.id}` === next);
+    // 布防作品就绪门（决策 096）：纸幕盖满切 hash 后钉在盖满位，新页双侧
+    // 作品就绪（或超时/跳过）才扫出——「正在接入试验场」整拍被牌面吸收
+    armWorksGate();
     const transition = createGameTransition('match', {
       title: destination?.name,
       index: destination?.id,
-      onFrame: () => alignArenaTransition(transition.layer),
+      holdGate: worksGateOpen,
+      onFrame: () => {
+        alignArenaTransition(transition.layer);
+        // 新页上报的逐侧就绪写回牌面：duel 连线按侧填成队色报进度
+        const sides = worksGateSides();
+        transition.layer.toggleAttribute('data-gt-a', sides.a);
+        transition.layer.toggleAttribute('data-gt-b', sides.b);
+      },
       onCovered: () => {
         window.location.hash = next;
       },
@@ -724,6 +780,8 @@ export default function Arena({
     const sequence = async () => {
       resetScroll();
       setWorksSettled(false);
+      setWorksPendingBySide({ a: true, b: true });
+      setWorksStalled(false);
       // 双方作品就绪门控：HTML 作品挂同源沙箱 iframe，读 contentDocument
       // 的地址与 readyState；非 iframe 作品（文字/模板/图片）视为即时就绪。
       // 就绪线 = DOM 解析完且模块脚本已执行（interactive）——灰板对应 loading，
@@ -751,12 +809,23 @@ export default function Arena({
           return true;
         }
       };
+      // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
+      // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
+      const pollWorksReady = (): boolean => {
+        const a = workReady(cardA.current);
+        const b = workReady(cardB.current);
+        if (a) reportWorkReady('a');
+        if (b) reportWorkReady('b');
+        setWorksPendingBySide((current) =>
+          current.a === !a && current.b === !b ? current : { a: !a, b: !b },
+        );
+        return a && b;
+      };
+      // 死等：未完全就绪不展开（用户拍板，取消原 8 秒超时放行）
       const waitWorksLoaded = async (abort: AbortSignal) => {
-        const start = performance.now();
-        while (performance.now() - start < ARENA_TIMING.worksLoadCap) {
-          if (workReady(cardA.current) && workReady(cardB.current)) return;
-          await delay(60, abort);
-        }
+        while (!pollWorksReady()) await delay(60, abort);
+        // 双侧就绪：放「下一题」纸幕扫出，揭幕直接落在就绪作品上（096）
+        releaseWorksGate();
       };
       if (reducedMotion) {
         await Promise.all([delay(200, signal), waitWorksLoaded(signal)]);
@@ -764,36 +833,45 @@ export default function Arena({
         dispatch({ type: 'READY' });
         return;
       }
-      // 菜单→竞技场的过场层还挂在 body 上时等它扫出完毕：开场牌从过场
-      // 结束才开始播，不与色块叠放。封顶等待兜底过场异常滞留。
-      // 例外（决策 089）：match 双页扫出尾段提前放牌，让牌面入场与
-      // 下方作品揭幕并行落点；其余过场仍等整层离场。
-      for (let waited = 0; waited < 2600; waited += 40) {
-        const layer = document.querySelector<HTMLElement>(
-          '.game-transition, .page-wipe',
-        );
-        if (!layer) break;
-        if (
-          layer.classList.contains('gt-match') &&
-          layer.dataset.gtPhase === 'exit'
-        ) {
-          await delay(ARENA_TIMING.introGateTail, signal);
-          break;
+      // 菜单→竞技场的过场层还挂在 body 上时等它扫出完毕：揭幕从过场结束才开始，
+      // 不与色块叠放。封顶等待兜底过场异常滞留。
+      // 例外（决策 089）：match 双页扫出尾段提前放行，让揭幕与色幕离场并行落点；
+      // 其余过场仍等整层离场。
+      const waitRouteLayer = async (abort: AbortSignal) => {
+        for (let waited = 0; waited < 2600; waited += 40) {
+          const layer = document.querySelector<HTMLElement>(
+            '.game-transition, .page-wipe',
+          );
+          if (!layer) break;
+          if (
+            layer.classList.contains('gt-match') &&
+            layer.dataset.gtPhase === 'exit'
+          ) {
+            await delay(ARENA_TIMING.introGateTail, abort);
+            break;
+          }
+          await delay(40, abort);
         }
-        await delay(40, signal);
-      }
-      setArrivalReady(true);
-      // 开场牌在 introLead 里照常出现；两侧作品没加载完就不往下走
-      //（与等待并行，加载快时不多花一毫秒），空格跳过仍然有效
+      };
+      // 首入 1.0s / 重播 0.22s 的既有节拍里留出揭幕段：快加载总时长不变，
+      // 慢加载只往后顺延，绝不提前展开
+      const lead =
+        state.run === 0
+          ? ARENA_TIMING.introLead
+          : ARENA_TIMING.introReplayLead;
+      const revealHold = Math.min(ARENA_TIMING.introRevealHold, lead);
+      const leadStart = performance.now();
       await Promise.all([
-        delay(
-          state.run === 0 ? ARENA_TIMING.introLead : ARENA_TIMING.introReplayLead,
-          signal,
-        ),
+        waitRouteLayer(signal),
         waitWorksLoaded(signal),
+        delay(lead - revealHold, signal),
       ]);
-      // 作品就绪：揭幕淡入，入场编排在作品可见后才开演
       setWorksSettled(true);
+      // 揭幕淡入与加载过场收场必须播完才离开 intro，不被卸载切走
+      await delay(
+        Math.max(revealHold, lead - (performance.now() - leadStart)),
+        signal,
+      );
       // 移动端巡览整体下线（决策 090）：窄屏无论开关如何都跳过 A/B 聚焦
       if (!tour || window.innerWidth < 700) {
         dispatch({ type: 'READY' });
@@ -867,6 +945,8 @@ export default function Arena({
       animations.current = [];
       resetScroll();
       setSpotlight(null);
+      // 离开 intro 的一切路径都放门：空格跳过、卸载、重跑——不留死幕（096）
+      releaseWorksGate();
     };
   }, [
     state.phase,
@@ -940,6 +1020,12 @@ export default function Arena({
 
   const recordVote = useCallback(
     (side: Side | 'draw') => {
+      // 测试对局（后台直达对比）：票不落库，但本地反馈流程照跑完——
+      // 记为 saved 让揭晓/票数面板正常收场，note 单独文案说明未计入
+      if (testing) {
+        setVoteRecord({ run: state.run, outcome: { state: 'saved' } });
+        return;
+      }
       // 平局（决策 048）：双方按出场左右顺序登记（a 入 winner、b 入 loser），无胜负语义
       const winner = side === 'b' ? pair[1] : pair[0];
       const loser = side === 'b' ? pair[0] : pair[1];
@@ -980,7 +1066,7 @@ export default function Arena({
         });
       });
     },
-    [pair, prompt.id, state.mode, state.run],
+    [pair, prompt.id, state.mode, state.run, testing],
   );
 
   const vote = useCallback(
@@ -1065,29 +1151,24 @@ export default function Arena({
     else document.documentElement.requestFullscreen?.().catch(() => {});
   };
 
-  const statusText =
-    state.phase === 'loading'
-      ? '画面载入中'
-      : state.phase === 'intro'
-        ? spotlight
-          ? t('正在观测作品 {side}', { side: spotlight.toUpperCase() })
-          : '作品入场'
-        : state.phase === 'voting'
-          ? '做出选择'
-          : state.phase === 'locking'
-            ? '选择已锁定'
-            : state.phase === 'result'
-              ? '本轮评审完成'
-              : '正在切换对局';
+  const statusText = worksLoading
+    ? '画面载入中'
+    : state.phase === 'intro'
+      ? spotlight
+        ? t('正在观测作品 {side}', { side: spotlight.toUpperCase() })
+        : '作品入场'
+      : state.phase === 'voting'
+        ? '做出选择'
+        : state.phase === 'locking'
+          ? '选择已锁定'
+          : state.phase === 'result'
+            ? '本轮评审完成'
+            : '正在切换对局';
 
   return (
     <div
       className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
-        state.phase === 'intro' && !worksSettled
-          ? 'works-hold'
-          : worksSettled
-            ? 'works-reveal'
-            : ''
+        worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       }`}
     >
       <div className="ambient-grid" aria-hidden="true" />
@@ -1235,6 +1316,9 @@ export default function Arena({
             {localize(' ')}
             {localize(round.category)}
           </span>
+          {testing && (
+            <span className="field-testing">{t('测试对局 · 投票不落库')}</span>
+          )}
           <output className="field-status" aria-live="polite">
             <i />
             {localize(statusText)}
@@ -1363,7 +1447,9 @@ export default function Arena({
                   </div>
                 </div>
                 <button
-                  className={`vote-button vote-${side}`}
+                  className={`vote-button vote-${side} ${
+                    worksLoading && worksPendingBySide[side] ? 'is-pending' : ''
+                  }`}
                   onClick={() => vote(side)}
                   onPointerEnter={() => play('hover')}
                   disabled={state.phase !== 'voting'}
@@ -1446,21 +1532,29 @@ export default function Arena({
 
             <div className="spine-line" />
           </div>
-          {state.phase === 'intro' && state.run === 0 && arrivalReady && (
-            <div className="intro-label" key={state.run} aria-hidden="true">
-              <span>{t('NEW ENCOUNTER')}</span>
-              <strong>
-                {t('Round Start')}
-                <b>{localize(round.id)}</b>
-              </strong>
-              <span>{t('两种表达。一个选择。')}</span>
-            </div>
-          )}
-          {state.phase === 'loading' && (
-            <div className="loading-overlay">
+          {(state.phase === 'loading' || state.phase === 'intro') && (
+            <div
+              className={`loading-overlay ${worksSettled ? 'is-clearing' : ''}`}
+            >
               <Mark />
               <span>{t('正在接入试验场')}</span>
               <div className="load-track" />
+              {worksStalled && (
+                <button
+                  type="button"
+                  className="loading-skip"
+                  onClick={() => {
+                    // 作品迟迟不就绪：不替用户揭幕，只给他离开这一局的权利
+                    if (state.mode === 'formal' && pairCount > 1) nextMatchup();
+                    else gotoRandomArena();
+                  }}
+                >
+                  <SkipForward size={14} />
+                  {state.mode === 'formal' && pairCount > 1
+                    ? t('换一组作品')
+                    : t('跳过此题')}
+                </button>
+              )}
             </div>
           )}
           <div className="transition-shutter" aria-hidden="true">
@@ -1490,11 +1584,13 @@ export default function Arena({
                 <span className="vote-note" data-state={voteOutcome.state}>
                   {localize(
                     voteOutcome.state === 'saved' &&
-                      (isPlaceholderMode()
-                        ? '已写入本地演示数据 · 占位模式'
-                        : state.choice === 'draw'
-                          ? '平局已计入偏好榜，双方各得半分'
-                          : '你的选择已计入偏好榜'),
+                      (testing
+                        ? '测试对局，票未计入偏好榜'
+                        : isPlaceholderMode()
+                          ? '已写入本地演示数据 · 占位模式'
+                          : state.choice === 'draw'
+                            ? '平局已计入偏好榜，双方各得半分'
+                            : '你的选择已计入偏好榜'),
                   )}
                   {voteOutcome.state === 'auth' && (
                     <button

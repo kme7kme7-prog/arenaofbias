@@ -32,7 +32,7 @@
 | `lib/works.ts` / `works-roster.json` | 远端作品数据层（040）：启动拉 `/api/works`，失败回退内置 roster；roster 同时是 works 表种子 |
 | `lib/matchmaking.ts` | 轻量匹配（046）：声望分软性分档 + 熔断，参数集中 `MATCH_CONFIG`；`computeRatings` 全量重放 Elo 暗分 |
 | `lib/ratings.ts` | 声望分数据层：拉 `/api/ratings`，未就绪按基础分兜底（=均匀随机） |
-| `lib/leaderboard.ts` | 榜单聚合：Elo 重放（平局各 0.5，048）、阵容=已发布∪流水历史模型（045）、口径 `BoardScope`（026） |
+| `lib/leaderboard.ts` | 榜单聚合：Elo 重放（平局各 0.5，048）、阵容=已发布∪流水历史模型（045）、口径 `BoardScope`（026）；六维画像 `computeRadarProfiles`，权重来源=流水快照→题库→均分（091/093） |
 | `lib/votes.ts` | 投票数据层：`ArenaVote`/`validateVote`（与服务端镜像）/流水读取（永不过滤下架题）/`pairKeyOf` 对局去重 |
 | `lib/comments.ts` | 评论类型与校验（与后端一致） |
 | `lib/placeholder.ts` | 开发者占位符系统：播种伪随机占位模型/结果/投票；隔离方式见文件头 |
@@ -42,6 +42,7 @@
 | `lib/scroll-tour.ts` / `lib/arena-scroll.ts` | 长文自动滚动巡览 / 竞技场命题定位 |
 | `lib/decryption.ts` | 盲测揭晓「文档解密」：遮黑条错峰退开（用户点名保留，071） |
 | `lib/text-swap-mask.ts` | 换题盖区外文字的纸色条先遮后揭（089）：`[data-swap]` 行级测量、`armed` 跨路由标记 |
+| `lib/works-gate.ts` | 「下一题」纸幕的作品就绪门（096）：arm/release/逐侧上报/15s 兜底，跨路由模块级状态 |
 | `lib/library-motion.ts` | 题库目录/档案错峰入场（047） |
 | `lib/messages.ts` / `lib/locale.ts` | 中英 i18n（056）：中文键→英文值；语言存 `arena-language`；品牌字标不翻译（068） |
 | `components/account.tsx` | 账号 Provider/登录注册 Dialog/账号按钮 |
@@ -78,7 +79,7 @@
 | `GET /api/comments?round=` | 按题最新 100 条，公开 |
 | `POST /api/comments` | 登录 401/同源 403/JSON 415/校验 400/幂等 409 |
 | `GET /api/works` `/api/prompts` | 已发布作品/题目清单，公开（040/045） |
-| `GET /api/votes` | 全量投票流水（含联表快照），公开，**永不过滤**——下架题/作品的历史票保留在榜单（045⑤） |
+| `GET /api/votes` | 全量投票流水（含联表快照 promptKind/promptWeights/双方显示名），公开，**永不过滤**——下架题/作品的历史票保留在榜单、按原权重重放（045⑤/093） |
 | `POST /api/votes` | 登录/同源/校验/票面与 works 表核对（039）；对局去重 409（code:pair）、同 UUID 幂等或 409（code:id）；formal 票非 admin 403（070） |
 | `POST /api/track` | 访客上报（042）：同源即可，204 静默 |
 | `POST /api/reactions`；`GET /api/reactions?prompt=` | 模型反应（054）：一人一题一模型一槽覆盖；登录写、公开读 |
@@ -152,3 +153,15 @@ npm start          # 生产形态：http://localhost:3000
 - PATCH /api/admin/works/:id 接收 framing 对象或 null（移除覆盖）。server/work-framing.js 验证内部宽 320–3840、高 240–3840（整数）、zoom 0.25–4、偏移 -1–1。沿用管理员与同源保护；配置存于现有 content JSON，无数据库迁移，不写源文件。
 - workCanvas 优先读取 content.framing；framedCanvas 先求 16:9 取景窗口，再 contain 内部画布并叠加缩放/偏移，展开弹窗也保持相同取景。无作品配置时沿用 087 默认。
 - npm run validate:admin 在临时数据库验证权限、非法配置、公开端读取、重置和原文件不变；node scripts/check-work-framing.mjs 验证不同显示尺寸下的构图一致。
+## 后台工作台布局
+
+- src/admin.tsx 负责导航分组、当前位置和本机显示偏好（aob-admin-collapsed / aob-admin-compact）；app/admin/workspace.css 只由后台入口加载，统一现有模块布局。
+- dashboard.tsx 复用 /api/admin/stats，提供刷新、加载/错误状态、工作流入口。#works?status=draft 为未发布作品入口，works.tsx 初始化读取状态；未新增服务端接口。
+
+### match 揭幕抗阻塞
+
+双页过场在盖满和 exitStart 均停靠，避免路由加载长任务跨过揭幕段。exitStart 后纸幕使用原生 WAAPI 播放，rAF 只观察 currentTime/更新文档锚点；完成后释放。已完成的标题/细线等轨道保持填充终态，不重播。对照页提供 1200ms 换页阻塞复现，check-game-transitions.mjs 覆盖长停顿、原生暂停/继续与结束清理。
+
+### 「下一题」纸幕的作品就绪门（096）
+
+`lib/works-gate.ts` 是跨路由的布防/放门标记：`gotoRandomArena` 进纸幕前 `armWorksGate()`，`match` 的 `holdGate: worksGateOpen` 让纸幕盖满后钉在 `exitStart`（`tick` 钳位 + 压 `nativeExit`，钉住态 `gtPhase` 仍 `entry`、层打 `data-gt-hold`），牌面兼任加载屏——holdnote 呼吸注记、duel 连线按 `data-gt-a/b` 逐侧填色。新竞技场 `pollWorksReady` 逐侧 `reportWorkReady`，双侧齐 `releaseWorksGate()` 放门扫出，揭幕落在就绪作品上，「正在接入试验场」整拍被纸幕吸收。放门点：双侧就绪、卡死计时器（落回 overlay+跳过兜底）、intro 清理（空格/卸载/重跑）、15s 兜底；`gotoRandomArena` 入口 `!worksGateOpen()` 防叠幕。只有 `gotoRandomArena` 布防——菜单入场、重播、正式换组不受影响。

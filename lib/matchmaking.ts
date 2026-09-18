@@ -17,7 +17,14 @@
 //      之上：先按档位抽，再检查上轮回避；两者都尽量满足，满足不了优先保流程。
 // 占位模式不经本模块（占位作品无真实票，维持纯随机演示）。
 
-import { eligiblePairs, type Matchup, type ModelResult } from '@/lib/arena';
+import {
+  finishPair,
+  groupsAvoiding,
+  modelGroups,
+  modelPairIds,
+  type Matchup,
+  type ModelResult,
+} from '@/lib/arena';
 
 export type Ratings = Record<string, number>;
 
@@ -39,17 +46,17 @@ export function tierOf(rating: number | undefined): number {
   return Math.floor((rating ?? MATCH_CONFIG.baseRating) / MATCH_CONFIG.tierWidth);
 }
 
-function ratingGap(pair: Matchup, ratings: Ratings): number {
+function ratingGap(pair: [string, string], ratings: Ratings): number {
   return Math.abs(
-    (ratings[pair[0].modelId] ?? MATCH_CONFIG.baseRating) -
-      (ratings[pair[1].modelId] ?? MATCH_CONFIG.baseRating),
+    (ratings[pair[0]] ?? MATCH_CONFIG.baseRating) -
+      (ratings[pair[1]] ?? MATCH_CONFIG.baseRating),
   );
 }
 
 /**
- * 软性匹配抽一对：保持 pickMatchup 的全量语义（随机左右、上轮作品回避、
- * 可避开时避开、无可避开回退全量），只在「抽哪一组」上引入档位偏好。
- * 返回 null = 本题无可配对（与 pickMatchup 一致）。
+ * 软性匹配抽一对（决策 097 起为两级抽取）：先按档位偏好抽两个不同模型，
+ * 再各从该模型的作品里随机抽一件。保持既有全量语义——随机左右、上轮作品
+ * 回避、可避开时避开、无可避开回退全量。返回 null = 本题无可配对。
  */
 export function pickMatchedMatchup(
   promptId: string,
@@ -58,24 +65,27 @@ export function pickMatchedMatchup(
   previous?: Matchup,
   random: () => number = Math.random,
 ): Matchup | null {
-  const pairs = eligiblePairs(promptId, results);
+  const groups = modelGroups(promptId, results);
+  let active = groups;
+  let pairs = modelPairIds(groups);
   if (!pairs.length) return null;
 
   // 上轮作品回避的语义与 pickMatchup 相同：能避开尽量避开，剩不下就回退全量
-  const fresh = previous
-    ? pairs.filter(
-        (pair) =>
-          !pair.some((entry) => previous.some((old) => old.id === entry.id)),
-      )
-    : pairs;
-  const pool = fresh.length ? fresh : pairs;
+  if (previous) {
+    const avoided = groupsAvoiding(groups, previous);
+    const fresh = modelPairIds(avoided);
+    if (fresh.length) {
+      active = avoided;
+      pairs = fresh;
+    }
+  }
 
-  // 同档池与全量池：同档池是 pool 里「双方档位相同」的子集
-  const sameTier = pool.filter(
-    (pair) => tierOf(ratings[pair[0].modelId]) === tierOf(ratings[pair[1].modelId]),
+  // 同档池与全量池：同档池是 pairs 里「双方档位相同」的子集
+  const sameTier = pairs.filter(
+    ([a, b]) => tierOf(ratings[a]) === tierOf(ratings[b]),
   );
 
-  const pickFrom = (list: Matchup[]): Matchup => {
+  const pickFrom = (list: [string, string][]): [string, string] => {
     const pair = list[Math.floor(random() * list.length)];
     return random() < 0.5 ? pair : [pair[1], pair[0]];
   };
@@ -83,18 +93,23 @@ export function pickMatchedMatchup(
   const candidate =
     sameTier.length && random() < MATCH_CONFIG.sameTierRate
       ? pickFrom(sameTier)
-      : pickFrom(pool);
+      : pickFrom(pairs);
 
+  let chosen = candidate;
   // 分差熔断：分差过大重抽（换池），保底是原候选——流程优先于回避
   if (ratingGap(candidate, ratings) > MATCH_CONFIG.blowoutGap) {
     const reroll =
-      sameTier.length && random() < MATCH_CONFIG.sameTierRate ? sameTier : pool;
+      sameTier.length && random() < MATCH_CONFIG.sameTierRate ? sameTier : pairs;
     for (let i = 0; i < MATCH_CONFIG.rerollLimit; i++) {
       const retry = pickFrom(reroll);
-      if (ratingGap(retry, ratings) <= MATCH_CONFIG.blowoutGap) return retry;
+      if (ratingGap(retry, ratings) <= MATCH_CONFIG.blowoutGap) {
+        chosen = retry;
+        break;
+      }
     }
   }
-  return candidate;
+
+  return finishPair(active, chosen[0], chosen[1], random);
 }
 
 // ---------------------------------------------------------------------------

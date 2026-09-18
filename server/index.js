@@ -18,6 +18,12 @@
 
 import express from 'express';
 import { validWorkFraming } from './work-framing.js';
+import {
+  injectWorkBridge,
+  addonControlsShim,
+  passthroughShim,
+  validWorkCamera,
+} from './work-bridge.js';
 import { installAuth } from './auth.js';
 import {
   insertWork,
@@ -285,6 +291,34 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    // 007 · 题目六维权重（决策 093）：weights 存 JSON 数组，维度顺序与前端
+    // RADAR_DIMENSIONS 一致，后台题目管理可调；NULL = 未配置 → 前台按六维
+    // 均分兜底。权重是重放参数：改后该题历史票即时按新口径重算，票面不动。
+    up() {
+      if (
+        !db
+          .prepare('PRAGMA table_info(prompts)')
+          .all()
+          .some((column) => column.name === 'weights')
+      )
+        db.exec('ALTER TABLE prompts ADD COLUMN weights TEXT');
+      // 回填：把种子里 001–007 的既定权重写进已有行；只补 NULL，不覆盖后台改过的值
+      const seed = JSON.parse(
+        fs.readFileSync(
+          path.join(projectRoot, 'lib', 'prompts-seed.json'),
+          'utf8',
+        ),
+      );
+      const fill = db.prepare(
+        'UPDATE prompts SET weights = ? WHERE id = ? AND weights IS NULL',
+      );
+      for (const prompt of seed) {
+        if (Array.isArray(prompt.weights))
+          fill.run(JSON.stringify(prompt.weights), prompt.id);
+      }
+    },
+  },
 ];
 
 {
@@ -335,20 +369,39 @@ const listMyReactions = db.prepare(
 const reactionModelExists = db.prepare(
   'SELECT 1 FROM works WHERE prompt_id = ? AND model_id = ? AND published = 1',
 );
-// 流水联表补三样展示快照（决策 045 ⑤「历史票保留在榜单」）：
-// 题目当前 kind（prompts 表含下架题——下架题的历史票仍按原赛道归类）、
-// 双方作品当前显示名（作品全下架后，模型仍能以名字上榜而不是裸 id）。
+// 流水联表补四样展示快照（决策 045 ⑤「历史票保留在榜单」）：
+// 题目当前 kind 与六维权重（prompts 表含下架题——下架题的历史票仍按
+// 原赛道与权重归类）、双方作品当前显示名（作品全下架后，模型仍能以
+// 名字上榜而不是裸 id）。
 // 票本身永不过滤：/api/votes 始终全量返回，榜单口径由客户端聚合。
 const listVotes = db.prepare(
   `SELECT v.id, v.prompt_id AS promptId, v.winner_rid AS winnerRid, v.winner_mid AS winnerMid,
           v.loser_rid AS loserRid, v.loser_mid AS loserMid, v.mode, v.created_at AS ts, v.outcome,
-          wp.model_name AS winnerName, lp.model_name AS loserName, p.kind AS promptKind
+          wp.model_name AS winnerName, lp.model_name AS loserName, p.kind AS promptKind,
+          p.weights AS promptWeights
    FROM votes v
    LEFT JOIN works wp ON wp.id = v.winner_rid
    LEFT JOIN works lp ON lp.id = v.loser_rid
    LEFT JOIN prompts p ON p.id = v.prompt_id
    ORDER BY v.created_at ASC, v.id ASC`,
 );
+
+// weights 列（迁移 007）：JSON 数组；NULL 或坏值 = 未配置 → 前台按六维均分兜底
+function parseWeightsColumn(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    return Array.isArray(value) &&
+      value.length === 6 &&
+      value.every(
+        (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1,
+      )
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
 // ---------- 校验（与 lib/comments.ts 规则保持一致） ----------
 
 const UUID_PATTERN =
@@ -581,13 +634,19 @@ app.get('/api/works', (_req, res) => {
 // ---------- 题目：读取公开（只吐已发布，决策 045） ----------
 
 const selectPublishedPrompts = db.prepare(
-  `SELECT id, kind, category, code, name, prompt, commentary, detail
+  `SELECT id, kind, category, code, name, prompt, commentary, detail, weights
    FROM prompts WHERE published = 1 ORDER BY id ASC`,
 );
 
 app.get('/api/prompts', (_req, res) => {
   try {
-    res.set(noStore).json({ prompts: selectPublishedPrompts.all() });
+    const rows = selectPublishedPrompts.all();
+    for (const row of rows) {
+      const weights = parseWeightsColumn(row.weights);
+      if (weights) row.weights = weights;
+      else delete row.weights;
+    }
+    res.set(noStore).json({ prompts: rows });
   } catch {
     res
       .status(503)
@@ -637,7 +696,13 @@ app.get('/api/votes', (_req, res) => {
   try {
     // 全量流水，按时间升序；榜单在客户端重放 Elo（演示规模够用，
     // 数据量上来后再换聚合接口，勿在此静默截断——截断会让 Elo 失真）
-    res.set(noStore).json({ votes: listVotes.all() });
+    const rows = listVotes.all();
+    for (const row of rows) {
+      const weights = parseWeightsColumn(row.promptWeights);
+      if (weights) row.promptWeights = weights;
+      else delete row.promptWeights;
+    }
+    res.set(noStore).json({ votes: rows });
   } catch {
     res
       .status(503)
@@ -960,16 +1025,28 @@ app.patch('/api/admin/works/:id', requireAdmin, (req, res) => {
   if (!row) return res.status(404).json({ error: '作品不存在' });
   const body = req.body || {};
   const updates = {};
+  // framing 与 camera 都是 content JSON 里的显示元数据，同源改一次序列化
+  let content = null;
+  try { content = JSON.parse(row.content); } catch { /* Invalid source metadata cannot be calibrated. */ }
+  let contentChanged = false;
   if (body.framing !== undefined) {
-    let content;
-    try { content = JSON.parse(row.content); } catch { /* Invalid source metadata cannot be calibrated. */ }
     if (content?.kind !== 'html') return res.status(400).json({ error: '仅 HTML 作品支持画布校准' });
     if (body.framing !== null && !validWorkFraming(body.framing))
       return res.status(400).json({ error: '画布参数无效：宽 320–3840、高 240–3840，缩放 0.25–4，位置 -1–1' });
     if (body.framing === null) delete content.framing;
     else content.framing = body.framing;
-    updates.content = JSON.stringify(content);
+    contentChanged = true;
   }
+  if (body.camera !== undefined) {
+    if (content?.kind !== 'html' || typeof content.src !== 'string')
+      return res.status(400).json({ error: '仅文件型 HTML 作品支持视角校准' });
+    if (body.camera !== null && !validWorkCamera(body.camera))
+      return res.status(400).json({ error: '视角参数无效：position/target 须各为三个有限数' });
+    if (body.camera === null) delete content.camera;
+    else content.camera = body.camera;
+    contentChanged = true;
+  }
+  if (contentChanged) updates.content = JSON.stringify(content);
   if (body.title !== undefined) {
     if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 120)
       return res.status(400).json({ error: '标题须为 1–120 字' });
@@ -1170,13 +1247,17 @@ const adminPromptView = (id) => {
   const row = db
     .prepare(
       `SELECT p.id, p.kind, p.category, p.code, p.name, p.prompt, p.commentary, p.detail,
-              p.published, p.created_at AS createdAt,
+              p.weights, p.published, p.created_at AS createdAt,
               (SELECT COUNT(*) FROM works w WHERE w.prompt_id = p.id) AS worksCount,
               (SELECT COUNT(*) FROM votes v WHERE v.prompt_id = p.id) AS voteCount
        FROM prompts p WHERE p.id = ?`,
     )
     .get(id);
-  return row ? { ...row, published: !!row.published } : null;
+  if (!row) return null;
+  const weights = parseWeightsColumn(row.weights);
+  if (weights) row.weights = weights;
+  else delete row.weights;
+  return { ...row, published: !!row.published };
 };
 
 // 校验并归一化题目字段：partial=false 全量必填（POST），true 只校验出现的字段（PATCH）
@@ -1218,6 +1299,27 @@ function normalizePromptFields(body, { partial }) {
     if (value.length > 60) return { error: '题库页副标最多 60 字' };
     out.detail = value;
   }
+  if (body.weights !== undefined) {
+    // 六维权重（决策 093）：6 个 0–1 的数、合计 1（±1% 舍入容忍，落库前归一）。
+    // null = 清空回「未配置」，前台按六维均分兜底
+    if (body.weights === null) {
+      out.weights = null;
+    } else {
+      const list = body.weights;
+      if (
+        !Array.isArray(list) ||
+        list.length !== 6 ||
+        !list.every(
+          (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1,
+        )
+      )
+        return { error: 'weights 须为 6 个 0–1 的数' };
+      const sum = list.reduce((total, n) => total + n, 0);
+      if (sum <= 0 || Math.abs(sum - 1) > 0.01)
+        return { error: 'weights 合计须为 100%' };
+      out.weights = JSON.stringify(list.map((n) => n / sum));
+    }
+  }
   if (body.published !== undefined) {
     if (typeof body.published !== 'boolean')
       return { error: 'published 须为布尔值' };
@@ -1232,13 +1334,18 @@ app.get('/api/admin/prompts', requireAdmin, (_req, res) => {
     const rows = db
       .prepare(
         `SELECT p.id, p.kind, p.category, p.code, p.name, p.prompt, p.commentary, p.detail,
-                p.published, p.created_at AS createdAt,
+                p.weights, p.published, p.created_at AS createdAt,
                 (SELECT COUNT(*) FROM works w WHERE w.prompt_id = p.id) AS worksCount,
                 (SELECT COUNT(*) FROM votes v WHERE v.prompt_id = p.id) AS voteCount
          FROM prompts p ORDER BY p.id ASC`,
       )
       .all()
-      .map((row) => ({ ...row, published: !!row.published }));
+      .map((row) => {
+        const weights = parseWeightsColumn(row.weights);
+        if (weights) row.weights = weights;
+        else delete row.weights;
+        return { ...row, published: !!row.published };
+      });
     res.set(noStore).json({ prompts: rows });
   } catch {
     res.status(503).set(noStore).json({ error: '题目清单暂时无法加载' });
@@ -1263,8 +1370,8 @@ app.post('/api/admin/prompts', requireAdmin, (req, res) => {
   try {
     const fields = result.fields;
     db.prepare(
-      `INSERT INTO prompts (id, kind, category, code, name, prompt, commentary, detail, published, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO prompts (id, kind, category, code, name, prompt, commentary, detail, weights, published, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       nextId,
       fields.kind,
@@ -1274,6 +1381,7 @@ app.post('/api/admin/prompts', requireAdmin, (req, res) => {
       fields.prompt,
       fields.commentary,
       fields.detail,
+      fields.weights ?? null,
       fields.published ?? 0,
       Date.now(),
     );
@@ -1808,6 +1916,85 @@ app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }
 // 找不到时回落到 dist 里 public/works 的小型演示样例（pelican-cycle）。
 // 两个来源共用 /works 前缀，沙盒 iframe 引用 /works/xxx.html 不区分来源。
 // 无条件挂载——目录可能在本进程启动后才被登记脚本/宝塔创建
+//
+// 视角校准桥（决策 102）：吐作品 HTML 时注入桥（源文件不动）。只在两种请求
+// 注入——作品存有保存视角（前台套用），或 ?aob=bridge（后台校准预览）；
+// 未校准作品的响应与不装桥时逐字节一致。importmap 作品经 /works/__aob__/
+// 虚拟路由转发 three 与 OrbitControls（只动浏览器看到的映射，CDN 原样）。
+const selectWorkContent = db.prepare('SELECT content FROM works WHERE id = ?');
+function savedCameraFor(workId) {
+  try {
+    const row = selectWorkContent.get(workId);
+    const content = row && JSON.parse(row.content);
+    return content?.kind === 'html' && validWorkCamera(content.camera)
+      ? content.camera
+      : null;
+  } catch {
+    return null;
+  }
+}
+app.use('/works', (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const rel = req.path.replace(/^\/+/, '');
+  if (rel.startsWith('__aob__/three.mjs')) {
+    const u = String(req.query.u || '');
+    if (!u.startsWith('https://')) return res.status(400).end();
+    return res
+      .type('text/javascript')
+      .set('Cache-Control', 'no-cache')
+      .send(passthroughShim(u, true));
+  }
+  if (rel.startsWith('__aob__/ad/')) {
+    const rest = rel.slice('__aob__/ad/'.length);
+    const slash = rest.indexOf('/');
+    if (slash < 0) return res.status(400).end();
+    let base;
+    try {
+      base = decodeURIComponent(rest.slice(0, slash));
+    } catch {
+      return res.status(400).end();
+    }
+    const sub = rest.slice(slash + 1);
+    if (
+      !base.startsWith('https://') ||
+      !/^[\w.@/-]+$/.test(sub) ||
+      sub.includes('..')
+    )
+      return res.status(400).end();
+    const orig = base + sub;
+    const shim = /(^|\/)OrbitControls\.js$/.test(sub)
+      ? addonControlsShim(orig)
+      : passthroughShim(orig, false);
+    return res
+      .type('text/javascript')
+      .set('Cache-Control', 'no-cache')
+      .send(shim);
+  }
+  // 作品 HTML 文档：文件夹件 <题>/<id>/index.html，单文件件 <题>/<id>.html
+  const segments = rel.split('/');
+  let workId = null;
+  let filePath = null;
+  if (segments.length === 3 && segments[2] === 'index.html') {
+    workId = segments[1];
+    filePath = path.join(worksDir, segments[0], segments[1], 'index.html');
+  } else if (segments.length === 2 && segments[1].endsWith('.html')) {
+    workId = segments[1].slice(0, -'.html'.length);
+    filePath = path.join(worksDir, segments[0], segments[1]);
+  }
+  if (!workId || !filePath) return next();
+  const camera = savedCameraFor(workId);
+  if (!camera && req.query.aob !== 'bridge') return next();
+  let html;
+  try {
+    html = fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return next(); // 文件不存在/读不到：交回静态走原有 404 口径
+  }
+  res
+    .type('html')
+    .set('Cache-Control', 'no-cache')
+    .send(injectWorkBridge(html, camera));
+});
 app.use(
   '/works',
   express.static(worksDir, {

@@ -124,6 +124,7 @@ export function AdminLog() {
             placeholder={kind === 'votes' ? '搜索用户 / 题号 / 模型' : kind === 'comments' ? '搜索用户 / 题号 / 内容' : '搜索用户名'}
             aria-label="搜索流水"
           />
+          <button className="admin-mini primary" type="submit">搜索</button>
         </form>
         <button className="reload" onClick={reload}>
           刷新

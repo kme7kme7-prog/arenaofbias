@@ -57,10 +57,11 @@ alignArenaTransition(layer);
 assert.equal(layer.style.top, '490px', 'missing route during commit retains last bounds');
 assert.doesNotMatch(pageSource, /arenaTransition[\s\S]{0,80}dispose/, 'route-owned layer must not be disposed on unmount');
 // 远端清单晚到（2026-09-17 收紧）：当前对局在新清单里仍然成立就保留，
-// 只有失效对局才重抽——每次 emit 无条件重抽会把 voting/result 脚下对局换掉
+// 只有失效对局才重抽——每次 emit 无条件重抽会把 voting/result 脚下对局换掉。
+// 清单落地先补消费测试对（决策 101：挂载时清单未到则在此接手），再走保留判定
 assert.match(
   pageSource,
-  /subscribeWorks\(\(\) => \{[\s\S]{0,40}setPair\(\(current\) => \{[\s\S]{0,200}currentPairs\(prompt\.id\)\.some\(/,
+  /subscribeWorks\(\(\) => \{[\s\S]{0,240}takeTestPair\(prompt\.id\)[\s\S]{0,200}setPair\(\(current\) => \{[\s\S]{0,200}currentPairs\(prompt\.id\)\.some\(/,
   'works emit must keep a still-valid pair instead of unconditional re-pair',
 );
 // 「随机换个竞技场」与「下一题」同样挂 blocked，重播过场中不得再叠 match 纸幕

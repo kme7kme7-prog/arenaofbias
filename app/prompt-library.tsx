@@ -24,6 +24,7 @@ import {
 import { convoyNavigate } from '@/lib/game-transitions';
 import { revealLibrary } from '@/lib/library-motion';
 import { currentPrompts } from '@/lib/prompts';
+import { enterArena } from '@/lib/works-gate';
 import type { Prompt } from '@/lib/arena';
 import {
   currentPairs,
@@ -193,7 +194,17 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
               </small>
             )}
           </div>
-          <a className="archive-enter" href={`#arena/${prompt.id}`}>
+          <a
+            className="archive-enter"
+            href={`#arena/${prompt.id}`}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              // 未就绪落预览页（无作品可等），不钉纸幕；就绪才走加载中间态
+              if (!stats.ready) return;
+              e.preventDefault();
+              enterArena(`#arena/${prompt.id}`, prompt.name, prompt.id);
+            }}
+          >
             <span>
               {localize(
                 stats.ready

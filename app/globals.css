@@ -529,6 +529,13 @@ kbd {
   color: #9ca693;
   margin: 0 3px;
 }
+.field-meta .field-testing {
+  padding: 3px 9px;
+  border: 1px dashed #b98a3e;
+  border-radius: 999px;
+  color: #8a6420;
+  letter-spacing: 0.4px;
+}
 .field-status {
   display: flex;
   align-items: center;
@@ -853,9 +860,8 @@ kbd {
   opacity: 0.4;
   filter: saturate(0.45);
 }
-/* 作品就绪门控（2026-09-18）：大体量作品加载期间藏住作品区与「本轮开始」标记，
-   就绪后统一揭幕淡入，入场编排在作品可见后才开演——长加载不再出现「加载完后半段
-   直接没了」；「本轮开始」只是点缀，与作品同拍出现 */
+/* 作品就绪门控（2026-09-18）：大体量作品加载期间藏住作品区，双方完全就绪后才
+   统一揭幕淡入——不展开半加载画面，长加载不再出现「过渡动画后半段卡没掉」 */
 .arena-shell.works-hold .work-panel {
   opacity: 0;
 }
@@ -871,6 +877,33 @@ kbd {
 .arena-shell.works-reveal .briefing .round-tag {
   animation: work-reveal 0.55s 0.12s var(--ease-out) both;
 }
+/* 加载期把下方两条投票条当进度条用（决策 095）：文案隐去，未就绪的一侧退成
+   空心槽 + 同色光带往复推进，该侧作品就绪即填回队色——A 红 B 蓝各报各的。
+   就绪与否来自 page.tsx pollWorksReady（文档 interactive + 探针首帧握手） */
+.arena-shell.works-hold .vote-button {
+  pointer-events: none;
+  /* 阶段默认的 .4 压得太狠，进度光带看不清 */
+  opacity: 0.85;
+  filter: none;
+  /* 过场层盖满舞台（z-index 30），进度条要压在它上面才看得见 */
+  z-index: 31;
+  /* 基类的 background .3s 会被 WebGL 压满的主线程拖住，就绪侧迟迟填不满 */
+  transition: none;
+}
+.arena-shell.works-hold .vote-button > * {
+  opacity: 0;
+}
+.arena-shell.works-hold .vote-button.is-pending {
+  background: #ffffff6b;
+  box-shadow: inset 0 0 0 1px #8fa0859c;
+}
+.arena-shell.works-hold .vote-button.is-pending::before {
+  left: 0;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, var(--team), transparent);
+  transition: none;
+  animation: vote-pending 1.5s var(--ease-in-out) infinite;
+}
 @keyframes work-reveal {
   from {
     opacity: 0;
@@ -882,7 +915,9 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .arena-shell.works-hold .work-panel,
   .arena-shell.works-reveal .work-panel,
-  .arena-shell.works-reveal .briefing .round-tag {
+  .arena-shell.works-reveal .briefing .round-tag,
+  .arena-shell.works-hold .vote-button.is-pending::before,
+  .loading-overlay.is-clearing {
     animation: none;
   }
 }
@@ -1095,42 +1130,6 @@ kbd {
   visibility: visible;
   filter: blur(2.5px) saturate(0.55);
 }
-.intro-label {
-  position: absolute;
-  top: 27%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 35;
-  width: min(480px, 85%);
-  padding: 27px;
-  text-align: center;
-  color: #f2f7e9;
-  background: var(--ink);
-  border-left: 5px solid var(--acid);
-  animation: round-intro 0.9s var(--ease-in-out) both;
-  pointer-events: none;
-}
-.intro-label > span {
-  display: block;
-  font: 11px var(--mono);
-  letter-spacing: 4px;
-  color: #aebea4;
-}
-.intro-label > span:last-child {
-  font: 12px sans-serif;
-  margin-top: 14px;
-  letter-spacing: 5px;
-}
-.intro-label strong {
-  display: block;
-  font: 600 44px/1.1 var(--mono);
-  letter-spacing: -1px;
-  margin-top: 13px;
-}
-.intro-label b {
-  color: var(--acid);
-  font-weight: 600;
-}
 .loading-overlay {
   position: absolute;
   inset: 0;
@@ -1162,6 +1161,29 @@ kbd {
   height: 100%;
   background: var(--ink);
   animation: loading 1.3s ease-in-out infinite;
+}
+/* 作品完全就绪后过场才收：淡出与揭幕同拍（与 ARENA_TIMING.introRevealHold
+   成对，改一处要同步另一处），收完才离开 intro */
+.loading-overlay.is-clearing {
+  animation: overlay-clear 0.32s var(--ease-in-out) both;
+  pointer-events: none;
+}
+/* 死等超过 worksSkipAt 才给出口：不替用户揭幕，只让他离开这一局 */
+.loading-skip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 12px var(--mono);
+  letter-spacing: 2px;
+  animation: text-enter 0.4s var(--ease-out) both;
+}
+.loading-skip:hover {
+  background: var(--ink);
+  color: #e8eee3;
 }
 .transition-shutter {
   position: absolute;
@@ -2011,22 +2033,19 @@ kbd {
     transform: translateX(350%);
   }
 }
-@keyframes round-intro {
-  0% {
-    clip-path: inset(0 100% 0 0);
-    opacity: 0;
-    transform: translate(-50%, -42%) scale(0.97);
+/* 入场等待期投票条的推进光带：作品未就绪的一侧往复扫，就绪即停 */
+@keyframes vote-pending {
+  from {
+    transform: translateX(-130%) skew(-25deg);
   }
-  20%,
-  64% {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+  to {
+    transform: translateX(420%) skew(-25deg);
   }
-  100% {
-    clip-path: inset(0 0 0 0);
+}
+/* 加载过场收场：与 ARENA_TIMING.introRevealHold 成对，改一处要同步另一处 */
+@keyframes overlay-clear {
+  to {
     opacity: 0;
-    transform: translate(-50%, -60%) scale(0.98);
     visibility: hidden;
   }
 }
@@ -2620,16 +2639,6 @@ kbd {
   }
   .system-footer > span {
     gap: 5px;
-  }
-  .intro-label {
-    padding: 20px 10px;
-  }
-  .intro-label strong {
-    font-size: 34px;
-  }
-  .intro-label > span {
-    font-size: 9px;
-    letter-spacing: 3px;
   }
   .lock-announcement {
     padding: 16px 22px;

@@ -93,7 +93,6 @@ const {
   leaderboardData,
   currentVotes,
   computeRadarProfiles,
-  PROMPT_DIMENSION_WEIGHTS,
   RADAR_BASE,
   RADAR_LABELS,
   TRIAL_GAME_THRESHOLD,
@@ -300,8 +299,10 @@ check('六维画像（决策 091）：重放确定、值域 0–100、每题权�
     assert.equal(a.average.length, 6);
     for (const v of a.average) assert.ok(v >= 0 && v <= 100);
   }
-  // 权重表：六维、和为 1、值域 0–1
-  for (const weights of Object.values(PROMPT_DIMENSION_WEIGHTS)) {
+  // 权重表（决策 093）：已搬进题库种子/数据库，此处校验种子题全部带合法权重
+  for (const prompt of prompts) {
+    assert.ok(Array.isArray(prompt.weights), `${prompt.id} 缺 weights`);
+    const weights = prompt.weights;
     assert.equal(weights.length, 6);
     for (const w of weights) assert.ok(w >= 0 && w <= 1);
     assert.ok(Math.abs(weights.reduce((s, w) => s + w, 0) - 1) < 1e-9);

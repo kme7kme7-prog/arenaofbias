@@ -2,6 +2,8 @@ import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { AccountButton } from '@/components/account';
+import { currentPrompts } from '@/lib/prompts';
+import { enterArena } from '@/lib/works-gate';
 
 // 特别赛「鹈鹕大乱斗」独立页（P06，名称暂定；决策 026：独立成榜）。
 // 当前为占位：呈现常驻入口与 001 鹈鹕大挑战的样例，轮换规则与独立榜单待实施。
@@ -43,7 +45,16 @@ export default function Event() {
           )}
         </p>
         <div className="event-actions">
-          <a className="home-enter event-enter" href="#arena/001">
+          <a
+            className="home-enter event-enter"
+            href="#arena/001"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              const prompt = currentPrompts().find((item) => item.id === '001');
+              enterArena('#arena/001', prompt?.name, '001');
+            }}
+          >
             <span>
               {t('查看起源之题')}
               <small>{t('001 / 鹈鹕大挑战')}</small>

@@ -146,6 +146,8 @@ export type VoteRecord = {
   outcome?: 'win' | 'draw';
   /** 题目类型快照（服务端联表提供，含下架题——下架不改变赛道归类，决策 045 ⑤） */
   promptKind?: 'image' | 'text' | 'web';
+  /** 题目六维权重快照（服务端联表提供，决策 093——下架题的历史票仍按原权重重放） */
+  promptWeights?: number[];
   /** 双方模型显示名快照（作品已全部下架的模型靠它在榜上有名） */
   winnerName?: string;
   loserName?: string;
@@ -264,24 +266,15 @@ export const RADAR_BASE = 50;
 /** 分维 Elo 步长上限（权重 1 时一票的最大变动量级，与榜单 ELO_K 同源） */
 const RADAR_K = 32;
 
-/** 每道题的六维权重（2026-09-18 用户拍板，按题号配置；各题权重和为 1）。
- * 未配置的题按六维均分兜底，保证新题投票不静默丢失。 */
-export const PROMPT_DIMENSION_WEIGHTS: Record<string, number[]> = {
-  // 001 鹈鹕大挑战（骑车动画）：动态表现 60 · 视觉设计 30 · 创意构思 10
-  '001': [0.3, 0, 0.6, 0, 0, 0.1],
-  // 002 最后一句：文字表达 70 · 创意构思 30
-  '002': [0, 0, 0, 0.7, 0, 0.3],
-  // 003 环游轨道（前端网页设计）：视觉设计 60 · 动态表现 20 · 文字表达 20
-  '003': [0.6, 0, 0.2, 0.2, 0, 0],
-  // 004 营造法式（体素中国建筑群）：空间营造 70 · 视觉设计 30
-  '004': [0.3, 0.7, 0, 0, 0, 0],
-  // 005 飞瀑穿云（体素山水）：空间营造 60 · 视觉设计 30 · 创意构思 10
-  '005': [0.3, 0.6, 0, 0, 0, 0.1],
-  // 006 整装出发（前端网页设计，2026-09-18 用户确认）：视觉设计 60 · 动态表现 20 · 文字表达 20
-  '006': [0.6, 0, 0.2, 0.2, 0, 0],
-  // 007 事件视界（黑洞可视化）：动态表现 30 · 空间营造 20 · 视觉设计 20 · 思辨推理 30
-  '007': [0.2, 0.2, 0.3, 0, 0.3, 0],
-};
+/** 每题六维权重的当前来源（决策 093）：存 prompts 表 weights 列，后台题目管理
+ * 可调；种子默认值在 lib/prompts-seed.json。流水行的 promptWeights 快照优先
+ * （含下架题），其次当前题库，最后六维均分兜底——新题投票不静默丢失。 */
+function promptWeightsMap(): Map<string, number[]> {
+  const map = new Map<string, number[]>();
+  for (const prompt of currentPrompts())
+    if (Array.isArray(prompt.weights)) map.set(prompt.id, prompt.weights);
+  return map;
+}
 
 const UNCONFIGURED_PROMPT_WEIGHTS = RADAR_DIMENSIONS.map(() => 1 / 6);
 
@@ -300,6 +293,7 @@ export function computeRadarProfiles(
   scope: BoardScope = 'mixed',
 ): RadarProfiles {
   const kinds = promptKindMap();
+  const weightRows = promptWeightsMap();
   const scoped = votes.filter(
     (vote) =>
       matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
@@ -313,7 +307,10 @@ export function computeRadarProfiles(
   for (const vote of ordered) {
     touch(vote.winnerId);
     touch(vote.loserId);
-    const weights = PROMPT_DIMENSION_WEIGHTS[vote.promptId] ?? UNCONFIGURED_PROMPT_WEIGHTS;
+    const weights =
+      vote.promptWeights ??
+      weightRows.get(vote.promptId) ??
+      UNCONFIGURED_PROMPT_WEIGHTS;
     const ra = table.get(vote.winnerId)!;
     const rb = table.get(vote.loserId)!;
     const actual = vote.outcome === 'draw' ? 0.5 : 1;

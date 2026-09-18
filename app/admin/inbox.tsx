@@ -166,14 +166,21 @@ export function AdminInbox() {
     <section>
       <h1>收件箱</h1>
       <p className="admin-sub">
+        为待入库的作品确认标题、模型和题目。登记后，可前往作品管理校准并发布。
+      </p>
+      <details className="admin-intake-help">
+        <summary>如何放入作品？查看目录与命名规则</summary>
+        <p>
         把待登记的作品放进服务器目录{' '}
         <code>{dir || 'data/inbox'}</code>（宝塔上传或本机复制），点「刷新」后逐个登记。
         单文件命名「标题，模型名.html」会自动带出标题与模型名；多文件作品整个文件夹放进来
         （根目录须有 index.html）。登记 = 文件搬进作品库 + 入库，收件箱只留待处理件。
-      </p>
+        </p>
+      </details>
       {error && <div className="admin-error">{error}</div>}
       {message && <div className="admin-ok">{message}</div>}
       <div className="admin-toolbar">
+        <span className="admin-inbox-count">{loading ? '正在读取收件箱…' : `${entries.length} 件待处理`}</span>
         <button
           className="reload"
           onClick={() => {
@@ -183,12 +190,13 @@ export function AdminInbox() {
         >
           刷新
         </button>
+        <a className="admin-intake-next" href="#works">前往作品管理 ↗</a>
       </div>
       {!loading && entries.length === 0 && (
         <div className="admin-placeholder">
           <b>收件箱是空的</b>
           <p style={{ margin: 0 }}>
-            往上面的目录放进 .html 文件或作品文件夹，然后点「刷新」。
+            展开上方操作指引，将 .html 文件或作品文件夹放入指定目录，再刷新列表。
           </p>
         </div>
       )}

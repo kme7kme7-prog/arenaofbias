@@ -22,7 +22,7 @@ function parsePromptRow(row: unknown): Prompt | null {
     !candidate.prompt
   )
     return null;
-  return {
+  const parsed: Prompt = {
     id: candidate.id,
     kind: candidate.kind,
     category: typeof candidate.category === 'string' ? candidate.category : '',
@@ -33,6 +33,18 @@ function parsePromptRow(row: unknown): Prompt | null {
       typeof candidate.commentary === 'string' ? candidate.commentary : '',
     detail: typeof candidate.detail === 'string' ? candidate.detail : '',
   };
+  // 六维权重（决策 093）：非法/缺失按「未配置」处理——不丢整行，重放时走均分兜底
+  const weights = candidate.weights;
+  if (
+    Array.isArray(weights) &&
+    weights.length === 6 &&
+    weights.every(
+      (w) => typeof w === 'number' && Number.isFinite(w) && w >= 0 && w <= 1,
+    ) &&
+    Math.abs(weights.reduce((sum, w) => sum + w, 0) - 1) <= 0.01
+  )
+    parsed.weights = weights;
+  return parsed;
 }
 
 /** 拉已发布题目清单；失败返回 null（调用方回退内置题库）。空清单是合法结果

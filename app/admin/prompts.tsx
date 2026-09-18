@@ -2,8 +2,11 @@
 // 新增（编号自动）/编辑（文案自由改——不影响已有投票，用户拍板）、上下架滑块
 //（下架 = 前台完全隐藏：题库页不显示、竞技场进不去、不进随机池；历史票保留）。
 // 约束：不提供删除——作品与投票流水引用题目。
+// 六维权重（决策 093）也在此调整：权重是重放参数，保存后该题历史票
+// 即时按新口径重算六维画像，票面不动。
 // 数据来自 GET/POST/PATCH /api/admin/prompts。
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RADAR_DIMENSIONS } from '@/lib/leaderboard';
 
 type AdminPrompt = {
   id: string;
@@ -14,6 +17,8 @@ type AdminPrompt = {
   prompt: string;
   commentary: string;
   detail: string;
+  /** 六维权重（0–1、合计 1）；缺省 = 未配置 → 前台六维均分兜底 */
+  weights?: number[];
   published: boolean;
   createdAt: number;
   worksCount: number;
@@ -28,6 +33,8 @@ type FormState = {
   code: string;
   commentary: string;
   detail: string;
+  /** 六维权重（0–1，保存时要求合计 1） */
+  weights: number[];
   publish: boolean;
 };
 
@@ -37,6 +44,8 @@ const KIND_LABEL: Record<string, string> = {
   web: '网页',
 };
 
+const EVEN_WEIGHTS = RADAR_DIMENSIONS.map(() => 1 / 6);
+
 const emptyForm: FormState = {
   kind: 'web',
   name: '',
@@ -45,8 +54,18 @@ const emptyForm: FormState = {
   code: '',
   commentary: '',
   detail: '',
+  weights: EVEN_WEIGHTS,
   publish: false,
 };
+
+/** 权重摘要：只列非零维，如「视觉 60 · 动态 30」；未配置显示均分兜底 */
+function weightsSummary(weights?: number[]): string {
+  if (!weights) return '六维均分（未配置）';
+  return RADAR_DIMENSIONS.map((label, i) => ({ label, w: weights[i] ?? 0 }))
+    .filter((item) => item.w > 0)
+    .map((item) => `${item.label} ${Math.round(item.w * 100)}`)
+    .join(' · ');
+}
 
 export function AdminPrompts() {
   const [prompts, setPrompts] = useState<AdminPrompt[]>([]);
@@ -108,6 +127,7 @@ export function AdminPrompts() {
       code: prompt.code,
       commentary: prompt.commentary,
       detail: prompt.detail,
+      weights: prompt.weights ? [...prompt.weights] : [...EVEN_WEIGHTS],
       publish: prompt.published,
     });
     setMessage('');
@@ -170,6 +190,13 @@ export function AdminPrompts() {
       setError('先填提示词全文。');
       return;
     }
+    const weightsSum = form.weights.reduce((total, w) => total + w, 0);
+    if (Math.abs(weightsSum - 1) > 0.005) {
+      setError(
+        `六维权重合计须为 100%（当前 ${(weightsSum * 100).toFixed(1)}%）。`,
+      );
+      return;
+    }
     setBusy(true);
     const body = {
       kind: form.kind,
@@ -179,6 +206,8 @@ export function AdminPrompts() {
       code: form.code.trim(),
       commentary: form.commentary.trim(),
       detail: form.detail.trim(),
+      // 归一化后提交，舍入误差不带进库
+      weights: form.weights.map((w) => w / weightsSum),
     };
     const request = isNew
       ? fetch('/api/admin/prompts', {
@@ -267,6 +296,12 @@ export function AdminPrompts() {
                         {prompt.category}
                       </span>
                     )}
+                    <span
+                      className="muted"
+                      style={{ display: 'block', fontSize: 11, marginTop: 3 }}
+                    >
+                      {weightsSummary(prompt.weights)}
+                    </span>
                   </td>
                   <td>{KIND_LABEL[prompt.kind] ?? prompt.kind}</td>
                   <td>{prompt.worksCount}</td>
@@ -394,6 +429,59 @@ export function AdminPrompts() {
               placeholder="发给模型的完整提示词"
             />
           </label>
+          <div>
+            <p className="admin-note" style={{ margin: '0 0 6px' }}>
+              六维权重（%）——决定这题的票往哪些维度记账；保存后历史票即时按新口径重放。
+            </p>
+            <div className="admin-form-grid">
+              {RADAR_DIMENSIONS.map((label, index) => (
+                <label key={label}>
+                  {label}
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round((form.weights[index] ?? 0) * 1000) / 10}
+                    onChange={(event) => {
+                      const percent = Number(event.target.value);
+                      const next = [...form.weights];
+                      next[index] = Number.isFinite(percent)
+                        ? Math.min(100, Math.max(0, percent)) / 100
+                        : 0;
+                      update({ weights: next });
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+            <p
+              className="admin-note"
+              style={{
+                margin: '6px 0 0',
+                color:
+                  Math.abs(
+                    form.weights.reduce((total, w) => total + w, 0) - 1,
+                  ) <= 0.005
+                    ? undefined
+                    : '#c0492f',
+              }}
+            >
+              合计{' '}
+              {(form.weights.reduce((total, w) => total + w, 0) * 100).toFixed(
+                1,
+              )}
+              %{/* 均分快捷操作：六格各 1/6，仍是「已配置」的显式权重 */}
+              <button
+                type="button"
+                className="admin-mini"
+                style={{ marginLeft: 12 }}
+                onClick={() => update({ weights: [...EVEN_WEIGHTS] })}
+              >
+                六维均分
+              </button>
+            </p>
+          </div>
           {isNew && (
             <label className="chk">
               <input

@@ -87,6 +87,8 @@ export type VoteFlowRow = ArenaVote & {
   loserName?: string;
   /** 题目当前类型（prompts 表含下架题——榜单赛道归类不依赖题库可见性） */
   promptKind?: 'image' | 'text' | 'web';
+  /** 题目当前六维权重（决策 093——下架题的历史票仍按原权重重放） */
+  promptWeights?: number[];
 };
 
 function parseVoteRow(row: unknown): VoteFlowRow | null {
@@ -105,6 +107,15 @@ function parseVoteRow(row: unknown): VoteFlowRow | null {
     candidate.promptKind === 'web'
   )
     parsed.promptKind = candidate.promptKind;
+  const weights = candidate.promptWeights;
+  if (
+    Array.isArray(weights) &&
+    weights.length === 6 &&
+    weights.every(
+      (w) => typeof w === 'number' && Number.isFinite(w) && w >= 0 && w <= 1,
+    )
+  )
+    parsed.promptWeights = weights;
   return parsed;
 }
 
@@ -185,7 +196,8 @@ export async function fetchVotes(signal?: AbortSignal): Promise<VoteFlowRow[] | 
 }
 
 /** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供「只看正式」口径过滤）。
- * promptKind 与双方显示名随行透传——下架题的赛道归类与历史模型的命名靠它们 */
+ * promptKind、promptWeights 与双方显示名随行透传——下架题的赛道归类、维度权重
+ * 与历史模型的命名靠它们 */
 export function voteToRecord(vote: VoteFlowRow): {
   promptId: string;
   winnerId: string;
@@ -194,6 +206,7 @@ export function voteToRecord(vote: VoteFlowRow): {
   mode: Mode;
   outcome: 'win' | 'draw';
   promptKind?: 'image' | 'text' | 'web';
+  promptWeights?: number[];
   winnerName?: string;
   loserName?: string;
 } {
@@ -206,6 +219,7 @@ export function voteToRecord(vote: VoteFlowRow): {
     // 缺省 win：早期流水行与手工构造的记录可能没有该字段（决策 048）
     outcome: vote.outcome ?? 'win',
     ...(vote.promptKind ? { promptKind: vote.promptKind } : {}),
+    ...(vote.promptWeights ? { promptWeights: vote.promptWeights } : {}),
     ...(vote.winnerName ? { winnerName: vote.winnerName } : {}),
     ...(vote.loserName ? { loserName: vote.loserName } : {}),
   };

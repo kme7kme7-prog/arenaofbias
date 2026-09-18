@@ -193,6 +193,9 @@ export const messages: Record<string, string> = {
   逐个巡览: 'Guided tour',
   入场时依次放大展示两份作品: 'Zoom in on each work during the intro',
   '同提示词 · 换一组': 'Same prompt · New pair',
+  换一组作品: 'Try another pair',
+  跳过此题: 'Skip this prompt',
+  '测试对局 · 投票不落库': 'Test matchup · votes are not recorded',
   重新比较本提示词: 'Compare again',
   下一题: 'Next prompt',
   '正式测评：全程匿名，本模式不开放评论区。':

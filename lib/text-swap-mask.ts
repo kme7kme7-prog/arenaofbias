@@ -11,6 +11,10 @@ const REVEAL_MS = 700;
 // 揭开的起揭延迟（决策 089）：纸条先盖住新行不动，等纸幕开始打开时
 // 才错峰退开——文本揭幕与下方作品揭幕落在同一窗口，不提前露底
 const REVEAL_DELAY_MS = 240;
+// 与过场引擎同一条帧时规矩（2026-09-19 卡顿轮）：帧间隔超过此值视为主线程
+// 饱和掉帧——纸条原地冻、恢复后从冻点续播；按墙钟推进会在掉帧后一把追到
+// 终态，文字揭幕整段被吃（用户看到「卡住然后直接跳过」）
+const FRAME_STEP_CAP = 100;
 
 type LineBox = { x: number; y: number; right: number; bottom: number };
 type Strip = { win: HTMLElement; ink: HTMLElement; order: number };
@@ -39,7 +43,6 @@ export function consumeTextSwap(): boolean {
 export class TextSwapMask {
   private strips: Strip[] = [];
   private frame = 0;
-  private started: number | null = null;
 
   /** 旧页：纸条从左侧滑入，遮住 [data-swap] 元素的每行文本。 */
   cover(root: HTMLElement | null, reduced: boolean) {
@@ -59,19 +62,34 @@ export class TextSwapMask {
   reveal(root: HTMLElement | null, reduced: boolean) {
     this.clear();
     if (!root || reduced || !this.add(root)) return;
-    this.drive(
-      REVEAL_MS,
-      (t, strip, count) => {
-        const delay = (strip.order / Math.max(1, count - 1)) * 0.22;
-        const p = Math.min(1, Math.max(0, (t - delay) / 0.78));
-        // 与身份解密同一条离场曲线：短加速、果断离场、长减速
-        const eased =
-          p < 0.2 ? 0.4 * (p / 0.2) ** 2 : 1 - 0.6 * ((1 - p) / 0.8) ** (16 / 3);
-        strip.ink.style.transform = `translateX(${eased * 101}%)`;
-      },
-      () => this.clear(),
-      REVEAL_DELAY_MS,
-    );
+    const startReveal = () => {
+      this.drive(
+        REVEAL_MS,
+        (t, strip, count) => {
+          const delay = (strip.order / Math.max(1, count - 1)) * 0.22;
+          const p = Math.min(1, Math.max(0, (t - delay) / 0.78));
+          // 与身份解密同一条离场曲线：短加速、果断离场、长减速
+          const eased =
+            p < 0.2 ? 0.4 * (p / 0.2) ** 2 : 1 - 0.6 * ((1 - p) / 0.8) ** (16 / 3);
+          strip.ink.style.transform = `translateX(${eased * 101}%)`;
+        },
+        () => this.clear(),
+        REVEAL_DELAY_MS,
+      );
+    };
+    // 等纸幕真进扫出段才起揭（2026-09-19 卡顿轮）：钉幕中间态（099）下纸幕
+    // 可能等作品数秒，挂载后固定延迟起揭会把文字揭幕整段播在幕布后面，幕开
+    // 时只剩静态文字——看起来就是「被跳过」。幕布层已离场（快路径/减少动态）
+    // 或已进入 exit 才接错峰揭开；轮询与揭幕共用 this.frame，卸载即取消。
+    const awaitExit = () => {
+      const layer = document.querySelector<HTMLElement>('.game-transition');
+      if (layer && layer.dataset.gtPhase !== 'exit') {
+        this.frame = requestAnimationFrame(awaitExit);
+        return;
+      }
+      startReveal();
+    };
+    this.frame = requestAnimationFrame(awaitExit);
   }
 
   dispose() {
@@ -81,7 +99,6 @@ export class TextSwapMask {
   private clear() {
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = 0;
-    this.started = null;
     for (const strip of this.strips) strip.win.remove();
     this.strips = [];
   }
@@ -139,13 +156,13 @@ export class TextSwapMask {
     done?: () => void,
     delayMs = 0,
   ) {
+    let last: number | null = null;
+    let elapsed = -delayMs;
     const tick = (nowMs: number) => {
-      const now = nowMs / 1000;
-      if (this.started === null) this.started = now;
-      const t = Math.min(
-        1,
-        Math.max(0, (now - this.started - delayMs / 1000) / (duration / 1000)),
-      );
+      // 帧时累计：掉帧间隔被封顶截掉，纸条冻在原地等恢复，不追墙钟
+      if (last !== null) elapsed += Math.min(nowMs - last, FRAME_STEP_CAP);
+      last = nowMs;
+      const t = Math.min(1, Math.max(0, elapsed / duration));
       for (const strip of this.strips) paint(t, strip, this.strips.length);
       if (t >= 1) {
         this.frame = 0;

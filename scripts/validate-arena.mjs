@@ -192,6 +192,53 @@ check(
   },
 );
 check(
+  'Two-level draw (decision 097): model pairs uniform, multi-work models grouped, previous works avoided at work level',
+  () => {
+    const mk = (id, modelId) => ({
+      id,
+      promptId: '900',
+      modelId,
+      modelName: modelId,
+      title: id,
+      content: { kind: 'html', src: '/works/x.html' },
+    });
+    const results = [
+      mk('m1', 'm'), mk('m2', 'm'), mk('m3', 'm'),
+      mk('n1', 'n'), mk('n2', 'n'),
+      mk('k1', 'k'),
+    ];
+    for (let i = 0; i < 200; i++) {
+      const pair = pickMatchup('900', undefined, Math.random, results);
+      assert.notEqual(pair[0].modelId, pair[1].modelId);
+    }
+    // 上轮回避必须作用到作品层（097 曾把回避后的模型对配回未过滤的作品组）
+    for (let i = 0; i < 200; i++) {
+      const pair = pickMatchup('900', [results[0], results[3]], Math.random, results);
+      assert.ok(
+        pair.every((entry) => entry.id !== 'm1' && entry.id !== 'n1'),
+        `previous work leaked: ${pair.map((e) => e.id).join(',')}`,
+      );
+    }
+    // 均匀性在模型对上：m(3 作品)、n(2 作品)、k 两两组合各约 1/3
+    const counts = {};
+    const N = 3000;
+    for (let i = 0; i < N; i++) {
+      const key = pickMatchup('900', undefined, Math.random, results)
+        .map((entry) => entry.modelId)
+        .sort()
+        .join('+');
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    assert.deepEqual(Object.keys(counts).sort(), ['k+m', 'k+n', 'm+n']);
+    for (const rate of Object.values(counts)) {
+      assert.ok(
+        rate / N > 0.26 && rate / N < 0.41,
+        `model pair not uniform: ${JSON.stringify(counts)}`,
+      );
+    }
+  },
+);
+check(
   'Random navigation targets an eligible prompt and can avoid the current arena',
   () => {
     for (const prompt of rounds) {

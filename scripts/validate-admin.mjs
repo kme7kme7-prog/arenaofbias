@@ -590,6 +590,30 @@ try {
     });
     assert.equal(commentOk.status, 201);
 
+    // 六维权重（决策 093）：非法形 400 / 合计≠1 400；合法值保存后经公开清单带出
+    assert.equal((await patch({ weights: [1, 1, 1, 1, 1, 1] })).status, 400);
+    assert.equal((await patch({ weights: 'half' })).status, 400);
+    response = await patch({ weights: [0.5, 0.5, 0, 0, 0, 0] });
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).prompt.weights, [0.5, 0.5, 0, 0, 0, 0]);
+    publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
+    assert.deepEqual(
+      publicNow.prompts.find((item) => item.id === '008')?.weights,
+      [0.5, 0.5, 0, 0, 0, 0],
+    );
+    // 种子题经迁移 007 回填，公开行自带合法权重
+    const seedRow = publicNow.prompts.find((item) => item.id === '001');
+    assert.equal(seedRow?.weights?.length, 6);
+    // weights:null = 清空回「未配置」（前台六维均分兜底），公开行不再带该字段
+    response = await patch({ weights: null });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).prompt.weights, undefined);
+    publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
+    assert.equal(
+      publicNow.prompts.find((item) => item.id === '008')?.weights,
+      undefined,
+    );
+
     // 下架 → 公开清单立即隐藏（下架 = 前台完全隐藏）
     response = await patch({ published: false });
     assert.equal(response.status, 200);

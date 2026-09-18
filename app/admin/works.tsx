@@ -2,13 +2,20 @@
 import { useEffect, useState } from 'react';
 import { useAdminPromptOptions } from './use-admin-prompts';
 import { WorkCalibration } from './work-calibration';
+import { WorkCameraCalibration } from './work-camera';
 import { patchWork, type AdminWork } from './work-types';
+import { setTestPair } from '@/lib/test-pair';
 import './works.css';
 
 export function AdminWorks() {
   const prompts = useAdminPromptOptions();
   const [prompt, setPrompt] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState(() =>
+    new URLSearchParams(window.location.hash.split('?')[1]).get('status') ===
+    'draft'
+      ? 'draft'
+      : 'all',
+  );
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -25,6 +32,24 @@ export function AdminWorks() {
   const [model, setModel] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [calibrating, setCalibrating] = useState<AdminWork | null>(null);
+  const [camCalibrating, setCamCalibrating] = useState<AdminWork | null>(null);
+  // 对比测试选择（2026-09-19）：勾两份同题已发布作品直达竞技场并排看画布
+  // 校准效果。先勾的落 A 侧；换筛选即清空，跨页保留（id 不随分页失效）。
+  const [picked, setPicked] = useState<AdminWork[]>([]);
+  const togglePick = (work: AdminWork) =>
+    setPicked((list) =>
+      list.some((p) => p.id === work.id)
+        ? list.filter((p) => p.id !== work.id)
+        : [...list, work],
+    );
+  const pickHint = (work: AdminWork) => {
+    if (!work.published) return '草稿未发布，前台没有这份作品';
+    if (picked.some((p) => p.id === work.id)) return '';
+    if (picked.length >= 2) return '最多勾选两份作品';
+    if (picked.length && picked[0].promptId !== work.promptId)
+      return '只能与同一题目的作品对比';
+    return '';
+  };
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -63,6 +88,7 @@ export function AdminWorks() {
     setPage(0);
     setEditing(null);
     setNotice('');
+    setPicked([]);
     setLoading(true);
   };
   const save = async (work: AdminWork, values: object, message: string) => {
@@ -180,6 +206,26 @@ export function AdminWorks() {
           {notice}
         </span>
       </div>
+      {picked.length > 0 && (
+        <div className="works-pickbar">
+          <span>
+            已选对比 {picked.length}/2 · 题目 {picked[0].promptId} ·{' '}
+            {picked.map((p) => p.modelName).join(' vs ') || '—'}
+          </span>
+          {picked.length < 2 && <small>再勾选同一题目的一份已发布作品</small>}
+          <button
+            className="works-primary"
+            disabled={picked.length !== 2 || loading || !!busy || !!editing}
+            onClick={() => {
+              setTestPair(picked[0].promptId, picked[0].id, picked[1].id);
+              window.location.href = `/#arena/${picked[0].promptId}`;
+            }}
+          >
+            进入竞技场对比 ↗
+          </button>
+          <button onClick={() => setPicked([])}>清空选择</button>
+        </div>
+      )}
       {error && (
         <div className="admin-error" role="alert">
           {error}
@@ -188,6 +234,18 @@ export function AdminWorks() {
       <div className="works-list" aria-busy={loading}>
         {data.works.map((work) => (
           <article key={work.id} className="works-row">
+            <label className="works-pick">
+              <input
+                type="checkbox"
+                checked={picked.some((p) => p.id === work.id)}
+                disabled={
+                  !!pickHint(work) || !!busy || !!editing || loading
+                }
+                title={pickHint(work) || '勾选参与对比测试（先勾的落 A 侧）'}
+                aria-label={`选择对比作品 ${work.title}`}
+                onChange={() => togglePick(work)}
+              />
+            </label>
             <div className="works-type" aria-hidden="true">
               {work.content?.kind === 'html'
                 ? '</>'
@@ -207,6 +265,9 @@ export function AdminWorks() {
                     {work.content.framing ? '已校准' : '默认画布'}
                   </span>
                 )}
+                {work.content?.kind === 'html' &&
+                  'camera' in work.content &&
+                  work.content.camera && <span className="calibrated">已校视角</span>}
               </div>
               {editing === work.id ? (
                 <form
@@ -294,6 +355,18 @@ export function AdminWorks() {
                     画布校准
                   </button>
                 )}
+                {work.content?.kind === 'html' &&
+                  'src' in work.content && (
+                    <button
+                      disabled={!!busy || loading || !!editing}
+                      onClick={() => {
+                        setEditing(null);
+                        setCamCalibrating(work);
+                      }}
+                    >
+                      视角校准
+                    </button>
+                  )}
                 {work.src && (
                   <a
                     className="works-secondary"
@@ -384,6 +457,21 @@ export function AdminWorks() {
             }));
             setCalibrating(null);
             setNotice('画布校准已保存，前台刷新后生效');
+          }}
+        />
+      )}
+      {camCalibrating && (
+        <WorkCameraCalibration
+          key={camCalibrating.id}
+          work={camCalibrating}
+          onClose={() => setCamCalibrating(null)}
+          onSaved={(fresh) => {
+            setData((d) => ({
+              ...d,
+              works: d.works.map((w) => (w.id === fresh.id ? fresh : w)),
+            }));
+            setCamCalibrating(null);
+            setNotice('视角已保存，前台刷新后生效');
           }}
         />
       )}

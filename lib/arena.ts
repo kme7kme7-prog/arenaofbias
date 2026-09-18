@@ -101,6 +101,8 @@ export type Prompt = {
   prompt: string;
   commentary: string;
   detail: string;
+  /** 六维权重（决策 093，与 RADAR_DIMENSIONS 同序）：缺省 = 未配置 → 六维均分兜底 */
+  weights?: number[];
 };
 
 // 题目清单存 lib/prompts-seed.json，两处共享同一份：前端内置兜底（下方 prompts）、
@@ -121,6 +123,19 @@ for (const prompt of seedPrompts) {
     throw new Error(
       `lib/prompts-seed.json 的题目 ${String(prompt.id)} 缺少必要字段或 kind 非法`,
     );
+  // weights 可缺省（未配置 → 六维均分），配了就必须是合法的六维权重
+  if (
+    prompt.weights !== undefined &&
+    (!Array.isArray(prompt.weights) ||
+      prompt.weights.length !== 6 ||
+      !prompt.weights.every(
+        (w) => typeof w === 'number' && Number.isFinite(w) && w >= 0 && w <= 1,
+      ) ||
+      Math.abs(prompt.weights.reduce((sum, w) => sum + w, 0) - 1) > 0.01)
+  )
+    throw new Error(
+      `lib/prompts-seed.json 的题目 ${String(prompt.id)} weights 须为合计 1 的六维权重`,
+    );
 }
 export const prompts: Prompt[] = seedPrompts;
 
@@ -133,11 +148,14 @@ export type Story = {
   ending: string;
 };
 
+/** 视角校准（决策 102）：OrbitControls 相机位与目标点，服务端注入桥时套用 */
+export type WorkCamera = { position: number[]; target: number[] };
+
 export type ResultContent =
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'text'; story: Story }
   | { kind: 'web'; template: Side }
-  | { kind: 'html'; src: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number } }
+  | { kind: 'html'; src: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number }; camera?: WorkCamera }
   | { kind: 'html'; html: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number } };
 
 export type ModelResult = {
@@ -193,26 +211,83 @@ export function eligiblePairs(
   );
 }
 
+/** 模型 → 该题下它的作品列表（决策 097：同名变体已合并为一个模型多件作品） */
+export function modelGroups(
+  promptId: string,
+  results = modelResults,
+): Map<string, ModelResult[]> {
+  const groups = new Map<string, ModelResult[]>();
+  for (const entry of resultsForPrompt(promptId, results)) {
+    if (entry.isDemo) continue;
+    const list = groups.get(entry.modelId);
+    if (list) list.push(entry);
+    else groups.set(entry.modelId, [entry]);
+  }
+  return groups;
+}
+
+/** 模型两两组合（保持 flatMap 的池序，与 eligiblePairs 一致） */
+export function modelPairIds(groups: Map<string, ModelResult[]>): [string, string][] {
+  const ids = [...groups.keys()];
+  return ids.flatMap((left, i) =>
+    ids.slice(i + 1).map((right): [string, string] => [left, right]),
+  );
+}
+
+/** 组内抽一件作品；单作品组不消耗随机数（维持既有断言的随机序列） */
+export function pickWorkFrom(group: ModelResult[], random: () => number): ModelResult {
+  return group.length === 1 ? group[0] : group[Math.floor(random() * group.length)];
+}
+
+/** 上一轮作品回避后的分组：被清空的模型整组退出 */
+export function groupsAvoiding(
+  groups: Map<string, ModelResult[]>,
+  previous?: Matchup,
+): Map<string, ModelResult[]> {
+  if (!previous) return groups;
+  const filtered = new Map<string, ModelResult[]>();
+  for (const [modelId, works] of groups) {
+    const fresh = works.filter((work) => !previous.some((old) => old.id === work.id));
+    if (fresh.length) filtered.set(modelId, fresh);
+  }
+  return filtered;
+}
+
 export function pickMatchup(
   promptId: string,
   previous?: Matchup,
   random = Math.random,
   results = modelResults,
 ): Matchup | null {
-  const pairs = eligiblePairs(promptId, results);
-  // 上一轮亮相过的作品下一轮整体回避：已被揭晓身份的作品若再次出场，
-  // 参与者会凭记忆认出它，盲测就失去了意义。无可避开时（如仅剩一组）
-  // 回退到全量组合，保证流程不断。
-  const fresh = previous
-    ? pairs.filter(
-        (pair) =>
-          !pair.some((entry) => previous.some((old) => old.id === entry.id)),
-      )
-    : pairs;
-  const candidates = fresh.length ? fresh : pairs;
-  if (!candidates.length) return null;
-  const pair = candidates[Math.floor(random() * candidates.length)];
-  return random() < 0.5 ? pair : [pair[1], pair[0]];
+  // 两级抽取（决策 097）：先等概率抽两个不同模型，再各从该模型的作品里随机抽
+  // 一件——对局均匀分布在模型对上，作品多的模型不再因作品数获得更高出场率。
+  const groups = modelGroups(promptId, results);
+  let active = groups;
+  let pairs = modelPairIds(groups);
+  // 上一轮亮相过的作品下一轮整体回避（防身份泄漏）；无可避开时回退全量，保证流程不断
+  if (previous) {
+    const avoided = groupsAvoiding(groups, previous);
+    const fresh = modelPairIds(avoided);
+    if (fresh.length) {
+      active = avoided;
+      pairs = fresh;
+    }
+  }
+  if (!pairs.length) return null;
+  const [a, b] = pairs[Math.floor(random() * pairs.length)];
+  return finishPair(active, a, b, random);
+}
+
+/** 定下模型对后各抽一件作品，再随机左右 */
+export function finishPair(
+  groups: Map<string, ModelResult[]>,
+  a: string,
+  b: string,
+  random: () => number,
+): Matchup {
+  const wa = pickWorkFrom(groups.get(a)!, random);
+  const wb = pickWorkFrom(groups.get(b)!, random);
+  return random() < 0.5 ? [wa, wb] : [wb, wa];
 }
 
 export function randomArenaHash(

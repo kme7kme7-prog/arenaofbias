@@ -3,7 +3,9 @@ import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useAccount, AccountButton } from '@/components/account';
 import { currentRandomArenaHash } from '@/lib/placeholder';
+import { currentPrompts } from '@/lib/prompts';
 import { convoyNavigate, guessNavigate } from '@/lib/game-transitions';
+import { enterArena } from '@/lib/works-gate';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
 // 正式测评为资格制：当前 dev 开发者身份拥有资格（决策 028）。
@@ -48,6 +50,13 @@ export default function PlayMenu() {
     return hash.startsWith('#arena/')
       ? hash.replace('#arena/', '#formal/')
       : hash;
+  };
+  // 菜单进测评（2026-09-19）：整屏纸幕钉住当加载中间态，作品就绪才展开；
+  // 目的地点击时现抽，牌面标题/题号随之带上
+  const enterMode = (hash: string) => {
+    const promptId = hash.replace(/^#(arena|formal)\//, '');
+    const prompt = currentPrompts().find((item) => item.id === promptId);
+    enterArena(hash, prompt?.name, prompt?.id);
   };
   return (
     <div className="lobby play-classic">
@@ -106,9 +115,9 @@ export default function PlayMenu() {
                             : '#random'
                     }
                     onClick={(e) => {
-                      // 菜单进测评走一体斜幕（2026-09-13 用户拍板）；
+                      // 菜单进测评走钉住纸幕（2026-09-19 用户拍板，取代一体斜幕）；
                       // formal 的目的地在点击时现抽，保持随机口径；
-                      // 模一把使用独立的抽牌过场，其余入口维持 convoy。
+                      // 模一把使用独立的抽牌过场，事件页维持 convoy。
                       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
                         return;
                       e.preventDefault();
@@ -116,13 +125,15 @@ export default function PlayMenu() {
                         guessNavigate();
                         return;
                       }
-                      const hash =
-                        mode.id === 'event'
-                          ? '#event'
-                          : mode.id === 'formal'
-                            ? formalHref()
-                            : '#random';
-                      convoyNavigate(hash, mode.code);
+                      if (mode.id === 'event') {
+                        convoyNavigate('#event', mode.code);
+                        return;
+                      }
+                      enterMode(
+                        mode.id === 'formal'
+                          ? formalHref()
+                          : currentRandomArenaHash(),
+                      );
                     }}
                   >
                     <span className="play-classic-idx">

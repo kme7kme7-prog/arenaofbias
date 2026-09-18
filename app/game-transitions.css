@@ -162,6 +162,29 @@
 .gt-match-link-a::after { right: 0; background: #ff7969; }
 .gt-match-link-b::after { left: 0; background: #8ac7d9; }
 .gt-match-joint { color: #73816b; font: 20px/1 monospace; }
+/* 钉幕等待（096）：纸幕被作品就绪门钉在盖满位时，牌面兼任加载屏——
+   holdnote 呼吸显形；duel 两条连线当逐侧进度条，该侧作品就绪即填成队色 */
+.gt-match-holdnote {
+  margin-top: 14px;
+  font: 10px/1.6 monospace;
+  letter-spacing: .22em;
+  color: #697768;
+  opacity: 0;
+}
+.game-transition[data-gt-hold] .gt-match-holdnote {
+  animation: gt-hold-pulse 1.5s ease-in-out infinite;
+}
+@keyframes gt-hold-pulse {
+  0%, 100% { opacity: .3; }
+  50% { opacity: .85; }
+}
+.gt-match-link::after {
+  transition: width .45s cubic-bezier(.22, 1, .36, 1);
+}
+.game-transition[data-gt-a] .gt-match-link-a::after,
+.game-transition[data-gt-b] .gt-match-link-b::after {
+  width: 100%;
+}
 @container (max-width: 520px) {
   .gt-match-register { inset: 7cqh 9cqw auto; }
   .gt-match-duel { bottom: 12cqh; gap: 10px; }
