@@ -295,3 +295,17 @@
 - 后台 UI：作品管理行加「视角校准」弹窗（`app/admin/work-camera.tsx`）——预览 iframe 直接可拖（OrbitControls 原生交互），「抓取当前视角/套回预览/回原始视角/保存/清除」，轮询桥就绪，10s 无 controls 判「不可钩，请用画布校准」；行标「已校视角」。
 - 覆盖率实测（serve 时注入能钩到的）：**007 黑洞 27/34（79%）**——图一 muse（importmap）与 gemini（r128 全局）浏览器实测 controls=1、getState/setState 生效、截图确认拉远；**005 仅 5/38、004 仅 2/38**——体素作品绝大多数是 Vite 打包/整库内联，相机封死在压缩闭包里够不着。体素的现实路径=生成侧约定（如探针惯例，新作品自曝相机）或点名个案离线补，待用户拍板，不擅自扩范围。
 - 验证：typecheck、oxlint（改动文件）、build、`validate:camera` 新增 5 项（零注入/桥+importmap 改写/虚拟路由转发包装与非法入参/PATCH 写读删/校验口径）全绿；validate:admin 11 项回归通过。真库端到端（保存→竞技场套用）与后台弹窗操作**未实测**——测试浏览器无管理员会话且 dev 免登录被 Qoder 安全策略拦截，待用户登录后点验。
+
+## 103 · 真机移动端巡检与非安全上下文静默失败修复
+
+- 2026-09-19 ｜ 用户要求：手机已完成无线调试配对，用真机 Chrome 做移动端基础兼容测试；报出问题后要求逐条修。
+- 口径：OnePlus PDEM30 / Android 13 / Chrome 153，显示大小被调到 720dpi ⇒ **CSS 视口只有 320×604**（常见机型 360–430，这是最坏情况基线）；另用 CDP 度量模拟补 360/393/412 与横屏 740×360、852×393 × home/arena/rank/guess/prompts。链路 `adb forward tcp:9222 localabstract:chrome_devtools_remote` + 原始 CDP 驱动（`scripts/.tmp-mobile/`，临时工具不入库）。
+- P0 根因：手机用 `http://<局域网 IP>` 访问属**非安全上下文**，`crypto.randomUUID` 是 undefined——投票、表情反应、评论三处在点击瞬间同步抛错，**请求一个都没发**，但界面照常扫出翻页，完全静默。桌面历来用 localhost（安全上下文）实测，这类崩溃在旧口径下不可能被发现。`navigator.clipboard` 同源受限，但它包在 try/catch 里降级为「长按手动复制」，可接受。
+- 落刀：新 `lib/id.ts` 的 `newId()` 一律用 `crypto.getRandomValues` 拼 v4（不受安全上下文限制，产物过服务端 `UUID_PATTERN`）；`app/page.tsx` 两处、`components/afterparty.tsx` 一处改调用。
+- 键盘遮挡：两个入口 viewport meta 加 `interactive-widget=resizes-content`（Android Chrome 默认只缩视觉视口，`100svh` 不跟键盘缩），登录框 `max-height` 由 svh 改 dvh。实测键盘弹起后 Chrome 只在拿到焦点那一刻滚一次，故 `components/account.tsx` 加 visualViewport resize → 焦点元素 `scrollIntoView({block:'center'})`。真机复测：账号框聚焦时提交按钮 bottom 420 仍差 373 一线，密码框聚焦后 241..289 完整可见，登录流程可达。
+- 触摸热区：`app/globals.css` 新增 `@media (pointer: coarse)` 段，**只扩热区不改像素**——透明 `::after` 盖出比自身大的可点区（语言切换、账号入口、返回首页、放大按钮、开发入口、榜单 tab/scope、难分高下、文字按钮、纸条筛选、首页导航链接），`app/dev.css` 给 `.dev-entry` 补 padding-block、`.dev-row`/select/关闭按钮补到 44。桌面完全不进这段。量法要注意：`getBoundingClientRect` 量不到伪元素，得用 `elementFromPoint` 以元素中心铺 44×44 网格数命中率——点名控件在 home/arena/rank 达 100%，残留两处约 82%（首页语言切换贴 header 边缘、角落开发入口与相邻按钮互斥）。
+- P2：`html { color-scheme: light }`（手机系统深色模式下原生下拉弹层/勾选框/滚动条不再画成深色）、`theme-color` meta、`viewport-fit=cover` + dev 角落吃 `env(safe-area-inset-*)`、`app/ranking.css` 裸 vh 改 `100svh`、榜单非首行的装饰扫光条 `display:none`（消除 11 个挂在视口左侧外的越界元素）。
+- 检查工具：新增 `scripts/check-mobile.mjs` / `npm run check:mobile`——客户端零裸 `crypto.randomUUID`、剥掉 randomUUID 后跑 200 个 id 全过服务端口径且不撞车、两入口 viewport 策略齐备、color-scheme 已声明、app/*.css 无裸 vh、coarse 块覆盖点名控件、dev 角落吃安全区、扫光不越界。
+- 已知残留与未测：后台 `/admin` 移动端布局**未测**（手机无管理员会话，dev 免登录只允许回环，未登录按设计回 404，需用户手机上登录一次）；系统字体放大档未测（此机 font_scale 0.9）；作品侧 muse 黑洞在 320px 宽屏自带面板遮住约 95% 画面，只剩右缘约 40px 能拖 OrbitControls（触摸旋转与注入桥在真机验证可用，单机 48fps）；007 双 WebGL 入场重播约 19fps，但**无一帧超过 100ms**——决策 100 的帧时封顶与帧率门在移动端成立，纸幕完整扫出并卸载。
+- 验证：typecheck、build 通过；`check:mobile` 新增全绿；`check:motion` 六件套与 validate:arena 13 / votes 12 / placeholder 10 / leaderboard 11 / scroll / comments / admin 11 / camera 5 / matchmaking 8 / guess 37 全绿；oxlint 改动文件零告（树里 2 条既有告警在未改的 dev-panel/account）。真机复测：fetch 探针确认投票发出 `POST /api/votes` 且 id 为合法 v4、零报错（用桩挡住写库，未污染榜单）；八页巡检越界与 console 报错清零。
+

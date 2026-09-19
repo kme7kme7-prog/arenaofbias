@@ -2,7 +2,9 @@
    配色锚定站点变量（纸灰绿底 / 深墨 / 酸黄），档案卡头部用模型主题色（决策 017）。 */
 
 .rank-page {
-  min-height: 100vh;
+  /* 全站统一用 svh：裸 vh 单位在带动态工具栏的手机上是「工具栏收起后」的高度，
+     会比可视区高出一个地址栏（check:mobile 卡这条） */
+  min-height: 100svh;
   background: #d9ddda;
   color: #1c2423;
 }
@@ -280,6 +282,11 @@
   transform: translateX(-100%);
   pointer-events: none;
   z-index: 2;
+}
+/* 只有首行会播扫光；其余行的扫光条永远停在 translateX(-100%) 上，而 .rank-row
+   只有 .first 带 overflow:hidden，等于一排挂在视口左侧之外的越界元素 */
+.rank-board .rank-row:not(.first) .rank-row-flash {
+  display: none;
 }
 .rank-board .rank-row.first .rank-row-flash {
   animation: rank-row-flash 1.1s 0.4s ease-in-out;

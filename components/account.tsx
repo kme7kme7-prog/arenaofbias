@@ -44,6 +44,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const submitting = useRef(false);
   const [error, setError] = useState('');
   const revision = useRef(0);
+  const sheet = useRef<HTMLDivElement>(null);
   const [sheetHeight, setSheetHeight] = useState<number>();
   const measureSheet = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
@@ -80,6 +81,24 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', focus);
     };
   }, [refresh, user, username, password]);
+  // 键盘弹起会压缩布局视口（index.html 的 interactive-widget=resizes-content），
+  // 但 Chrome 只在拿到焦点的那一刻滚一次，键盘动画结束时输入框常常还压在键盘下面
+  // （真机 2026-09-19：密码框与提交按钮都够不着）。跟着 visualViewport 再滚一次。
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!opened || !viewport) return;
+    const reveal = () => {
+      const node = document.activeElement;
+      if (node instanceof HTMLElement && sheet.current?.contains(node))
+        node.scrollIntoView({ block: 'center', behavior: 'instant' });
+    };
+    const settle = setTimeout(reveal, 350);
+    viewport.addEventListener('resize', reveal);
+    return () => {
+      clearTimeout(settle);
+      viewport.removeEventListener('resize', reveal);
+    };
+  }, [opened]);
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);
@@ -143,7 +162,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           >
             <span>{t('每一种直觉，都值得留下。')}</span>
           </div>
-          <div className="account-sheet" style={{ height: sheetHeight }}>
+          <div
+            className="account-sheet"
+            ref={sheet}
+            style={{ height: sheetHeight }}
+          >
             <div className="account-sheet-content" ref={measureSheet}>
               <div className="account-paper-meta" aria-hidden="true">
                 <span>{t('偏见试验场 / 评审手记')}</span>

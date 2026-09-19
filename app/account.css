@@ -87,7 +87,7 @@
   min-width: 0;
   position: relative;
   isolation: isolate;
-  max-height: calc(100svh - 96px);
+  max-height: calc(100dvh - 96px);
   overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid #abb09a;
@@ -493,7 +493,9 @@
     padding: 20px 22px 16px 35px;
   }
   .account-sheet {
-    max-height: calc(100svh - 70px);
+    /* dvh 而非 svh：配合 index.html 的 interactive-widget=resizes-content，
+       软键盘弹起时布局视口被压缩，纸面跟着缩，提交按钮才不会被键盘盖住 */
+    max-height: calc(100dvh - 70px);
   }
   .account-dialog h2 {
     font-size: 25px;

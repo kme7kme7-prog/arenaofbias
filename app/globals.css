@@ -106,6 +106,9 @@
   box-sizing: border-box;
 }
 html {
+  /* 站点只有浅色纸面，但手机系统深色模式会让 UA 把下拉弹层、勾选框、滚动条
+     画成深色，浅底上冒黑块。声明 light 让原生控件跟着站点走。 */
+  color-scheme: light;
   background: var(--background);
 }
 body {
@@ -3607,4 +3610,59 @@ kbd {
 }
 .mode-static-label svg {
   color: var(--acid);
+}
+
+/* ---------- 触摸人体工学（仅粗指针：手机/平板，桌面完全不进这段） ----------
+    OnePlus PDEM30 真机巡检（2026-09-19）：头部与角落控件的可视框普遍只有
+   15–33px 高，够不上 44px 最小热区。这里只扩热区不改像素——给元素盖一层透明
+   ::after，视觉与排版零变化。已有定位的（.expand-control absolute、
+   .dev-entry fixed）不碰 position，只有静态/行内元素才补 relative。 */
+@media (pointer: coarse) {
+  .language-switch,
+  .account-entry,
+  .arena-home-link,
+  .rank-tab,
+  .rank-scope,
+  .vote-draw,
+  .text-button,
+  .lobby-small-entry,
+  .next-header nav a,
+  .next-gallery-bottom button {
+    position: relative;
+  }
+
+  /* 15–17px 高的行内文字链接：纵向各补 15px */
+  .next-header nav a::after,
+  .arena-home-link::after {
+    content: '';
+    position: absolute;
+    inset: -15px -8px;
+  }
+
+  /* 21–33px 高的按钮：纵向各补 8px */
+  .language-switch::after,
+  .account-entry::after,
+  .text-button::after,
+  .lobby-small-entry::after,
+  .next-gallery-bottom button::after {
+    content: '';
+    position: absolute;
+    inset: -8px -6px;
+  }
+
+  /* 已经接近 44px 的：只补 4px，免得吃掉相邻热区 */
+  .rank-tab::after,
+  .rank-scope::after,
+  .vote-draw::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
+  /* 作品画面右下角的放大按钮：四周各扩 10px（25px → 45px） */
+  .expand-control::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
 }

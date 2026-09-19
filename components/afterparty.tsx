@@ -1,5 +1,6 @@
 'use client';
 import { useI18n } from '@/lib/locale';
+import { newId } from '@/lib/id';
 
 import { useAccount } from '@/components/account';
 
@@ -97,7 +98,7 @@ export function Afterparty({
     setSending(true);
     setFeedback('');
     if (pending.current?.body !== body)
-      pending.current = { body, id: crypto.randomUUID() };
+      pending.current = { body, id: newId() };
     try {
       const response = await fetch('/api/comments', {
         method: 'POST',

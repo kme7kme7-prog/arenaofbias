@@ -3,6 +3,7 @@ import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
 import { workCanvas } from '@/lib/work-framing';
+import { newId } from '@/lib/id';
 
 import { AccountButton, useAccount } from '@/components/account';
 
@@ -333,7 +334,7 @@ function ReactionBar({
     void submitReaction({
       // 取消态服务端按覆盖语义处理：送一个无害的重复（同 kind）等价于保留，
       // 真正的取消由本地镜像呈现；避免额外加 DELETE 接口
-      id: crypto.randomUUID(),
+      id: newId(),
       promptId,
       mid,
       kind: next ?? mine ?? 'up',
@@ -1045,7 +1046,7 @@ export default function Arena({
       }
       setVoteRecord({ run: state.run, outcome: { state: 'saving' } });
       void submitVote({
-        id: crypto.randomUUID(),
+        id: newId(),
         promptId: prompt.id,
         winnerRid: winner.id,
         winnerMid: winner.modelId,

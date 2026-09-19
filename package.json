@@ -27,6 +27,7 @@
     "check:wipe": "node scripts/check-wipe.mjs",
     "check:surface": "node scripts/check-surface.mjs",
     "check:game": "node scripts/check-game-transitions.mjs",
+    "check:mobile": "node scripts/check-mobile.mjs",
     "check:arena-scroll": "node scripts/check-arena-scroll.mjs",
     "check:library": "node scripts/check-library-motion.mjs",
     "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs && node scripts/check-arena-scroll.mjs && node scripts/check-library-motion.mjs && node scripts/check-text-swap-mask.mjs",

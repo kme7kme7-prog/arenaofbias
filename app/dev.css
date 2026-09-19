@@ -3,8 +3,8 @@
 
 .dev-entry {
   position: fixed;
-  right: 12px;
-  bottom: 8px;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   z-index: 45;
   padding: 2px 8px;
   border: 0;
@@ -26,8 +26,8 @@
 
 .dev-mode-badge {
   position: fixed;
-  left: 12px;
-  bottom: 8px;
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   z-index: 45;
   padding: 3px 9px;
   background: #d9fb51;
@@ -40,8 +40,8 @@
 
 .dev-panel {
   position: fixed;
-  right: 12px;
-  bottom: 34px;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(34px + env(safe-area-inset-bottom, 0px));
   z-index: 45;
   width: 308px;
   max-width: calc(100vw - 24px);
@@ -176,5 +176,21 @@
 @media (prefers-reduced-motion: reduce) {
   .dev-row button:hover:not(:disabled) {
     transform: none;
+  }
+}
+
+/* 粗指针下的开发者面板人体工学：整行 label 就是热区，勾选框与下拉不必眯着眼点 */
+@media (pointer: coarse) {
+  .dev-entry {
+    padding-block: 14px;
+  }
+  .dev-row {
+    min-height: 44px;
+  }
+  .dev-panel select {
+    min-height: 44px;
+  }
+  .dev-panel header button {
+    padding: 12px;
   }
 }

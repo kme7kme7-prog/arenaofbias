@@ -2,7 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- interactive-widget=resizes-content：Android Chrome 默认只缩视觉视口，键盘会
+         盖住登录框的提交按钮且滚不到；让键盘压缩布局视口，dvh 才会跟着缩。
+         viewport-fit=cover 让 env(safe-area-inset-*) 在刘海屏上取到非零值。 -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#dfe3dd" />
     <title>偏见试验场 ARENA OF BIAS — 相信你的第一直觉</title>
     <meta
       name="description"
