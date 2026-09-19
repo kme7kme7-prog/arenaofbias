@@ -8,8 +8,10 @@
 // 两条钩子路径：
 //  1. 全局 UMD（three.min.js + examples/js OrbitControls）：defineProperty 拦
 //     window.THREE 赋值，再拦 THREE.OrbitControls 挂载，构造即登记。
-//  2. importmap ESM（three / three/addons/ 指向 CDN）：改写 importmap 让
-//     OrbitControls.js 经我们的包装模块转发（只动浏览器看到的映射，CDN 原样）。
+//  2. importmap ESM（three / three/addons/ 指向 CDN 或作品自带的本地 three）：
+//     改写 importmap 让 OrbitControls.js 经我们的包装模块转发。本地相对路径先
+//     按作品文档 URL 解析成同源绝对路径再进虚拟路由；转发模块同时转发命名导出
+//     与默认导出（lil-gui 只有默认导出，漏了作品会先崩）。
 
 const VIRTUAL = '/works/__aob__';
 
@@ -66,35 +68,84 @@ try{
 }catch(e){}
 })();`;
 
-/** OrbitControls.js 的包装转发模块：只重导出被 wrap 的 OrbitControls */
+/**
+ * 转发模块：命名导出走 `export *`，默认导出走命名空间取 `.default`。
+ * 必须两条都有——`export *` 按规范不含 default，而 lil-gui 这类 addon 只有
+ * 默认导出，漏掉它作品会 `new GUI()` 炸在建相机之前（2026-09-19 claude-fable）。
+ * 原模块没有默认导出时 `.default` 是 undefined，不会像 `export { default } from`
+ * 那样在链接期直接报错。
+ */
+function forward(origUrl) {
+  return `export * from ${JSON.stringify(origUrl)};
+import * as __AOB_NS from ${JSON.stringify(origUrl)};
+export default __AOB_NS.default;
+`;
+}
+
+/** OrbitControls.js 的包装转发模块：本地显式导出盖掉 `export *` 里的同名项 */
 function addonControlsShim(origUrl) {
   return `import { OrbitControls as __Base } from ${JSON.stringify(origUrl)};
-export const OrbitControls = window.__AOB__ ? window.__AOB__.wrap(__Base) : __Base;
+${forward(origUrl)}const OrbitControls = window.__AOB__ ? window.__AOB__.wrap(__Base) : __Base;
+export { OrbitControls };
 `;
 }
 
 /** 非 OrbitControls 的 addon / three 主入口：原样转发（模块实例按 URL 去重） */
 function passthroughShim(origUrl, exposeThree) {
-  return `export * from ${JSON.stringify(origUrl)};
-${exposeThree ? `import * as __T from ${JSON.stringify(origUrl)};\nif (window.__AOB__) window.__AOB__.three = __T;\n` : ''}`;
+  return `${forward(origUrl)}${exposeThree ? `import * as __T from ${JSON.stringify(origUrl)};\nif (window.__AOB__) window.__AOB__.three = __T;\n` : ''}`;
 }
 
 const IMPORTMAP_RE = /<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/i;
 
 /**
+ * importmap 的目标既可能是 CDN 绝对 URL，也可能是作品目录下的相对路径
+ * （minimax-m3/qwen 的 `./vendor/jsm/`、ox-alpha 的 `./libs/addons/`）。
+ * 相对值一律按作品文档 URL 解析成同源绝对路径再交给虚拟路由——只按原样
+ * 塞进 ad/ 的话，路由认不出 `./vendor/jsm/` 会回 400，作品连相机模块都加载不了。
+ */
+function resolveTarget(docUrl, value) {
+  if (/^https?:/i.test(value)) return value;
+  try {
+    return new URL(
+      value,
+      `http://work.local${docUrl || '/works/_/index.html'}`,
+    ).pathname;
+  } catch {
+    return null;
+  }
+}
+
+/** 指向虚拟路由：目录值保留前缀语义，文件值拆成 <目录>/<文件名> */
+function virtualFor(abs) {
+  if (abs.endsWith('/')) return `${VIRTUAL}/ad/${encodeURIComponent(abs)}/`;
+  const slash = abs.lastIndexOf('/');
+  return `${VIRTUAL}/ad/${encodeURIComponent(abs.slice(0, slash))}/${abs.slice(slash + 1)}`;
+}
+
+/**
  * 注入桥（+可选保存视角），并把 importmap 的 three / three/addons/ 指到
  * 虚拟转发路由。importmap 解析失败只跳过改写，桥照常注入。
  */
-export function injectWorkBridge(html, savedCamera) {
+export function injectWorkBridge(html, savedCamera, docUrl) {
   const out = html.replace(IMPORTMAP_RE, (match, json) => {
     try {
       const map = JSON.parse(json);
       const imports = map && map.imports;
       if (!imports || typeof imports !== 'object') return match;
       let touched = false;
-      if (typeof imports['three/addons/'] === 'string') {
-        imports['three/addons/'] =
-          `${VIRTUAL}/ad/${encodeURIComponent(imports['three/addons/'])}/`;
+      // addons 前缀，以及把单个 OrbitControls.js 写死的精确键（hy4-preview）
+      for (const key of Object.keys(imports)) {
+        const isPrefix = key === 'three/addons/';
+        const isExact = key.endsWith('/OrbitControls.js');
+        if (!isPrefix && !isExact) continue;
+        const value = imports[key];
+        if (typeof value !== 'string') continue;
+        const abs = resolveTarget(docUrl, value);
+        // 只改两种目标：CDN 绝对 URL 与作品自己目录下的文件。别的形态（协议相对
+        // URL、data:、跨源绝对路径…）虚拟路由转发不了，宁可不钩也不要把作品改坏
+        if (!abs || (!/^https:\/\//i.test(abs) && !abs.startsWith('/works/')))
+          continue;
+        imports[key] = virtualFor(abs);
         touched = true;
       }
       if (typeof imports.three === 'string' && /^https?:/.test(imports.three)) {

@@ -1955,13 +1955,18 @@ app.use('/works', (req, res, next) => {
       return res.status(400).end();
     }
     const sub = rest.slice(slash + 1);
+    // base 两种来源：CDN 绝对 URL，或作品自带的本地 three 目录
+    // （注入时已按文档 URL 解析成 /works/ 开头的同源路径）
+    const local = base.startsWith('/works/');
     if (
-      !base.startsWith('https://') ||
+      (!base.startsWith('https://') && !local) ||
+      base.includes('..') ||
+      base.includes('\\') ||
       !/^[\w.@/-]+$/.test(sub) ||
       sub.includes('..')
     )
       return res.status(400).end();
-    const orig = base + sub;
+    const orig = (base.endsWith('/') ? base : `${base}/`) + sub;
     const shim = /(^|\/)OrbitControls\.js$/.test(sub)
       ? addonControlsShim(orig)
       : passthroughShim(orig, false);
@@ -1993,7 +1998,7 @@ app.use('/works', (req, res, next) => {
   res
     .type('html')
     .set('Cache-Control', 'no-cache')
-    .send(injectWorkBridge(html, camera));
+    .send(injectWorkBridge(html, camera, `/works/${rel}`));
 });
 app.use(
   '/works',

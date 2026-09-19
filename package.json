@@ -32,6 +32,7 @@
     "check:library": "node scripts/check-library-motion.mjs",
     "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs && node scripts/check-arena-scroll.mjs && node scripts/check-library-motion.mjs && node scripts/check-text-swap-mask.mjs",
     "register:works": "node scripts/register-works.mjs",
+    "hook:works": "node scripts/hook-work-cameras.mjs",
     "validate:guess": "node scripts/validate-guess.mjs"
   },
   "dependencies": {

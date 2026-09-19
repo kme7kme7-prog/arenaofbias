@@ -4,12 +4,20 @@
 //   ② ?aob=bridge 注入桥且 importmap 改写到 /works/__aob__/ 虚拟路由；
 //   ③ 虚拟路由：three 转发、OrbitControls 包装、非法 URL/路径穿越拒绝；
 //   ④ PATCH camera 写读删 + 与 framing 同批序列化；
-//   ⑤ 存有视角后，无标记的前台请求也带桥与 __AOB_SAVED__。
+//   ⑤ 存有视角后，无标记的前台请求也带桥与 __AOB_SAVED__；
+//   ⑥ 作品自带本地 three（相对路径 importmap / 精确键 OrbitControls.js）也能改写，
+//      虚拟路由同源转发不 400（2026-09-19 一半黑洞勾不到的两个根因）；
+//   ⑦ 转发模块同时转发命名导出与默认导出（lil-gui 只有默认导出）。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import {
+  addonControlsShim,
+  injectWorkBridge,
+  passthroughShim,
+} from '../server/work-bridge.js';
 
 let tests = 0;
 async function check(name, test) {
@@ -64,6 +72,11 @@ const robustFetch = async (url, options, tries = 3) => {
   }
 };
 
+const importedMap = (html) =>
+  JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1])
+    .imports;
+const AD = '/works/__aob__/ad/';
+
 const register = async () => {
   const response = await robustFetch(`${base}/api/auth/register`, {
     method: 'POST',
@@ -84,6 +97,70 @@ const patch = (cookie, id, changes) =>
 let workId = '';
 let workSrc = '';
 try {
+  await check('相对 importmap（作品自带本地 three）按文档 URL 解析成同源路径', () => {
+    const html =
+      '<head></head><script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/jsm/"}}</script>';
+    const map = importedMap(
+      injectWorkBridge(html, null, '/works/007/007-qwen3.8-max-0gzl3/index.html'),
+    );
+    assert.ok(map['three/addons/'].startsWith(AD), 'addons 走虚拟路由');
+    assert.equal(
+      decodeURIComponent(map['three/addons/'].slice(AD.length, -1)),
+      '/works/007/007-qwen3.8-max-0gzl3/vendor/jsm/',
+      '相对值先解析成绝对路径，路由才认得（原样塞进去会 400 把作品改坏）',
+    );
+    assert.equal(
+      map.three,
+      './vendor/three.module.min.js',
+      '本地 three 主入口不动',
+    );
+    // 转发不了的形态（协议相对 URL）保持原样：宁可不钩，也不要把作品改坏
+    const odd = injectWorkBridge(
+      '<head></head><script type="importmap">{"imports":{"three/addons/":"//cdn.example.com/jsm/"}}</script>',
+      null,
+      '/works/007/w/index.html',
+    );
+    assert.equal(
+      importedMap(odd)['three/addons/'],
+      '//cdn.example.com/jsm/',
+      'unroutable target left alone',
+    );
+  });
+
+  await check('精确键 three/addons/.../OrbitControls.js 也被改写', () => {
+    const html =
+      '<head></head><script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>';
+    const map = importedMap(
+      injectWorkBridge(html, null, '/works/007/007-hy4-preview/index.html'),
+    );
+    const value = map['three/addons/controls/OrbitControls.js'];
+    assert.ok(value.startsWith(AD) && value.endsWith('/OrbitControls.js'));
+    assert.equal(
+      decodeURIComponent(value.slice(AD.length).split('/')[0]),
+      '/works/007/007-hy4-preview/vendor',
+    );
+  });
+
+  await check('转发模块同时转发命名导出与默认导出（lil-gui 只有默认）', () => {
+    const shims = [
+      passthroughShim('https://x/t.js', false),
+      addonControlsShim('https://x/OrbitControls.js'),
+    ];
+    for (const shim of shims) {
+      assert.ok(shim.includes('export * from "https://x/'), 'named exports');
+      assert.ok(
+        shim.includes('export default __AOB_NS.default'),
+        'default export forwarded, missing default stays undefined',
+      );
+    }
+    assert.ok(
+      addonControlsShim('https://x/OrbitControls.js').includes(
+        'window.__AOB__.wrap(',
+      ),
+      'controls still wrapped',
+    );
+  });
+
   const cookie = await register();
   const registered = await robustFetch(`${base}/api/admin/inbox/register`, {
     method: 'POST',
@@ -142,6 +219,30 @@ try {
       `${base}/works/__aob__/ad/${adBase}/..%2F..%2Fevil.js`,
     );
     assert.equal(traversal.status, 400, 'path traversal rejected');
+    const localBase = encodeURIComponent(`/works/007/${workId}/vendor/jsm/`);
+    const local = await robustFetch(
+      `${base}/works/__aob__/ad/${localBase}/controls/OrbitControls.js`,
+    );
+    assert.equal(local.status, 200, '同源本地 base 也转发（相对 importmap 作品）');
+    const localText = await local.text();
+    assert.ok(localText.includes('window.__AOB__.wrap('), '本地 controls 被包');
+    assert.ok(
+      localText.includes(`export * from "/works/007/${workId}/vendor/jsm/controls/OrbitControls.js"`),
+      '转发指向作品自己的文件，不改磁盘',
+    );
+    const escape = await robustFetch(
+      `${base}/works/__aob__/ad/${encodeURIComponent('/works/007/../../etc')}/passwd`,
+    );
+    assert.equal(escape.status, 400, '同源 base 内的 .. 逃逸拒绝');
+    // 精确键形态的 base 不带尾斜杠，拼接时得补上（hy4-preview 曾拼成 vendorOrbitControls.js）
+    const dirBase = encodeURIComponent(`/works/007/${workId}/vendor`);
+    const exact = await robustFetch(
+      `${base}/works/__aob__/ad/${dirBase}/OrbitControls.js`,
+    );
+    assert.ok(
+      (await exact.text()).includes(`"/works/007/${workId}/vendor/OrbitControls.js"`),
+      '无尾斜杠的 base 拼接正确',
+    );
   });
 
   await check('PATCH camera：写、读、前台注入、删除', async () => {

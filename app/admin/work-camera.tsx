@@ -39,7 +39,9 @@ export function WorkCameraCalibration({
     dialog?.showModal();
     return () => dialog?.close();
   }, []);
-  // 轮询桥就绪：controls 登记即 ready；超时仍无 controls 判定不可钩（打包内联）
+  // 轮询桥就绪：controls 登记即 ready。判「不可钩」只是暂定结论——真机实测里
+  // 有作品 20 秒开外才建好 controls（等 shader 编译、等 CDN 拉 three），所以
+  // 超时后仍继续慢轮询，晚到的相机一样能接管
   useEffect(() => {
     const began = Date.now();
     const timer = setInterval(() => {
@@ -50,12 +52,10 @@ export function WorkCameraCalibration({
       )?.__AOB__;
       if (api?.controls?.length) {
         setHook('ready');
+        clearInterval(timer);
         return;
       }
-      if (Date.now() - began > 10000) {
-        setHook('none');
-        clearInterval(timer);
-      }
+      if (Date.now() - began > 20000) setHook('none');
     }, 600);
     return () => clearInterval(timer);
   }, [work.id]);
@@ -118,7 +118,8 @@ export function WorkCameraCalibration({
         >
           {hook === 'waiting' && '等待作品上报相机…（首次加载需拉取 three）'}
           {hook === 'ready' && '相机已接管：在画面里拖拽旋转、滚轮缩放，调到满意后抓取'}
-          {hook === 'none' && '未探测到可钩相机——该作品可能把 three 打包内联，视角校准不适用，请改用画布校准'}
+          {hook === 'none' &&
+            '暂未探测到可钩相机——多半是 three 被打包内联，也可能仍在初始化；继续等，上报了会自动接管，也可改用画布校准'}
         </output>
         <span className="work-camera-values">
           {show(draft) || (saved ? `已保存：${show(saved)}` : '未保存视角')}

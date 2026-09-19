@@ -2,14 +2,26 @@
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
-## 2026-09-19 · 移动端真机巡检与兼容修复（本轮，未归档）
+## 2026-09-19 · 视角校准覆盖率修复：桥改坏了作品 + 作品自报相机，19/34 → 34/34（已归档）
+
+- 本轮（决策 103–105，含下一节的移动端巡检）已归档：`docs/handoff/2026-09-19-移动端真机巡检与视角校准钩子修复-kme7kme7-prog.md`。
+- 用户报「一半的黑洞都勾不到」，要求修；派了 1 路子代理逐件读源码，主线程用同源浏览器探针逐件 `?aob=bridge` 实测。决策 104。
+- 修复前实测只有 **19/34**（决策 102 记的 27/34 复现不了，本轮以逐件实测为准）。四个根因里有两个是**桥自己把作品改坏了**：① importmap 指向作品自带本地 three（`./vendor/jsm/` 等）时，旧改写把相对值原样塞进虚拟路由，路由只认 `https://` ⇒ 400 ⇒ 作品连相机模块都加载不到（截图卡在「INITIALIZING…」「初始化…」「正在编译着色器…」的就是这批，6 件）；② 转发模块用 `export * from` 按规范不含 `default`，作品 `import GUI from 'three/addons/libs/lil-gui…'` 拿到 undefined，`new GUI()` 在建相机前就抛（2 件画面全黑）。另有 ③ 精确键 `three/addons/controls/OrbitControls.js` 没被改写（1 件，顺带修掉路由拼接漏斜杠）；④ 探测 10 秒判死且 `clearInterval` 不可翻案，而实测有作品 15s/24s 才建好 controls（等 CDN、等着色器编译）。
+- 改动落在 `server/work-bridge.js`（相对值按文档 URL 解析、命名+默认双转发、精确键改写）、`server/index.js`（虚拟路由放开 `/works/` 同源 base，仍拒 `..`/反斜杠/非 https；补拼接斜杠）、`app/admin/work-camera.tsx`（超时 20s 且超时后继续轮询，晚到的相机自动接管，文案改「暂未探测到」）。未校准作品零注入的不变量没动。
+- 桥修好后实测 **25/34**，抽样 10 件（本地 three / CDN importmap / UMD 三形态）逐件 `setState` 写回生效。残留 9 件是结构性的：8 件 three 整库内联（gpt-4o、gpt-5.6-cyber ×2、gpt-5.6-sol、muse-spark-1.2、claude-opus-5、gpt-6-astra ×2）类封在压缩闭包里够不着，1 件（deepseek-v4.1-flash-e0910-2）从相对路径直 import 本地 OrbitControls 不经 importmap 键。
+- 用户随后授权「可以直接改作品，但只准加注入口、不准改其它实际表现」→ 新 `scripts/hook-work-cameras.mjs`（`npm run hook:works`）在这 9 件的 OrbitControls 构造点各插一句 `window.__AOB__&&window.__AOB__.register(实例)`：没桥时短路成一次属性读取，有桥时构造即登记，复用同一套存取。逐字核验 9 处**全是纯插入 43–55 字、零删除**。决策 105。
+- 护栏吃过一次亏：首版把三处逗号序列的锚点带上了尾随逗号，写出 `,,` 把 opus-5 与 astra ×2 的整包语法改坏、画面全黑——正是「改了实际表现」。现在锚点唯一才动、注入前后各跑一次 `node --check`（原文能过而改后过不了就不落盘）、原文件备份在 `data/.hook-backup/`、`--check` 供重新接入后自检（`data/works` 不入库，重新接入会抹掉这些行，必须再跑 `hook:works`）。
+- **终版实测 007 全 34 件 34/34 可钩**：逐件带桥 `controls=1`、canvas 在、机位写回 3 秒后半径保持；抽样 7 件不带桥 `__AOB__` 为 undefined、零报错、零失败请求。已知边界是作品自带 `maxDistance` 会把保存机位夹回上限（属正确行为）。同一招可延伸到 004/005（各约 8–9 件构造点一眼可定位，其余要按 three 告警字符串反推压缩类名逐件找），006 落地页题没有 three 场景、无钩可加——**体素题做不做等用户点名，本轮未动**。
+- 验证：`validate:camera` 5 → 8 项全绿；typecheck、build、oxlint 改动文件零告；全套 validate/check（arena 13、votes 12、placeholder 10、leaderboard 11、scroll、comments、admin 11、matchmaking 8、guess 37、motion 六件套、mobile）复跑绿。已 commit（视角校准一个提交）、未 push。
+
+## 2026-09-19 · 移动端真机巡检与兼容修复（已归档）
 
 - 用户要求真机移动端测试（无线调试 adb + Chrome 远程调试），先做基础兼容巡检再逐条修。设备 OnePlus PDEM30 / Android 13 / Chrome 153，显示大小 720dpi ⇒ CSS 视口 320×604（最坏情况基线）；另用 CDP 度量模拟补 360/393/412 与横屏两档 × 五页。决策 103。
 - **最大发现（P0）**：手机走 `http://<局域网 IP>` 属非安全上下文，`crypto.randomUUID` 不存在 → 投票/表情/评论在点击瞬间同步抛错、请求一个都不发，界面照常扫出所以完全静默；桌面历来 localhost 实测，结构上测不出来。修法：新 `lib/id.ts` 的 `newId()` 统一用 `crypto.getRandomValues` 拼 v4（过服务端 UUID_PATTERN 口径）。
 - 同批修复：登录框键盘遮挡（viewport 加 `interactive-widget=resizes-content` + sheet 改 dvh + 跟随 visualViewport 把焦点输入框滚进中部，真机复测提交按钮可达）；触摸热区（`@media (pointer: coarse)` 用透明 `::after` 只扩热区不改像素，点名控件 44×44 命中率 100%，残留两处约 82%）；`color-scheme: light`、`theme-color`、`viewport-fit=cover` + dev 角落吃安全区、榜单裸 vh→svh、非首行装饰扫光不再越界。
 - 新增护栏：`npm run check:mobile`（客户端零裸 randomUUID、非安全上下文 200 个 id 全过口径且不撞车、两入口 viewport 策略齐备、无裸 vh、coarse 块覆盖点名控件等）。全套 validate/check 与 build 复跑绿；真机复测投票已正常 POST（用 fetch 桩挡住写库，未污染榜单）。
 - 未测/残留：后台 `/admin` 移动端布局（手机无管理员会话，未登录按设计回 404——要测需用户在手机上登录一次）；系统字体放大档（此机 font_scale 0.9）；作品侧 muse 黑洞在 320px 宽屏自带面板遮住约 95% 画面（触摸旋转与注入桥真机可用，单机 48fps）；007 双 WebGL 入场约 19fps 但无一帧 >100ms，决策 100 的帧时语义在移动端成立。
-- 现场：临时驱动与截图在 `scripts/.tmp-mobile/`（未入库，用完可删）；dev 服务以 `npx vite --host 0.0.0.0` + `node server/index.js` 直跑，手机入口 `http://192.168.1.203:5173/`。未 commit、未 push（等用户点头）。
+- 现场：临时驱动与截图在 `scripts/.tmp-mobile/`（未入库，用完可删）；dev 服务以 `npx vite --host 0.0.0.0` + `node server/index.js` 直跑，手机入口 `http://192.168.1.203:5173/`。已 commit（移动端一个提交）、未 push。
 
 ## 2026-09-19 · 测评库接入、卡顿治理与后台测试工具（已归档）
 

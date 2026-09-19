@@ -309,3 +309,25 @@
 - 已知残留与未测：后台 `/admin` 移动端布局**未测**（手机无管理员会话，dev 免登录只允许回环，未登录按设计回 404，需用户手机上登录一次）；系统字体放大档未测（此机 font_scale 0.9）；作品侧 muse 黑洞在 320px 宽屏自带面板遮住约 95% 画面，只剩右缘约 40px 能拖 OrbitControls（触摸旋转与注入桥在真机验证可用，单机 48fps）；007 双 WebGL 入场重播约 19fps，但**无一帧超过 100ms**——决策 100 的帧时封顶与帧率门在移动端成立，纸幕完整扫出并卸载。
 - 验证：typecheck、build 通过；`check:mobile` 新增全绿；`check:motion` 六件套与 validate:arena 13 / votes 12 / placeholder 10 / leaderboard 11 / scroll / comments / admin 11 / camera 5 / matchmaking 8 / guess 37 全绿；oxlint 改动文件零告（树里 2 条既有告警在未改的 dev-panel/account）。真机复测：fetch 探针确认投票发出 `POST /api/votes` 且 id 为合法 v4、零报错（用桩挡住写库，未污染榜单）；八页巡检越界与 console 报错清零。
 
+## 104 · 视角校准覆盖率修复：桥自己改坏了 6 件作品，实测 19/34 → 25/34
+
+- 2026-09-19 ｜ 用户报「一半的黑洞都勾不到」，要求修，并允许派子代理逐件排查。
+- 口径：同源探针逐件用 `?aob=bridge` 加载 007 全部 34 件，读 `__AOB__.controls` 与 getState/setState。**修复前实测只有 19/34**——决策 102 记的 27/34 复现不了，本轮以逐件浏览器实测为准。四个根因，其中两个是桥自己把作品改坏的。
+- 根因一（6 件，最伤）：**相对路径 importmap 被改坏**。`three/addons/` 常指向作品自带的本地 three（MiniMax-M3 `./vendor/three/addons/`、Qwen3.8 Max `./vendor/jsm/`、ox-alpha `./libs/addons/`、DeepSeek V4 Pro `./vendor/addons/`），旧改写把 `./vendor/jsm/` 原样塞进 `/works/__aob__/ad/`，而该路由只认 `https://` ⇒ 400 ⇒ 作品连相机模块都加载不到（截图里卡在「INITIALIZING…」「初始化…」「正在编译着色器…」的就是这批）。修法：注入时按作品文档 URL 把相对值解析成同源绝对路径再进虚拟路由；路由放开 `/works/` 前缀的 base，仍拒 `..`、反斜杠与非 https。
+- 根因二（2 件 + 隐患）：**转发模块丢默认导出**。`export * from` 按规范不含 `default`，作品从 addons 里 `import GUI from 'three/addons/libs/lil-gui.module.min.js'` 拿到 undefined，`new GUI()` 在建相机之前就抛 ⇒ 被误判「打包内联不可钩」（claude-fable ×2，画面直接黑）。修法：转发模块补 `import * as __AOB_NS …; export default __AOB_NS.default`——原模块没有默认导出时取到 undefined，不会像 `export { default } from` 那样在链接期直接报错。
+- 根因三（1 件）：**精确键映射没被改写**。hy4-preview 的 importmap 键是整路径 `three/addons/controls/OrbitControls.js` 而不是 `three/addons/` 前缀。修法：前缀键与 `…/OrbitControls.js` 精确键都改；顺带修掉路由 `base + sub` 拼接漏斜杠（曾拼成 `vendorOrbitControls.js`）。
+- 根因四（多件）：**10 秒判死且不可翻案**。实测有作品 15s/24s 才建好 controls（等 CDN 拉 three、等 shader 编译），旧代码 10s 到点就 `clearInterval`，永远停在「未探测到可钩相机」。修法：超时放宽到 20s，且超时后**继续轮询**，晚到的相机一样接管；文案改「暂未探测到…继续等，上报了会自动接管」。
+- 覆盖率：修复后实测 **25/34（73%）**；抽样 10 件（本地 three、CDN importmap、UMD 三形态各覆盖）逐件 `setState` 写回生效，机位被搬动、读回坐标准确。
+- 残留 9 件：8 件 three 被内联打包（gpt-4o / gpt-5.6-cyber ×2 / gpt-5.6-sol / muse-spark-1.2 / claude-opus-5 / gpt-6-astra ×2）——类封在压缩闭包里无可达引用（gpt-6-astra 自曝 `window.__blackhole.diagnostics()` 但只读、没有写回口）；1 件（deepseek-v4.1-flash-e0910-2）从相对路径直 import 本地 `vendor/OrbitControls.js`，不经任何 importmap 键。两条可选路子待拍板、未擅自做：预置 `__THREE_DEVTOOLS__` 收 renderer 再在 `render(scene, camera)` 截相机（位置可读写，target 只在 `enablePan=false` 时恒 0，代价是每帧多一层包装且控不了目标点）；或给作品目录加前缀映射拦本地 OrbitControls 模块（代价是每个模块多一跳请求）。
+- 验证：`validate:camera` 5 → 8 项（新增相对 importmap 解析、精确键改写、命名+默认双转发，虚拟路由补同源转发与 `..` 逃逸拒绝、无尾斜杠拼接）；typecheck、build、oxlint 改动文件零告；validate:arena 13 / votes 12 / placeholder 10 / leaderboard 11 / scroll / comments / admin 11 / matchmaking 8 / guess 37 与 check:motion、check:mobile 全绿。
+
+## 105 · 用户授权直接改作品：只插一行自报相机，007 覆盖率 25/34 → 34/34
+
+- 2026-09-19 ｜ 用户拍板：「允许你直接对原作品修改，让他可以注入钩子，但是只要注入就行，不要改其他的实际表现」。承接决策 104 的 9 件残留。
+- 为什么必须动作品文件：这 9 件的 three 整库内联（8 件）或从相对路径直 import 本地 OrbitControls（1 件），类封在压缩闭包里，服务端注入桥的两条路径（拦全局 `THREE`、改写 importmap）都拿不到可达引用。
+- 做法：新 `scripts/hook-work-cameras.mjs`（`npm run hook:works`），在每件作品的 OrbitControls 构造点插一句 `window.__AOB__&&window.__AOB__.register(<实例>)`——没注入桥时 `window.__AOB__` 是 undefined，整句短路成一次属性读取；注入桥时（后台校准预览、或作品存有视角）构造即登记，与原来两条钩子路径共用同一套 getState/setState/套用逻辑。
+- 护栏（首版踩过坑）：锚点必须唯一才动手；**锚点不能含尾随分隔符**——首版三处逗号序列被写成 `,,`，opus-5 与 astra ×2 整包语法损坏、画面全黑，正是「改了实际表现」的反面。现改为注入前后各跑一次 `node --check`（原文能过而改后过不了就不落盘），原文件备份在 `data/.hook-backup/`，`--check` 模式供重新接入后自检（`data/works` 不入库，重新接入会覆盖掉这些行）。
+- 逐字核验：9 处全部是**纯插入 43–55 字、零删除**（最长公共前后缀比对）。
+- 实测（浏览器逐件）：9 件带桥全部 `controls=1`、画面正常、`setState` 机位 3 秒后半径保持；抽样 7 件不带桥 `__AOB__` 为 undefined、零 console 报错、零失败请求。007 全 34 件复跑 **34/34 可钩**（含画面与机位断言）。
+- 已知边界：作品自带 `maxDistance` 会把保存的机位夹回上限（cyber/sol/muse 首测「没动」就是这个，半径保持即为正确）；同一招可以延伸到 004/005（各约 8–9 件的构造点一眼可定位，其余要按 three 的告警字符串反推压缩类名逐件找），006 落地页题根本没有 three 场景、无钩可加——**体素题要不要逐件做，等用户点名**，本轮未动。
+- 验证：`validate:camera` 8 项、全套 validate/check、typecheck、build、oxlint 均绿（见决策 104 同批），本条新增仅作品侧文件与 `scripts/hook-work-cameras.mjs`。
