@@ -12,7 +12,7 @@
     "id": "002-a",
     "promptId": "002",
     "modelId": "inkwell",
-    "modelName": "墨池 / INKWELL",
+    "modelName": "占位符1",
     "title": "等天亮的时候",
     "content": {
       "kind": "text",
@@ -35,7 +35,7 @@
     "id": "002-b",
     "promptId": "002",
     "modelId": "echo",
-    "modelName": "回声 / ECHO",
+    "modelName": "占位符2",
     "title": "第 1,024 次日出",
     "content": {
       "kind": "text",
@@ -58,7 +58,7 @@
     "id": "003-a",
     "promptId": "003",
     "modelId": "polyline",
-    "modelName": "折线 / POLYLINE",
+    "modelName": "占位符3",
     "title": "ORBITAL 旅行计划",
     "content": { "kind": "web", "template": "a" }
   },
@@ -66,7 +66,7 @@
     "id": "003-b",
     "promptId": "003",
     "modelId": "starmap",
-    "modelName": "星图 / STARMAP",
+    "modelName": "占位符4",
     "title": "LUNA 出发指南",
     "content": { "kind": "web", "template": "b" }
   }

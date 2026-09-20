@@ -19,6 +19,7 @@ import {
   leaderboardData,
   RADAR_BASE,
   RADAR_LABELS,
+  scopedPromptIds,
 } from '@/lib/leaderboard';
 import type {
   BoardCategory,
@@ -374,6 +375,12 @@ export default function Ranking() {
   );
   const radar = useMemo(
     () => (votes ? computeRadarProfiles(category, votes, scope) : null),
+    [category, scope, votes],
+  );
+  // 「题目覆盖 X/N」的分母随口径走（2026-09-20 审查修复）：formal 口径下用
+  // 题库总数会让分母恒含没打过正式赛的题；该口径无票时回落题库总数
+  const scopedTopicTotal = useMemo(
+    () => (votes ? scopedPromptIds(category, votes, scope).size : 0),
     [category, scope, votes],
   );
   const selected =
@@ -751,7 +758,7 @@ export default function Ranking() {
                     row={selected}
                     rank={selectedRank}
                     category={category}
-                    totalTopics={data!.promptCount}
+                    totalTopics={scopedTopicTotal || data!.promptCount}
                     wipeSeed={replaySeed}
                     radar={radar}
                   />

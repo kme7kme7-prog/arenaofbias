@@ -19,7 +19,7 @@ import {
 import type { Matchup, ModelResult, Prompt } from '@/lib/arena';
 import { pickMatchedMatchup } from '@/lib/matchmaking';
 import { currentPrompts } from '@/lib/prompts';
-import { currentRatings } from '@/lib/ratings';
+import { currentGames, currentRatings } from '@/lib/ratings';
 import { currentWorks } from '@/lib/works';
 
 // ---------------------------------------------------------------------------
@@ -341,7 +341,8 @@ export function currentMatchup(
   previous?: Matchup,
 ): Matchup | null {
   // 占位模式维持纯随机（占位作品无真实票，声望分对它无意义）；
-  // 真实模式走软性匹配（决策 046）：按声望分同档优先，避开处刑局
+  // 真实模式走软性匹配（决策 046）：按声望分同档优先，避开处刑局，
+  // 并按出场次数冷门优先加权（决策 109）
   if (isPlaceholderMode()) {
     return pickMatchup(promptId, previous, Math.random, currentResults());
   }
@@ -351,6 +352,7 @@ export function currentMatchup(
     currentRatings(),
     previous,
     Math.random,
+    currentGames(),
   );
 }
 

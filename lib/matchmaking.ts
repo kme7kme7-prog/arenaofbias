@@ -15,6 +15,10 @@
 //      （流程优先于回避）。
 //   3. 「换一组」的上轮作品回避（防身份泄漏，见 arena.ts pickMatchup）叠加在
 //      之上：先按档位抽，再检查上轮回避；两者都尽量满足，满足不了优先保流程。
+//   4. 冷门优先（决策 109）：池内抽组合不按均匀、按出场次数加权——
+//      组合权重 = 1 / (1 + min(双方出场数))，出场少的一方越少权重越高。
+//      新模型/冷门模型更快攒够场次（摘掉榜单「暂定」），全零时退化为均匀。
+//      出场数来自 /api/ratings 同一次重放的 games 字段，缺省 {} = 全均匀。
 // 占位模式不经本模块（占位作品无真实票，维持纯随机演示）。
 
 import {
@@ -55,8 +59,9 @@ function ratingGap(pair: [string, string], ratings: Ratings): number {
 
 /**
  * 软性匹配抽一对（决策 097 起为两级抽取）：先按档位偏好抽两个不同模型，
- * 再各从该模型的作品里随机抽一件。保持既有全量语义——随机左右、上轮作品
- * 回避、可避开时避开、无可避开回退全量。返回 null = 本题无可配对。
+ * 再各从该模型的作品里随机抽一件。池内按出场次数加权（决策 109，冷门优先）。
+ * 保持既有全量语义——随机左右、上轮作品回避、可避开时避开、无可避开回退全量。
+ * 返回 null = 本题无可配对。games 缺省 {}（= 全均匀，兼容旧调用与冷启动）。
  */
 export function pickMatchedMatchup(
   promptId: string,
@@ -64,6 +69,7 @@ export function pickMatchedMatchup(
   ratings: Ratings,
   previous?: Matchup,
   random: () => number = Math.random,
+  games: Record<string, number> = {},
 ): Matchup | null {
   const groups = modelGroups(promptId, results);
   let active = groups;
@@ -85,8 +91,24 @@ export function pickMatchedMatchup(
     ([a, b]) => tierOf(ratings[a]) === tierOf(ratings[b]),
   );
 
+  // 冷门优先（决策 109）：组合权重看双方里出场较少的一方，
+  // 1/(1+min) —— 全新模型权重 1，已打 50 场的组合权重约 1/51
+  const weightOf = ([a, b]: [string, string]) =>
+    1 / (1 + Math.min(games[a] ?? 0, games[b] ?? 0));
+
+  // 加权轮盘抽一组 + 随机左右；消耗随机数次数与原均匀版一致（票 + 左右各一）
   const pickFrom = (list: [string, string][]): [string, string] => {
-    const pair = list[Math.floor(random() * list.length)];
+    let total = 0;
+    for (const pair of list) total += weightOf(pair);
+    let ticket = random() * total;
+    let pair = list[list.length - 1];
+    for (const candidate of list) {
+      ticket -= weightOf(candidate);
+      if (ticket <= 0) {
+        pair = candidate;
+        break;
+      }
+    }
     return random() < 0.5 ? pair : [pair[1], pair[0]];
   };
 
@@ -123,6 +145,8 @@ export type RatingVote = {
   winnerId: string;
   loserId: string;
   ts: number;
+  /** 流水行 id：同毫秒票以此打破平局，与服务端 ORDER BY created_at, id 同口径 */
+  id?: string;
   /** 平局票（决策 048）双方各得半分；缺省按分胜负处理 */
   outcome?: 'win' | 'draw';
 };
@@ -132,7 +156,9 @@ export function computeRatings(votes: RatingVote[]): Ratings {
   const K = 32;
   const BASE = 1200;
   const ratings: Ratings = {};
-  for (const vote of [...votes].sort((a, b) => a.ts - b.ts)) {
+  for (const vote of [...votes].sort((a, b) =>
+    a.ts !== b.ts ? a.ts - b.ts : a.id && b.id ? (a.id < b.id ? -1 : 1) : 0,
+  )) {
     const a = ratings[vote.winnerId] ?? BASE;
     const b = ratings[vote.loserId] ?? BASE;
     const expectedA = 1 / (1 + 10 ** ((b - a) / 400));

@@ -166,6 +166,13 @@ export function installAuth(app, db, sameOrigin) {
         return res
           .status(400)
           .json({ error: '账号须为 3–24 位英文字母、数字或下划线。' });
+      // dev 是系统保留名（2026-09-20 审查发现）：/api/auth/dev 会对名为 dev 的
+      // 既有账号直接升管理员——不拦注册的话，任何人抢先注册 dev，运维随后在
+      // 本机跑一次开发者登录就会把攻击者的账号提为 admin
+      if (username === 'dev')
+        return res
+          .status(400)
+          .json({ error: '这个账号名是系统保留的，请换一个。' });
       if (!validPassword(password))
         return res.status(400).json({ error: '密码须为 12–128 个字符。' });
       if (getUser.get(username))

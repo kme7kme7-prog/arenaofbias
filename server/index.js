@@ -673,6 +673,8 @@ app.get('/api/ratings', (_req, res) => {
     const K = 32;
     const BASE = 1200;
     const ratings = {};
+    // 出场次数（决策 109）：与声望分同一次重放顺带累计，供匹配层做冷门优先
+    const games = {};
     for (const vote of rows) {
       const a = ratings[vote.winner_mid] ?? BASE;
       const b = ratings[vote.loser_mid] ?? BASE;
@@ -681,8 +683,10 @@ app.get('/api/ratings', (_req, res) => {
       const actualA = vote.outcome === 'draw' ? 0.5 : 1;
       ratings[vote.winner_mid] = a + K * (actualA - expectedA);
       ratings[vote.loser_mid] = b + K * (1 - actualA - (1 - expectedA));
+      games[vote.winner_mid] = (games[vote.winner_mid] ?? 0) + 1;
+      games[vote.loser_mid] = (games[vote.loser_mid] ?? 0) + 1;
     }
-    res.set(noStore).json({ ratings });
+    res.set(noStore).json({ ratings, games });
   } catch {
     res
       .status(503)
@@ -841,19 +845,23 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-const dayKey = (ts) => new Date(ts).toISOString().slice(0, 10);
+// 站内「一天」统一按 UTC+8 切（与模一把 guessDayKey 同口径，2026-09-20 审查修复）：
+// 原先这里用 toISOString（UTC），北京时间 00:00–08:00 的浏览会被计入「昨日」
+const dayKey = (ts) => new Date(ts + 8 * 3600 * 1000).toISOString().slice(0, 10);
 
 // 仪表盘统计：今日/昨日浏览与访客、近 N 日趋势、累计票数评论数注册数、服务器体检
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
   try {
     const today = dayKey(Date.now());
     const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+    // 窗口下界也用同一 dayKey 口径算（SQLite 的 date('now') 是 UTC，会差 8 小时）
+    const fromDay = dayKey(Date.now() - (days - 1) * 86_400_000);
     const rows = db
       .prepare(
         `SELECT day, COUNT(*) AS views, COUNT(DISTINCT ip_hash) AS visitors
-         FROM page_views WHERE day >= date('now', ?) GROUP BY day ORDER BY day`,
+         FROM page_views WHERE day >= ? GROUP BY day ORDER BY day`,
       )
-      .all(`-${days - 1} day`);
+      .all(fromDay);
     const counts = {
       votes: db.prepare('SELECT COUNT(*) AS n FROM votes').get().n,
       comments: db.prepare('SELECT COUNT(*) AS n FROM comments').get().n,
@@ -899,40 +907,66 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 app.get('/api/admin/log', requireAdmin, (req, res) => {
   const kind = String(req.query.kind || 'votes');
   const q = String(req.query.q || '').trim().slice(0, 64);
-  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  // 先取整再钳制：小数/Infinity 直接绑给 SQLite 的 LIMIT/OFFSET 会抛错变 503
+  const limit = Math.min(Math.max(Math.floor(Number(req.query.limit)) || 50, 1), 200);
+  const offset = Math.min(Math.max(Math.floor(Number(req.query.offset)) || 0, 0), 100000);
+  const table =
+    kind === 'votes'
+      ? {
+          from: 'votes v LEFT JOIN users u ON u.id = v.user_id',
+          where: q
+            ? 'WHERE u.username LIKE ? OR v.prompt_id LIKE ? OR v.winner_mid LIKE ? OR v.loser_mid LIKE ?'
+            : '',
+          params: q ? [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`] : [],
+        }
+      : kind === 'comments'
+        ? {
+            from: 'comments c LEFT JOIN users u ON u.id = c.user_id',
+            where: q
+              ? 'WHERE u.username LIKE ? OR c.round_id LIKE ? OR c.body LIKE ?'
+              : '',
+            params: q ? [`%${q}%`, `%${q}%`, `%${q}%`] : [],
+          }
+        : kind === 'users'
+          ? {
+              from: 'users',
+              where: q ? 'WHERE username LIKE ?' : '',
+              params: q ? [`%${q}%`] : [],
+            }
+          : null;
+  if (!table) return res.status(400).json({ error: '未知的流水类型' });
   try {
+    const total = db
+      .prepare(`SELECT COUNT(*) AS n FROM ${table.from} ${table.where}`)
+      .get(...table.params).n;
     let rows;
     if (kind === 'votes') {
       rows = db
         .prepare(
           `SELECT v.id, v.prompt_id AS promptId, v.winner_mid AS winnerMid, v.loser_mid AS loserMid,
                   v.mode, v.created_at AS ts, v.outcome, u.username
-           FROM votes v LEFT JOIN users u ON u.id = v.user_id
-           ${q ? 'WHERE u.username LIKE ? OR v.prompt_id LIKE ? OR v.winner_mid LIKE ? OR v.loser_mid LIKE ?' : ''}
-           ORDER BY v.created_at DESC LIMIT ?`,
+           FROM ${table.from} ${table.where}
+           ORDER BY v.created_at DESC LIMIT ? OFFSET ?`,
         )
-        .all(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`] : []), limit);
+        .all(...table.params, limit, offset);
     } else if (kind === 'comments') {
       rows = db
         .prepare(
           `SELECT c.id, c.round_id AS roundId, c.side, c.body, c.created_at AS ts, u.username
-           FROM comments c LEFT JOIN users u ON u.id = c.user_id
-           ${q ? 'WHERE u.username LIKE ? OR c.round_id LIKE ? OR c.body LIKE ?' : ''}
-           ORDER BY c.created_at DESC LIMIT ?`,
+           FROM ${table.from} ${table.where}
+           ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
         )
-        .all(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`] : []), limit);
-    } else if (kind === 'users') {
+        .all(...table.params, limit, offset);
+    } else {
       rows = db
         .prepare(
           `SELECT id, username, role, created_at AS ts FROM users
-           ${q ? 'WHERE username LIKE ?' : ''}
-           ORDER BY created_at DESC LIMIT ?`,
+           ${table.where}
+           ORDER BY created_at DESC LIMIT ? OFFSET ?`,
         )
-        .all(...(q ? [`%${q}%`] : []), limit);
-    } else {
-      return res.status(400).json({ error: '未知的流水类型' });
+        .all(...table.params, limit, offset);
     }
-    res.set(noStore).json({ rows });
+    res.set(noStore).json({ rows, total });
   } catch {
     res.status(503).set(noStore).json({ error: '流水暂时无法加载' });
   }
@@ -984,8 +1018,9 @@ app.get('/api/admin/works', requireAdmin, (req, res) => {
   if (!['all', 'published', 'draft'].includes(status))
     return res.status(400).json({ error: '未知状态筛选' });
   const q = String(req.query.q || '').trim().slice(0, 64);
-  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  // 先取整再钳制：小数/Infinity 直接绑给 SQLite 的 LIMIT/OFFSET 会抛错变 503
+  const limit = Math.min(Math.max(Math.floor(Number(req.query.limit)) || 50, 1), 200);
+  const offset = Math.min(Math.max(Math.floor(Number(req.query.offset)) || 0, 0), 1000000);
   const where = [];
   const params = [];
   if (prompt) {
@@ -1982,6 +2017,12 @@ app.use('/works', (req, res, next) => {
   }
   // 作品 HTML 文档：文件夹件 <题>/<id>/index.html，单文件件 <题>/<id>.html
   const segments = rel.split('/');
+  // 目录穿越防护（2026-09-20 审查发现）：原先只按段数+后缀判定，
+  // `/works/../x.html?aob=bridge` 会被 path.join 解析到作品目录上一级、
+  // 未登录读走任意 .html。任何一段为空/点/点点/含反斜杠都直接放弃注入，
+  // 交回 express.static（它自身拒绝越界）
+  if (segments.some((s) => !s || s === '.' || s === '..' || s.includes('\\')))
+    return next();
   let workId = null;
   let filePath = null;
   if (segments.length === 3 && segments[2] === 'index.html') {
@@ -2033,6 +2074,10 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
   // SPA 回退：未知 GET 路径交给前端入口。
   app.use((req, res, next) => {
     if (req.method !== 'GET') return next();
+    // /works 下的缺失文件保持 404（原先被回退吐成 200 首页，
+    // 排障时「作品文件缺失」被首页掩盖，iframe 探针也拿不到失败语义）
+    if (req.path === '/works' || req.path.startsWith('/works/'))
+      return res.status(404).end();
     res.sendFile(path.join(distDir, 'index.html'));
   });
 } else {

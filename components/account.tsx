@@ -56,14 +56,19 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, []);
   const refresh = useCallback(async () => {
     const request = ++revision.current;
+    // 超时兜底（2026-09-20 审查修复）：请求挂起时 finally 永不执行，
+    // loading 恒真会让账号按钮永久 disabled
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/auth/me', { signal: controller.signal });
       if (!response.ok) throw new Error();
       const data = await response.json();
       if (request === revision.current) setUser(data.user);
     } catch {
       /* A transient network error does not prove the session expired. */
     } finally {
+      clearTimeout(timeout);
       if (request === revision.current) setLoading(false);
     }
   }, []);

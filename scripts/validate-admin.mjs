@@ -169,6 +169,20 @@ try {
     })).json();
     assert.equal(users.rows.length, 2);
     assert.equal(users.rows.find((row) => row.username === 'theowner').role, 'admin');
+    // 分页：total 反映过滤后总数；offset 跳过行，超页返回空但 total 不变
+    assert.equal(votes.total, 1);
+    assert.equal(users.total, 2);
+    assert.equal(none.total, 0);
+    const pageTwo = await (await robustFetch(`${base}/api/admin/log?kind=users&limit=1&offset=1`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(pageTwo.rows.length, 1);
+    assert.equal(pageTwo.total, 2);
+    const pageBeyond = await (await robustFetch(`${base}/api/admin/log?kind=users&limit=50&offset=50`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.equal(pageBeyond.rows.length, 0);
+    assert.equal(pageBeyond.total, 2);
     // 未知类型 400
     const bad = await robustFetch(`${base}/api/admin/log?kind=magic`, {
       headers: { cookie: ownerCookie },

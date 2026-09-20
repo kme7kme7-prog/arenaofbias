@@ -135,11 +135,16 @@ export type SubmitResult =
   | { ok: false; issue: VoteIssue; error: string };
 
 export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
+  // 提交超时（2026-09-20 审查修复）：POST 挂起（半开连接/代理劫持）时结果栏
+  // 会永久停在「正在记录你的选择…」——加 8s 兜底，超时按未记上处理
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const response = await fetch('/api/votes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(vote),
+      signal: controller.signal,
     });
     if (response.ok) return { ok: true };
     const data = (await response.json().catch(() => ({}))) as {
@@ -173,6 +178,8 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
       issue: 'offline',
       error: '暂时无法连接，这一票没有记上。',
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -203,6 +210,7 @@ export function voteToRecord(vote: VoteFlowRow): {
   winnerId: string;
   loserId: string;
   ts: number;
+  id: string;
   mode: Mode;
   outcome: 'win' | 'draw';
   promptKind?: 'image' | 'text' | 'web';
@@ -215,6 +223,8 @@ export function voteToRecord(vote: VoteFlowRow): {
     winnerId: vote.winnerMid,
     loserId: vote.loserMid,
     ts: vote.ts,
+    // 随行带流水 id：同毫秒票的重放次序在榜单/画像/服务端三处保持一致
+    id: vote.id,
     mode: vote.mode,
     // 缺省 win：早期流水行与手工构造的记录可能没有该字段（决策 048）
     outcome: vote.outcome ?? 'win',

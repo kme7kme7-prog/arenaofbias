@@ -105,7 +105,8 @@ try {
         (ids.has('s-model') && ids.has('a-model')) || ids.size === 2,
         `unexpected pair: ${[...ids].join(',')}`,
       );
-      // random 尾位 0.3 < 0.5 → 不交换，floor(0.99*sameTierLen) 首组稳定
+      // random 尾位 0.3 < 0.5 → 不交换；109 起池内抽取是冷门优先加权轮盘
+      //（ticket=random()*总权重 累减命中），不再是 floor(random()*len) 均匀下标
     }
     // 同档池有两组（S/A 与 B/C——B=100/C=90 同在 0 档）：90% 路径二选一，
     // 10% 全池 1/6。命中 S/A 的理论期望 ≈ 0.9*0.5 + 0.1*(1/6) ≈ 46.7%，
@@ -153,9 +154,9 @@ try {
     );
     assert.ok(blowoutPairs.length > 0);
     // 池顺序（eligiblePairs flatMap）：S/A, S/B, S/C, A/B, A/C, B/C —— 前 5 组
-    // 全部超线，只有 B/C（gap 300）合法。首抽 index 0（S/A 超线）→ 熔断重抽
-    // index 5（B/C 合法）。随机序列：选组 0.0 → 尾位 0.0（不交换）→ 同档池空
-    // 走全池重抽 0.9…（floor(0.9*6)=5）→ 尾位 0.0。
+    // 全部超线，只有 B/C（gap 300）合法。首抽 ticket=0 命中首组 S/A（超线）→
+    // 熔断重抽：0.9*总权重 落在末组 B/C（合法）→ 尾位 0.0 不交换。
+    //（109 起抽取为加权轮盘；此处各组出场数相同、权重相等，轮盘与均匀下标等价）
     let blowoutReturned = 0;
     for (let i = 0; i < 40; i++) {
       const pair = pickMatchedMatchup('001', results, ratings, undefined, seqRandom([0.0, 0.0, 0.9, 0.0]));
@@ -232,6 +233,52 @@ try {
     // 004 题库里没有本作品池的结果
   });
 
+  await check('冷门优先（决策 109）：出场少的组合显著更常被抽中', async () => {
+    // 4 模型无声望分（全员同档），c-model 零出场、其余各 50 场：
+    // 含 c 的 3 组权重各 1，其余 3 组各 1/51 → c 出场率 ≈ 3/(3+3/51) ≈ 98%
+    const results = makeResults();
+    const games = { 's-model': 50, 'a-model': 50, 'b-model': 50, 'c-model': 0 };
+    const N = 3000;
+    let withC = 0;
+    for (let i = 0; i < N; i++) {
+      const pair = pickMatchedMatchup('001', results, {}, undefined, Math.random, games);
+      if (pair.some((entry) => entry.modelId === 'c-model')) withC++;
+    }
+    assert.ok(withC / N > 0.9, `cold model rate ${withC}/${N} too low`);
+    // 缺省 games（{}）退化为均匀：各模型对出场率接近 1/3
+    const counts = {};
+    for (let i = 0; i < N; i++) {
+      const key = pickMatchedMatchup('001', results, {}, undefined, Math.random)
+        .map((e) => e.modelId)
+        .sort()
+        .join('+');
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    for (const [key, count] of Object.entries(counts)) {
+      assert.ok(count / N > 0.1 && count / N < 0.24, `pair ${key} not uniform: ${count}/${N}`);
+    }
+  });
+
+  await check('冷门优先与同档叠加：档位约束仍生效，冷门在同档内被优先', async () => {
+    // S/A 同强档、B/C 同弱档；B/C 已 50 场、S/A 零场 → 同档 90% 路径里 S/A 应占绝大头
+    const results = makeResults();
+    const ratings = { 's-model': 1500, 'a-model': 1560, 'b-model': 100, 'c-model': 90 };
+    const games = { 's-model': 0, 'a-model': 0, 'b-model': 50, 'c-model': 50 };
+    const N = 3000;
+    let sa = 0;
+    let cross = 0;
+    for (let i = 0; i < N; i++) {
+      const ids = pickMatchedMatchup('001', results, ratings, undefined, Math.random, games)
+        .map((e) => e.modelId)
+        .sort()
+        .join('+');
+      if (ids === 'a-model+s-model') sa++;
+      else if (ids !== 'b-model+c-model') cross++;
+    }
+    assert.ok(sa / N > 0.75, `cold same-tier pair rate ${sa}/${N} too low`);
+    assert.ok(cross / N < 0.12, `cross-tier rate ${cross}/${N} too high`);
+  });
+
   // ---------- 服务端：/api/ratings 与 computeRatings 同口径 ----------
   const dataDir = await mkdtemp(path.join(tmpdir(), 'aob-match-'));
   const port = 21000 + Math.floor(Math.random() * 20000);
@@ -252,6 +299,7 @@ try {
       // 临时库为空（无票）→ 空对象；注入两票后与前端公式逐位一致
       let data = await (await fetch(`${base}/api/ratings`)).json();
       assert.deepEqual(data.ratings, {});
+      assert.deepEqual(data.games, {});
       // 直接写库两票（服务端只读重放，不提供写票外的入口）
       const Database = (await import('better-sqlite3')).default;
       const db = new Database(path.join(dataDir, 'comments.db'));
@@ -305,6 +353,11 @@ try {
         data.ratings['l-model'] > expected['l-model'],
         '平局后落后方声望回升',
       );
+    });
+    await check('服务端 /api/ratings 返回出场次数 games（决策 109）', async () => {
+      // 上面共注入 3 票，w-model / l-model 各出场 3 次（平局也计出场）
+      const data = await (await fetch(`${base}/api/ratings`)).json();
+      assert.deepEqual(data.games, { 'w-model': 3, 'l-model': 3 });
     });
   } finally {
     child.kill();

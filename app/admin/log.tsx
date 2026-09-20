@@ -1,5 +1,5 @@
-// 数据流水：投票 / 评论 / 注册三类记录，关键字搜索 + 倒序 + 分页查看更多。
-// 数据来自 GET /api/admin/log。
+// 数据流水：投票 / 评论 / 注册三类记录，关键字搜索 + 倒序 + 每页 50 条翻页。
+// 数据来自 GET /api/admin/log（limit/offset/total）。
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Kind = 'votes' | 'comments' | 'users';
@@ -39,30 +39,38 @@ const TABS: { key: Kind; label: string }[] = [
   { key: 'users', label: '注册' },
 ];
 
+const PAGE_SIZE = 50;
+
 export function AdminLog() {
   const [kind, setKind] = useState<Kind>('votes');
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(50);
+  const [page, setPage] = useState(0);
   const [rows, setRows] = useState<(VoteRow | CommentRow | UserRow)[]>([]);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const requestId = useRef(0);
 
   const load = useCallback(() => {
     const request = ++requestId.current;
-    const params = new URLSearchParams({ kind, limit: String(limit) });
+    const params = new URLSearchParams({
+      kind,
+      limit: String(PAGE_SIZE),
+      offset: String(page * PAGE_SIZE),
+    });
     if (query) params.set('q', query);
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
     return fetch(`/api/admin/log?${params}`)
       .then((response) =>
         response.ok
-          ? (response.json() as Promise<{ rows: typeof rows }>)
+          ? (response.json() as Promise<{ rows: typeof rows; total: number }>)
           : Promise.reject(new Error()),
       )
       .then((data) => {
         if (request !== requestId.current) return;
         setRows(data.rows);
+        setTotal(data.total);
         setError('');
         setLoading(false);
       })
@@ -71,7 +79,7 @@ export function AdminLog() {
         setError('流水加载失败，稍后重试。');
         setLoading(false);
       });
-  }, [kind, query, limit]);
+  }, [kind, query, page]);
 
   useEffect(() => {
     void load();
@@ -80,6 +88,24 @@ export function AdminLog() {
   const reload = () => {
     setLoading(true);
     void load();
+  };
+
+  // 换标签/换搜索词时清空旧行并进加载态（2026-09-20 审查修复）：否则响应回来前
+  // 旧一类的行会按新表头渲染（「注册」表里列评论行）。页内翻页保留旧行不闪。
+  const switchKind = (next: Kind) => {
+    if (next === kind) return;
+    setRows([]);
+    setLoading(true);
+    setKind(next);
+    setPage(0);
+  };
+  const submitSearch = () => {
+    const next = q.trim();
+    if (next === query && page === 0) return;
+    setRows([]);
+    setLoading(true);
+    setQuery(next);
+    setPage(0);
   };
 
   return (
@@ -94,10 +120,7 @@ export function AdminLog() {
             <button
               key={tab.key}
               className={kind === tab.key ? 'active' : ''}
-              onClick={() => {
-                setKind(tab.key);
-                setLimit(50);
-              }}
+              onClick={() => switchKind(tab.key)}
             >
               {tab.label}
             </button>
@@ -106,8 +129,7 @@ export function AdminLog() {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            setQuery(q.trim());
-            setLimit(50);
+            submitSearch();
           }}
         >
           <input
@@ -117,8 +139,7 @@ export function AdminLog() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
-                setQuery(q.trim());
-                setLimit(50);
+                submitSearch();
               }
             }}
             placeholder={kind === 'votes' ? '搜索用户 / 题号 / 模型' : kind === 'comments' ? '搜索用户 / 题号 / 内容' : '搜索用户名'}
@@ -200,15 +221,28 @@ export function AdminLog() {
         </tbody>
       </table>
       <p style={{ color: '#8a9184', fontSize: 12, marginTop: 10 }}>
-        {loading ? '加载中…' : `显示 ${rows.length} 条${rows.length === limit ? '（可能有更多）' : ''}`}
-        {rows.length === limit && (
-          <button
-            className="reload"
-            style={{ marginLeft: 10 }}
-            onClick={() => setLimit((n) => n + 100)}
-          >
-            加载更多
-          </button>
+        {loading
+          ? '加载中…'
+          : `第 ${page + 1} / ${Math.max(1, Math.ceil(total / PAGE_SIZE))} 页 · 共 ${total} 条`}
+        {!loading && total > PAGE_SIZE && (
+          <>
+            <button
+              className="reload"
+              style={{ marginLeft: 10 }}
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              上一页
+            </button>
+            <button
+              className="reload"
+              style={{ marginLeft: 6 }}
+              disabled={(page + 1) * PAGE_SIZE >= total}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              下一页
+            </button>
+          </>
         )}
       </p>
     </section>

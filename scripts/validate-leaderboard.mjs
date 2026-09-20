@@ -336,6 +336,28 @@ check('六维画像权重语义：001 胜局只动带权维度，零权重维度
   assert.notDeepEqual(g1.profiles.get('radar-d'), g2.profiles.get('radar-d'));
 });
 
+check('六维画像量程（2026-09-20 修复）：连胜不触顶，对手强弱影响得分', () => {
+  // 旧实现把 400 分位差套在 0–100 量程上：expected 恒≈0.5、画像退化为场次
+  // 计数、连胜数场即钉死在 100。新实现在 1200 基准量程重放再映射展示。
+  // 40 连胜（001 动态维权重 0.6）也不许触顶
+  const streak = Array.from({ length: 40 }, (_, i) => ({
+    promptId: '001', winnerId: 'radar-s', loserId: 'radar-w', ts: i + 1,
+  }));
+  const s = computeRadarProfiles('all', streak).profiles.get('radar-s');
+  assert.ok(s[2] > RADAR_BASE && s[2] < 100, `40 连胜后动态维应介于基准与上限之间，实际 ${s[2]}`);
+  // 对手强弱：x 赢「先赢 z 十场的 y」应比赢「零场 y」得分更高
+  const weak = [{ promptId: '001', winnerId: 'radar-x', loserId: 'radar-y', ts: 1 }];
+  const strong = [
+    ...Array.from({ length: 10 }, (_, i) => ({
+      promptId: '001', winnerId: 'radar-y', loserId: 'radar-z', ts: i + 1,
+    })),
+    { promptId: '001', winnerId: 'radar-x', loserId: 'radar-y', ts: 11 },
+  ];
+  const xWeak = computeRadarProfiles('all', weak).profiles.get('radar-x')[2];
+  const xStrong = computeRadarProfiles('all', strong).profiles.get('radar-x')[2];
+  assert.ok(xStrong > xWeak, `赢强敌应得分更多：${xStrong} 应大于 ${xWeak}`);
+});
+
 check('行元数据：占位模型带 PH 编号 sigil 与强调色，demo 结果不进榜', () => {
   const data = leaderboardData('all');
   for (const row of data.rows) {

@@ -716,6 +716,20 @@ export const messages: Record<string, string> = {
   '次机会': 'TRIES',
   '全球同题': 'Same worldwide',
   '正在准备练习题…': 'Preparing your puzzle…',
+  // 2026-09-20 审查补漏：此前缺键的条目在英文模式下会原样漏出中文
+  '这个竞技场还未就绪。': 'This arena is not ready yet.',
+  '请从提示词库选择一个可比较的提示词。': 'Pick a comparable prompt from the prompt archive.',
+  '前往提示词库 ↗': 'Go to the prompt archive ↗',
+  '把日常留在地球。 ↗': 'Leave the ordinary on Earth. ↗',
+  '测试对局，票未计入偏好榜': 'Test matchup — votes are not counted on the leaderboard',
+  '编号': 'NO.',
+  '登录后，你的选择会计入偏好榜。': 'Sign in and your pick will count on the leaderboard.',
+  '这一对作品你已经投过票了。': 'You have already voted on this pair.',
+  '暂时没有记上这一票。': 'Your vote was not recorded this time.',
+  '暂时无法连接，这一票没有记上。': 'Connection failed — your vote was not recorded.',
+  '投票编号冲突，请重新提交。': 'Vote ID conflict — please submit again.',
+  '投票编号冲突，请重新提交': 'Vote ID conflict — please submit again.',
+  '暂时没有记上这一票，稍后再试？': 'Your vote was not recorded — try again in a moment?',
 };
 
 // Canonical labels for former decorative English and bilingual captions.

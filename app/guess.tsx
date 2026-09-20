@@ -280,6 +280,9 @@ export default function GuessPage() {
   // backToPicker 重置，无此问题）
   function enterDaily(data: TodayResponse, animate = false) {
     const commit = () => {
+      // setToday 必须写回（2026-09-20 审查修复）：跨零点守卫的收敛条件靠它——
+      // 不写的话 today 永远停在开局那天，守卫永不收敛，之后每次提交都被丢弃
+      setToday(data);
       setError(null);
       setSession(emptySession());
       setStats(loadStats());
@@ -455,14 +458,21 @@ export default function GuessPage() {
   // 已换题——旧棋盘继续猜会把两个答案混进一局，战绩也记错日子。提交前比对
   // dayKey，过期就拉新 today 并切到新一天的棋盘（这次提交不计）。练习模式的
   // 答案在服务端局内存里，不受影响；对照页的 'preview-day' 等非日历 key 跳过。
+  // 2026-09-20 审查修复：本机时钟与服务端可能不一致，本机判换日后再以服务端
+  // 的 fresh.dayKey 复核——服务端没换日就不清盘（时钟偏快不误伤）；服务端换了
+  // 才 enterDaily(fresh)（内含 setToday，守卫随之收敛，不会再无限拦提交）。
   async function dailyRolledOver(): Promise<boolean> {
     if (mode !== 'daily' || !today) return false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(today.dayKey)) return false;
     if (guessDayKey() === today.dayKey) return false;
     const fresh = await fetchToday();
     if (!mounted.current) return true;
-    if (fresh) enterDaily(fresh);
-    else setSession(emptySession());
+    if (fresh && fresh.dayKey === today.dayKey) return false;
+    if (!fresh) {
+      setError(t('网络不给力，这把不算，再试一次。'));
+      return true;
+    }
+    enterDaily(fresh);
     setError(t('已过零点，新的一天开始了——已为你切到今天的题。'));
     return true;
   }

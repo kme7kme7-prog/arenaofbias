@@ -151,6 +151,8 @@ await check('voteToRecord 降到模型层（榜单聚合口径）', () => {
     winnerId: 'ph-01',
     loserId: 'ph-02',
     ts: 1725900000000,
+    // id 随记录保留：同毫秒票的重放次序在榜单/画像/服务端三处一致（2026-09-20）
+    id: validVote.id,
     // mode 随记录保留，供「只看正式」口径过滤（决策 026）
     mode: 'blind',
     // outcome 随记录保留，供榜单平局半分重放（决策 048）
@@ -258,8 +260,8 @@ try {
     assert.equal(listed.votes[0].winnerMid, 'inkwell');
     // 决策 045 ⑤「历史票保留在榜单」：流水联表带展示快照——
     // 下架题靠 promptKind 归赛道，下架作品的模型靠双方显示名留在榜上
-    assert.equal(listed.votes[0].winnerName, '墨池 / INKWELL');
-    assert.equal(listed.votes[0].loserName, '回声 / ECHO');
+    assert.equal(listed.votes[0].winnerName, '占位符1');
+    assert.equal(listed.votes[0].loserName, '占位符2');
     assert.equal(listed.votes[0].promptKind, 'text');
     // 流水必须能通过前端形态校验（含 UUID 形态的 id），否则 fetchVotes 会静默丢弃
     for (const vote of listed.votes) {

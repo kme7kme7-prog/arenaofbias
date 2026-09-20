@@ -68,7 +68,8 @@ import {
   currentResultsForPrompt,
   isPlaceholderMode,
 } from '@/lib/placeholder';
-import { submitVote } from '@/lib/votes';
+import { pairKeyOf, submitVote } from '@/lib/votes';
+import { refreshRatings } from '@/lib/ratings';
 import { submitReaction, type ReactionKind } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
 import {
@@ -503,8 +504,13 @@ export default function Arena({
   const [testIds, setTestIds] = useState<string[] | null>(() =>
     testPair ? [testPair[0].id, testPair[1].id] : null,
   );
+  // testing 按无序对号判定（2026-09-20 审查修复）：换一组时 finishPair 会随机
+  // 翻左右，按座位比会把「同一对、镜像出场」误判为普通对局——测试徽标消失且
+  // 票真落库（只有一对可用作品的题必中，真库 003 就是）
   const testing =
-    !!testIds && !!pair && pair[0].id === testIds[0] && pair[1].id === testIds[1];
+    !!testIds &&
+    !!pair &&
+    pairKeyOf(pair[0].id, pair[1].id) === pairKeyOf(testIds[0], testIds[1]);
   // 题目分享卡嵌当前对局缩略图（决策 107）：页脚分享入口在全局布局里，
   // 对局 id 经 share 模块的小 store 递过去，卸载即清。
   useEffect(() => {
@@ -529,12 +535,13 @@ export default function Arena({
           return;
         }
         setPair((current) => {
+          // 无序对号：展示左右是 finishPair 随机翻的，按座位比会把同一对误判失效
+          const key = current && pairKeyOf(current[0].id, current[1].id);
           if (
-            current &&
+            key &&
             currentPairs(prompt.id).some(
               (candidate) =>
-                candidate[0].id === current[0].id &&
-                candidate[1].id === current[1].id,
+                pairKeyOf(candidate[0].id, candidate[1].id) === key,
             )
           )
             return current;
@@ -543,6 +550,10 @@ export default function Arena({
       }),
     [prompt.id],
   );
+  // 进场即刷新配对暗分：启动时那份快照会随着投票漂移（046）
+  useEffect(() => {
+    refreshRatings();
+  }, []);
   const pairCount = currentPairs(prompt.id).length;
   const resultCount = currentResultsForPrompt(prompt.id).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
@@ -1064,6 +1075,8 @@ export default function Arena({
         mode: state.mode,
         outcome,
       }).then((result) => {
+        // 票一落库就刷新配对暗分（046）：否则整局会话都用启动时的旧快照
+        if (result.ok) refreshRatings();
         setVoteRecord({
           run: state.run,
           outcome: result.ok
@@ -1091,7 +1104,8 @@ export default function Arena({
   const nextMatchup = useCallback(() => {
     if (state.phase === 'loading' || state.phase === 'transition') return;
     play('move');
-    setPair((current) => currentMatchup(prompt.id, current)!);
+    // 清单中途失效抽不出新对时保住当前对——null 会让渲染层 pair[0] 崩
+    setPair((current) => currentMatchup(prompt.id, current) ?? current);
     dispatch({ type: 'REPLAY' });
   }, [state.phase, prompt.id, play]);
 
@@ -1661,6 +1675,7 @@ export default function Arena({
               className={`text-button tour-toggle ${tour ? 'on' : ''}`}
               onClick={toggleTour}
               aria-pressed={tour}
+              disabled={blocked}
               title={t('入场时依次放大展示两份作品')}
             >
               <GalleryHorizontal size={14} />

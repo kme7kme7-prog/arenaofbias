@@ -225,11 +225,14 @@ function imageRenderer() {
         job.reject(error);
       } else {
         const buffer = Buffer.from(value);
-        cache.set(job.key, buffer);
-        bytes += buffer.length;
+        // 键本身是含两张 base64 缩略图的 JSON（可达 MB 级），计量必须算键，
+        // 否则 48 条键就能远超名义上的 24MiB 上限
+        const size = buffer.length + Buffer.byteLength(job.key, 'utf8');
+        cache.set(job.key, { buffer, size });
+        bytes += size;
         while (cache.size > 48 || bytes > 24 * 1024 * 1024) {
           const key = cache.keys().next().value;
-          bytes -= cache.get(key).length;
+          bytes -= cache.get(key).size;
           cache.delete(key);
         }
         job.resolve(buffer);
@@ -250,7 +253,7 @@ function imageRenderer() {
     }
   }
   return (key, payload) => {
-    if (cache.has(key)) return Promise.resolve(cache.get(key));
+    if (cache.has(key)) return Promise.resolve(cache.get(key).buffer);
     if (pending.has(key)) return pending.get(key);
     if (queue.length >= 12)
       return Promise.reject(new Error('图片生成繁忙，请稍后重试'));
@@ -272,7 +275,9 @@ export function installShare(
 ) {
   const render = imageRenderer();
   // 校准指纹决定快照是否有效；首次分享或参数变化后重拍。
+  // 缩略图缓存按条数+字节双上界（每条是完整 base64 PNG，只数条数会超）
   const thumbCache = new Map();
+  let thumbCacheBytes = 0;
   const captures = new Map();
   const selectWork = db.prepare(
     'SELECT w.id, w.prompt_id, w.content, w.title FROM works w JOIN prompts p ON p.id=w.prompt_id WHERE w.id=? AND w.published=1 AND p.published=1',
@@ -320,8 +325,13 @@ export function installShare(
     if (hit && hit.mtime === stat.mtimeMs && hit.fingerprint === fingerprint)
       return hit.uri;
     const uri = `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`;
-    if (thumbCache.size > 64) thumbCache.clear();
+    thumbCacheBytes += Buffer.byteLength(uri, 'utf8');
     thumbCache.set(id, { mtime: stat.mtimeMs, fingerprint, uri });
+    while (thumbCache.size > 64 || thumbCacheBytes > 48 * 1024 * 1024) {
+      const oldest = thumbCache.keys().next().value;
+      thumbCacheBytes -= Buffer.byteLength(thumbCache.get(oldest).uri, 'utf8');
+      thumbCache.delete(oldest);
+    }
     return uri;
   }
   function resolve(req, res) {
@@ -371,10 +381,12 @@ export function installShare(
         );
       res.type('png').send(png);
     } catch (error) {
+      // 内部错误原文（浏览器可执行路径等部署细节）只记日志，不外发给访客
+      console.error('[arenaofbias] 分享卡生成失败:', error?.message || error);
       res
         .status(503)
         .set('Cache-Control', 'no-store')
-        .json({ error: error.message || '作品快照暂未生成，请重试' });
+        .json({ error: '作品快照暂未生成，请重试' });
     }
   });
   app.get('/share', (req, res) => {

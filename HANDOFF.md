@@ -1,6 +1,43 @@
 # HANDOFF.md · 当前状态
 
-## 2026-09-20 · 分享卡精修与校准快照（最新，108，已归档）
+## 2026-09-20 · 全站代码审查第三轮 + 全部修复（最新，未归档）
+
+- 用户要求完整代码审查（起项目用不常用端口）。4 路并行审查（后端/数据层/模一把/前端）+ 主线程复核，发现 **2 高危 + 6 中危 + 一批低危**；用户拍板「都修一下」，全部已修。
+- **高危 1 · /works 目录穿越**：作品 HTML 中间件只按「段数+`.html` 后缀」判定，`/works/../x.html?aob=bridge` 未登录即可读作品目录上一级的任意 `.html`（临时实例实测复现，三段式 `../dir/index.html` 同样可达）。现段级校验拒 `..`/`.`/空段/反斜杠后交回 express.static；修复后实测穿越 404、正常作品 200。
+- **高危 2 · 模一把跨零点后每日题玩不了**：`enterDaily` 从不写回 `today`（`setToday` 全文件仅初始化一处），守卫判据 `guessDayKey()===today.dayKey` 永不收敛——跨零点后每次提交/看答案都被丢弃，只能刷新。现 `enterDaily` 补 `setToday(data)`，且守卫以服务端 `fresh.dayKey` 复核：客户端时钟偏快不再误清盘、偏慢以服务端新题为准。`validate:guess` 补静态回归钉（37→38 项）。
+- **中危**：①六维画像量程修复（`lib/leaderboard.ts`）——旧实现把 400 分位差套在 0–100 量程上，expected 恒≈0.5、画像退化成场次计数并触顶（真库榜首 33 场曾 3 维钉 100）；现内部按 1200 基准 Elo 重放、±200 线性映射到 0–100（`RADAR_DISPLAY_SCALE=4`，调视觉张力只改它），真库复跑 0/186 触顶且维度可区分；`validate:leaderboard` 补「连胜不触顶+对手强弱影响得分」断言（11→12 项）。②测试对局 `testing` 改无序对号（换一组被 finishPair 翻面后不再误判普通对局、不再真落库）。③路由守卫等远端作品清单就绪才判型（`#arena/002` 不再先挂竞技场再被弹成预览页；`#random` 等 ready 再抽题）。④`lib/messages.ts` 补 13 个缺键（路由空态×3、首页 ↗、测试对局徽标、编号、投票失败文案×5+服务端 409/500 文案），EN 模式不再漏中文。⑤注册拦截保留名 `dev`（否则抢先注册 + 运维本机跑一次 dev 登录 = 攻击者账号被升 admin）。⑥分享卡 503 不再把 `error.message`（含本机浏览器路径）外发给访客，只记日志。
+- **低危批**：admin log/works 的 limit/offset 先取整再钳制（小数/Infinity 曾 503，实测已 200）；缺失作品文件保持 404（不再被 SPA 回退吐成 200 首页）；后台流水切标签/换搜索清空旧行并进加载态；巡览开关补 `disabled={blocked}`（loading/transition 期间不可点）；仪表盘「今日/昨日/趋势」改 UTC+8 切日（与全站口径一致，北京 0–8 点不再显示 0）；声望分拉取加请求代次守卫（晚到旧快照不再覆盖新值）+ games 拒负值（权重 Infinity 防御缺口）；投票流水加 `id` 打破同毫秒平局（榜单/画像/computeRatings/服务端四处重放次序同口径）；`submitVote` 8s 超时、`/api/auth/me` 5s 超时（不再永久「正在记录」/按钮永久 disabled）；画像「题目覆盖 X/N」分母改随口径（新导出 `scopedPromptIds`，该口径无票时回落题库总数）；分享渲染缓存计量把键算入（键含 base64 缩略图、可达 MB 级）+ 缩略图缓存加 48MB 字节上界；`validate-matchmaking` 两处注释漂移改写轮盘口径；`docs/games/guess.md` 的对局落盘与 emoji 分享两处过期描述同步为现行口径。
+- 验证：typecheck 0 错、build 过、validate 全套（votes 12/arena/placeholder/leaderboard 12/matchmaking/admin/guess 38/share/comments）绿、check:motion 绿、diff --check 干净、定向 oxlint 零告；5321 临时实例 + 临时 DATA_DIR 实测穿越/404/分页取整/dev 保留名均已修（已清理，未动 3000/5173 与真库）。未做浏览器实测与真机验收。
+- 未 commit、未 push。工作区另叠着前两轮未提交改动（数据流水分页+体素旋转、匹配体检、占位符改名+冷门优先），互不冲突。
+- 遗留待拍板：前端 bundle 泄漏 `answerForDate`（另有 `check` 的 `final:true` 与分享卡两条不依赖 bundle 的答案通道，单修 bundle 堵不住，需整体方案）；散列结构隐患（池槽数恰为 255 因子时答案逐日顺移，当前 73/168 槽安全）；`deploy:vps` 指向未跟踪脚本。
+
+## 2026-09-20 · 演示模型改名占位符 + 匹配冷门优先（最新，未归档）
+
+- 用户拍板两件事（决策 109）：①002/003 的演示身份「墨池/回声/折线/星图」改名「占位符1/2/3/4」（modelId 不动，榜单/票面联表即时生效；改了 `lib/works-roster.json` 种子 + 真库 works 表，真库备份在 `Temp/backup-before-placeholder-rename/`；`validate-votes.mjs` 断言同步）；②抽对局冷门优先——`pickMatchedMatchup` 池内按出场次数加权（权重 = 1/(1+双方中较少出场数)），出场数由 `/api/ratings` 新增 `games` 字段同一次重放返回，`lib/ratings.ts` 新增 `currentGames()`，缺省/失败按全均匀兜底。046 的 90/10 同档与 400 分熔断不变，先定池、池内加权抽。
+- 验证：typecheck、build、定向 oxlint 零告；validate:matchmaking 8→11 项（新增冷门优先、与同档叠加、服务端 games）、validate:votes 12、validate:arena 13、validate:leaderboard 11 全绿；diff --check 干净。未跑浏览器实测（纯抽取层改动，统计断言覆盖）。
+- 未 commit。本轮改动叠在下方两轮未提交改动（数据流水分页+体素旋转、匹配与计分体检）之上，三者互不冲突。
+
+## 2026-09-20 · 数据流水分页 + 体素作品旋转中心（最新，未归档）
+
+- 用户提两处：①后台数据流水太长要分页；②004 凌晨灰测 deepseek-v4-pro 的体素中式建筑自动旋转不绕中心、看不到全貌——只准动视角，改不了就去掉旋转，其他不动。
+- **数据流水分页**：`/api/admin/log` 加 `offset`（0–100000）并新增返回 `total`（同过滤口径 COUNT）；前端 `app/admin/log.tsx` 由「加载更多」（limit +100、页面无限加长）改为每页固定 50 条 + 上一页/下一页，页脚「第 X / Y 页 · 共 N 条」，换标签或搜索回第一页，首/末页按钮禁用。`validate-admin.mjs` 补 5 条分页断言（total 随过滤、offset 跳行、超页空行但 total 不变）。
+- **体素旋转**：无头 Edge 实测包围盒与轨道——旧轨道绕 (0,24,-2.5)、仰角仅 15°、距 304，部分方位近角出框、整圈像在摆。改 `data/works/004/004-deepseek-v4-pro--0821-1ligi/src/main.js`：target (0,18,0)、相机 (156,236,269)（仰角约 35°、距约 380），VIEWS[0]「全景鸟瞰」同步；旋转开关/速度/其余七个机位预设一律未动。加速扫圈 8 方位截图验证 216×320×110 建筑群整圈全在画面内；`thumbs:works --only` 重拍该作品快照并目验竞技场构图留边。`data/` 不入库，重新接入作品库后此改动会丢，需重做。
+- 验证：typecheck、build、定向 oxlint（server/index.js、log.tsx、validate-admin.mjs）零告；validate:admin 11 项全绿；无头 UI 实测（临时测试服 + 直插 120 个种子用户绕开注册限流）：3 页翻页、末页 20 条、末页下一页禁用、翻页首行用户名变化、第 2 页截图目验。未跑竞技场/模一把等无关套件（本轮未触其模块）。
+- **并行**：匹配与计分体检轮（下一节）同工作区并行，其 `app/page.tsx`、`lib/leaderboard.ts`、`lib/ratings.ts` 与本文顶部段落未提交，本轮未动；对方同样把本轮分页记为「他人遗留」未动。`package.json` 的 `deploy:vps` 行、`scripts/deploy-vps.sh`、`docs/IDEAS.md` 为更早前遗留，未动。
+- 未 commit、未 push。
+
+## 2026-09-20 · 匹配与计分机制体检修复（最新，未归档）
+
+- 用户要求体检匹配/打分链路找 bug。通读 `lib/matchmaking.ts`、`lib/arena.ts`（两级抽取）、`lib/leaderboard.ts`、`lib/votes.ts`、`lib/ratings.ts`、`server/index.js` 投票/声望分端点后，修四处：
+- **`subscribeWorks` 对局有效性改无序对号**（`app/page.tsx`）：原检查按座位比对 `candidate[0]===current[0]`，但展示左右是 `finishPair` 随机翻的、远端清单按 created_at/id 排序——同一对作品被误判失效、emit 时脚下对局被换（09-17 那版修复只防住了一半）。现经 `pairKeyOf` 无序比对。`check-arena-scroll.mjs` 断言仍锚 `.some(` 无需改。
+- **暗分会话内刷新**（`lib/ratings.ts` + `page.tsx`）：新增 `refreshRatings()`（失败保留旧分，与 `loadRatings` 失败落空语义不同），进入竞技场挂载时与投票落库成功后各刷一次——原先整局会话用启动快照。
+- **`modelCount` 口径收紧**（`leaderboard.ts`）：`meta.size`（含零票现役阵容）→ `rows.length`（实际参与过比较的），与「参与比较 N 票」语境一致；`promptCount` 不动——它兼作 ProfilePanel「题目覆盖 X/N」的分母，语义是题库总数。
+- **健壮性兜底**：`nextMatchup` 的 `currentMatchup(...)!` 改 `?? current`（抽不出新对时保旧对，防 `pair[0]` 崩）；`promptWeightsMap` 补长度 6 校验；六维重放循环 `w <= 0` 改 `!(w > 0)`（undefined/NaN 也跳过，防毒化维度分）。
+- 体检确认无问题：三处 Elo 同公式同口径、`eligiblePairs`/`modelPairIds`/服务端三层同模型过滤、`UNIQUE(user_id,pair_key)` 去重、票面 B2 核对、平局零和、分享对局 `resolveSharedDuel` 不受顺序 bug 影响（要求远端就绪才挂载）。
+- 已验证：typecheck、validate-arena 13、validate-matchmaking 8、validate-leaderboard 11、check-arena-scroll、check-vote-split、定向 oxlint 全绿，diff --check 干净。
+- **未 commit**。工作区另有他人未提交改动（admin 日志分页/搜索：`server/index.js`、`app/admin/log.tsx`、`validate-admin.mjs`、`package.json`、`IDEAS.md`）与未跟踪 `scripts/.tmp-mobile/`、`deploy-vps.sh`，均未动。
+
+## 2026-09-20 · 分享卡精修与校准快照（108，已归档）
 
 - 本弧（决策 106–108，含 107 题卡缩略图轮）已归档：`docs/handoff/2026-09-20-分享卡作品快照与答案卡-kme7kme7-prog.md`。提交分两笔：`3f072b1`（106+107 中间态）与本提交（108 增量+归档）。
 

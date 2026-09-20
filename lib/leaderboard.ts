@@ -140,6 +140,8 @@ export type VoteRecord = {
   winnerId: string;
   loserId: string;
   ts: number;
+  /** 流水行 id：同毫秒票的重放次序以此打破平局，与服务端 ORDER BY created_at, id 同口径 */
+  id?: string;
   /** 这票产生的模式（决策 026：混榜可切换只看正式）；占位投票无此字段，只在混入口径计入 */
   mode?: Mode;
   /** win = 分胜负；draw = 无法抉择的平局（缺省按 win——占位票与早期数据无此字段） */
@@ -156,9 +158,35 @@ export type VoteRecord = {
 /** 榜单口径（决策 026）：mixed = 正式与娱乐混入；formal = 只看正式测评的票 */
 export type BoardScope = 'mixed' | 'formal';
 
+/** 重放次序：先按时间，同毫秒按流水 id（与服务端 ORDER BY created_at ASC, id ASC
+ * 对齐——只按 ts 排序时同毫秒票的先后取决于数据源顺序，榜单与 /api/ratings 会分叉） */
+function compareVoteOrder(a: VoteRecord, b: VoteRecord): number {
+  if (a.ts !== b.ts) return a.ts - b.ts;
+  if (a.id && b.id) return a.id < b.id ? -1 : 1;
+  return 0;
+}
+
 /** 当前生效的投票：占位模式读 localStorage；真实模式由页面拉取服务端后传入 */
 export function currentVotes(): VoteRecord[] {
   return isPlaceholderMode() ? readPlaceholderVotes() : [];
+}
+
+/** 当前赛道+口径下实际产生过票的题目集合（2026-09-20）：画像面板「题目覆盖 X/N」
+ * 的分母——formal 口径下用题库总数会让分母永远含没打过正式赛的题，X 恒偏小 */
+export function scopedPromptIds(
+  category: BoardCategory,
+  votes: VoteRecord[] = currentVotes(),
+  scope: BoardScope = 'mixed',
+): Set<string> {
+  const kinds = promptKindMap();
+  const ids = new Set<string>();
+  for (const vote of votes)
+    if (
+      matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
+      (scope === 'mixed' || vote.mode === 'formal')
+    )
+      ids.add(vote.promptId);
+  return ids;
 }
 
 export function leaderboardData(
@@ -186,7 +214,7 @@ export function leaderboardData(
     if (!rating.has(id)) rating.set(id, ELO_BASE);
     if (!topicSets.has(id)) topicSets.set(id, new Set());
   };
-  const ordered = [...scoped].sort((a, b) => a.ts - b.ts);
+  const ordered = [...scoped].sort(compareVoteOrder);
   for (const vote of ordered) {
     touch(vote.winnerId);
     touch(vote.loserId);
@@ -238,7 +266,8 @@ export function leaderboardData(
   return {
     rows,
     totalVotes: scoped.length,
-    modelCount: meta.size,
+    // 「N 个模型」与榜单可见阵容同口径：只数参与过比较的（meta 还含零票的现役阵容）
+    modelCount: rows.length,
     promptCount:
       category === 'all'
         ? currentPrompts().length
@@ -265,6 +294,16 @@ export const RADAR_LABELS: Record<BoardCategory, string[]> = {
 export const RADAR_BASE = 50;
 /** 分维 Elo 步长上限（权重 1 时一票的最大变动量级，与榜单 ELO_K 同源） */
 const RADAR_K = 32;
+// 重放内部用与榜单相同的 1200 基准量程（2026-09-20 审查修复）：旧实现把 400
+// 分位差直接套在 0–100 量程上——双方分差恒在 ±100 内，expected 恒≈0.5，
+// 对手强弱失去意义，画像退化成场次计数，且连胜数场即 clamp 触顶（实测真库
+// 榜首 33 场就有 3 个维度钉在 100）。400 分位差只有配 1200 基准才成立。
+const RADAR_ELO_BASE = ELO_BASE;
+/** 展示映射：1200±200（≈Elo 76% 胜率差）线性映射到 0–100，展示层再收敛。
+ * 调视觉张力只改这个数：调小更灵敏（真库榜首当前约 +78 Elo ⇒ 动态维 +19 点） */
+const RADAR_DISPLAY_SCALE = 4;
+const toRadarDisplay = (v: number) =>
+  Math.max(0, Math.min(100, RADAR_BASE + (v - RADAR_ELO_BASE) / RADAR_DISPLAY_SCALE));
 
 /** 每题六维权重的当前来源（决策 093）：存 prompts 表 weights 列，后台题目管理
  * 可调；种子默认值在 lib/prompts-seed.json。流水行的 promptWeights 快照优先
@@ -272,7 +311,9 @@ const RADAR_K = 32;
 function promptWeightsMap(): Map<string, number[]> {
   const map = new Map<string, number[]>();
   for (const prompt of currentPrompts())
-    if (Array.isArray(prompt.weights)) map.set(prompt.id, prompt.weights);
+    // 长度一并卡死：上游已验过，这里兜底防短数组漏进循环让 weights[d] 变 undefined
+    if (Array.isArray(prompt.weights) && prompt.weights.length === 6)
+      map.set(prompt.id, prompt.weights);
   return map;
 }
 
@@ -301,9 +342,9 @@ export function computeRadarProfiles(
   );
   const table = new Map<string, number[]>();
   const touch = (id: string) => {
-    if (!table.has(id)) table.set(id, Array(6).fill(RADAR_BASE));
+    if (!table.has(id)) table.set(id, Array(6).fill(RADAR_ELO_BASE));
   };
-  const ordered = [...scoped].sort((a, b) => a.ts - b.ts);
+  const ordered = [...scoped].sort(compareVoteOrder);
   for (const vote of ordered) {
     touch(vote.winnerId);
     touch(vote.loserId);
@@ -316,19 +357,20 @@ export function computeRadarProfiles(
     const actual = vote.outcome === 'draw' ? 0.5 : 1;
     for (let d = 0; d < 6; d += 1) {
       const w = weights[d];
-      if (w <= 0) continue;
+      // !(w>0) 而非 w<=0：undefined/NaN 也要跳过，不让坏权重毒化维度分
+      if (!(w > 0)) continue;
       const expected = 1 / (1 + 10 ** ((rb[d] - ra[d]) / 400));
       ra[d] += RADAR_K * w * (actual - expected);
       rb[d] += RADAR_K * w * (1 - actual - (1 - expected));
     }
   }
-  const clamp = (v: number) => Math.max(0, Math.min(100, v));
   const profiles = new Map<string, number[]>();
-  for (const [id, values] of table) profiles.set(id, values.map(clamp));
+  for (const [id, values] of table)
+    profiles.set(id, values.map(toRadarDisplay));
   const average = RADAR_DIMENSIONS.map((_, d) => {
     let sum = 0;
     for (const values of table.values()) sum += values[d];
-    return table.size ? clamp(sum / table.size) : RADAR_BASE;
+    return table.size ? toRadarDisplay(sum / table.size) : RADAR_BASE;
   });
   return { profiles, average };
 }

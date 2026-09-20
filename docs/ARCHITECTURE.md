@@ -30,8 +30,8 @@
 | `lib/arena.ts` | 题库数据与核心逻辑，详见下节 |
 | `lib/prompts.ts` / `prompts-seed.json` | 远端题库数据层（045）：启动拉 `/api/prompts`，失败回退内置种子；消费方以 `currentPrompts()` 为准 |
 | `lib/works.ts` / `works-roster.json` | 远端作品数据层（040）：启动拉 `/api/works`，失败回退内置 roster；roster 同时是 works 表种子 |
-| `lib/matchmaking.ts` | 轻量匹配（046）：声望分软性分档 + 熔断，参数集中 `MATCH_CONFIG`；`computeRatings` 全量重放 Elo 暗分 |
-| `lib/ratings.ts` | 声望分数据层：拉 `/api/ratings`，未就绪按基础分兜底（=均匀随机） |
+| `lib/matchmaking.ts` | 轻量匹配（046）：声望分软性分档 + 熔断 + 冷门优先加权（109），参数集中 `MATCH_CONFIG`；`computeRatings` 全量重放 Elo 暗分 |
+| `lib/ratings.ts` | 声望分数据层：拉 `/api/ratings`（含 games 出场数），未就绪按基础分/全均匀兜底（=均匀随机） |
 | `lib/leaderboard.ts` | 榜单聚合：Elo 重放（平局各 0.5，048）、阵容=已发布∪流水历史模型（045）、口径 `BoardScope`（026）；六维画像 `computeRadarProfiles`，权重来源=流水快照→题库→均分（091/093） |
 | `lib/votes.ts` | 投票数据层：`ArenaVote`/`validateVote`（与服务端镜像）/流水读取（永不过滤下架题）/`pairKeyOf` 对局去重 |
 | `lib/comments.ts` | 评论类型与校验（与后端一致） |
@@ -87,7 +87,7 @@
 | `POST /api/guess/check` | 判定：每日题按难度池派生（060），练习局带 gameId（064）；猜中或 final 才附答案；跨零点守护（070） |
 | `POST /api/guess/practice/start` | 练习开局（064）：服务端随机抽题发 gameId，内存持有，重启失效 |
 | `POST /api/guess/result` | 每日题结果上报（063）：answer_id 服务端重新派生防伪造；只收每日题（064） |
-| `GET /api/ratings` | 声望分（046）：全量重放 Elo（基准 1200/K=32），供匹配，非排行榜 |
+| `GET /api/ratings` | 声望分（046）：全量重放 Elo（基准 1200/K=32），供匹配，非排行榜；同一次重放顺带返回各模型出场次数 `games`（109，冷门优先加权用） |
 | `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log、works（清单+PATCH 编辑/发布）、inbox（清单+register+DELETE）、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
 | `POST /api/dev/clear-my-votes` | dev 清自己的票重投（042），同 dev 门禁 |
 

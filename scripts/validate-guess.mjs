@@ -899,6 +899,18 @@ try {
     });
   });
 
+  await check('跨零点守卫回归钉（2026-09-20 审查修复）：enterDaily 必须写回 today', async () => {
+    // enterDaily 不写回 today 的话，跨零点守卫的收敛条件永不成立——每次提交
+    // 都被丢弃，只能刷新页面（曾真实存在的 BUG，靠静态断言防回归）
+    const source = readFileSync(new URL('../app/guess.tsx', import.meta.url), 'utf8');
+    const body = source.match(/function enterDaily\([\s\S]*?\n  \}/)?.[0] ?? '';
+    assert.ok(body.includes('setToday(data)'), 'enterDaily 必须写回 today');
+    assert.ok(
+      /fresh\.dayKey === today\.dayKey/.test(source),
+      'dailyRolledOver 必须以服务端 dayKey 复核（防客户端时钟偏快误清盘）',
+    );
+  });
+
   console.log(`${tests} guess checks passed.`);
 } catch (error) {
   console.error(error);
