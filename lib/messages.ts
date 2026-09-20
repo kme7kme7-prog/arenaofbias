@@ -730,6 +730,12 @@ export const messages: Record<string, string> = {
   '投票编号冲突，请重新提交。': 'Vote ID conflict — please submit again.',
   '投票编号冲突，请重新提交': 'Vote ID conflict — please submit again.',
   '暂时没有记上这一票，稍后再试？': 'Your vote was not recorded — try again in a moment?',
+  // 内测提示（2026-09-20）：首次进站一次性弹窗
+  '内测版': 'Beta',
+  '这个小游戏网站还在小范围内测。': 'Arena of Bias is in a small closed beta.',
+  '玩法与榜单功能大致做完了，细节还在打磨。': 'The games and the leaderboard already work — the details are still being polished.',
+  '现在投票都会被计入；如果遇到哪里不对劲，马上发给我。': 'Every vote counts for real. If anything feels off, tell us.',
+  '知道了': 'Got it — let me in',
 };
 
 // Canonical labels for former decorative English and bilingual captions.

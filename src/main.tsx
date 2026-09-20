@@ -12,6 +12,7 @@ import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
 import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
+import { BetaNotice } from '@/components/beta-notice';
 import { PageShare } from '@/components/share';
 import { parseSharedDuel, resolveSharedDuel } from '@/lib/shared-duel';
 import '@/app/share.css';
@@ -125,6 +126,14 @@ function Routes() {
       </div>
     );
   }
+  // 内测提示只在主页面弹（2026-09-20）：其余路由/深链不打断
+  if (!route || route === '#home')
+    return (
+      <>
+        <Home />
+        <BetaNotice />
+      </>
+    );
   return <Home />;
 }
 const reactRoot = createRoot(container);

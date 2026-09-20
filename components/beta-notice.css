@@ -1,0 +1,78 @@
+/* 内测提示弹层（2026-09-20）：随站内纸/墨/酸黄与硬投影语言。
+ * 结构走 components/ui/dialog（base-ui）：遮罩 = beta-notice-overlay，
+ * 卡片 = beta-notice-card（popup 自带 fixed 居中，这里只管视觉） */
+
+.beta-notice-overlay {
+  background: rgba(28, 36, 35, 0.42);
+}
+
+.beta-notice-card {
+  width: min(360px, calc(100vw - 48px));
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 10px 10px 0 var(--ink);
+  padding: 26px 30px 24px;
+  font-size: 14px;
+}
+
+.beta-notice-title.beta-notice-title {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  line-height: 1.2;
+}
+
+.beta-notice-title::after {
+  content: '';
+  display: block;
+  width: 34px;
+  height: 4px;
+  margin-top: 10px;
+  background: var(--acid);
+}
+
+.beta-notice-card p {
+  margin: 6px 0;
+  line-height: 1.75;
+}
+
+.beta-notice-enter {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 11px 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  text-indent: 6px;
+  color: var(--acid);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.beta-notice-enter:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 rgba(28, 36, 35, 0.4);
+}
+
+.beta-notice-enter:focus-visible {
+  outline: 3px solid var(--acid);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beta-notice-card,
+  .beta-notice-overlay {
+    animation: none;
+    transition: none;
+  }
+
+  .beta-notice-enter {
+    transition: none;
+  }
+}
