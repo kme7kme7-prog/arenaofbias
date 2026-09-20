@@ -12,7 +12,11 @@ import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
 import Ranking from '@/app/ranking';
 import { DevPanel } from '@/components/dev-panel';
+import { PageShare } from '@/components/share';
+import { parseSharedDuel, resolveSharedDuel } from '@/lib/shared-duel';
+import '@/app/share.css';
 import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+import { currentResultsForPrompt } from '@/lib/placeholder';
 import {
   currentPrompts,
   getPromptsState,
@@ -41,6 +45,7 @@ setWipeTranslator((text) => translate(text, getLocale()));
 setTransitionTranslator((text) => translate(text, getLocale()));
 
 const container = document.getElementById('root');
+const sharedDuel = parseSharedDuel(window.location.search);
 if (!container) throw new Error('Missing #root mount point');
 
 // 与旧版一致：不启用 StrictMode，避免入场动画相关 effect 在开发模式重复执行。
@@ -57,7 +62,7 @@ function Routes() {
     () => window.location.hash,
     () => '',
   );
-  useSyncExternalStore(subscribeWorks, getWorksState);
+  const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
   // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
   useSyncExternalStore(subscribePrompts, getPromptsState);
   useEffect(() => {
@@ -94,6 +99,12 @@ function Routes() {
   }
   if (route.startsWith('#arena/')) {
     const prompt = currentPrompts().find((item) => item.id === route.slice(7));
+    if (sharedDuel && sharedDuel[0] === route.slice(7)) {
+      if (worksState.status === 'loading' || getPromptsState().status === 'loading') return <output className="route-empty">{t('正在打开分享的对决…')}</output>;
+      const pair = resolveSharedDuel(sharedDuel, currentResultsForPrompt(sharedDuel[0]));
+      if (prompt && pair && worksState.source === 'remote') return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
+      return <div className="route-empty"><h1>{t('这场对决暂时无法打开。')}</h1><p>{t('作品可能已下架，请从题库选择另一场。')}</p><a href="#prompts">{t('前往提示词库 ↗')}</a></div>;
+    }
     if (prompt && currentPairs(prompt.id).length > 0)
       return <Arena key={prompt.id} prompt={prompt} />;
     if (prompt) return <PromptPreview key={prompt.id} prompt={prompt} />;
@@ -118,6 +129,7 @@ loadRatings(); // 声望分：软性匹配的数据源（决策 046）
 reactRoot.render(
   <AccountProvider>
     <Routes />
+    <PageShare />
     <DevPanel />
   </AccountProvider>,
 );

@@ -84,6 +84,7 @@ import {
   worksGateSides,
 } from '@/lib/works-gate';
 import { takeTestPair } from '@/lib/test-pair';
+import { ShareButton, duelShareQuery, setSharePair } from '@/components/share';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
@@ -471,10 +472,12 @@ function Work({
 export default function Arena({
   prompt,
   formal = false,
+  initialPair,
 }: {
   prompt: Prompt;
   // 正式测评（决策 024）：全程匿名、无评论区；地址 #formal/{promptId}
   formal?: boolean;
+  initialPair?: Matchup;
 }) {
   const { t, localize } = useI18n();
   const promptIndex = currentPrompts().findIndex(
@@ -495,13 +498,19 @@ export default function Arena({
   // 从 pair 派生——换组/换题/清单重算把 pair 换掉后自动失效，不用到处补复位
   const [testPair] = useState(() => takeTestPair(prompt.id));
   const [pair, setPair] = useState<Matchup>(
-    () => testPair ?? currentMatchup(prompt.id)!,
+    () => testPair ?? initialPair ?? currentMatchup(prompt.id)!,
   );
   const [testIds, setTestIds] = useState<string[] | null>(() =>
     testPair ? [testPair[0].id, testPair[1].id] : null,
   );
   const testing =
     !!testIds && !!pair && pair[0].id === testIds[0] && pair[1].id === testIds[1];
+  // 题目分享卡嵌当前对局缩略图（决策 107）：页脚分享入口在全局布局里，
+  // 对局 id 经 share 模块的小 store 递过去，卸载即清。
+  useEffect(() => {
+    setSharePair([pair[0].id, pair[1].id]);
+    return () => setSharePair(null);
+  }, [pair]);
   // 远端清单晚到时重算对局（2026-09-15 修复）：应用启动先以内置花名册起画，
   // /api/works 返回后若不重算，棋盘还是内置作品而统计区已切远端数据——
   // 票面与服务端作品表核对不上，投票会 400。订阅 works 变化重抽一组。
@@ -1089,7 +1098,7 @@ export default function Arena({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (
-        expanded ||
+        expanded || document.querySelector('[data-slot="dialog-content"][data-open]') ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
@@ -1644,6 +1653,9 @@ export default function Arena({
             </div>
           )}
           <div className="round-actions">
+            {state.phase === 'result' && state.choice && state.mode !== 'formal' && !testing && !isPlaceholderMode() && (
+              <ShareButton key={`${state.run}-${pair[0].id}-${pair[1].id}`} query={duelShareQuery(prompt, pair, state.choice)} />
+            )}
             <button
               type="button"
               className={`text-button tour-toggle ${tour ? 'on' : ''}`}

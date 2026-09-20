@@ -16,6 +16,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { createGameTransition } from '@/lib/game-transitions';
+import { ShareButton, guessShareQuery } from '@/components/share';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
@@ -23,7 +24,6 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Search,
-  Share2,
   Trophy,
   BrainCircuit,
   Fingerprint,
@@ -158,29 +158,6 @@ function FeedbackCell({
   );
 }
 
-// ── 分享文案：emoji 格局，复制到剪贴板 ──
-
-const SHARE_EMOJI: Record<string, string> = {
-  hit: '🟩',
-  near: '🟨',
-  miss: '⬛',
-  unknown: '⬜',
-};
-
-function buildShareText(
-  session: GuessSession,
-  dayNumber: number,
-  won: boolean,
-): string {
-  const lines = session.guesses.map((row) =>
-    Object.values(row.attributes)
-      .map((fb) => SHARE_EMOJI[fb.state] ?? '⬜')
-      .join(''),
-  );
-  const head = `模一把 #${dayNumber} ${won ? session.guesses.length : 'X'}/${MAX_ATTEMPTS}`;
-  return [head, ...lines].join('\n');
-}
-
 // ── 双模式入口（决策 064/081）──
 // 进游戏先选模式：每日一题（全球同题，种子派生，只出普通池=简单+普通）；
 // 练习模式（四档难度随机出题、不限次、可再来一把，不计战绩）。池是层叠的：
@@ -219,7 +196,6 @@ export default function GuessPage() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false); // 下拉展开
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   // 结算防重：同次挂载内的守卫（跨挂载由 session.counted 兜底），换模式时重置
@@ -585,18 +561,6 @@ export default function GuessPage() {
       answer: result.answer,
     };
     setSession(next);
-  }
-
-  async function share() {
-    if (!today || !session || mode !== 'daily') return;
-    const text = buildShareText(session, today.dayNumber, won);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError(t('复制失败，长按选中手动复制吧。'));
-    }
   }
 
   if (!today) {
@@ -1135,14 +1099,7 @@ export default function GuessPage() {
                           <RotateCcw size={15} />
                           {t('重玩今天')}
                         </button>
-                        <button
-                          type="button"
-                          className="guess-primary guess-share"
-                          onClick={() => void share()}
-                        >
-                          {copied ? <Check size={17} /> : <Share2 size={17} />}
-                          {t(copied ? '已复制 ✓' : '分享战绩')}
-                        </button>
+                        <ShareButton query={guessShareQuery(session, today.dayKey, won)} label="分享战绩" />
                       </>
                     ) : (
                       <button

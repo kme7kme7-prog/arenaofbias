@@ -17,6 +17,7 @@
 //   APP_ORIGIN      站点完整来源（如 https://example.com），反代后必设
 
 import express from 'express';
+import { installShare } from './share.js';
 import { validWorkFraming } from './work-framing.js';
 import {
   injectWorkBridge,
@@ -1909,6 +1910,8 @@ app.post('/api/dev/clear-my-votes', (req, res) => {
   }
 });
 
+installShare(app, db, distDir, path.join(dataDir, 'thumbs'));
+app.use('/share-assets', express.static(path.join(projectRoot, 'public/share-assets')));
 app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }));
 // ---------- 静态资源 ----------
 

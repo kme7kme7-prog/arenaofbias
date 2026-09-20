@@ -1,5 +1,16 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-20 · 娱乐对决 / 模一把分享卡与社交预览（本轮）
+
+- 用户授权落地分享 Idea，并明确正式盲测不做、模一把也升级，决策 106。README 已读；没有把其他想法扩成任务。接手时 `docs/IDEAS.md` 已修改、`scripts/.tmp-mobile/` 未跟踪，均保留未动。
+- 完成：娱乐揭晓「分享这一局」、模一把每日战绩图片卡、公共页/题目分享入口、独立 `/share` 分享页、OG/Twitter 封面、高清 PNG 下载、剪贴板与手动复制降级、系统分享、二维码。视觉统一酸黄/墨色/硬投影；不改揭晓特效与原游戏计分。正式盲测/后台测试对局/占位结果不开放结果分享。
+- 服务端根据已发布作品生成卡，不截作品 iframe，不新增投票或数据库表。图片渲染进独立 Worker，缓存和队列有界。中文字体随 `server/fonts/` 部署；新增 resvg 与 qrcode 依赖。分享表达个人偏好，不冒充认证成绩；模一把不含答案。对决链接回到同一作品对与 A/B 顺序。
+- 对照入口：`http://127.0.0.1:5173/reference/share-review.html`；从娱乐揭晓页、模一把每日结算的分享按钮也能体验。API 3000 与 Vite 5173 本轮已启动，未部署公网。
+- 已验证：validate:share 8 组（含真实 PNG 1080×1350 / 1200×630）、validate:guess 37 项、validate:arena 13 项、validate-locale、typecheck、定向 oxlint。Tabbit 实际浏览器：桌面分享弹窗、CSS 320px 手机无横向溢出、复制成功、PNG 已保存到 Downloads（自动化 download 事件未回传，但本地对应文件实存 86–89KB）；分享页 CTA 回到同一作品顺序；正式页分享按钮=0；隔离模一把真实结算→分享图正常、链接无答案，最后一轮页面零脚本错误。
+- 平台边界：未在微信/QQ/X 实发，未真机测试 iOS 保存或系统分享面板。公网需 APP_ORIGIN + `/share` 反代，根 HTML 必须由 Express 补 OG，详细部署说明见 ARCHITECTURE。已有 hash 直接转发为全站通用封面；专用分享链接才含具体题目/战绩。
+- 最终 build、typecheck、定向 oxlint、diff --check 均通过；没有 commit、push，未归档。开发过程中热更新导致过临时页面错误，重新加载后的完整流程与最终对照页均零脚本错误；未把中途热更新失败当作验收通过。
+- 追加（决策 107，用户点名「A和B能不能换成正在对比的两个作品的截图」）：竞技场页脚分享带当前对局（setSharePair 小 store + 查询 a/b），链接固定回同一对；新 `npm run thumbs:works` 用 headless Edge/Chrome 离线截 16:9 缩略图落 `data/thumbs/`，题卡两张齐全才嵌 `<image>`（slice 居中裁、A/B 角标），缺图回落色块。validate:share 8→9 项；全量 168 件缩略图生成 167 成功（004-seed-2.1-pro 截图失败 1 件，回落色块）；浏览器实测题卡出真图、分享链接固定同对。
+
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 
 ## 2026-09-19 · 视角校准覆盖率修复：桥改坏了作品 + 作品自报相机，19/34 → 34/34（已归档）
