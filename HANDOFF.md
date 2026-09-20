@@ -1,6 +1,19 @@
 # HANDOFF.md · 当前状态
 
-## 2026-09-20 · 娱乐对决 / 模一把分享卡与社交预览（本轮）
+## 2026-09-20 · 分享卡精修与校准快照（最新，108，已归档）
+
+- 本弧（决策 106–108，含 107 题卡缩略图轮）已归档：`docs/handoff/2026-09-20-分享卡作品快照与答案卡-kme7kme7-prog.md`。提交分两笔：`3f072b1`（106+107 中间态）与本提交（108 增量+归档）。
+
+- 用户纠正旧版不带答案取舍：现在导出包含答案与作品快照，正式盲测仍不开放分享。106 相关限制由 108 撤销；保留用户 107 的作品对分享接入。
+- 卡片改为纸色双联作品收藏卡，完整 16:9 图不做 slice 裁切，身份和选择放在图外；对决/带作品对题卡 1080×1760，模一把/通用卡 1080×1600，OG 1200×630。模一把答案由服务端每日派生器生成，不信任链接传入名字。
+- 新 capture.html 只读入口复用竞技场 FixedHtmlWork/workCanvas，原生作品复用 Work；保存的 framing 与相机生效。快照指纹包含校准数据，旧无指纹图片失效，分享时自动重拍；也支持 thumbs:works 预生成。截图失败可重试，不返回旧校准图。新增 playwright-core；生产需安装 Chrome/Chromium 或配置 THUMB_BROWSER，先 build 生成 capture 入口。
+- 已验证：typecheck、build、定向 oxlint、diff --check、share 10 组、guess 37 项、arena 13 项、locale。Tabbit 实测真实校准偏移与隔离的尺寸/缩放/偏移组合；鹈鹕与保存机位黑洞快照成功，原生网页作品自动出图成功。实际模一把结算→分享弹窗在 CSS 355px 下无横向溢出、零页面错误；本轮未补 320px 与手机真机检查。
+- 归档前复跑（Qoder）：`thumbs:works` 预生成 163/168 带指纹落盘；5 件 006 落地页 capture 45s 超时（该 pair 出卡会 503 重试而非回落，已知缺口待拍板）；竞技场分享弹窗 1080×1760 双联真图目验通过。
+- 预览：http://127.0.0.1:5173/reference/share-review.html 。API 与 Vite 已启动；未部署公网。docs/IDEAS.md 与 scripts/.tmp-mobile/ 原有内容未动。
+- 下方上一轮记录是历史状态；其中不带答案、不截 iframe 等描述已被本节及决策 108 替代。
+
+
+## 2026-09-20 · 娱乐对决 / 模一把分享卡与社交预览（已归档）
 
 - 用户授权落地分享 Idea，并明确正式盲测不做、模一把也升级，决策 106。README 已读；没有把其他想法扩成任务。接手时 `docs/IDEAS.md` 已修改、`scripts/.tmp-mobile/` 未跟踪，均保留未动。
 - 完成：娱乐揭晓「分享这一局」、模一把每日战绩图片卡、公共页/题目分享入口、独立 `/share` 分享页、OG/Twitter 封面、高清 PNG 下载、剪贴板与手动复制降级、系统分享、二维码。视觉统一酸黄/墨色/硬投影；不改揭晓特效与原游戏计分。正式盲测/后台测试对局/占位结果不开放结果分享。
@@ -9,7 +22,6 @@
 - 已验证：validate:share 8 组（含真实 PNG 1080×1350 / 1200×630）、validate:guess 37 项、validate:arena 13 项、validate-locale、typecheck、定向 oxlint。Tabbit 实际浏览器：桌面分享弹窗、CSS 320px 手机无横向溢出、复制成功、PNG 已保存到 Downloads（自动化 download 事件未回传，但本地对应文件实存 86–89KB）；分享页 CTA 回到同一作品顺序；正式页分享按钮=0；隔离模一把真实结算→分享图正常、链接无答案，最后一轮页面零脚本错误。
 - 平台边界：未在微信/QQ/X 实发，未真机测试 iOS 保存或系统分享面板。公网需 APP_ORIGIN + `/share` 反代，根 HTML 必须由 Express 补 OG，详细部署说明见 ARCHITECTURE。已有 hash 直接转发为全站通用封面；专用分享链接才含具体题目/战绩。
 - 最终 build、typecheck、定向 oxlint、diff --check 均通过；没有 commit、push，未归档。开发过程中热更新导致过临时页面错误，重新加载后的完整流程与最终对照页均零脚本错误；未把中途热更新失败当作验收通过。
-- 追加（决策 107，用户点名「A和B能不能换成正在对比的两个作品的截图」）：竞技场页脚分享带当前对局（setSharePair 小 store + 查询 a/b），链接固定回同一对；新 `npm run thumbs:works` 用 headless Edge/Chrome 离线截 16:9 缩略图落 `data/thumbs/`，题卡两张齐全才嵌 `<image>`（slice 居中裁、A/B 角标），缺图回落色块。validate:share 8→9 项；全量 168 件缩略图生成 167 成功（004-seed-2.1-pro 截图失败 1 件，回落色块）；浏览器实测题卡出真图、分享链接固定同对。
 
 本文件只记录当前状态与接手指引。历史过程见 `docs/handoff/`，产品规则见 `docs/PRODUCT.md`，用户决定见 `docs/DECISIONS.md`；文档中的旧「未提交」描述以 Git 实际状态为准。
 

@@ -10,7 +10,7 @@ export const messages: Record<string, string> = {
   '分享卡预览': 'Share card preview',
   '正在装裱你的答案…': 'Preparing your card…',
   '重新生成': 'Try again',
-  '只分享推理轨迹，不剧透模型答案。朋友扫码后也能来猜一把。': 'Only your reasoning trail is shared — the answer stays hidden. Friends can scan and try too.',
+  '把今天的模型答案和推理轨迹一起留下，朋友扫码后也能来猜一把。': 'Keep today’s answer and your deduction trail. Friends can scan the code to play.',
   '把这场对决发给朋友，看看你们的直觉是否一致。': 'Send this duel to a friend. See if your instincts agree.',
   '保存高清图片': 'Save image',
   '复制分享链接': 'Copy share link',

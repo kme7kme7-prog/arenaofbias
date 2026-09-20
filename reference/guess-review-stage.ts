@@ -7,12 +7,15 @@ import {
   ATTRIBUTE_KEYS,
   judge,
   dailyPool,
+  guessDayKey,
+  dayNumber,
+  answerForDate,
 } from '../lib/guess-logic';
 const scene = new URLSearchParams(location.search).get('scene');
 // 双模式（决策 064）：对照页固定演示每日一题；guess-force-mode 让页面
 // 跳过选择屏直接进每日模式（真实用户路径没有该键，永远先选模式）
-const answer = dailyPool(GUESS_MODELS)[0];
-const dayKey = 'preview-day';
+const answer = answerForDate(new Date(), dailyPool(GUESS_MODELS));
+const dayKey = guessDayKey();
 const memory = new Map<string, string>();
 memory.set(
   'arena-language',
@@ -64,7 +67,7 @@ window.fetch = async (input, init) => {
   if (url.endsWith('/api/guess/today'))
     return Response.json({
       dayKey,
-      dayNumber: 42,
+      dayNumber: dayNumber(),
       attributes: ATTRIBUTE_KEYS,
       models: GUESS_MODELS,
     });

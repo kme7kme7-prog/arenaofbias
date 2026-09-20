@@ -1910,7 +1910,9 @@ app.post('/api/dev/clear-my-votes', (req, res) => {
   }
 });
 
-installShare(app, db, distDir, path.join(dataDir, 'thumbs'));
+installShare(app, db, distDir, path.join(dataDir, 'thumbs'), (day) =>
+  guessAnswerForDate(new Date(`${day}T12:00:00+08:00`), guessDailyPool(guessModels)),
+);
 app.use('/share-assets', express.static(path.join(projectRoot, 'public/share-assets')));
 app.use('/api', (_req, res) => res.status(404).json({ error: '接口不存在' }));
 // ---------- 静态资源 ----------

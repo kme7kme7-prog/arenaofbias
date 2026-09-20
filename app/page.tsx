@@ -380,7 +380,7 @@ function ReactionBar({
   );
 }
 
-function Work({
+export function Work({
   result,
   side,
   expanded = false,

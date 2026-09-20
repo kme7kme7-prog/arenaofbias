@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>分享卡 · 品牌输出对照</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: #20352d;
+        background: #e8ebe1;
+        font: 14px system-ui;
+      }
+      header {
+        padding: 20px 28px;
+        border-bottom: 1px solid #adbba5;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      h1 {
+        font-size: 17px;
+        margin: 0 20px 0 0;
+      }
+      select,
+      a {
+        padding: 10px;
+        border: 1px solid #a0b193;
+        background: transparent;
+        color: inherit;
+      }
+      small {
+        color: #667b60;
+      }
+      main {
+        padding: 32px;
+        display: flex;
+        gap: 36px;
+        align-items: flex-start;
+        justify-content: center;
+      }
+      figure {
+        margin: 0;
+        min-width: 0;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        box-shadow: 8px 8px #20352d;
+      }
+      #portrait {
+        width: 432px;
+        max-width: 100%;
+      }
+      #landscape {
+        width: 600px;
+        max-width: 100%;
+      }
+      figcaption {
+        padding: 18px 0;
+        color: #667b60;
+        font-size: 12px;
+      }
+      @media (max-width: 800px) {
+        main {
+          flex-direction: column;
+          padding: 24px;
+        }
+        figure {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>分享卡 / 成品对照</h1>
+      <select id="scene" aria-label="卡片场景"></select
+      ><a id="open" target="_blank">打开分享页 ↗</a
+      ><small>调用真实图片渲染器；仅使用演示选择，不写入投票或每日战绩。</small>
+    </header>
+    <main>
+      <figure>
+        <img id="portrait" width="1080" height="1760" alt="竖版分享卡" />
+        <figcaption>保存图片 / 1080 × 1760 / 1600</figcaption>
+      </figure>
+      <figure>
+        <img id="landscape" width="1200" height="630" alt="社交链接预览" />
+        <figcaption>OG 社交封面 / 1200 × 630</figcaption>
+      </figure>
+    </main>
+    <script type="module">
+      const scene = document.getElementById('scene');
+      const day = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+      const cases = [
+        ['全站邀请', { type: 'site' }],
+        [
+          '模一把 · 三次猜中',
+          { type: 'guess', day, won: '1', grid: 'mmnmmmh.hhnmmnh.hhhhhhh' },
+        ],
+        [
+          '模一把 · 八次未中',
+          {
+            type: 'guess',
+            day,
+            won: '0',
+            grid: Array(8).fill('mhmnhum').join('.'),
+          },
+        ],
+      ];
+      try {
+        const { works } = await (await fetch('/api/works')).json();
+        const a =
+          works.find((w) => w.promptId === '001' && !w.isDemo) || works[0];
+        const b = works.find(
+          (w) =>
+            w.promptId === a.promptId && w.modelId !== a.modelId && !w.isDemo,
+        );
+        if (b)
+          for (const [label, pick] of [
+            ['左侧胜出', 'a'],
+            ['右侧胜出', 'b'],
+            ['难分高下', 'draw'],
+          ])
+            cases.unshift([
+              `对决 · ${label}`,
+              { type: 'duel', prompt: a.promptId, a: a.id, b: b.id, pick },
+            ]);
+        // 决策 107：竞技场分享口径——题卡嵌当前对局缩略图（缺图回落色块）
+        if (b)
+          cases.unshift([
+            '题卡 · 带作品对缩略图',
+            { type: 'prompt', prompt: a.promptId, a: a.id, b: b.id },
+          ]);
+      } catch {
+        /* Site and guessing cards remain reviewable without works. */
+      }
+      cases.forEach(([label], i) => scene.add(new Option(label, String(i))));
+      function show() {
+        const query = new URLSearchParams(cases[Number(scene.value)][1]);
+        document.getElementById('portrait').src = '/share/card.png?' + query;
+        document.getElementById('landscape').src = '/share/og.png?' + query;
+        document.getElementById('open').href = '/share?' + query;
+      }
+      scene.addEventListener('change', show);
+      show();
+    </script>
+  </body>
+</html>

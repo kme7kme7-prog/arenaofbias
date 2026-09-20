@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { installShare, resolveShare } from '../server/share.js';
+import { thumbFingerprint } from '../server/work-thumbnails.js';
 import { shareSvg } from '../server/share-card.js';
 import { fileURLToPath } from 'node:url';
 
@@ -13,19 +14,32 @@ db.exec(`CREATE TABLE prompts(id TEXT, name TEXT, prompt TEXT, published INTEGER
 CREATE TABLE works(id TEXT, prompt_id TEXT, model_name TEXT, model_id TEXT, is_demo INTEGER, published INTEGER);
 INSERT INTO prompts VALUES('001', '鹈鹕大挑战', '用 SVG 画一只骑车的鹈鹕', 1), ('002', '草稿', '隐藏', 0);
 INSERT INTO works VALUES('left', '001', 'Claude <script> & "特别长的模型名称"', 'claude', 0, 1), ('right', '001', 'GPT-6-astra-extra-long-thinking-2026', 'gpt', 0, 1), ('hidden', '001', '隐藏模型', 'hidden', 0, 0), ('other', '002', '另题模型', 'other', 0, 1);`);
+db.exec(
+  'ALTER TABLE works ADD COLUMN title TEXT DEFAULT \'快照测试\'; ALTER TABLE works ADD COLUMN content TEXT DEFAULT \'{"kind":"html","src":"/works/test.html"}\';',
+);
 const thumbsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aob-share-thumbs-'));
 const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',
 );
-for (const id of ['left', 'right'])
+for (const id of ['left', 'right']) {
   fs.writeFileSync(path.join(thumbsDir, `${id}.png`), TINY_PNG);
+  fs.writeFileSync(
+    path.join(thumbsDir, `${id}.json`),
+    JSON.stringify({
+      fingerprint: thumbFingerprint(
+        db.prepare('SELECT * FROM works WHERE id=?').get(id),
+      ),
+    }),
+  );
+}
 const app = express();
 installShare(
   app,
   db,
   fileURLToPath(new URL('../dist', import.meta.url)),
   thumbsDir,
+  () => ({ name: '真实当日答案' }),
 );
 const server = app.listen(0, '127.0.0.1');
 await new Promise((resolve) => server.once('listening', resolve));
@@ -92,10 +106,10 @@ try {
     },
   );
   await check(
-    '导出真实 PNG：竖版 1080×1350，OG 1200×630；支持附件下载',
+    '导出真实 PNG：竖版 1080×1760，OG 1200×630；支持附件下载',
     async () => {
       for (const [endpoint, w, h] of [
-        ['card', 1080, 1350],
+        ['card', 1080, 1760],
         ['og', 1200, 630],
       ]) {
         const response = await fetch(
@@ -138,6 +152,9 @@ try {
         )
       ).text();
       assert.ok(!html.includes('SECRET_MODEL_NAME'));
+      const answer = resolveShare(q, db, () => ({ name: '真实当日答案' }));
+      assert.match(shareSvg(answer, base), /真实当日答案/);
+      assert.match(shareSvg(answer, base, true), /真实当日答案/);
       assert.match(html, /今天的新题/);
     },
   );
@@ -149,9 +166,9 @@ try {
       assert.match(svg, /&lt;script&gt;/);
       assert.match(svg, /GPT-6-astra-extra-long-thinking-2026/);
       assert.ok(!svg.includes('<script>'));
-    assert.match(svg, /个人选择分享/);
-    data.names[0] = 'very-long-model-name-'.repeat(8) + 'TAIL_MARKER';
-    assert.match(shareSvg(data, base + '/share?' + params), /TAIL_MARKER/);
+      assert.match(svg, /个人选择分享/);
+      data.names[0] = 'very-long-model-name-'.repeat(8) + 'TAIL_MARKER';
+      assert.match(shareSvg(data, base + '/share?' + params), /TAIL_MARKER/);
     },
   );
   await check(
@@ -173,10 +190,16 @@ try {
           JSON.stringify(bad),
         );
       const url = base + '/share?x';
-      const withThumbs = shareSvg({ ...data, thumbs: ['data:image/png;base64,AA', 'data:image/png;base64,BB'] }, url);
+      const withThumbs = shareSvg(
+        {
+          ...data,
+          thumbs: ['data:image/png;base64,AA', 'data:image/png;base64,BB'],
+        },
+        url,
+      );
       assert.equal(withThumbs.match(/<image /g).length, 2);
-      assert.match(withThumbs, /preserveAspectRatio="xMidYMid slice"/);
-      assert.ok(!withThumbs.includes('#ff7c6c'));
+      assert.match(withThumbs, /preserveAspectRatio="xMidYMid meet"/);
+      assert.ok(!withThumbs.includes('slice'));
       const fallback = shareSvg(data, url);
       assert.ok(!fallback.includes('<image '));
       assert.match(fallback, /#ff7c6c/);
@@ -186,14 +209,50 @@ try {
       );
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('content-type'), 'image/png');
+      const original = db
+        .prepare("SELECT content FROM works WHERE id='right'")
+        .get().content;
+      db.prepare("UPDATE works SET content=? WHERE id='right'").run(
+        JSON.stringify({ kind: 'html', html: '<p>inline</p>' }),
+      );
       fs.rmSync(path.join(thumbsDir, 'right.png'));
       const missing = await fetch(
         `${base}/share/card.png?${new URLSearchParams(q)}&t=2`,
       );
       assert.equal(missing.status, 200);
+      db.prepare("UPDATE works SET content=? WHERE id='right'").run(original);
       fs.writeFileSync(path.join(thumbsDir, 'right.png'), TINY_PNG);
     },
   );
+  await check('校准与机位变化使旧快照失效；对决卡也包含完整作品图', () => {
+    const work = db.prepare("SELECT * FROM works WHERE id='left'").get();
+    const before = thumbFingerprint(work);
+    for (const extra of [
+      { framing: { width: 1280, height: 900, zoom: 0.8, offsetY: -0.1 } },
+      { camera: { position: [1, 2, 3] } },
+    ])
+      assert.notEqual(
+        thumbFingerprint({
+          ...work,
+          content: JSON.stringify({ ...JSON.parse(work.content), ...extra }),
+        }),
+        before,
+      );
+    const data = resolveShare(Object.fromEntries(params), db);
+    assert.deepEqual(data.pair, ['left', 'right']);
+    for (const landscape of [false, true]) {
+      const svg = shareSvg(
+        {
+          ...data,
+          thumbs: ['data:image/png;base64,AA', 'data:image/png;base64,BB'],
+        },
+        base,
+        landscape,
+      );
+      assert.equal(svg.match(/<image /g).length, 2);
+      assert.ok(!svg.includes('slice'));
+    }
+  });
   await check('已缓存图片在作品下架后也拒绝访问', async () => {
     db.prepare("UPDATE works SET published=0 WHERE id='left'").run();
     assert.equal((await fetch(`${base}/share/card.png?${params}`)).status, 404);

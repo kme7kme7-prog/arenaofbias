@@ -62,6 +62,7 @@ export default defineConfig({
       input: {
         index: fileURLToPath(new URL('index.html', import.meta.url)),
         admin: fileURLToPath(new URL('admin.html', import.meta.url)),
+        capture: fileURLToPath(new URL('capture.html', import.meta.url)),
       },
     },
   },

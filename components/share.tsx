@@ -63,7 +63,7 @@ function ShareSheet({ query }: { query: string }) {
     const controller = new AbortController();
     let objectUrl = '';
     let disposed = false;
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), 110000);
     void (async () => {
       try {
         const response = await fetch(`/api/share?${query}`, {
@@ -142,7 +142,7 @@ function ShareSheet({ query }: { query: string }) {
             <img
               src={imageUrl}
               width={1080}
-              height={1350}
+              height={query.includes('type=duel') || query.includes('&a=') ? 1760 : 1600}
               alt={meta?.title ?? t('分享卡预览')}
             />
           ) : (
@@ -168,7 +168,7 @@ function ShareSheet({ query }: { query: string }) {
           <p>
             {t(
               query.includes('type=guess')
-                ? '只分享推理轨迹，不剧透模型答案。朋友扫码后也能来猜一把。'
+                ? '把今天的模型答案和推理轨迹一起留下，朋友扫码后也能来猜一把。'
                 : '把这场对决发给朋友，看看你们的直觉是否一致。',
             )}
           </p>

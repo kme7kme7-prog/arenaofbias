@@ -165,3 +165,22 @@ npm start          # 生产形态：http://localhost:3000
 ### 「下一题」纸幕的作品就绪门（096）
 
 `lib/works-gate.ts` 是跨路由的布防/放门标记：`gotoRandomArena` 进纸幕前 `armWorksGate()`，`match` 的 `holdGate: worksGateOpen` 让纸幕盖满后钉在 `exitStart`（`tick` 钳位 + 压 `nativeExit`，钉住态 `gtPhase` 仍 `entry`、层打 `data-gt-hold`），牌面兼任加载屏——holdnote 呼吸注记、duel 连线按 `data-gt-a/b` 逐侧填色。新竞技场 `pollWorksReady` 逐侧 `reportWorkReady`，双侧齐 `releaseWorksGate()` 放门扫出，揭幕落在就绪作品上，「正在接入试验场」整拍被纸幕吸收。放门点：双侧就绪、卡死计时器（落回 overlay+跳过兜底）、intro 清理（空格/卸载/重跑）、15s 兜底；`gotoRandomArena` 入口 `!worksGateOpen()` 防叠幕。只有 `gotoRandomArena` 布防——菜单入场、重播、正式换组不受影响。
+
+## 分享输出（106–108）
+
+- `components/share.tsx` + `app/share.css`：结果分享弹窗、全站底部分享、图片请求取消/110s 超时（含首次作品冷启动）/重试、PNG blob 下载与系统分享、剪贴板手动复制降级；关闭释放 object URL，快捷键不会穿透打开的 Dialog。
+- `server/share.js`：GET `/api/share` 返回 canonical/image/title，GET `/share` 返回无需 JS 的独立 HTML，GET `/share/card.png` 和 `/share/og.png` 输出 PNG。对决只读取已发布题与同题不同模型作品，保留传入 A/B 顺序；不读写账户或投票。guess 只接受日期、胜负、1–8 行七格 h/n/m/u，不接收调用方指定的答案，服务端复用已加载额外模型的每日答案派生器生成真实答案；明确为个人分享而非服务端认证成绩。
+- `server/share-card.js`：共享 SVG 版式、文本转义/换行/完整模型名自适应、二维码。`server/share-worker.js` 使用 resvg 在独立 Worker 栅格化，串行队列至多 12 个待执行、48 张/24MiB 内存缓存、15s 渲染超时；请求先校验发布状态，再查图片缓存。未落盘图片或新增数据库表。
+- `server/fonts/NotoSansSC.ttf` 是随仓库部署的 OFL 中文字体（约 10 MB），确保 Linux 不依赖系统字体；许可证及来源见同目录 NOTICE.md/OFL.txt。新增运行依赖 `@resvg/resvg-js`、`qrcode`。
+- `lib/shared-duel.ts` 解析分享页 CTA 的 `?duel=[promptId,aId,bId]`。路由等待远端清单后校验并传 Arena initialPair，失效时显示不可用，不偷偷重抽；按普通娱乐流程选择计票，完全独立于后台测试对局。
+- 生产根 HTML 的 `<!-- social-meta -->` 在 Express 响应时补全绝对 OG/Twitter 标签；Vite 开发入口有对应 transform，`/share` 前缀代理至 API（含 `/share-assets`）。`public/share-assets/` 承载分享页静态样式与交互。协议依据：https://ogp.me/ 。
+- **部署**：安装新增依赖，连同 `server/fonts/`、`public/share-assets/`、`server/share*.js` 部署，设置 `APP_ORIGIN=https://实际域名`；反代必须把 `/share`、`/share/*.png` 交给 Express，并让根 HTML 经过 Express（若根由 nginx 静态直出，动态 OG 不会注入）。原 `/api`、`/works` 反代规则保留。站点与图片需公网匿名可访问。本地无法验证微信/QQ/X 平台抓取和缓存行为；未接微信 JS-SDK，不能保证微信生成自定义卡片。
+- `npm run validate:share`：内存 SQLite + 临时 HTTP 端口验证发布边界、字段转义、实际 PNG 尺寸、附件下载、日期/反馈格校验、下架后缓存拒绝等 10 组检查。`reference/share-review.html` 直连真实渲染器，对照 A/B/平局、模一把成功/失败、全站邀请与两种图片比例，不写真实投票。`reference/guess-review-stage.ts` 的隔离结算现在使用当天真实日期，便于验证分享链路。
+
+
+### 作品快照与校准（108）
+- `capture.html` / `src/work-capture.tsx` 是只读构建入口，通过 `/api/share-work/:id` 获取已发布作品，直接复用 `FixedHtmlWork` 与 `workCanvas`。1280×720 固定截图窗口，保留 framing 的内部画布、zoom、offset；非固定画布沿用预览参数 `aob=prev`，机位沿用原服务端桥。
+- `server/work-thumbnails.js` 用隔离的无头 Chromium 页面等待文档、图片、字体、探针首帧与保存机位就绪，再等 2.2 秒实际渲染。限定本地服务地址，最多同时两页、有限等待队列，关闭页面和浏览器；不读取用户浏览器资料。
+- `data/thumbs/<id>.png` 配套指纹 JSON（作品内容含 framing/camera、题号、渲染版本）。旧无指纹 PNG 不复用；分享时自动生成缺失/失效图，同一作品同指纹请求合并，成功后替换。截图失败返回 503，前端重试。代码升级改变截图表现时递增 fingerprint 版本；仅原文件资产改变而元数据不变时运行预生成脚本刷新。
+- 生产先 `npm run build`，确保 `dist/capture.html` 存在；需要服务器安装 Chrome/Chromium（Windows 默认 Edge）。可用 `THUMB_BROWSER=/absolute/path/to/chromium` 指定可执行文件。`playwright-core` 不自带下载浏览器。服务端沙箱保持浏览器默认，不使用 `--no-sandbox`。
+- `npm run thumbs:works -- --only id,id` 可离线预生成；遵循 DATA_DIR。原有无校准截图自动失效，无需手工清空 data。

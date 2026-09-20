@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { escapeHtml as e } from './share-card.js';
+import { captureWork, thumbFingerprint } from './work-thumbnails.js';
 
 const site = {
   home: [
@@ -36,13 +37,15 @@ const site = {
   ],
 };
 
-export function resolveShare(query, db) {
+export function resolveShare(query, db, answerForDay = () => null) {
   const params = new URLSearchParams();
   const type = query.type || 'site';
   params.set('type', type);
   const loadPair = (promptId, a, b) => {
     if (
-      ![a, b].every((v) => typeof v === 'string' && v.length > 0 && v.length <= 200) ||
+      ![a, b].every(
+        (v) => typeof v === 'string' && v.length > 0 && v.length <= 200,
+      ) ||
       a === b
     )
       return null;
@@ -82,6 +85,7 @@ export function resolveShare(query, db) {
         params.set('a', query.a);
         params.set('b', query.b);
         data.pair = [query.a, query.b];
+        data.names = works.map((work) => work.model_name);
         data.target = `/?duel=${encodeURIComponent(JSON.stringify([prompt.id, query.a, query.b]))}#arena/${prompt.id}`;
       }
       return data;
@@ -100,6 +104,7 @@ export function resolveShare(query, db) {
       type,
       prompt,
       names,
+      pair: [query.a, query.b],
       pick: query.pick,
       demo: works.some((w) => w.is_demo),
       params,
@@ -142,10 +147,11 @@ export function resolveShare(query, db) {
       day,
       rows,
       won,
+      answer: answerForDay(day)?.name ?? null,
       params,
       kicker: `模一把 / #${String(number).padStart(3, '0')} / ${day}`,
       headline: won ? '猜中了。\n凭的是线索。' : '没猜中，\n也有下一局。',
-      subtitle: `${day} · ${won ? rows.length : 'X'}/8 · 七条线索，八次机会，不剧透答案。`,
+      subtitle: `${day} · ${won ? rows.length : 'X'}/8 · 七条线索，八次机会，留下今天的答案。`,
       title: `模一把 #${number} · ${won ? rows.length : 'X'}/8，你能用几次？`,
       target: '/#guess',
       historical: day !== today,
@@ -257,14 +263,53 @@ function imageRenderer() {
   };
 }
 
-export function installShare(app, db, distDir, thumbsDir = '') {
+export function installShare(
+  app,
+  db,
+  distDir,
+  thumbsDir = '',
+  answerForDay = () => null,
+) {
   const render = imageRenderer();
-  // 缩略图由 scripts/make-work-thumbs.mjs 离线生成（决策 107），按作品 id 落盘；
-  // 缺图的作品回落通用色块卡。mtime 缓存避免每次渲染都读盘 base64。
+  // 校准指纹决定快照是否有效；首次分享或参数变化后重拍。
   const thumbCache = new Map();
-  function thumbDataUri(id) {
+  const captures = new Map();
+  const selectWork = db.prepare(
+    'SELECT w.id, w.prompt_id, w.content, w.title FROM works w JOIN prompts p ON p.id=w.prompt_id WHERE w.id=? AND w.published=1 AND p.published=1',
+  );
+  app.get('/api/share-work/:id', (req, res) => {
+    const work = selectWork.get(req.params.id);
+    if (!work) return res.status(404).json({ error: '作品不可用' });
+    res.set('Cache-Control', 'no-store').json({ work });
+  });
+  async function thumbDataUri(id, base) {
     if (!thumbsDir || !/^[\w.-]+$/.test(id)) return null;
+    const work = selectWork.get(id);
+    if (!work) return null;
+    const content = JSON.parse(work.content);
+    if (content.kind === 'html' && !content.src?.startsWith('/works/'))
+      return null;
+    const fingerprint = thumbFingerprint(work);
     const file = path.join(thumbsDir, `${id}.png`);
+    let valid = false;
+    try {
+      valid =
+        JSON.parse(fs.readFileSync(path.join(thumbsDir, `${id}.json`), 'utf8'))
+          .fingerprint === fingerprint && fs.existsSync(file);
+    } catch {}
+    if (!valid) {
+      const key = `${id}:${fingerprint}`;
+      if (!captures.has(key))
+        captures.set(
+          key,
+          captureWork(base, id, thumbsDir, fingerprint).finally(() =>
+            captures.delete(key),
+          ),
+        );
+      await captures.get(key);
+      if (thumbFingerprint(selectWork.get(id) ?? {}) !== fingerprint)
+        throw new Error('作品校准已更新，请重新生成');
+    }
     let stat;
     try {
       stat = fs.statSync(file);
@@ -272,14 +317,15 @@ export function installShare(app, db, distDir, thumbsDir = '') {
       return null;
     }
     const hit = thumbCache.get(id);
-    if (hit && hit.mtime === stat.mtimeMs) return hit.uri;
+    if (hit && hit.mtime === stat.mtimeMs && hit.fingerprint === fingerprint)
+      return hit.uri;
     const uri = `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`;
     if (thumbCache.size > 64) thumbCache.clear();
-    thumbCache.set(id, { mtime: stat.mtimeMs, uri });
+    thumbCache.set(id, { mtime: stat.mtimeMs, fingerprint, uri });
     return uri;
   }
   function resolve(req, res) {
-    const data = resolveShare(req.query, db);
+    const data = resolveShare(req.query, db, answerForDay);
     if (!data) {
       res
         .status(404)
@@ -297,13 +343,16 @@ export function installShare(app, db, distDir, thumbsDir = '') {
     if (!data) return;
     res.set('Cache-Control', 'no-store').json(shareMeta(data, originOf(req)));
   });
-  app.get(['/share/card.png', '/share/og.png'], async (req, res, next) => {
+  app.get(['/share/card.png', '/share/og.png'], async (req, res) => {
     try {
       const data = resolve(req, res);
       if (!data) return;
       if (data.pair) {
-        const thumbs = data.pair.map(thumbDataUri);
-        if (thumbs.every(Boolean)) data.thumbs = thumbs;
+        data.thumbs = await Promise.all(
+          data.pair.map((id) =>
+            thumbDataUri(id, `http://127.0.0.1:${req.socket.localPort}`),
+          ),
+        );
       }
       const meta = shareMeta(data, originOf(req));
       const landscape = req.path.endsWith('og.png');
@@ -322,7 +371,10 @@ export function installShare(app, db, distDir, thumbsDir = '') {
         );
       res.type('png').send(png);
     } catch (error) {
-      next(error);
+      res
+        .status(503)
+        .set('Cache-Control', 'no-store')
+        .json({ error: error.message || '作品快照暂未生成，请重试' });
     }
   });
   app.get('/share', (req, res) => {
@@ -346,7 +398,7 @@ export function installShare(app, db, distDir, thumbsDir = '') {
       )
       .type('html')
       .send(
-        `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#20352d"><title>${e(meta.title)}</title><meta name="description" content="${e(meta.description)}">${metaTags(meta)}<link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/share-assets/page.css"><script src="/share-assets/page.js" defer></script></head><body><header><a href="/#home">ARENA OF <b>BIAS</b></a><span>一张卡片，一份自己的答案。</span></header><main><div class="poster"><img src="${e(meta.image)}" width="1080" height="1350" alt="${e(meta.title)}" id="card"></div><section><p class="eyebrow">${e(data.kicker)}</p><h1>${e(data.headline).replaceAll('\n', '<br>')}</h1><p class="description">${e(data.subtitle)}</p>${data.type === 'duel' ? '<p class="note">这是分享者的个人选择。打开后可观看同一对作品，再留下你自己的判断。</p>' : data.type === 'guess' ? `<p class="note">卡片不含答案。${data.historical ? '这是往期挑战记录，入口会进入今天的新题。' : '七条线索，从第一步开始推理。'}</p>` : ''}<a class="primary" href="${e(data.target)}">${action}<span>↗</span></a><div class="actions"><a href="${e(meta.image)}&amp;download=1" download>保存图片 ↓</a><button id="copy">复制链接 ↗</button><button id="native" hidden>系统分享</button></div><p class="note">手机可长按图片保存，或使用系统分享。</p><label class="manual" hidden>长按复制链接<input readonly value="${e(meta.url)}"></label><p id="status" role="status" aria-live="polite"></p></section></main><footer><span>AI 负责想象。你负责喜欢。</span><a href="/#prompts">探索更多题目 ↗</a></footer></body></html>`,
+        `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#20352d"><title>${e(meta.title)}</title><meta name="description" content="${e(meta.description)}">${metaTags(meta)}<link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/share-assets/page.css"><script src="/share-assets/page.js" defer></script></head><body><header><a href="/#home">ARENA OF <b>BIAS</b></a><span>一张卡片，一份自己的答案。</span></header><main><div class="poster"><img src="${e(meta.image)}" width="1080" height="${data.pair ? 1760 : 1600}" alt="${e(meta.title)}" id="card"></div><section><p class="eyebrow">${e(data.kicker)}</p><h1>${e(data.headline).replaceAll('\n', '<br>')}</h1><p class="description">${e(data.subtitle)}</p>${data.type === 'duel' ? '<p class="note">这是分享者的个人选择。打开后可观看同一对作品，再留下你自己的判断。</p>' : data.type === 'guess' ? `<p class="note">卡片包含当日模型答案与推理轨迹。${data.historical ? '这是往期挑战记录，入口会进入今天的新题。' : '七条线索，从第一步开始推理。'}</p>` : ''}<a class="primary" href="${e(data.target)}">${action}<span>↗</span></a><div class="actions"><a href="${e(meta.image)}&amp;download=1" download>保存图片 ↓</a><button id="copy">复制链接 ↗</button><button id="native" hidden>系统分享</button></div><p class="note">手机可长按图片保存，或使用系统分享。</p><label class="manual" hidden>长按复制链接<input readonly value="${e(meta.url)}"></label><p id="status" role="status" aria-live="polite"></p></section></main><footer><span>AI 负责想象。你负责喜欢。</span><a href="/#prompts">探索更多题目 ↗</a></footer></body></html>`,
       );
   });
   // Hash routes share a document, so a pasted legacy URL gets the site card.
