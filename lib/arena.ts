@@ -143,9 +143,11 @@ export const prompts: Prompt[] = seedPrompts;
 export const rounds = prompts;
 
 export type Story = {
-  heading: string;
+  /** 缺省 = 无标题作品（如 008 聊天回复），渲染时不出 h3 */
+  heading?: string;
   paragraphs: string[];
-  ending: string;
+  /** 缺省 = 不落款，渲染时不出 footer */
+  ending?: string;
 };
 
 /** 视角校准（决策 102）：OrbitControls 相机位与目标点，服务端注入桥时套用 */

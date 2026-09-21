@@ -25,6 +25,7 @@
     "validate:admin": "node scripts/validate-admin.mjs",
     "validate:camera": "node scripts/validate-work-camera.mjs",
     "validate:matchmaking": "node scripts/validate-matchmaking.mjs",
+    "validate:reactions": "node scripts/validate-reactions.mjs",
     "check:wipe": "node scripts/check-wipe.mjs",
     "check:surface": "node scripts/check-surface.mjs",
     "check:game": "node scripts/check-game-transitions.mjs",

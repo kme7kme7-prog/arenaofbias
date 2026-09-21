@@ -70,7 +70,12 @@ import {
 } from '@/lib/placeholder';
 import { pairKeyOf, submitVote } from '@/lib/votes';
 import { refreshRatings } from '@/lib/ratings';
-import { submitReaction, type ReactionKind } from '@/lib/reactions';
+import {
+  flushReactions,
+  peekPending,
+  queueReaction,
+  type ReactionKind,
+} from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
 import {
   armTextSwap,
@@ -91,6 +96,7 @@ import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
+import './conversation-arena.css';
 
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
@@ -285,14 +291,20 @@ function ReactionBar({
   modelLabel: string;
 }) {
   const { t, localize } = useI18n();
+  const { user } = useAccount();
   const [mine, setMine] = useState<ReactionKind | null>(null);
   const [counts, setCounts] = useState<Record<ReactionKind, number> | null>(
     null,
   );
   const [burst, setBurst] = useState<ReactionKind | null>(null);
+  const [reactionError, setReactionError] = useState('');
+  const reactionKnown = useRef<ReactionKind | null>(null);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      // 先把上一局/上一页没同步出去的意图补发，再读服务端真相
+      await flushReactions();
+      if (cancelled) return;
       try {
         const response = await fetch(
           `/api/reactions?prompt=${encodeURIComponent(promptId)}`,
@@ -304,43 +316,52 @@ function ReactionBar({
         };
         if (cancelled) return;
         const row = data.counts?.[mid] ?? {};
-        setCounts({
+        const serverMine = data.mine?.[mid] ?? null;
+        reactionKnown.current = serverMine;
+        const merged: Record<ReactionKind, number> = {
           up: row.up ?? 0,
           down: row.down ?? 0,
           laugh: row.laugh ?? 0,
-        });
-        setMine(data.mine?.[mid] ?? null);
+        };
+        // 补发失败仍在队列里的（下次再重试），显示时把本地意图叠加在服务端数上
+        const queued = peekPending(promptId, mid);
+        if (queued !== undefined) {
+          if (serverMine)
+            merged[serverMine] = Math.max(0, merged[serverMine] - 1);
+          if (queued) merged[queued] += 1;
+        }
+        setCounts(merged);
+        setMine(queued ?? serverMine);
       } catch {
         /* 拉不到就只显示零计数，不挡流程 */
       }
     })();
     return () => {
       cancelled = true;
+      // 离开这件作品（换组/换题/路由切换）：补发该 mid 的最终意图
+      void flushReactions();
     };
   }, [promptId, mid]);
+  // 本地优先（2026-09-20 用户拍板）：点击只改本地并记 pending，同步在卸载/关页
+  // 时按 mid 补发最终意图（lib/reactions.ts）——反应是一槽覆盖写，只发最后一个
+  // 不丢信息，乱按不再烧 social 限流桶；未登录当场提示，不做无用记录
   const react = (kind: ReactionKind) => {
-    const next = mine === kind ? null : kind;
-    setMine(next);
-    if (next) {
-      setCounts((current) =>
-        current ? { ...current, [kind]: current[kind] + 1 } : current,
-      );
-      setBurst(kind);
-    } else {
-      setCounts((current) =>
-        current
-          ? { ...current, [kind]: Math.max(0, current[kind] - 1) }
-          : current,
-      );
+    if (!user) {
+      setReactionError(t('登录后才能表态。'));
+      return;
     }
-    void submitReaction({
-      // 取消态服务端按覆盖语义处理：送一个无害的重复（同 kind）等价于保留，
-      // 真正的取消由本地镜像呈现；避免额外加 DELETE 接口
-      id: newId(),
-      promptId,
-      mid,
-      kind: next ?? mine ?? 'up',
+    setReactionError('');
+    const next = mine === kind ? null : kind;
+    setCounts((current) => {
+      if (!current) return current;
+      const updated = { ...current };
+      if (mine) updated[mine] = Math.max(0, updated[mine] - 1);
+      if (next) updated[next] += 1;
+      return updated;
     });
+    setMine(next);
+    if (next && next !== mine) setBurst(next);
+    queueReaction(promptId, mid, next, reactionKnown.current);
   };
   const items: Array<{
     kind: ReactionKind;
@@ -377,6 +398,9 @@ function ReactionBar({
           </span>
         </button>
       ))}
+      <output className="reaction-status" aria-live="polite">
+        {reactionError}
+      </output>
     </div>
   );
 }
@@ -448,24 +472,31 @@ export function Work({
   }
   const story = result.content.story;
   return (
-    <article className={`story-work story-${side}`} data-tour-scroll>
-      <div className="story-meta">
-        <span>{t('一封未寄出的信')}</span>
-        <span>23:59:59</span>
-      </div>
-      <h3>
-        {story.heading}
-        <span>{t('。')}</span>
-      </h3>
+    <article className={`story-work story-${side} ${result.promptId === '008' ? 'conversation-reply' : ''}`} data-tour-scroll>
+      {/* 信纸装扮只属于有标题有落款的信件（002）；008 聊天回复是纯正文 */}
+      {story.heading ? (
+        <>
+          <div className="story-meta">
+            <span>{t('一封未寄出的信')}</span>
+            <span>23:59:59</span>
+          </div>
+          <h3>
+            {story.heading}
+            <span>{t('。')}</span>
+          </h3>
+        </>
+      ) : null}
       <div className="story-body">
         {story.paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}
       </div>
-      <footer>
-        <span>{localize(story.ending)}</span>
-        <AudioLines size={20} />
-      </footer>
+      {story.ending ? (
+        <footer>
+          <span>{localize(story.ending)}</span>
+          <AudioLines size={20} />
+        </footer>
+      ) : null}
     </article>
   );
 }
@@ -1191,7 +1222,7 @@ export default function Arena({
 
   return (
     <div
-      className={`arena-shell phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
+      className={`arena-shell ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       }`}
     >
@@ -1460,7 +1491,7 @@ export default function Arena({
                           : prompt.kind === 'web'
                             ? 'HTML / 可打开交互预览'
                             : prompt.kind === 'text'
-                              ? 'TEXT / 短篇创作'
+                              ? prompt.id === '008' ? round.category : 'TEXT / 短篇创作'
                               : 'IMAGE / 概念设计',
                       )}
                     </span>

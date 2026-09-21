@@ -72,8 +72,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (request === revision.current) setLoading(false);
     }
   }, []);
+  // 挂载时拉一次会话状态；单独放一个 effect，只依赖稳定的 refresh，
+  // 否则下面的焦点 effect 会因 user/username/password 变化反复重跑、
+  // 每次按键与登出后重渲染都补打一次 /me，和登出竞态把已登出的 UI 拉回登录态。
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+  useEffect(() => {
     const focus = () => {
       // 正在登录/注册表单里输入时跳过焦点刷新：别的标签页刚登录成功的话，
       // 这里一刷新会把表单突变成会员视图，已输入的账号密码直接丢失
@@ -135,6 +140,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
       setPassword('');
       setConfirm('');
+      setUsername('');
       setOpened(false);
     } catch (cause) {
       setError(

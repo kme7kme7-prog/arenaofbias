@@ -7,7 +7,7 @@
 //   ⑤ 后台构建产物存在（admin.html 双入口）；
 //   ⑥ 作品管理（决策 044）：全量清单/筛选、编辑与发布开关（含下架后投票核对收紧）；
 //   ⑦ 收件箱（决策 044）：清单建议、单文件与文件夹登记、同模型让位、路径穿越防护；
-//   ⑧ 题目管理（决策 045）：门禁、新增自动编号 008、编辑文案、上下架即公开清单增减、
+//   ⑧ 题目管理（决策 045）：门禁、新增自动编号 009、编辑文案、上下架即公开清单增减、
 //     评论白名单认题目表（草稿拒写、上架放行）。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -515,9 +515,9 @@ try {
       (await robustFetch(`${base}/api/admin/prompts`, { headers: { cookie: userCookie } })).status,
       404,
     );
-    // 公开题目接口：迁移 003 播种的 7 道内置题
+    // 公开题目接口：迁移播种的 8 道内置题
     const publicSeeds = await (await robustFetch(`${base}/api/prompts`)).json();
-    assert.equal(publicSeeds.prompts.length, 7);
+    assert.equal(publicSeeds.prompts.length, 8);
 
     // 新增：跨源 403 / 非 JSON 415 / 非法 kind 400 / 缺名称 400
     const create = (body, headers = {}) =>
@@ -541,7 +541,7 @@ try {
     assert.equal((await create({ kind: 'video', name: 'x', prompt: 'y' })).status, 400);
     assert.equal((await create({ kind: 'text', prompt: 'y' })).status, 400);
 
-    // 正常新增（草稿）：自动编号 008；公开清单不见；草稿题评论拒写、可读（空列表）
+    // 正常新增（草稿）：自动编号 009；公开清单不见；草稿题评论拒写、可读（空列表）
     const created = await create({
       kind: 'text',
       name: '冒泡题目',
@@ -553,27 +553,27 @@ try {
     });
     assert.equal(created.status, 201);
     const draft = (await created.json()).prompt;
-    assert.equal(draft.id, '008');
+    assert.equal(draft.id, '009');
     assert.equal(draft.published, false);
     assert.equal(draft.worksCount, 0);
     assert.equal(draft.voteCount, 0);
     let publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
-    assert.ok(!publicNow.prompts.some((item) => item.id === '008'));
+    assert.ok(!publicNow.prompts.some((item) => item.id === '009'));
     const adminList = await (await robustFetch(`${base}/api/admin/prompts`, {
       headers: { cookie: ownerCookie },
     })).json();
-    assert.equal(adminList.prompts.length, 8);
+    assert.equal(adminList.prompts.length, 9);
     const commentDraft = await robustFetch(`${base}/api/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', origin: base, cookie: userCookie },
-      body: JSON.stringify({ id: '99999999-9999-4999-8999-999999999999', roundId: '008', side: 'a', body: '太早了' }),
+      body: JSON.stringify({ id: '99999999-9999-4999-8999-999999999999', roundId: '009', side: 'a', body: '太早了' }),
     });
     assert.equal(commentDraft.status, 400); // 白名单认题目表：草稿题拒评论
     assert.equal((await robustFetch(`${base}/api/comments?round=008`)).status, 200);
 
     // 编辑：非法值 400 / 空改动 400 / 未知题 404；改文案 + 上架 → 公开清单出现
     const patch = (body) =>
-      robustFetch(`${base}/api/admin/prompts/008`, {
+      robustFetch(`${base}/api/admin/prompts/009`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', origin: base, cookie: ownerCookie },
         body: JSON.stringify(body),
@@ -594,13 +594,13 @@ try {
     assert.equal(saved.name, '冒泡题目·改');
     assert.equal(saved.published, true);
     publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
-    const live = publicNow.prompts.find((item) => item.id === '008');
+    const live = publicNow.prompts.find((item) => item.id === '009');
     assert.ok(live && live.name === '冒泡题目·改');
     // 上架后评论可写（白名单已随题目表放行）
     const commentOk = await robustFetch(`${base}/api/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', origin: base, cookie: userCookie },
-      body: JSON.stringify({ id: '99999999-9999-4999-8999-999999999998', roundId: '008', side: 'a', body: '上架后可以讨论了' }),
+      body: JSON.stringify({ id: '99999999-9999-4999-8999-999999999998', roundId: '009', side: 'a', body: '上架后可以讨论了' }),
     });
     assert.equal(commentOk.status, 201);
 
@@ -612,7 +612,7 @@ try {
     assert.deepEqual((await response.json()).prompt.weights, [0.5, 0.5, 0, 0, 0, 0]);
     publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
     assert.deepEqual(
-      publicNow.prompts.find((item) => item.id === '008')?.weights,
+      publicNow.prompts.find((item) => item.id === '009')?.weights,
       [0.5, 0.5, 0, 0, 0, 0],
     );
     // 种子题经迁移 007 回填，公开行自带合法权重
@@ -624,7 +624,7 @@ try {
     assert.equal((await response.json()).prompt.weights, undefined);
     publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
     assert.equal(
-      publicNow.prompts.find((item) => item.id === '008')?.weights,
+      publicNow.prompts.find((item) => item.id === '009')?.weights,
       undefined,
     );
 
@@ -632,7 +632,7 @@ try {
     response = await patch({ published: false });
     assert.equal(response.status, 200);
     publicNow = await (await robustFetch(`${base}/api/prompts`)).json();
-    assert.ok(!publicNow.prompts.some((item) => item.id === '008'));
+    assert.ok(!publicNow.prompts.some((item) => item.id === '009'));
 
     // 请求体上限回归：提示词允许 8000 字（UTF-8 下超全局 4kb 上限），
     // /api/admin 的请求体须单独放宽，长题保存不得 413

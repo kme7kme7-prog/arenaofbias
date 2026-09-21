@@ -501,7 +501,7 @@ export function AdminPrompts() {
             </button>
             {isNew && (
               <span className="admin-note" style={{ margin: 0 }}>
-                编号自动分配（当前将为 008 起）
+                编号按当前最大题号自动分配
               </span>
             )}
           </div>

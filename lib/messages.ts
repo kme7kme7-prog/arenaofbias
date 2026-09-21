@@ -255,6 +255,7 @@ export const messages: Record<string, string> = {
   不行: 'Dislike',
   哈哈: 'Funny',
   你的态度: 'Your reaction',
+  '登录后才能表态。': 'Log in to react.',
   画面暂时未能载入: 'Unable to load this work',
   可先切换至文字或网页对决: 'Try a text or web matchup instead',
   图像: 'Images',
@@ -733,7 +734,7 @@ export const messages: Record<string, string> = {
   // 内测提示（2026-09-20）：首次进站一次性弹窗
   '内测版': 'Beta',
   '这个小游戏网站还在小范围内测。': 'Arena of Bias is in a small closed beta.',
-  '玩法与榜单功能大致做完了，细节还在打磨。': 'The games and the leaderboard already work — the details are still being polished.',
+  '玩法与榜单功能大致做完了，剩下还在打磨，预计有特别多bug。': 'The games and the leaderboard already work — the details are still being polished.',
   '现在投票都会被计入；如果遇到哪里不对劲，马上发给我。': 'Every vote counts for real. If anything feels off, tell us.',
   '知道了': 'Got it — let me in',
 };

@@ -3334,6 +3334,12 @@ kbd {
   margin-right: 4px;
   white-space: nowrap;
 }
+.reaction-status {
+  font: 10px var(--mono);
+  letter-spacing: 0.5px;
+  color: #b0563f;
+  white-space: nowrap;
+}
 .reaction-chip {
   position: relative;
   display: inline-flex;

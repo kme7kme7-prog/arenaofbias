@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/locale';
 import '@/components/beta-notice.css';
 
 const STORAGE_KEY = 'aob-beta-notice';
-const STORAGE_VERSION = 'v2';
+const STORAGE_VERSION = 'v3';
 
 function dismiss() {
   try {
@@ -41,9 +41,9 @@ export function BetaNotice() {
         showCloseButton={false}
       >
         <DialogTitle className="beta-notice-title">{t('内测版')}</DialogTitle>
-        <p>{t('偏见试验场还在小范围内测。')}</p>
-        <p>{t('玩法与榜单已经可用，细节仍在打磨。')}</p>
-        <p>{t('你的每一票都会真实计入；遇到任何不对劲的地方，欢迎告诉我们。')}</p>
+        <p>{t('这个小游戏网站还在小范围内测。')}</p>
+        <p>{t('玩法与榜单功能大致做完了，剩下还在打磨，预计有特别多bug。')}</p>
+        <p>{t('现在投票都会被计入；如果遇到哪里不对劲，马上发给我。')}</p>
         <button
           type="button"
           className="beta-notice-enter"
@@ -52,7 +52,7 @@ export function BetaNotice() {
             setOpen(false);
           }}
         >
-          {t('知道了，进场')}
+          {t('知道了')}
         </button>
       </DialogContent>
     </Dialog>

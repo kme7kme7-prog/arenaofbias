@@ -1,11 +1,11 @@
 # HANDOFF.md · 当前状态
 
-## 2026-09-20 · 首页内测提示弹窗（最新，未归档）
+## 2026-09-21 · 008 文字题 + 内测收口 + 退出修复 + VPS 上线（本轮，已归档）
 
-- 用户即将上线小范围内测，要求首次进入主页面弹一个「测试阶段」提示。文案用户两轮挑选后定稿**说明版**：标题「内测版」+「偏见试验场还在小范围内测。玩法与榜单已经可用，细节仍在打磨。你的每一票都会真实计入；遇到任何不对劲的地方，欢迎告诉我们。」+ 按钮「知道了，进场」（初版极简被嫌太短）；频率**只弹一次**（localStorage `aob-beta-notice`，当前版本 `v2`，改版文案时递增让老访客再看一次）。
-- 实现：`components/beta-notice.tsx`（复用 `components/ui/dialog`，ESC/遮罩/按钮关闭，存储不可用时静默不弹）+ `components/beta-notice.css`（纸面卡+酸黄下划线+墨底酸黄按钮硬投影，reduced-motion 关动画）；只在 `''`/`#home` 路由挂载（`src/main.tsx`），深链不打断；`lib/messages.ts` 补 4 个键（Beta/两句正文/Start）。
-- 验证：typecheck 0 错、定向 oxlint 0 告、build 过、validate-locale 绿；浏览器实测（5173 dev 实例）：中文弹窗目验通过、点「开始」关闭且写入标记、刷新不再弹、英文文案正常、`#guess` 深链不弹。
-- 未 commit、未 push。
+- 已归档：`docs/handoff/2026-09-21-008文字题内测收口与VPS上线-kme7kme7-prog.md`（决策 110–115：008 题/60 件文字作品/对话页样式四轮、反应本地优先、内测文案定稿、退出登录竞态修复、开发者面板仅 kme7、VPS 部署与 `npm run deploy:vps`）。
+- 线上：`http://114.66.27.88:3000`（Debian 12 宝塔共存机、Node 22、systemd `arenaofbias`、服务账户 arena、ufw 3000；80/443 备案前被运营商 301 劫持）。`kme7` 已线上注册并自动成为 admin；线上库有真实投票，**deploy:vps 不碰线上库与缩略图**。
+- **待办**：008 的 60 件文字作品只在本地库，需在 VPS 侧导入后重启，验证迁移 009/010 收敛（详见归档「下一步建议」）。
+
 
 ## 2026-09-20 · 全站代码审查第三轮 + 全部修复（最新，未归档）
 
@@ -24,13 +24,14 @@
 - 验证：typecheck、build、定向 oxlint 零告；validate:matchmaking 8→11 项（新增冷门优先、与同档叠加、服务端 games）、validate:votes 12、validate:arena 13、validate:leaderboard 11 全绿；diff --check 干净。未跑浏览器实测（纯抽取层改动，统计断言覆盖）。
 - 未 commit。本轮改动叠在下方两轮未提交改动（数据流水分页+体素旋转、匹配与计分体检）之上，三者互不冲突。
 
-## 2026-09-20 · 数据流水分页 + 体素作品旋转中心（最新，未归档）
+## 2026-09-20 · 数据流水分页 + 体素作品旋转中心 + 反应刷计数修复（最新，未归档）
 
-- 用户提两处：①后台数据流水太长要分页；②004 凌晨灰测 deepseek-v4-pro 的体素中式建筑自动旋转不绕中心、看不到全貌——只准动视角，改不了就去掉旋转，其他不动。
-- **数据流水分页**：`/api/admin/log` 加 `offset`（0–100000）并新增返回 `total`（同过滤口径 COUNT）；前端 `app/admin/log.tsx` 由「加载更多」（limit +100、页面无限加长）改为每页固定 50 条 + 上一页/下一页，页脚「第 X / Y 页 · 共 N 条」，换标签或搜索回第一页，首/末页按钮禁用。`validate-admin.mjs` 补 5 条分页断言（total 随过滤、offset 跳行、超页空行但 total 不变）。
+- 用户提三处：①后台数据流水太长要分页；②004 凌晨灰测 deepseek-v4-pro 的体素中式建筑自动旋转不绕中心、看不到全貌——只准动视角，改不了就去掉旋转，其他不动；③揭晓后点赞能来回刷计数、切其他态度不取消点赞。
+- **数据流水分页**：`/api/admin/log` 加 `offset`（0–100000）并新增返回 `total`（同过滤口径 COUNT）；前端 `app/admin/log.tsx` 由「加载更多」（limit +100、页面无限加长）改为每页固定 50 条 + 上一页/下一页，页脚「第 X / Y 页 · 共 N 条」，换标签或搜索回第一页，首/末页按钮禁用。`validate-admin.mjs` 补 5 条分页断言（total 随过滤、offset 跳行、超页空行但 total 不变）。（审查轮后续把 limit/offset 改成先取整再钳制，兼容小数入参。）
 - **体素旋转**：无头 Edge 实测包围盒与轨道——旧轨道绕 (0,24,-2.5)、仰角仅 15°、距 304，部分方位近角出框、整圈像在摆。改 `data/works/004/004-deepseek-v4-pro--0821-1ligi/src/main.js`：target (0,18,0)、相机 (156,236,269)（仰角约 35°、距约 380），VIEWS[0]「全景鸟瞰」同步；旋转开关/速度/其余七个机位预设一律未动。加速扫圈 8 方位截图验证 216×320×110 建筑群整圈全在画面内；`thumbs:works --only` 重拍该作品快照并目验竞技场构图留边。`data/` 不入库，重新接入作品库后此改动会丢，需重做。
-- 验证：typecheck、build、定向 oxlint（server/index.js、log.tsx、validate-admin.mjs）零告；validate:admin 11 项全绿；无头 UI 实测（临时测试服 + 直插 120 个种子用户绕开注册限流）：3 页翻页、末页 20 条、末页下一页禁用、翻页首行用户名变化、第 2 页截图目验。未跑竞技场/模一把等无关套件（本轮未触其模块）。
-- **并行**：匹配与计分体检轮（下一节）同工作区并行，其 `app/page.tsx`、`lib/leaderboard.ts`、`lib/ratings.ts` 与本文顶部段落未提交，本轮未动；对方同样把本轮分页记为「他人遗留」未动。`package.json` 的 `deploy:vps` 行、`scripts/deploy-vps.sh`、`docs/IDEAS.md` 为更早前遗留，未动。
+- **反应刷计数与失灵（两轮迭代，终版=本地优先）**：旧 `react()`（`app/page.tsx`）本地记账算错（切换不扣旧、来回刷虚增、取消只改本地刷新回魂）；第一版修复改吃服务端写后回读的权威值 + `kind:null` 删槽，用户随即反馈乱按后"按键失灵"——根因是 social 桶 10 次/分（投票/评论/反应共享），连点烧穿后 429 静默回滚。用户拍板**不做实时，本地做逻辑、下一题/退出时同步**：`lib/reactions.ts` 改为 pending 意图表（一槽覆盖写，只发最终态）+ `flushReactions()` 串行补发链；触发点=反应条卸载（换组/换题/路由切换）与 `pagehide`（keepalive fetch），挂载时先补发再 GET、失败项留队列下次重试。未登录点击当场提示「登录后才能表态。」、不记录；`{mine,counts}` 显示叠加未同步的本地意图。服务端仍支持 `kind:null` 删槽。`scripts/validate-reactions.mjs`（`npm run validate:reactions`，6 项）守 API 语义；无头 UI 实测：15 连按零请求、本地态即时正确、换组恰好 1 个 POST 且服务端=最终意图、匿名当场提示零请求。已知边界：他人看到的计数延迟到本会话同步后；关页请求尽力送达（keepalive 失败则下次挂载重试）。
+- 验证：typecheck、build、定向 oxlint（server/index.js、page.tsx、reactions.ts、log.tsx、validate-admin/reactions.mjs）零告；validate:admin 11 项、validate:reactions 6 项、validate:votes 12 项全绿；无头 UI 实测两例——后台翻页（120 条 3 页、末页 20 条禁用态）与反应真实点击序列（赞→踩→赞→取消，计数 1→0/1→1→0、取消后 GET 不回魂）。未跑模一把/分享等无关套件（本轮未触其模块）。
+- **并行**：本轮与匹配体检轮、审查第三轮、占位符改名轮同工作区并存，`app/page.tsx` 上彼此的改动区域不重叠（本轮只动 react 组件与反应条），typecheck/build/UI 实测在合流后的文件上通过。`package.json` 本轮只加 `validate:reactions` 一行；`deploy:vps` 行与 `scripts/deploy-vps.sh`、`docs/IDEAS.md` 为更早前遗留，未动。
 - 未 commit、未 push。
 
 ## 2026-09-20 · 匹配与计分机制体检修复（最新，未归档）

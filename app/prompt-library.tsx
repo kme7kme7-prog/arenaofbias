@@ -39,7 +39,7 @@ const filters = [
   ['web', '网页'],
   ['image', '图像'],
 ] as const;
-// 封面是题目意象，与参赛作品无关；新增题目使用最后一格通用封面。
+// 封面是题目意象，与参赛作品无关；未配置的新题使用图集最后一格通用封面。
 const coverIds = ['001', '002', '003', '004', '005', '006', '007'];
 const motionQuery = '(prefers-reduced-motion: reduce)';
 function subscribeMotion(callback: () => void) {
@@ -49,6 +49,14 @@ function subscribeMotion(callback: () => void) {
 }
 const reducedMotion = () => window.matchMedia(motionQuery).matches;
 function coverStyle(id: string): CSSProperties {
+  if (id === '008')
+    return {
+      '--cover-x': '50%',
+      '--cover-y': '50%',
+      '--cover-bg': '#121923',
+      '--cover-image': "url('/art/prompt-cover-008.webp')",
+      '--cover-size': 'cover',
+    } as CSSProperties;
   const index = coverIds.includes(id) ? coverIds.indexOf(id) : 7;
   const backgrounds = [
     '#f4eedc',
@@ -64,6 +72,8 @@ function coverStyle(id: string): CSSProperties {
     '--cover-x': `${(index % 2) * 100}%`,
     '--cover-y': `${(Math.floor(index / 2) * 100) / 3}%`,
     '--cover-bg': backgrounds[index],
+    '--cover-image': "url('/art/prompt-covers-natural.webp')",
+    '--cover-size': '200% 400%',
   } as CSSProperties;
 }
 function promptStats(id: string) {

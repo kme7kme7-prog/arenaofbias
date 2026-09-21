@@ -200,7 +200,7 @@ const MIGRATIONS = [
           created_at INTEGER NOT NULL
         );
       `);
-      // 种子：仅当表空时把内置 7 题种入并置为已发布（与前端共享 lib/prompts-seed.json），
+      // 种子：仅当表空时把内置题种入并置为已发布（与前端共享 lib/prompts-seed.json），
       // 不覆盖库里已有的任何行，重复启动无副作用。
       const count = db.prepare('SELECT COUNT(*) AS n FROM prompts').get();
       if (count.n === 0) {
@@ -320,6 +320,74 @@ const MIGRATIONS = [
       }
     },
   },
+  {
+    // 008 · 新增文字题「相遇之后」。已有库补种一行；若后台已占用 008 则尊重现有内容。
+    up() {
+      const seed = JSON.parse(
+        fs.readFileSync(
+          path.join(projectRoot, 'lib', 'prompts-seed.json'),
+          'utf8',
+        ),
+      );
+      const prompt = seed.find((item) => item.id === '008');
+      if (!prompt) return;
+      db.prepare(
+        `INSERT OR IGNORE INTO prompts
+          (id, kind, category, code, name, prompt, commentary, detail, weights, published, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+      ).run(
+        prompt.id,
+        prompt.kind,
+        prompt.category ?? '',
+        prompt.code ?? '',
+        prompt.name,
+        prompt.prompt,
+        prompt.commentary ?? '',
+        prompt.detail ?? '',
+        Array.isArray(prompt.weights) ? JSON.stringify(prompt.weights) : null,
+        Date.now(),
+      );
+    },
+  },
+  {
+    // 009 · 008 命题原文定稿（2026-09-21 用户拍板）：占位聊天稿开头改为
+    // 「凌晨两点三十分。」。库里的 008 行是迁移 008 按旧种子补种的占位文案，
+    // 这里整体同步为最新种子文本；后台若单独改过 008 会被覆盖（当前无此情况）。
+    // 注：同日二稿（省略版）由迁移 010 再次同步，本条保留作历史步骤。
+    up() {
+      const seed = JSON.parse(
+        fs.readFileSync(
+          path.join(projectRoot, 'lib', 'prompts-seed.json'),
+          'utf8',
+        ),
+      );
+      const prompt = seed.find((item) => item.id === '008');
+      if (!prompt) return;
+      db.prepare('UPDATE prompts SET prompt = ? WHERE id = ?').run(
+        prompt.prompt,
+        '008',
+      );
+    },
+  },
+  {
+    // 010 · 008 命题原文二稿（2026-09-21 用户拍板）：聊天背景改省略版——
+    // 「凌晨两点三十分...」+「（省略）」+ 结尾问话，占位五段消息整体移除
+    // （模型作品本就是按省略版命题跑的）。同步方式同迁移 009。
+    up() {
+      const seed = JSON.parse(
+        fs.readFileSync(
+          path.join(projectRoot, 'lib', 'prompts-seed.json'),
+          'utf8',
+        ),
+      );
+      const prompt = seed.find((item) => item.id === '008');
+      if (!prompt) return;
+      db.prepare('UPDATE prompts SET prompt = ? WHERE id = ?').run(
+        prompt.prompt,
+        '008',
+      );
+    },
+  },
 ];
 
 {
@@ -359,6 +427,10 @@ const upsertReaction = db.prepare(
    VALUES (?, ?, ?, ?, ?, ?)
    ON CONFLICT(user_id, prompt_id, mid)
    DO UPDATE SET kind = excluded.kind, created_at = excluded.created_at`,
+);
+// 取消表态：kind=null 删槽（前端不再本地假取消，2026-09-20 修刷计数 bug）
+const deleteReaction = db.prepare(
+  'DELETE FROM reactions WHERE prompt_id = ? AND mid = ? AND user_id = ?',
 );
 const listReactionCounts = db.prepare(
   `SELECT mid, kind, COUNT(*) AS n FROM reactions WHERE prompt_id = ? GROUP BY mid, kind`,
@@ -786,12 +858,17 @@ app.post('/api/reactions', limiterFor('social'), (req, res) => {
   if (!id || !UUID_PATTERN.test(id)) return res.status(400).json({ error: '反应内容无效' });
   if (!promptId || !promptPublished(promptId))
     return res.status(400).json({ error: '反应内容无效' });
-  if (typeof mid !== 'string' || !mid.trim() || !REACTION_KINDS.has(kind))
+  if (typeof mid !== 'string' || !mid.trim())
+    return res.status(400).json({ error: '反应内容无效' });
+  // kind 为显式 null = 取消表态（删槽）；其余必须是合法态度
+  if (kind !== null && !REACTION_KINDS.has(kind))
     return res.status(400).json({ error: '反应内容无效' });
   if (!reactionModelExists.get(promptId, mid.trim()))
     return res.status(400).json({ error: '反应内容无效' });
   try {
-    upsertReaction.run(id, promptId, mid.trim(), kind, req.user.id, Date.now());
+    if (kind === null)
+      deleteReaction.run(promptId, mid.trim(), req.user.id);
+    else upsertReaction.run(id, promptId, mid.trim(), kind, req.user.id, Date.now());
     const mine = new Map(
       listMyReactions.all(promptId, req.user.id).map((row) => [row.mid, row.kind]),
     );
@@ -1388,7 +1465,7 @@ app.get('/api/admin/prompts', requireAdmin, (_req, res) => {
   }
 });
 
-// 新增题目：编号自动往下排（内置种子到 007，故从 008 起）；默认草稿
+// 新增题目：编号按当前最大三位题号继续递增；默认草稿
 app.post('/api/admin/prompts', requireAdmin, (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))

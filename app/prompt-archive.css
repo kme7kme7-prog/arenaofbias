@@ -240,8 +240,8 @@
   display: block;
   width: 58px;
   height: 42px;
-  background: var(--cover-bg) url('/art/prompt-covers-natural.webp')
-    var(--cover-x) var(--cover-y)/200% 400%;
+  background: var(--cover-bg) var(--cover-image) var(--cover-x) var(--cover-y) /
+    var(--cover-size);
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .archive-thumb-live {
@@ -356,8 +356,8 @@
   content: '';
   position: absolute;
   inset: -20px;
-  background: url('/art/prompt-covers-natural.webp') var(--cover-x)
-    var(--cover-y)/200% 400%;
+  background: var(--cover-image) var(--cover-x) var(--cover-y) /
+    var(--cover-size);
   filter: blur(18px);
   opacity: 0.35;
 }
@@ -378,8 +378,8 @@
   height: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: url('/art/prompt-covers-natural.webp') var(--cover-x)
-    var(--cover-y)/200% 400%;
+  background: var(--cover-image) var(--cover-x) var(--cover-y) /
+    var(--cover-size);
   mask-image: linear-gradient(
     90deg,
     transparent,

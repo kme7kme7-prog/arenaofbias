@@ -146,9 +146,12 @@ check('Elo 零和：全体评分均值保持在基准 1200 附近', () => {
   assert.ok(data.rows[0].rating > data.rows.at(-1).rating);
 });
 
-check('分类过滤：写作榜只计入 text 题（002）的票', () => {
+check('分类过滤：写作榜只计入 text 题的票', () => {
   const votes = currentVotes();
-  const textVotes = votes.filter((v) => v.promptId === '002').length;
+  const textIds = new Set(
+    prompts.filter((prompt) => prompt.kind === 'text').map((prompt) => prompt.id),
+  );
+  const textVotes = votes.filter((v) => textIds.has(v.promptId)).length;
   const textData = leaderboardData('text');
   assert.equal(textData.totalVotes, textVotes);
   const totalGames = textData.rows.reduce((sum, row) => sum + row.games, 0);

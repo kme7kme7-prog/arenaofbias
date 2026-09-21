@@ -189,6 +189,12 @@ export function DevPanel() {
     window.dispatchEvent(new CustomEvent('aob:placeholder-votes-changed'));
   };
 
+  // 开发者面板只对 kme7 显示（2026-09-20 用户拍板）：其余账号与游客一律不渲染
+  // 入口与面板。放在所有 hooks 之后，遵守 hooks 规则。用独立布尔判断，避免把
+  // user.username 收窄成字面量后，下面 dev 账号相关的比较被 TS 判为不可能。
+  const isOwner = user?.username === 'kme7';
+  if (!isOwner) return null;
+
   return (
     <>
       {settings.placeholderMode && (

@@ -45,3 +45,23 @@ Constraints: no text, no letters, no UI, no logos, no watermark, no border. Exac
 - 最终生成规格：保持八格布局；禁止统一橄榄绿滤镜、瓷器摆件质感、文字及 UI。最后来信改为停电城市窗前、金属机械手与信纸、暖台灯和冷蓝夜色；月球为自然灰白与黑色太空；古建为可见方块构成的红墙青瓦、晨昏天空；山水为明确体素山体、青蓝瀑布、方块云、自然植被和桃色晨光；户外为橙色冲锋衣背包客与灰色山峰；黑洞保留原透镜构图，仅改为橙金吸积盘、白热内缘和黑色星空；末格为白纸和中性深灰背景。
 - 第一版统一绿调与玩偶机器人已弃用（决策 047），无生产引用。
 - `public/art/pelican-cover.html`：复用 `public/works/pelican-cycle.html` 的 HTML/SVG 海岸骑行演示，只去页眉、调整封面内取景与暂停按钮布局，保留 CSS 骑行动画与 reduced-motion。使用仅 `allow-scripts` 的独立 iframe；用户原始目录与参赛作品均未改。
+
+## 008「相遇之后」封面（2026-09-21）
+
+- 站点文件：`public/art/prompt-cover-008.webp`，1774 × 887，196516 字节；内置 imagegen 生成，FFmpeg 仅转 WebP（quality 88），无二次调色或裁切。
+- 原始生成文件：`C:/Users/hyc/.codex/generated_images/01a093f9-9338-77d3-a693-7e8c0f01edba/exec-c8d588f4-e452-4907-ba6e-f9a419036e38.png`。
+- 最终提示词：
+
+```text
+Use case: photorealistic-natural
+Asset type: 2:1 website prompt-library cover image
+Primary request: a quiet, restrained late-night scene suggesting an intimate emotional conversation without showing any person
+Scene/backdrop: rain running down a dark apartment window; distant city lights outside are softly out of focus; a modest desk directly beside the window
+Subject: an open laptop on the desk with its screen turned away enough that no interface or text is readable, a closed paper notebook and a plain ceramic mug nearby
+Style/medium: natural low-light photography, realistic everyday textures, subtle fine film grain, understated contemporary editorial photograph
+Composition/framing: wide horizontal composition designed for a 2:1 crop; viewed slightly from behind and above the desk; the rain-lit window occupies most of the frame; laptop and notebook form a quiet foreground anchor; no person
+Lighting/mood: muted blue-gray rain light with one small warm practical lamp reflection; lonely but calm, intimate, contemplative; low contrast with preserved shadow detail
+Color palette: restrained charcoal, slate blue, rain gray, a very small amount of warm amber; natural colors, no green cast
+Constraints: no readable text, no chat bubbles, no visible brands, no logos, no watermark, no people, no hands, no melodramatic props, no neon cyberpunk lighting, no excessive bokeh, no oversaturated colors
+Avoid: AI fantasy look, staged stock-photo polish, dramatic cinematic teal-orange grading, sentimental clichés
+```

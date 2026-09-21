@@ -1,0 +1,44 @@
+/* 008 沿用竞技场的深墨直角框与阵营色，仅调整对话正文的阅读排版。 */
+.story-work.conversation-reply {
+  background: #eef0e6;
+  padding: clamp(24px, 3vw, 42px) clamp(24px, 3.2vw, 48px) 56px;
+  color: var(--ink);
+  scrollbar-color: #98a58c #e3e7dc;
+  overscroll-behavior: contain;
+}
+.conversation-reply .story-body {
+  max-width: 34em;
+  margin-inline: auto;
+  font-family: 'MiSans', 'Microsoft YaHei', sans-serif;
+  font-size: clamp(15px, 1.1vw, 17px);
+  font-weight: 400;
+  line-height: 2;
+  letter-spacing: 0.025em;
+  color: #344239;
+}
+.conversation-reply .story-body p {
+  margin: 0 0 1.25em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.conversation-reply .story-body p:last-child {
+  margin-bottom: 0;
+}
+.expanded-work .story-work.conversation-reply {
+  padding: 40px clamp(24px, 6vw, 80px) 64px;
+}
+.expanded-work .conversation-reply .story-body {
+  max-width: 38em;
+  font-size: 17px;
+  line-height: 2;
+}
+@media (max-width: 767px) {
+  .story-work.conversation-reply {
+    padding: 24px 22px 48px;
+  }
+  .conversation-reply .story-body {
+    font-size: 15px;
+    line-height: 1.95;
+    letter-spacing: 0.01em;
+  }
+}
