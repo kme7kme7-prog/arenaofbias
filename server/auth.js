@@ -1,28 +1,14 @@
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
-  randomBytes,
-  randomUUID,
-  scrypt as scryptCallback,
-  timingSafeEqual,
-  createHash,
-} from 'node:crypto';
-import { promisify } from 'node:util';
+  digest,
+  normalize,
+  validPassword,
+  derive,
+  dummySalt,
+} from './auth-util.js';
 
-const scrypt = promisify(scryptCallback);
 const lifetime = 7 * 24 * 60 * 60 * 1000;
 const cookieName = 'arena_session';
-const digest = (value) => createHash('sha256').update(value).digest('hex');
-const normalize = (value) =>
-  typeof value === 'string' ? value.trim().toLowerCase() : '';
-const validPassword = (value) =>
-  typeof value === 'string' && value.length >= 12 && value.length <= 128;
-const derive = (password, salt) =>
-  scrypt(password, salt, 64, {
-    N: 32768,
-    r: 8,
-    p: 1,
-    maxmem: 64 * 1024 * 1024,
-  });
-const dummySalt = randomBytes(16).toString('hex');
 
 export function installAuth(app, db, sameOrigin) {
   db.exec(`
@@ -44,6 +30,19 @@ export function installAuth(app, db, sameOrigin) {
   ) {
     db.exec('ALTER TABLE users ADD COLUMN role TEXT');
   }
+  // 邮箱两列（2026-09-24 邮箱账号体系）：必须在这里加——下面的 sessionUser
+  // 会立刻 prepare 引用 users.email 的语句，auth-email.js 的安装晚于本函数
+  for (const [column, type] of [
+    ['email', 'TEXT'],
+    ['email_verified_at', 'INTEGER'],
+  ])
+    if (
+      !db
+        .prepare('PRAGMA table_info(users)')
+        .all()
+        .some((row) => row.name === column)
+    )
+      db.exec(`ALTER TABLE users ADD COLUMN ${column} ${type}`);
   if (process.env.ADMIN_OWNER) {
     const owner = normalize(process.env.ADMIN_OWNER);
     if (owner) {
@@ -56,7 +55,7 @@ export function installAuth(app, db, sameOrigin) {
   }
   const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
   const sessionUser = db.prepare(
-    'SELECT users.id, users.username, users.role FROM sessions JOIN users ON users.id = sessions.user_id WHERE token_hash = ? AND expires_at > ?',
+    'SELECT users.id, users.username, users.role, users.email FROM sessions JOIN users ON users.id = sessions.user_id WHERE token_hash = ? AND expires_at > ?',
   );
   const token = (req) => {
     const value = String(req.headers.cookie || '')
@@ -105,7 +104,7 @@ export function installAuth(app, db, sameOrigin) {
       );
     })();
     res.cookie(cookieName, raw, { ...cookieOptions(req), maxAge: lifetime });
-    return { id: user.id, username: user.username, role };
+    return { id: user.id, username: user.username, role, email: user.email ?? null };
   };
   app.use('/api', (req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -157,44 +156,8 @@ export function installAuth(app, db, sameOrigin) {
       activeHashes--;
     }
   };
-  app.post(
-    '/api/auth/register',
-    limited(async (req, res) => {
-      const username = normalize(req.body?.username);
-      const password = req.body?.password;
-      if (!/^[a-z0-9_]{3,24}$/.test(username))
-        return res
-          .status(400)
-          .json({ error: '账号须为 3–24 位英文字母、数字或下划线。' });
-      // dev 是系统保留名（2026-09-20 审查发现）：/api/auth/dev 会对名为 dev 的
-      // 既有账号直接升管理员——不拦注册的话，任何人抢先注册 dev，运维随后在
-      // 本机跑一次开发者登录就会把攻击者的账号提为 admin
-      if (username === 'dev')
-        return res
-          .status(400)
-          .json({ error: '这个账号名是系统保留的，请换一个。' });
-      if (!validPassword(password))
-        return res.status(400).json({ error: '密码须为 12–128 个字符。' });
-      if (getUser.get(username))
-        return res.status(409).json({ error: '这个账号已被使用，请换一个。' });
-      const salt = randomBytes(16).toString('hex');
-      const hash = await derive(password, salt);
-      const user = { id: randomUUID(), username };
-      try {
-        // role 列由 ALTER 迁移追加（可能不存在于全新库的第一条 INSERT 前），显式列出列名
-        db.prepare(
-          'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-        ).run(user.id, username, `scrypt:${salt}:${hash.toString('hex')}`, Date.now());
-      } catch (error) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE')
-          return res
-            .status(409)
-            .json({ error: '这个账号已被使用，请换一个。' });
-        throw error;
-      }
-      res.status(201).json({ user: login(req, res, user) });
-    }),
-  );
+  // 注册端点在 auth-email.js：注册必填邮箱+验证码（2026-09-24 需求），
+  // 依赖验证码表，与邮箱相关接口放在一起；此处导出它要用的会话能力。
   app.post(
     '/api/auth/login',
     limited(async (req, res) => {
@@ -274,4 +237,5 @@ export function installAuth(app, db, sameOrigin) {
       next(error);
     }
   });
+  return { getUser, login, limited };
 }

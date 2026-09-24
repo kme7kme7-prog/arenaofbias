@@ -21,20 +21,65 @@ const child = spawn(process.execPath, ['server/index.js'], {
     PORT: String(port),
     HOST: '127.0.0.1',
     RATE_LIMIT_PER_MIN: '100000',
+    // 注册必填邮箱+验证码（2026-09-24）：MAIL_DEV_LOG 打日志由本脚本捕获
+    MAIL_DEV_LOG: '1',
+    MAIL_COOLDOWN_MS: '1',
+    MAIL_IP_MAX: '1000',
+    MAIL_EMAIL_MAX: '1000',
   },
-  stdio: 'ignore',
+  stdio: ['ignore', 'pipe', 'pipe'],
   windowsHide: true,
 });
+// 服务器日志按行转发到控制台，同时解析 MAIL_DEV_LOG 验证码行供注册用
+const codeLines = [];
+let pendingLog = '';
+child.stdout.setEncoding('utf8');
+child.stdout.on('data', (chunk) => {
+  process.stdout.write(chunk);
+  pendingLog += chunk;
+  const parts = pendingLog.split('\n');
+  pendingLog = parts.pop();
+  codeLines.push(...parts);
+});
+child.stderr.setEncoding('utf8');
+child.stderr.on('data', (chunk) => process.stderr.write(chunk));
+const waitForCode = async (purpose, target) => {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const line = codeLines.find(
+      (item) =>
+        item.includes(`purpose=${purpose}`) &&
+        item.includes(`email=${target}`) &&
+        item.includes('code='),
+    );
+    if (line) return line.match(/code=(\d{6})/)[1];
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`未捕获到 ${purpose} ${target} 的验证码`);
+};
 let tests = 0;
 async function check(label, fn) {
   await fn();
   console.log(`PASS ${++tests} ${label}`);
 }
 const register = async (username) => {
+  const email = `${username}@aob.test`;
+  const sent = await fetch(`${base}/api/auth/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', origin: base },
+    body: JSON.stringify({ purpose: 'register', email }),
+  });
+  assert.equal(sent.status, 200, `send code ${username}`);
+  const code = await waitForCode('register', email);
   const response = await fetch(`${base}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', origin: base },
-    body: JSON.stringify({ username, password: `validate-${randomUUID()}` }),
+    body: JSON.stringify({
+      username,
+      password: `validate-${randomUUID()}`,
+      email,
+      code,
+    }),
   });
   assert.equal(response.status, 201, `register ${username}`);
   return response.headers.get('set-cookie').split(';')[0];

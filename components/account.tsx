@@ -16,7 +16,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-type User = { id: string; username: string; role: 'admin' | null };
+type User = {
+  id: string;
+  username: string;
+  role: 'admin' | null;
+  email: string | null;
+};
+type Mode = 'login' | 'register' | 'forgot' | 'bind';
+type Success = 'login' | 'register' | 'reset' | 'bind' | 'logout';
 type Auth = {
   user: User | null;
   loading: boolean;
@@ -29,20 +36,41 @@ export function useAccount() {
   if (!value) throw new Error('Missing account provider');
   return value;
 }
-
+// a***@example.com：会员视图里只亮出打码邮箱，完整地址不进 UI
+const maskEmail = (email: string) => {
+  const at = email.indexOf('@');
+  if (at <= 0) return email;
+  return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
+};
 export function AccountProvider({ children }: { children: ReactNode }) {
   const { t, localize } = useI18n();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState(false);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<Mode>('login');
+  const [step, setStep] = useState<1 | 2>(1);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  // 发码成功时服务端回传的打码邮箱（reset 流程用户只输账号，邮箱靠它展示）
+  const [sentTo, setSentTo] = useState('');
+  const [success, setSuccess] = useState<Success | null>(null);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [notice, setNotice] = useState('');
   const submitting = useRef(false);
   const [error, setError] = useState('');
+  // 翻页计数：驱动底纸堆每次切换换一个略不同的静止姿态（走 CSS transform 过渡），
+  // 关弹窗时清零，下次打开回到默认姿态、不抢开场动画
+  const turns = useRef(0);
+  const turn = () => {
+    turns.current += 1;
+  };
   const revision = useRef(0);
   const sheet = useRef<HTMLDivElement>(null);
   const [sheetHeight, setSheetHeight] = useState<number>();
@@ -109,19 +137,98 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       viewport.removeEventListener('resize', reveal);
     };
   }, [opened]);
+  // 发码 60 秒倒计时（服务端同样有冷却，这里只是按钮上的引导）
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);
     setError('');
+    setNotice('');
     setPassword('');
     setConfirm('');
+    setEmail('');
+    setCode('');
+    setSentTo('');
+    setStep(1);
+    setSuccess(null);
+    setCountdown(0);
     setVisible(false);
+    turns.current = 0;
+    if (successTimer.current) {
+      clearTimeout(successTimer.current);
+      successTimer.current = null;
+    }
+  };
+  const switchMode = (next: Mode) => {
+    turn();
+    setMode(next);
+    setStep(1);
+    setError('');
+    setNotice('');
+    setPassword('');
+    setConfirm('');
+    setEmail('');
+    setCode('');
+    setSentTo('');
+    setSuccess(null);
+  };
+  // 成功反馈页：亮出结果约 1.4 秒再走后续动作（关弹窗/回登录/回会员视图）
+  const flashSuccess = (kind: Success, after: () => void) => {
+    turn();
+    setSuccess(kind);
+    if (successTimer.current) clearTimeout(successTimer.current);
+    successTimer.current = setTimeout(() => {
+      successTimer.current = null;
+      turn();
+      after();
+    }, 1400);
+  };
+  const sendCode = async () => {
+    if (busy || sending || countdown > 0) return;
+    setError('');
+    setNotice('');
+    setSending(true);
+    try {
+      const purpose = user ? 'bind' : mode === 'forgot' ? 'reset' : 'register';
+      const body =
+        purpose === 'reset'
+          ? { purpose, username: username.trim() }
+          : { purpose, email: email.trim() };
+      const response = await fetch('/api/auth/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '验证码发送失败，请重试。');
+      setCountdown(60);
+      setSentTo(data.email || '');
+      setNotice(t('验证码已发送至 {email}。', { email: data.email || '' }));
+    } catch (cause) {
+      setError(
+        cause instanceof Error && cause.message !== 'Failed to fetch'
+          ? cause.message
+          : '暂时无法连接，请稍后重试。',
+      );
+    } finally {
+      setSending(false);
+    }
   };
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting.current) return;
     setError('');
-    if (!user && mode === 'register' && password !== confirm) {
+    setNotice('');
+    if (
+      !user &&
+      (mode === 'register' || mode === 'forgot') &&
+      step === 2 &&
+      password !== confirm
+    ) {
       setError('两次输入的密码不一致。');
       return;
     }
@@ -129,19 +236,107 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setBusy(true);
     revision.current++;
     try {
-      const response = await fetch(`/api/auth/${user ? 'logout' : mode}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user ? {} : { username, password }),
-      });
+      if (user && mode !== 'bind') {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '操作失败，请重试。');
+        revision.current++;
+        setUser(null);
+        flashSuccess('logout', () => setOpened(false));
+        return;
+      }
+      if (user && mode === 'bind') {
+        const response = await fetch('/api/auth/email/bind', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), code }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '操作失败，请重试。');
+        revision.current++;
+        setUser(data.user);
+        setEmail('');
+        setCode('');
+        setSentTo('');
+        flashSuccess('bind', () => {
+          setMode('login');
+          setSuccess(null);
+        });
+        return;
+      }
+      if (mode === 'login') {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '操作失败，请重试。');
+        revision.current++;
+        setUser(data.user);
+        setPassword('');
+        setUsername('');
+        flashSuccess('login', () => setOpened(false));
+        return;
+      }
+      // register / forgot 第一步：预校验验证码（不消耗），过了才进第二步
+      if (step === 1) {
+        const body =
+          mode === 'register'
+            ? { purpose: 'register', email: email.trim(), code }
+            : { purpose: 'reset', username: username.trim(), code };
+        const response = await fetch('/api/auth/email/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || '验证码不正确或已过期，请重新获取。');
+        turn();
+        setStep(2);
+        return;
+      }
+      const response = await fetch(
+        `/api/auth/${mode === 'register' ? 'register' : 'password/reset'}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            mode === 'register'
+              ? { username, email: email.trim(), code, password }
+              : { username: username.trim(), code, password },
+          ),
+        },
+      );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '操作失败，请重试。');
       revision.current++;
-      setUser(data.user);
-      setPassword('');
-      setConfirm('');
-      setUsername('');
-      setOpened(false);
+      if (mode === 'register') {
+        setUser(data.user);
+        setPassword('');
+        setConfirm('');
+        setUsername('');
+        setEmail('');
+        setCode('');
+        setSentTo('');
+        flashSuccess('register', () => setOpened(false));
+      } else {
+        setPassword('');
+        setConfirm('');
+        setCode('');
+        setSentTo('');
+        flashSuccess('reset', () => {
+          setMode('login');
+          setStep(1);
+          setSuccess(null);
+          setNotice('密码已重置，请用新密码登录。');
+        });
+      }
     } catch (cause) {
       setError(
         cause instanceof Error && cause.message !== 'Failed to fetch'
@@ -153,6 +348,130 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       submitting.current = false;
     }
   };
+  const goBack = () => {
+    turn();
+    setStep(1);
+    setError('');
+    setNotice('');
+  };
+  const codeSendButton = (disabled: boolean) => (
+    <button
+      type="button"
+      className="account-code-send"
+      disabled={disabled || busy || sending || countdown > 0}
+      onClick={sendCode}
+    >
+      {countdown > 0
+        ? t('{seconds} 秒后可重发', { seconds: countdown })
+        : localize(sending ? '发送中…' : '发送验证码')}
+    </button>
+  );
+  const codeField = (
+    <label htmlFor="account-code">
+      <span className="account-label">{t('验证码')}</span>
+      <input
+        id="account-code"
+        name="code"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        autoCapitalize="none"
+        spellCheck={false}
+        required
+        pattern="[0-9]{6}"
+        maxLength={6}
+        value={code}
+        onChange={(event) =>
+          setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
+        }
+        disabled={busy}
+        placeholder={t('6 位验证码')}
+      />
+    </label>
+  );
+  const passwordField = (kind: 'current' | 'new') => (
+    <label htmlFor="account-password">
+      <span className="account-label">{t('密码')}</span>
+      <div className="password-field">
+        <input
+          id="account-password"
+          name="password"
+          type={visible ? 'text' : 'password'}
+          autoComplete={kind === 'current' ? 'current-password' : 'new-password'}
+          required
+          minLength={12}
+          maxLength={128}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={busy}
+          aria-describedby="account-password-help"
+          placeholder={t('只属于你的通行暗号')}
+        />
+        <button
+          type="button"
+          aria-label={t(visible ? '隐藏密码' : '显示密码')}
+          onClick={() => setVisible(!visible)}
+        >
+          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </label>
+  );
+  const confirmField = (
+    <label htmlFor="account-confirm">
+      {t('确认密码')}
+      <input
+        id="account-confirm"
+        name="confirm-password"
+        type={visible ? 'text' : 'password'}
+        autoComplete="new-password"
+        required
+        minLength={12}
+        maxLength={128}
+        value={confirm}
+        onChange={(event) => setConfirm(event.target.value)}
+        disabled={busy}
+      />
+    </label>
+  );
+  const SUCCESS_COPY: Record<Success, { title: string; description: string }> = {
+    login: { title: '登录成功。', description: '现在可以参与投票与讨论。' },
+    register: {
+      title: '注册成功。',
+      description: '邮箱已绑定，忘记密码时可凭它找回。',
+    },
+    reset: {
+      title: '密码已重置。',
+      description: '所有设备已退出，请用新密码登录。',
+    },
+    bind: {
+      title: '邮箱已绑定。',
+      description: '忘记密码时可凭它找回。',
+    },
+    logout: { title: '已退出登录。', description: '随时回来。' },
+  };
+  const pageKey = success
+    ? `success:${success}`
+    : user
+      ? mode === 'bind'
+        ? 'bind'
+        : 'member'
+      : `${mode}:${step}`;
+  // 底纸堆的静止姿态随翻页轮换（默认值与 CSS 类一致；翻过页才覆盖，
+  // 不影响开场 data-starting-style 动画）
+  const swaySign = turns.current % 2 === 0 ? 1 : -1;
+  const swayLift = (turns.current % 3) - 1;
+  const paperBackStyle =
+    turns.current > 0
+      ? {
+          transform: `translate(${-13 - swaySign * 4}px, ${7 + swayLift}px) rotate(${-4 + swaySign * 1.8}deg)`,
+        }
+      : undefined;
+  const paperMiddleStyle =
+    turns.current > 0
+      ? {
+          transform: `translate(${12 + swaySign * 4}px, ${10 - swayLift}px) rotate(${2.7 - swaySign * 1.4}deg)`,
+        }
+      : undefined;
   return (
     <AccountContext.Provider
       value={{ user, loading, open: () => close(true), refresh }}
@@ -162,13 +481,18 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         <DialogContent
           className="account-dialog"
           overlayClassName="account-overlay"
-          data-mode={user ? 'member' : mode}
+          data-mode={user ? (mode === 'bind' ? 'bind' : 'member') : mode}
         >
-          <div className="account-paper account-paper-back" aria-hidden="true">
+          <div
+            className="account-paper account-paper-back"
+            style={paperBackStyle}
+            aria-hidden="true"
+          >
             <span>{t('ARENA OF BIAS / FIELD NOTES')}</span>
           </div>
           <div
             className="account-paper account-paper-middle"
+            style={paperMiddleStyle}
             aria-hidden="true"
           >
             <span>{t('每一种直觉，都值得留下。')}</span>
@@ -179,181 +503,384 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             style={{ height: sheetHeight }}
           >
             <div className="account-sheet-content" ref={measureSheet}>
-              <div className="account-paper-meta" aria-hidden="true">
-                <span>{t('偏见试验场 / 评审手记')}</span>
-                <span>
-                  {t('NO.')}
-                  {localize(mode === 'register' && !user ? '02' : '01')}
-                </span>
-              </div>
-              <div className="account-heading">
-                <div className="account-eyebrow">
-                  {t('YOUR SEAT / ARENA OF BIAS')}
+              {/* key 驱动换纸：切模式/切步/成功反馈整页重放入场动画 */}
+              <div className="account-page" key={pageKey}>
+                <div className="account-paper-meta" aria-hidden="true">
+                  <span>{t('偏见试验场 / 评审手记')}</span>
+                  <span>
+                    {t('NO.')}
+                    {localize(
+                      !user && mode === 'register'
+                        ? '02'
+                        : user && mode === 'bind'
+                          ? '03'
+                          : '01',
+                    )}
+                  </span>
                 </div>
-                <DialogTitle>
-                  {localize(
-                    user
-                      ? '你的账号'
-                      : mode === 'login'
-                        ? '欢迎回到评审席。'
-                        : '给你的直觉，一个席位。',
-                  )}
-                </DialogTitle>
-                <DialogDescription>
-                  {localize(
-                    user
-                      ? user.role === 'admin'
-                        ? t('当前登录：{user} · 管理员，可直接从玩法菜单进入正式测评。', { user: user.username })
-                        : t('当前登录：{user}', { user: user.username })
-                      : '登录后，用你的账号参与作品讨论。',
-                  )}
-                </DialogDescription>
-                <div className="account-stamp" aria-hidden="true">
-                  <span>{t('独立判断')}</span>
-
-                  <span>{t('不必标准答案')}</span>
-                </div>
-              </div>
-              <form onSubmit={submit} className="account-form">
-                {!user && (
+                {success ? (
+                  <div className="account-success" role="status">
+                    <span className="account-success-mark" aria-hidden="true">
+                      ✓
+                    </span>
+                    <DialogTitle>
+                      {localize(SUCCESS_COPY[success].title)}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {localize(SUCCESS_COPY[success].description)}
+                    </DialogDescription>
+                  </div>
+                ) : (
                   <>
-                    <div className="account-modes">
-                      <button
-                        type="button"
-                        aria-pressed={mode === 'login'}
-                        disabled={busy}
-                        onClick={() => {
-                          setMode('login');
-                          setError('');
-                          setPassword('');
-                          setConfirm('');
-                        }}
-                      >
-                        <span>01</span> {t('登录')}
-                      </button>
-                      <button
-                        type="button"
-                        aria-pressed={mode === 'register'}
-                        disabled={busy}
-                        onClick={() => {
-                          setMode('register');
-                          setError('');
-                          setPassword('');
-                          setConfirm('');
-                        }}
-                      >
-                        <span>02</span> {t('注册')}
-                      </button>
+                    <div className="account-heading">
+                      <div className="account-eyebrow">
+                        {t('YOUR SEAT / ARENA OF BIAS')}
+                      </div>
+                      <DialogTitle>
+                        {localize(
+                          user
+                            ? '你的账号'
+                            : mode === 'login'
+                              ? '欢迎回到评审席。'
+                              : mode === 'register'
+                                ? '给你的直觉，一个席位。'
+                                : '忘了暗号，也能回来。',
+                        )}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {localize(
+                          user
+                            ? user.role === 'admin'
+                              ? t('当前登录：{user} · 管理员，可直接从玩法菜单进入正式测评。', { user: user.username })
+                              : t('当前登录：{user}', { user: user.username })
+                            : mode === 'forgot'
+                              ? step === 1
+                                ? '输入账号，验证码将发到绑定的邮箱。'
+                                : '验证通过，设置新密码（重置后所有设备需重新登录）。'
+                              : mode === 'register' && step === 2
+                                ? '邮箱已验证，设置账号和密码。'
+                                : mode === 'register'
+                                  ? '注册需要一个常用邮箱：先收个验证码。'
+                                  : '登录后，用你的账号参与作品讨论。',
+                        )}
+                      </DialogDescription>
+                      <div className="account-stamp" aria-hidden="true">
+                        <span>{t('独立判断')}</span>
+
+                        <span>{t('不必标准答案')}</span>
+                      </div>
                     </div>
-                    <div className="account-fields" key={mode}>
-                      <label htmlFor="account-name">
-                        <span className="account-label">{t('账号')}</span>
-                        <input
-                          id="account-name"
-                          name="username"
-                          autoComplete="username"
-                          autoCapitalize="none"
-                          spellCheck={false}
-                          required
-                          minLength={3}
-                          maxLength={24}
-                          pattern="[A-Za-z0-9_]{3,24}"
-                          value={username}
-                          onChange={(event) => setUsername(event.target.value)}
-                          disabled={busy}
-                          aria-describedby="account-name-help"
-                          placeholder={t('在这里签下你的名字')}
-                        />
-                      </label>
-                      <small id="account-name-help">
-                        {t('3–24 位英文字母、数字或下划线，不区分大小写。')}
-                      </small>
-                      <label htmlFor="account-password">
-                        <span className="account-label">{t('密码')}</span>
-                        <div className="password-field">
-                          <input
-                            id="account-password"
-                            name="password"
-                            type={visible ? 'text' : 'password'}
-                            autoComplete={
-                              mode === 'login'
-                                ? 'current-password'
-                                : 'new-password'
-                            }
-                            required
-                            minLength={12}
-                            maxLength={128}
-                            value={password}
-                            onChange={(event) =>
-                              setPassword(event.target.value)
-                            }
-                            disabled={busy}
-                            aria-describedby="account-password-help"
-                            placeholder={t('只属于你的通行暗号')}
-                          />
+                    <form onSubmit={submit} className="account-form">
+                      {!user && mode !== 'forgot' && (
+                        <div className="account-modes">
                           <button
                             type="button"
-                            aria-label={t(visible ? '隐藏密码' : '显示密码')}
-                            onClick={() => setVisible(!visible)}
+                            aria-pressed={mode === 'login'}
+                            disabled={busy}
+                            onClick={() => switchMode('login')}
                           >
-                            {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                            <span>01</span> {t('登录')}
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={mode === 'register'}
+                            disabled={busy}
+                            onClick={() => switchMode('register')}
+                          >
+                            <span>02</span> {t('注册')}
                           </button>
                         </div>
-                      </label>
-                      <small id="account-password-help">
-                        {t('12–128 个字符，可使用较长的词组。')}
-                      </small>
-                      {mode === 'register' && (
-                        <label htmlFor="account-confirm">
-                          {t('确认密码')}
-                          <input
-                            id="account-confirm"
-                            name="confirm-password"
-                            type={visible ? 'text' : 'password'}
-                            autoComplete="new-password"
-                            required
-                            minLength={12}
-                            maxLength={128}
-                            value={confirm}
-                            onChange={(event) => setConfirm(event.target.value)}
-                            disabled={busy}
-                          />
-                        </label>
                       )}
-                    </div>
+                      {!user && (
+                        <div className="account-fields">
+                          {mode === 'forgot' && step === 1 && (
+                            <>
+                              <button
+                                type="button"
+                                className="account-link"
+                                disabled={busy}
+                                onClick={() => switchMode('login')}
+                              >
+                                ← {t('返回登录')}
+                              </button>
+                              <label htmlFor="account-reset-name">
+                                <span className="account-label">
+                                  {t('账号')}
+                                </span>
+                                <div className="code-field">
+                                  <input
+                                    id="account-reset-name"
+                                    name="username"
+                                    autoComplete="username"
+                                    autoCapitalize="none"
+                                    spellCheck={false}
+                                    required
+                                    minLength={3}
+                                    maxLength={24}
+                                    pattern="[A-Za-z0-9_]{3,24}"
+                                    value={username}
+                                    onChange={(event) =>
+                                      setUsername(event.target.value)
+                                    }
+                                    disabled={busy}
+                                    placeholder={t('在这里签下你的名字')}
+                                  />
+                                  {codeSendButton(
+                                    !/^[A-Za-z0-9_]{3,24}$/.test(
+                                      username.trim(),
+                                    ),
+                                  )}
+                                </div>
+                              </label>
+                              {codeField}
+                            </>
+                          )}
+                          {mode === 'forgot' && step === 2 && (
+                            <>
+                              <p className="account-verified">
+                                {t('验证码已通过验证')}
+                                {sentTo && ` · ${sentTo}`}
+                              </p>
+                              {passwordField('new')}
+                              <small id="account-password-help">
+                                {t('12–128 个字符，可使用较长的词组。')}
+                              </small>
+                              {confirmField}
+                              <button
+                                type="button"
+                                className="account-link"
+                                disabled={busy}
+                                onClick={goBack}
+                              >
+                                ← {t('上一步')}
+                              </button>
+                            </>
+                          )}
+                          {mode === 'register' && step === 1 && (
+                            <>
+                              <label htmlFor="account-email">
+                                <span className="account-label">
+                                  {t('邮箱')}
+                                </span>
+                                <div className="code-field">
+                                  <input
+                                    id="account-email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    autoCapitalize="none"
+                                    spellCheck={false}
+                                    required
+                                    maxLength={254}
+                                    value={email}
+                                    onChange={(event) =>
+                                      setEmail(event.target.value.trim())
+                                    }
+                                    disabled={busy}
+                                    placeholder={t('请输入常用邮箱')}
+                                  />
+                                  {codeSendButton(!email.trim())}
+                                </div>
+                              </label>
+                              {codeField}
+                            </>
+                          )}
+                          {mode === 'register' && step === 2 && (
+                            <>
+                              <p className="account-verified">
+                                {t('邮箱已验证')}
+                                {sentTo && ` · ${sentTo}`}
+                              </p>
+                              <label htmlFor="account-name">
+                                <span className="account-label">
+                                  {t('账号')}
+                                </span>
+                                <input
+                                  id="account-name"
+                                  name="username"
+                                  autoComplete="username"
+                                  autoCapitalize="none"
+                                  spellCheck={false}
+                                  required
+                                  minLength={3}
+                                  maxLength={24}
+                                  pattern="[A-Za-z0-9_]{3,24}"
+                                  value={username}
+                                  onChange={(event) =>
+                                    setUsername(event.target.value)
+                                  }
+                                  disabled={busy}
+                                  aria-describedby="account-name-help"
+                                  placeholder={t('在这里签下你的名字')}
+                                />
+                              </label>
+                              <small id="account-name-help">
+                                {t('3–24 位英文字母、数字或下划线，不区分大小写。')}
+                              </small>
+                              {passwordField('new')}
+                              <small id="account-password-help">
+                                {t('12–128 个字符，可使用较长的词组。')}
+                              </small>
+                              {confirmField}
+                              <button
+                                type="button"
+                                className="account-link"
+                                disabled={busy}
+                                onClick={goBack}
+                              >
+                                ← {t('上一步')}
+                              </button>
+                            </>
+                          )}
+                          {mode === 'login' && (
+                            <>
+                              <label htmlFor="account-name">
+                                <span className="account-label">
+                                  {t('账号')}
+                                </span>
+                                <input
+                                  id="account-name"
+                                  name="username"
+                                  autoComplete="username"
+                                  autoCapitalize="none"
+                                  spellCheck={false}
+                                  required
+                                  minLength={3}
+                                  maxLength={24}
+                                  pattern="[A-Za-z0-9_]{3,24}"
+                                  value={username}
+                                  onChange={(event) =>
+                                    setUsername(event.target.value)
+                                  }
+                                  disabled={busy}
+                                  aria-describedby="account-name-help"
+                                  placeholder={t('在这里签下你的名字')}
+                                />
+                              </label>
+                              <small id="account-name-help">
+                                {t('3–24 位英文字母、数字或下划线，不区分大小写。')}
+                              </small>
+                              {passwordField('current')}
+                              <small id="account-password-help">
+                                {t('12–128 个字符，可使用较长的词组。')}
+                              </small>
+                              <button
+                                type="button"
+                                className="account-link"
+                                disabled={busy}
+                                onClick={() => switchMode('forgot')}
+                              >
+                                {t('忘记密码？')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {user && mode === 'bind' && (
+                        <div className="account-fields">
+                          <label htmlFor="account-email">
+                            <span className="account-label">{t('邮箱')}</span>
+                            <div className="code-field">
+                              <input
+                                id="account-email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                autoCapitalize="none"
+                                spellCheck={false}
+                                required
+                                maxLength={254}
+                                value={email}
+                                onChange={(event) =>
+                                  setEmail(event.target.value.trim())
+                                }
+                                disabled={busy}
+                                placeholder={t('请输入常用邮箱')}
+                              />
+                              {codeSendButton(!email.trim())}
+                            </div>
+                          </label>
+                          {codeField}
+                          <small>
+                            {t('验证码将发到新邮箱，10 分钟内有效。')}
+                          </small>
+                          <button
+                            type="button"
+                            className="account-link"
+                            disabled={busy}
+                            onClick={() => switchMode('login')}
+                          >
+                            ← {t('返回')}
+                          </button>
+                        </div>
+                      )}
+                      {user && mode !== 'bind' && (
+                        <div className="account-email-row">
+                          <span className="account-label">{t('绑定邮箱')}</span>
+                          <span className="account-email-value">
+                            {user.email ? maskEmail(user.email) : t('未绑定')}
+                          </span>
+                          <button
+                            type="button"
+                            className="account-email-action"
+                            disabled={busy}
+                            onClick={() => switchMode('bind')}
+                          >
+                            {user.email ? t('换绑') : t('绑定')}
+                          </button>
+                        </div>
+                      )}
+                      <output className="account-error" aria-live="polite">
+                        {localize(error)}
+                      </output>
+                      <output className="account-notice" aria-live="polite">
+                        {localize(notice)}
+                      </output>
+                      <button
+                        className="account-submit"
+                        disabled={busy || loading}
+                        type="submit"
+                      >
+                        {localize(
+                          busy
+                            ? '请稍候…'
+                            : user
+                              ? mode === 'bind'
+                                ? '绑定并验证 ↗'
+                                : '退出登录'
+                              : mode === 'login'
+                                ? '登录，回到现场 ↗'
+                                : mode === 'register'
+                                  ? step === 1
+                                    ? '验证邮箱，继续 ↗'
+                                    : '注册并登录 ↗'
+                                  : step === 1
+                                    ? '验证，继续 ↗'
+                                    : '重置密码 ↗',
+                        )}
+                      </button>
+                      {!user && (
+                        <small>
+                          {t('登录状态保留 7 天。公共设备使用后请退出。')}
+                        </small>
+                      )}
+                    </form>
                   </>
                 )}
-                <output className="account-error" aria-live="polite">
-                  {localize(error)}
-                </output>
-                <button
-                  className="account-submit"
-                  disabled={busy || loading}
-                  type="submit"
-                >
-                  {localize(
-                    busy
-                      ? '请稍候…'
-                      : user
-                        ? '退出登录'
-                        : mode === 'login'
-                          ? '登录，回到现场 ↗'
-                          : '注册并登录 ↗',
-                  )}
-                </button>
-                {!user && (
-                  <small>
-                    {t('登录状态保留 7 天。公共设备使用后请退出。')}
-                  </small>
-                )}
-              </form>
-              <div className="account-paper-footer" aria-hidden="true">
-                <span className="account-barcode" />
-                <span>{t('保留偏见 / 保持好奇')}</span>
-                <span>
-                  {t('AOB —')}
-                  {localize(mode === 'register' && !user ? '02' : '01')}
-                </span>
+                <div className="account-paper-footer" aria-hidden="true">
+                  <span className="account-barcode" />
+                  <span>{t('保留偏见 / 保持好奇')}</span>
+                  <span>
+                    {t('AOB —')}
+                    {localize(
+                      !user && mode === 'register'
+                        ? '02'
+                        : user && mode === 'bind'
+                          ? '03'
+                          : '01',
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

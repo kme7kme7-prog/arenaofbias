@@ -18,12 +18,35 @@ await mkdir(out, { recursive: true });
 const base = `http://127.0.0.1:${44000 + Math.floor(Math.random() * 9000)}`;
 const child = spawn(process.execPath, ['server/index.js'], {
   cwd: root,
-  env: { ...process.env, DATA_DIR: dataDir, PORT: new URL(base).port, HOST: '127.0.0.1', ADMIN_OWNER: 'kme7' },
+  env: {
+    ...process.env, DATA_DIR: dataDir, PORT: new URL(base).port, HOST: '127.0.0.1', ADMIN_OWNER: 'kme7',
+    // 注册必填邮箱+验证码（2026-09-24）：MAIL_DEV_LOG 打日志由本脚本捕获
+    MAIL_DEV_LOG: '1', MAIL_COOLDOWN_MS: '1', MAIL_IP_MAX: '1000', MAIL_EMAIL_MAX: '1000',
+  },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
-child.stdout.on('data', c => { output += c; });
+// 服务器日志按行收集：错误诊断用 output 之外，解析验证码行供注册用
+const codeLines = [];
+let pendingLog = '';
+child.stdout.on('data', c => {
+  output += c;
+  pendingLog += c;
+  const parts = pendingLog.split('\n');
+  pendingLog = parts.pop();
+  codeLines.push(...parts);
+});
 child.stderr.on('data', c => { output += c; });
+const waitForCode = async (purpose, target) => {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const line = codeLines.find(item =>
+      item.includes(`purpose=${purpose}`) && item.includes(`email=${target}`) && item.includes('code='));
+    if (line) return line.match(/code=(\d{6})/)[1];
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error(`未捕获到 ${purpose} ${target} 的验证码`);
+};
 const expectBug = process.argv.includes('--expect-bug');
 const password = 'admin-access-test-password';
 let browser;
@@ -38,7 +61,13 @@ try {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   await context.addInitScript(() => localStorage.setItem('arena-language', 'zh'));
   for (const username of ['wujisuan', 'kme7']) {
-    const res = await context.request.post(`${base}/api/auth/register`, { headers: { origin: base }, data: { username, password } });
+    const email = `${username}@aob.test`;
+    const sent = await context.request.post(`${base}/api/auth/email/send`, { headers: { origin: base }, data: { purpose: 'register', email } });
+    assert.equal(sent.status(), 200);
+    const res = await context.request.post(`${base}/api/auth/register`, {
+      headers: { origin: base },
+      data: { username, password, email, code: await waitForCode('register', email) },
+    });
     assert.equal(res.status(), 201);
   }
   const db = new Database(path.join(dataDir, 'comments.db'));

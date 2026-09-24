@@ -15,6 +15,15 @@
 //   TRUST_PROXY     反代部署必设（如 loopback 或代理 IP 白名单）——不设时
 //                   req.ip 是代理地址，/api/auth/dev 等回环门禁不可信
 //   APP_ORIGIN      站点完整来源（如 https://example.com），反代后必设
+//   SMTP_HOST/PORT/USER/PASS  邮箱验证码发信（个人邮箱 SMTP + 授权码，如
+//                   smtp.163.com:465）；SMTP_FROM/SMTP_FROM_NAME 可选，
+//                   默认发件地址用 SMTP_USER
+//   MAIL_DEV_LOG    =1 时不真发信，验证码打进服务器日志——仅本地调试与
+//                   自动化测试用，生产严禁开启（会把验证码写进日志）
+//   MAIL_CODE_TTL_MS / MAIL_COOLDOWN_MS / MAIL_CODE_MAX_ATTEMPTS /
+//   MAIL_IP_MAX / MAIL_EMAIL_MAX  发码节流参数，默认：验证码 10 分钟有效、
+//                   同一收件地址 60 秒冷却、错 5 次作废、15 分钟内每 IP 8 次
+//                   / 每邮箱 3 次
 
 import express from 'express';
 import { installShare } from './share.js';
@@ -26,6 +35,7 @@ import {
   validWorkCamera,
 } from './work-bridge.js';
 import { installAuth } from './auth.js';
+import { installAuthEmail } from './auth-email.js';
 import {
   insertWork,
   modelIdOf,
@@ -645,7 +655,8 @@ function sameOrigin(req) {
     process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`;
   return req.headers.origin === expected;
 }
-installAuth(app, db, sameOrigin);
+const auth = installAuth(app, db, sameOrigin);
+installAuthEmail(app, db, auth);
 const listByRound = db.prepare(
   `SELECT comments.id, round_id AS roundId, side, body, comments.created_at AS createdAt, users.username
    FROM comments LEFT JOIN users ON users.id = comments.user_id

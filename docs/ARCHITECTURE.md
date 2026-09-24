@@ -52,7 +52,10 @@
 | `lib/home-edition.ts` | 首页版本本地偏好：`aob-home-edition` 读写 + `aob:home-edition-changed` 事件（面板写入、首页即时换版） |
 | `components/ui/` | 只保留实际使用的 shadcn 组件（按需 add，016） |
 | `server/index.js` | Express 全家桶：静态双入口、评论/作品/题目/投票/反应/模一把/访客统计 API、`PRAGMA user_version` 迁移、`/api/admin/*` 管理组、限流分组（070）、同源校验、`TRUST_PROXY`/`APP_ORIGIN` |
-| `server/auth.js` | 账号：scrypt、cookie+sessions、`/api/auth/dev` 免登录（回环/XFF 门禁，070）、`users.role` 管理员 |
+| `server/auth.js` | 账号：scrypt、cookie+sessions、`/api/auth/login` `/logout` `/me`、`/api/auth/dev` 免登录（回环/XFF 门禁，070）、`users.role`/邮箱列迁移 |
+| `server/auth-util.js` | 账号公共工具：digest/normalize、密码与邮箱校验、scrypt derive（auth 与 auth-email 共用，保持单向依赖） |
+| `server/mail.js` | 零依赖 SMTP 客户端（465/587、STARTTLS、AUTH PLAIN/LOGIN）+ 验证码邮件模板；`MAIL_DEV_LOG=1` 只打日志不真发 |
+| `server/auth-email.js` | 邮箱账号体系（2026-09-24）：注册（必填邮箱+验证码）、`email/send`/`email/bind`、`password/reset`（重置后清全部会话）、`email_codes` 表、发码限流与冷却 |
 | `server/works-register.js` | 作品登记公共核心（043/044）：CLI 脚本与后台收件箱共用 |
 | `app/admin/` | 后台页（041-045/063）：dashboard / log / works / inbox / prompts / guess / placeholder（活动管理占位） |
 | `scripts/validate-*.mjs` | 各域校验（arena/guess/placeholder/matchmaking/leaderboard/votes/comments/admin/locale）：自带临时 SQLite 与随机端口；guess 34 项 |
@@ -74,7 +77,11 @@
 
 | 接口 | 说明 |
 | --- | --- |
-| `POST /api/auth/register` `/login` `/logout`；`GET /api/auth/me` | 用户名 `^[a-z0-9_]{3,24}$`、密码 12–128；scrypt；登录防时序探测；注册即登录 |
+| `POST /api/auth/register` `/login` `/logout`；`GET /api/auth/me` | 注册必填邮箱+验证码（一邮箱一账号）；用户名 `^[a-z0-9_]{3,24}$`、密码 12–128；scrypt；登录防时序探测；注册即登录 |
+| `POST /api/auth/email/send` | 发 6 位验证码：purpose=register/bind（按邮箱，占用明示 409）/reset（按账号名，不存在或未绑邮箱明示 400）；bind 须登录；同址 60 秒冷却、按 IP/目标限流；响应带打码邮箱 |
+| `POST /api/auth/email/verify` | 验证码预校验（分步表单第二步门槛）：正确放行不消耗，错码计次（5 次作废） |
+| `POST /api/auth/email/bind` | 登录后绑定/换绑邮箱（验码即验证）；`users.email` 唯一 |
+| `POST /api/auth/password/reset` | 忘记密码：账号名+验证码+新密码；成功后删除该账号全部会话 |
 | `POST /api/auth/dev` | dev 免登录（020/070）：仅回环或 `ALLOW_DEV_LOGIN=1`；带 XFF 且未设 `TRUST_PROXY` 直接拒 |
 | `GET /api/comments?round=` | 按题最新 100 条，公开 |
 | `POST /api/comments` | 登录 401/同源 403/JSON 415/校验 400/幂等 409 |
@@ -108,11 +115,11 @@ npm run build
 npm start          # 生产形态：http://localhost:3000
 ```
 
-检查命令：`typecheck`、`lint`、`validate:arena/scroll/placeholder/leaderboard/votes/admin/matchmaking/guess`（均自带临时 SQLite 与随机端口）、`validate-locale.mjs`；`validate:comments` 需先起服务；`check:motion` 校验全部动效不变量（或分开跑 `check:wipe/surface/game/arena-scroll`）。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` + `reference/*-review.html`）再改行为。
+检查命令：`typecheck`、`lint`、`validate:arena/scroll/placeholder/leaderboard/votes/admin/matchmaking/guess/email/comments/reactions`（均自带临时 SQLite 与随机端口；邮箱类用 `MAIL_DEV_LOG=1` 从日志捕码，不真发信）、`validate-locale.mjs`（直接 node 跑）；`check:motion` 校验全部动效不变量（或分开跑 `check:wipe/surface/game/arena-scroll`）。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` + `reference/*-review.html`）再改行为。
 
 后台本地访问：`http://127.0.0.1:5173/admin.html`，使用管理员账号登录；本机自动验证仍可通过受回环门禁保护的 `/api/auth/dev` 登录以及 `/api/dev/clear-my-votes` 清理 dev 测试票。面板不再提供不可达的 dev 切号/清票控件。
 
-环境变量（均有默认值，本地开发可不设）：`PORT`/`HOST`、`DATA_DIR`（SQLite 目录）、`RATE_LIMIT_PER_MIN`、`ADMIN_OWNER`（管理员引导，已被 dev 即管理员弱化）、`APP_ORIGIN`、`TRUST_PROXY`（反代必设）、`WORKS_DIR`（作品目录，大文件不入 git）、`WORKS_INBOX_DIR`（收件箱）。
+环境变量（均有默认值，本地开发可不设）：`PORT`/`HOST`、`DATA_DIR`（SQLite 目录）、`RATE_LIMIT_PER_MIN`、`ADMIN_OWNER`（管理员引导，已被 dev 即管理员弱化）、`APP_ORIGIN`、`TRUST_PROXY`（反代必设）、`WORKS_DIR`（作品目录，大文件不入 git）、`WORKS_INBOX_DIR`（收件箱）。邮件验证码（2026-09-24）：`SMTP_HOST/PORT/USER/PASS`（个人邮箱 SMTP+授权码，如 smtp.163.com:465）+ 可选 `SMTP_FROM`/`SMTP_FROM_NAME`；`MAIL_DEV_LOG=1` 只打日志不真发（本地调试/测试，生产禁开）；节流参数 `MAIL_CODE_TTL_MS`/`MAIL_COOLDOWN_MS`/`MAIL_CODE_MAX_ATTEMPTS`/`MAIL_IP_MAX`/`MAIL_EMAIL_MAX`（默认 10 分钟有效、60 秒冷却、错 5 次作废、15 分钟每 IP 8 次/每邮箱 3 次）。不配 SMTP 时发码接口回 503。
 
 已知环境限制：AI 沙箱内 `vite build` 可能因原生二进制与子进程限制失败（spawn EPERM 等），属环境限制而非代码问题，需在本地终端复核。
 

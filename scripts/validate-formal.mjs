@@ -20,6 +20,26 @@ const check = async (name, fn) => {
   console.log(`PASS ${name}`);
   tests++;
 };
+// 注册必填邮箱+验证码（2026-09-24）：MAIL_DEV_LOG 打日志由本脚本捕获。
+// 服务中途会重启，codeLines 挂在模块层跨 start() 存活
+const codeLines = [];
+let pendingLog = '';
+const collectCodes = chunk => {
+  pendingLog += chunk;
+  const parts = pendingLog.split('\n');
+  pendingLog = parts.pop();
+  codeLines.push(...parts);
+};
+const waitForCode = async (purpose, target) => {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const line = codeLines.find(item =>
+      item.includes(`purpose=${purpose}`) && item.includes(`email=${target}`) && item.includes('code='));
+    if (line) return line.match(/code=(\d{6})/)[1];
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error(`未捕获到 ${purpose} ${target} 的验证码`);
+};
 async function start() {
   let output = '';
   // 用高位随机端口；抢占失败快速报错，不连接已有实例。
@@ -27,10 +47,13 @@ async function start() {
   base = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['server/index.js'], {
     cwd: root,
-    env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', DATA_DIR: dataDir, RATE_LIMIT_PER_MIN: '200' },
+    env: {
+      ...process.env, PORT: String(port), HOST: '127.0.0.1', DATA_DIR: dataDir, RATE_LIMIT_PER_MIN: '200',
+      MAIL_DEV_LOG: '1', MAIL_COOLDOWN_MS: '1', MAIL_IP_MAX: '1000', MAIL_EMAIL_MAX: '1000',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  child.stdout.on('data', chunk => { output += chunk; });
+  child.stdout.on('data', chunk => { output += chunk; collectCodes(chunk); });
   child.stderr.on('data', chunk => { output += chunk; });
   for (let i = 0; i < 150; i++) {
     if (child.exitCode !== null) throw new Error(output);
@@ -116,7 +139,12 @@ try {
     assert.equal((await get('votes?scope=formal')).votes.length, 2);
   });
   await check('非管理员不能写正式票，非法统计范围返回400', async () => {
-    const registered = await post('auth/register', { username: 'formal_regular', password: 'formal-regular-test-2026' });
+    const regularEmail = 'formal-regular@aob.test';
+    assert.equal((await post('auth/email/send', { purpose: 'register', email: regularEmail })).status, 200);
+    const registered = await post('auth/register', {
+      username: 'formal_regular', password: 'formal-regular-test-2026',
+      email: regularEmail, code: await waitForCode('register', regularEmail),
+    });
     assert.equal(registered.status, 201);
     const regular = registered.headers.get('set-cookie').split(';')[0];
     assert.equal((await post('votes', vote('formal'), regular)).status, 403);
