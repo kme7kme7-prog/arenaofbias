@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>纸面仪器 · Portable Design System</title>
+  <link rel="stylesheet" href="design-kit.css">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js" defer></script>
+</head>
+<body class="pdk">
+  <a href="#main" class="pdk-skip">跳到主要内容</a>
+  <div class="pdk-container">
+    <header class="pdk-masthead">
+      <a class="pdk-brand" href="#main"><span class="pdk-brand-mark" aria-hidden="true">≡</span><span>PAPER / <strong>INSTRUMENT</strong><small>独立界面设计系统 · 1.0</small></span></a>
+      <nav class="pdk-nav" aria-label="规范目录"><a href="#foundation">设计基底</a><a href="#components">组件与状态</a><a href="#patterns">页面组合</a><a href="README.md">使用文档 ↗</a></nav>
+    </header>
+    <main id="main" tabindex="-1">
+      <section class="pdk-hero pdk-grid-paper sample-hero" aria-labelledby="hero-title">
+        <div class="pdk-stack pdk-reveal">
+          <p class="pdk-eyebrow">FIELD GUIDE / 001</p>
+          <h1 class="pdk-display" id="hero-title">界面有骨架，<br>内容有<span class="pdk-accent-word">主场</span>。</h1>
+          <p class="pdk-lead">纸灰绿的底，深墨的秩序，一点酸黄。<br>把有性格的界面，带到下一个项目。</p>
+          <div class="pdk-cluster"><a class="pdk-button" href="#components">查看组件 <span aria-hidden="true">↗</span></a><a class="pdk-button pdk-button--quiet" href="design-kit.css" download>下载 CSS ↓</a></div>
+          <p class="pdk-meta"><span>无框架依赖</span><span>无远程资源</span><span>作用域隔离</span></p>
+        </div>
+        <div class="sample-stage pdk-reveal" aria-label="设计系统组合示例">
+          <div class="sample-coordinate" aria-hidden="true">SYS.01 / PAPER — INK — ACID</div>
+          <section class="pdk-panel pdk-panel--instrument sample-console">
+            <header class="pdk-panel-head"><span class="pdk-number">OBSERVATION / 01</span><span class="sample-led" aria-hidden="true"></span></header>
+            <div class="pdk-panel-body pdk-stack">
+              <div class="sample-console-heading"><h2 class="pdk-title">保持判断，减少噪声。</h2><span class="pdk-badge">样例</span></div>
+              <div class="sample-diagram" aria-hidden="true"><div class="sample-orbit"></div><span class="sample-axis">+</span><span class="sample-figure">A<span>/</span>B</span><span class="sample-diagram-label">SAME FIELD · TWO VIEWS</span></div>
+              <div class="sample-readout"><div><span class="pdk-hint">结构</span><strong>清楚</strong></div><div><span class="pdk-hint">强调</span><strong>有节制</strong></div><div><span class="pdk-hint">动作</span><strong>有回应</strong></div></div>
+              <div class="pdk-ticks" aria-hidden="true"></div>
+              <p class="pdk-hint">展示样式，不含业务数据。大字负责吸引，细节负责引导。</p>
+            </div>
+          </section>
+          <div class="sample-index" aria-hidden="true">01<span>— 07</span></div>
+        </div>
+      </section>
+      <div class="sample-principles"><p><span>01</span> 一处主入口</p><p><span>02</span> 内容保持本色</p><p><span>03</span> 装饰让位于阅读</p><p><span>04</span> 状态不只靠颜色</p></div>
+
+      <section class="pdk-section" id="foundation" aria-labelledby="foundation-title">
+        <div class="sample-section-heading"><div><p class="pdk-eyebrow">01 / FOUNDATION</p><h2 class="pdk-heading" id="foundation-title">三种锚点，一套秩序。</h2></div><p class="pdk-muted">从视觉性格出发，落到可复用的变量。</p></div>
+        <div class="sample-swatches">
+          <div class="sample-swatch swatch-paper"><span>01 / 底色</span><strong>纸灰绿</strong><code>#DFE3DD</code></div>
+          <div class="sample-swatch swatch-ink"><span>02 / 结构</span><strong>深墨</strong><code>#1C2423</code></div>
+          <div class="sample-swatch swatch-acid"><span>03 / 强调</span><strong>酸性黄</strong><code>#D9FB51</code></div>
+        </div>
+        <div class="pdk-split sample-foundation-details">
+          <div class="pdk-stack"><h3 class="pdk-title">大字收紧，小字有序。</h3><p class="sample-type">判断，在你。</p><p class="pdk-meta">TYPE / 800 · 紧凑标题 · 原生句号</p><p class="pdk-prose">标题形成视觉重心。说明文字保持正常字号和充足行高。编号、状态与时间交给等宽字体；不要为了“仪器感”把正文压成细小标签。</p></div>
+          <div class="pdk-stack"><h3 class="pdk-title">留白也使用同一把尺。</h3><div class="sample-spacing" aria-label="间距：4、8、12、16、24、32、48 像素"><i style="--n:4">4</i><i style="--n:8">8</i><i style="--n:12">12</i><i style="--n:16">16</i><i style="--n:24">24</i><i style="--n:32">32</i><i style="--n:48">48</i></div><p class="pdk-prose">1px 描边划分结构，3px × 4px 的硬投影提示按压。酸黄只占少量面积，正文始终使用深墨，作品图片不统一染色。</p></div>
+        </div>
+      </section>
+
+      <section class="pdk-section" id="components" aria-labelledby="components-title">
+        <div class="sample-section-heading"><div><p class="pdk-eyebrow">02 / COMPONENTS</p><h2 class="pdk-heading" id="components-title">能直接使用，也能认真细看。</h2></div><p class="pdk-muted">所有示例使用同一份 design-kit.css。</p></div>
+        <div class="pdk-split">
+          <section class="pdk-panel" aria-labelledby="actions-title"><header class="pdk-panel-head"><h3 class="pdk-title" id="actions-title">动作层级</h3><span class="pdk-meta">01 / ACTION</span></header><div class="pdk-panel-body pdk-stack">
+            <div class="pdk-cluster"><button class="pdk-button" type="button" data-open-dialog hidden>创建项目 ↗</button><a class="pdk-button pdk-button--secondary" href="#patterns">浏览样式</a><a class="pdk-button pdk-button--quiet" href="README.md">使用说明 ↗</a></div>
+            <div class="pdk-cluster"><button class="pdk-button" disabled>暂不可用</button><button class="pdk-button" disabled aria-busy="true">正在保存</button></div>
+            <p class="pdk-hint">悬停轻抬，按下回落。键盘焦点有独立描边；加载与禁用都有文字说明。</p>
+            <a class="pdk-entry" href="#patterns"><span class="pdk-number">01</span><span><strong>页面组合</strong><small>把现成组件组织成一个完整页面</small></span><span aria-hidden="true">↗</span></a>
+            <a class="pdk-entry" href="README.md#迁移到其他网站"><span class="pdk-number">02</span><span><strong>迁移指南</strong><small>保留视觉基因，替换业务内容</small></span><span aria-hidden="true">↗</span></a>
+          </div></section>
+          <section class="pdk-panel" aria-labelledby="feedback-title"><header class="pdk-panel-head"><h3 class="pdk-title" id="feedback-title">信息与反馈</h3><span class="pdk-meta">02 / STATE</span></header><div class="pdk-panel-body pdk-stack">
+            <div class="pdk-cluster"><span class="pdk-badge">草稿</span><span class="pdk-badge pdk-badge--accent">当前</span><span class="pdk-badge pdk-badge--success">✓ 已完成</span><span class="pdk-badge pdk-badge--warning">! 待确认</span><span class="pdk-badge pdk-badge--danger">× 未通过</span></div>
+            <div class="pdk-callout"><strong>状态颜色有具体含义</strong><p class="pdk-hint">红蓝区分两侧作品，成功与错误另有文本标签；不要把蓝色一律理解为成功。</p></div>
+            <div class="pdk-field"><label for="sample-progress" class="pdk-label">整理进度 · 6 / 10</label><progress class="pdk-progress" id="sample-progress" max="10" value="6">60%</progress></div>
+            <div class="pdk-callout pdk-callout--error"><strong>无法保存这次修改</strong><p>检查网络连接后重试。你输入的内容仍在。</p></div>
+          </div></section>
+        </div>
+        <div class="pdk-split sample-row">
+          <section class="pdk-panel" aria-labelledby="form-title"><header class="pdk-panel-head"><h3 class="pdk-title" id="form-title">输入有边界，提示说清楚。</h3></header><form class="pdk-panel-body pdk-stack" id="sample-form">
+            <div class="pdk-field"><label class="pdk-label" for="project-name">项目名称（必填）</label><input class="pdk-input" id="project-name" name="project" autocomplete="off" maxlength="48" placeholder="例如：创意观察站" required aria-describedby="name-hint"><p class="pdk-hint" id="name-hint">最多 48 个字符。这是本地演示，不会发送数据。</p></div>
+            <div class="pdk-field"><label class="pdk-label" for="project-kind">页面类型</label><select class="pdk-input" id="project-kind" name="kind"><option>内容目录</option><option>比较与评选</option><option>数据工作台</option></select></div>
+            <label class="pdk-check"><input type="checkbox" name="hints" checked>显示操作提示</label>
+            <div class="pdk-cluster"><button class="pdk-button" type="submit" data-js hidden>保存本地示例 ↗</button><button class="pdk-button pdk-button--quiet" type="reset">重置</button></div>
+            <p class="pdk-hint" id="form-status" role="status" aria-live="polite">尚未保存。</p><noscript><p>JavaScript 已关闭：输入框仍可使用，保存演示未启用。</p></noscript>
+          </form><div class="pdk-panel-body"><div class="pdk-field"><label class="pdk-label" for="sample-invalid">地址示例（独立错误态，不参与上方表单）</label><input class="pdk-input" id="sample-invalid" value="not a url" aria-invalid="true" aria-describedby="url-error"><p class="pdk-error" id="url-error">请输入以 https:// 开头的完整网址。</p></div></div></section>
+          <div class="pdk-stack">
+            <section class="pdk-panel pdk-inverse" aria-labelledby="inverse-title"><header class="pdk-panel-head"><h3 class="pdk-title" id="inverse-title">局部深墨面板</h3><span class="pdk-badge pdk-badge--accent">聚焦</span></header><div class="pdk-panel-body pdk-stack"><p>深色用于顶栏、焦点区域与揭晓时刻，不把整个页面变成发光终端。</p><p class="pdk-muted">次级文字在深色表面仍应清楚可读。</p><a class="pdk-button pdk-button--secondary" href="#patterns">查看组合方式 ↗</a></div></section>
+            <section class="pdk-empty"><p class="pdk-eyebrow">EMPTY / 尚无内容</p><h3 class="pdk-title">从第一个条目开始。</h3><p class="pdk-muted">空状态说明原因，并给出下一步。</p><a class="pdk-button pdk-button--secondary" href="#form-title">填写项目名称 ↗</a></section>
+          </div>
+        </div>
+      </section>
+
+      <section class="pdk-section" id="patterns" aria-labelledby="patterns-title">
+        <div class="sample-section-heading"><div><p class="pdk-eyebrow">03 / PATTERNS</p><h2 class="pdk-heading" id="patterns-title">同一套语言，不同种页面。</h2></div><p class="pdk-muted">切换示例；支持方向键、Home 与 End。</p></div>
+        <div class="pdk-tabs" id="pattern-tabs" aria-label="页面组合" hidden>
+          <button class="pdk-tab" id="tab-catalog" aria-controls="panel-catalog">内容目录</button><button class="pdk-tab" id="tab-records" aria-controls="panel-records">数据列表</button><button class="pdk-tab" id="tab-reading" aria-controls="panel-reading">阅读与说明</button>
+        </div>
+        <section class="pdk-tabpanel" id="panel-catalog" aria-labelledby="tab-catalog">
+          <div class="pdk-grid">
+            <a class="pdk-card pdk-card--team-a" href="#components"><div class="pdk-meta"><span>A / 01</span><span>界面方案</span></div><h3 class="pdk-title">第一种答案</h3><p class="pdk-muted">两侧标签明确标注，颜色只作辅助区分。</p><span class="pdk-link">查看组件 ↗</span></a>
+            <a class="pdk-card pdk-card--team-b" href="#components"><div class="pdk-meta"><span>B / 02</span><span>界面方案</span></div><h3 class="pdk-title">另一种可能</h3><p class="pdk-muted">保持相同的容器和信息层级，避免视觉偏袒。</p><span class="pdk-link">查看组件 ↗</span></a>
+            <div class="pdk-card"><span class="pdk-badge">待整理</span><h3 class="pdk-title">普通内容卡</h3><p class="pdk-muted">没有跳转的卡片不装作按钮，也不播放悬停抬升。</p><p class="pdk-meta">03 / 静态示例</p></div>
+          </div>
+        </section>
+        <section class="pdk-tabpanel" id="panel-records" aria-labelledby="tab-records">
+          <div class="pdk-table-wrap" role="region" tabindex="0" aria-label="示例记录表，可横向滚动"><table class="pdk-table"><caption>示例记录 · 所有数值为展示数据</caption><thead><tr><th scope="col">编号</th><th scope="col">条目</th><th scope="col">状态</th><th scope="col" class="pdk-number">完成数</th></tr></thead><tbody><tr><td class="pdk-number">01</td><th scope="row">内容归档</th><td><span class="pdk-badge pdk-badge--success">已完成</span></td><td class="pdk-number">24</td></tr><tr><td class="pdk-number">02</td><th scope="row">页面检查</th><td><span class="pdk-badge pdk-badge--warning">待确认</span></td><td class="pdk-number">8</td></tr><tr><td class="pdk-number">03</td><th scope="row">发布准备</th><td><span class="pdk-badge">草稿</span></td><td class="pdk-number">0</td></tr></tbody></table></div>
+        </section>
+        <section class="pdk-tabpanel" id="panel-reading" aria-labelledby="tab-reading">
+          <div class="pdk-split"><article class="pdk-prose pdk-prose--serif"><h3 class="pdk-title">让内容成为主角。</h3><p>界面的性格来自比例、秩序与响应，而不是装饰的数量。当读者开始阅读，网格应退到背景，文字应有足够空间，控件应知道何时保持安静。</p><p>在其他网站使用这套系统时，保留纸面、深墨与酸黄的关系；换掉品牌、术语与业务隐喻。你迁移的是视觉语言，不是原网站的规则。</p></article><div><details class="pdk-disclosure"><summary>是否需要 React 或构建工具？</summary><div class="pdk-prose"><p>不需要。CSS 独立工作。展示页交互使用同目录的原生 JavaScript；实际项目可以使用自己的组件框架。</p></div></details><details class="pdk-disclosure"><summary>为什么没有附带字体和作品？</summary><div class="pdk-prose"><p>字体采用系统回退，不发起字体请求。字库、标志和内容素材需要单独确认许可，不应随样式包盲目复制。</p></div></details></div></div>
+        </section>
+      </section>
+      <section class="pdk-section sample-handoff" aria-labelledby="handoff-title"><p class="pdk-eyebrow">04 / TAKE IT WITH YOU</p><h2 class="pdk-heading" id="handoff-title">复制一个文件，建立一套秩序。</h2><p class="pdk-lead">从作用域开始，从真实内容结束。规范、代码与状态示例已放在同一个文件夹里。</p><div class="pdk-cluster"><a class="pdk-button" href="README.md">阅读完整规范 ↗</a><a class="pdk-button pdk-button--secondary" href="design-kit.css" download>下载 design-kit.css ↓</a></div></section>
+    </main>
+    <footer class="pdk-footer"><span>PAPER / INSTRUMENT · PORTABLE EDITION</span><span>1.0 / 2026.09.23 · 展示页不采集数据</span></footer>
+  </div>
+  <dialog class="pdk-dialog" id="sample-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-copy"><header class="pdk-panel-head"><h2 class="pdk-title" id="dialog-title">从一个明确的目标开始。</h2><button class="pdk-button pdk-button--quiet pdk-button--icon" type="button" data-close-dialog aria-label="关闭对话框">×</button></header><div class="pdk-panel-body pdk-stack"><p id="dialog-copy">这是交互示例。关闭后，焦点回到打开它的按钮。可使用 Esc 退出。</p><p class="pdk-hint">实际业务中的删除、付款或发布，需要明确说明对象和影响，不能只写“确定”。</p></div><form method="dialog" class="pdk-dialog-actions"><button class="pdk-button" autofocus>明白了</button></form></dialog>
+</body>
+</html>
