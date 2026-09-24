@@ -2,8 +2,11 @@
 // 忘记密码重置（重置后全会话登出）、验证码冷却与错码作废、reset 不泄露
 // 邮箱占用。全部跑在临时库 + MAIL_DEV_LOG=1（验证码从服务器日志捕获，
 // 不真发信）。冷却与限流阈值用环境变量调小/调大以覆盖边界。
+// 第二阶段另起一个开了 Turnstile 的服务端，用本地桩代替 Cloudflare siteverify，
+// 密封验证发码的人机门禁（缺 token 拒、假 token 拒、真 token 放行）。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -322,6 +325,120 @@ try {
     });
     assert.equal(right.response.status, 200, '错一次后正确码仍可用');
   });
+  await check('未配 Turnstile 密钥时接口回 null、发码无需 token', async () => {
+    const config = await (await fetch(`${base}/api/auth/turnstile`)).json();
+    assert.equal(config.siteKey, null);
+    // 本阶段全部 sendCode 都没带 token 且都发出去了，这里再显式确认一次
+    const email = `nogate-${randomUUID().slice(0, 8)}@aob.test`;
+    assert.equal((await sendCode('register', email)).response.status, 200);
+  });
+
+  // ---- 第二阶段：Turnstile 门禁（本地桩代替 Cloudflare siteverify）----
+  {
+    const stubBodies = [];
+    const stub = createServer((req, res) => {
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        stubBodies.push(body);
+        const ok = new URLSearchParams(body).get('response') === 'good-token';
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ success: ok }));
+      });
+    });
+    await new Promise((resolve) => stub.listen(0, '127.0.0.1', resolve));
+    const stubUrl = `http://127.0.0.1:${stub.address().port}/siteverify`;
+    const gateDataDir = await mkdtemp(path.join(tmpdir(), 'aob-email-gate-'));
+    let gatePort = 20000 + Math.floor(Math.random() * 20000);
+    if (gatePort === port) gatePort += 1;
+    const gateBase = `http://127.0.0.1:${gatePort}`;
+    const gateChild = spawn(process.execPath, ['server/index.js'], {
+      cwd: root,
+      env: {
+        ...process.env,
+        DATA_DIR: gateDataDir,
+        PORT: String(gatePort),
+        HOST: '127.0.0.1',
+        RATE_LIMIT_PER_MIN: '60',
+        MAIL_DEV_LOG: '1',
+        MAIL_COOLDOWN_MS: '300',
+        MAIL_IP_MAX: '1000',
+        MAIL_EMAIL_MAX: '1000',
+        TURNSTILE_SECRET_KEY: 'test-secret',
+        TURNSTILE_SITE_KEY: 'test-site-key',
+        TURNSTILE_VERIFY_URL: stubUrl,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    gateChild.stdout.setEncoding('utf8');
+    gateChild.stdout.on('data', (chunk) => process.stdout.write(chunk));
+    gateChild.stderr.setEncoding('utf8');
+    gateChild.stderr.on('data', (chunk) => process.stderr.write(chunk));
+    const postGate = async (pathname, body) => {
+      const response = await fetch(`${gateBase}${pathname}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', origin: gateBase },
+        body: JSON.stringify(body),
+      });
+      return { response, data: await response.json().catch(() => ({})) };
+    };
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const response = await fetch(`${gateBase}/api/works`);
+          if (response.ok) break;
+        } catch {
+          /* 服务器还在启动，继续等 */
+        }
+        if (attempt >= 100) throw new Error('门禁服务器未就绪');
+        await sleep(100);
+      }
+      await check('开启后接口下发站点密钥', async () => {
+        const config = await (await fetch(`${gateBase}/api/auth/turnstile`)).json();
+        assert.equal(config.siteKey, 'test-site-key');
+      });
+      await check('缺人机 token 发码被拒', async () => {
+        const { response, data } = await postGate('/api/auth/email/send', {
+          purpose: 'register',
+          email: `gate1-${randomUUID().slice(0, 8)}@aob.test`,
+        });
+        assert.equal(response.status, 400);
+        assert.match(data.error, /人机验证未通过/);
+      });
+      await check('假人机 token 发码被拒且校验确有发生', async () => {
+        const before = stubBodies.length;
+        const { response, data } = await postGate('/api/auth/email/send', {
+          purpose: 'register',
+          email: `gate2-${randomUUID().slice(0, 8)}@aob.test`,
+          turnstileToken: 'bad-token',
+        });
+        assert.equal(response.status, 400);
+        assert.match(data.error, /人机验证未通过/);
+        assert.equal(stubBodies.length, before + 1, '假 token 也要送到校验端');
+      });
+      await check('真人机 token 发码放行且密钥只给校验端', async () => {
+        const { response, data } = await postGate('/api/auth/email/send', {
+          purpose: 'register',
+          email: `gate3-${randomUUID().slice(0, 8)}@aob.test`,
+          turnstileToken: 'good-token',
+        });
+        assert.equal(response.status, 200);
+        assert.equal(data.sent, true);
+        const last = new URLSearchParams(stubBodies.at(-1));
+        assert.equal(last.get('secret'), 'test-secret');
+        assert.equal(last.get('response'), 'good-token');
+      });
+    } finally {
+      gateChild.kill();
+      await new Promise((resolve) => {
+        gateChild.once('exit', resolve);
+        setTimeout(resolve, 3000);
+      });
+      stub.close();
+      await rm(gateDataDir, { recursive: true, force: true });
+    }
+  }
 
   console.log(`${tests} checks passed.`);
 } finally {

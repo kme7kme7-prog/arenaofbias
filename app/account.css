@@ -405,6 +405,12 @@
   opacity: 0.55;
   cursor: default;
 }
+/* Turnstile 人机验证块（服务端未配密钥时不存在）：官方组件约 65px 高，
+   占位防加载前后布局跳动 */
+.account-turnstile {
+  min-height: 65px;
+  margin: 2px 0;
+}
 .account-email-row {
   display: flex;
   align-items: center;

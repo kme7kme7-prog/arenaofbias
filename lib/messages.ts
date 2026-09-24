@@ -225,6 +225,13 @@ export const messages: Record<string, string> = {
     'The code email failed to send. Please try again later.',
   '验证码不正确或已过期，请重新获取。':
     'The code is wrong or expired. Please request a new one.',
+  // Turnstile 人机验证（2026-09-24）：只守发验证码
+  '请先完成人机验证。': 'Please complete the human check first.',
+  '人机验证未通过，请重试。': 'Human check failed. Please try again.',
+  '人机验证服务暂时不可用，请稍后重试。':
+    'Human check is temporarily unavailable. Please try again later.',
+  '人机验证加载失败，请刷新页面重试。':
+    'Could not load the human check. Refresh and try again.',
   '登录状态保留 7 天。公共设备使用后请退出。':
     'You stay logged in for 7 days. Log out on shared devices.',
   '保留偏见 / 保持好奇': 'Stay opinionated / Stay curious',

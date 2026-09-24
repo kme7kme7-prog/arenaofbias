@@ -24,6 +24,9 @@
 //   MAIL_IP_MAX / MAIL_EMAIL_MAX  发码节流参数，默认：验证码 10 分钟有效、
 //                   同一收件地址 60 秒冷却、错 5 次作废、15 分钟内每 IP 8 次
 //                   / 每邮箱 3 次
+//   TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY  Cloudflare Turnstile 人机验证
+//                   （只守发验证码接口，两把都不配则整功能关闭，见 turnstile.js）；
+//                   TURNSTILE_VERIFY_URL 仅测试用（指向本地桩）
 
 import express from 'express';
 import { installShare } from './share.js';
@@ -36,6 +39,7 @@ import {
 } from './work-bridge.js';
 import { installAuth } from './auth.js';
 import { installAuthEmail } from './auth-email.js';
+import { installTurnstile } from './turnstile.js';
 import {
   insertWork,
   modelIdOf,
@@ -657,6 +661,7 @@ function sameOrigin(req) {
 }
 const auth = installAuth(app, db, sameOrigin);
 installAuthEmail(app, db, auth);
+installTurnstile(app);
 const listByRound = db.prepare(
   `SELECT comments.id, round_id AS roundId, side, body, comments.created_at AS createdAt, users.username
    FROM comments LEFT JOIN users ON users.id = comments.user_id

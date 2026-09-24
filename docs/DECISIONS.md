@@ -432,3 +432,9 @@
 
 - 用户明确要求检查当前状况和剩余任务，无需继续实施时整理文件、推送远端并同步 VPS，最后报告。本轮授权覆盖此前已完成未提交的功能/修复与本次收尾提交，替代先前仅限当轮的禁止 Git commit/push；不得据此覆盖他人远端新提交。
 - 仍保留他人未跟踪 `public/works/005/`、`006/`、`007/` 与 zip，不能把“整理”解释成删除或提交原始作品。IDEAS 中未批准玩法、模一把防剧透等待定方案保持待定。
+
+## 2026-09-24 · 人机验证用 Cloudflare Turnstile、只守发码接口（不占编号）
+
+- 用户在三个候选（Cloudflare Turnstile / 国内极验等 / 自搓图形码）中拍板用 Cloudflare Turnstile。实现零新增依赖（Node 自带 fetch 校验 siteverify），不碰 deploy:vps 的 node_modules 红线。
+- 关卡位置只放「发邮箱验证码」一道（注册/绑定/找回都要先拿码，等于全链路罩住）；登录与后续提交不加人机验证。不配 `TURNSTILE_*` 密钥时整功能关闭（前端不渲染、服务端直通），本地开发与既有回归测试零打扰。
+- 线上开启需用户自行注册 Cloudflare 取站点密钥/服务器密钥并配进 PM2，凭据本机存放约定同 SMTP（`.local/turnstile-keys.txt` 指引）；本轮未授权 commit/push/部署。

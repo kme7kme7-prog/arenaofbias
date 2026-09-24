@@ -42,6 +42,82 @@ const maskEmail = (email: string) => {
   if (at <= 0) return email;
   return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
 };
+// Cloudflare Turnstile 人机验证（只守发验证码这一步，2026-09-24 用户拍板）：
+// 站点密钥由 /api/auth/turnstile 下发，null = 服务端未配密钥，不渲染、不发 token。
+// 脚本官方 api.js 懒加载一次，widget 显式渲染；发码后 token 一次性作废，
+// 靠换 key 重挂组件拿到新 token
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+        },
+      ) => string;
+      remove: (id: string) => void;
+    };
+  }
+}
+let turnstileLoader: Promise<void> | null = null;
+const loadTurnstile = () => {
+  if (!turnstileLoader)
+    turnstileLoader = new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src =
+        'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        turnstileLoader = null; // 失败可重试：下次重挂组件再走一遍加载
+        reject(new Error('turnstile script failed'));
+      };
+      document.head.appendChild(script);
+    });
+  return turnstileLoader;
+};
+function TurnstileGate({
+  siteKey,
+  onToken,
+  onUnavailable,
+}: {
+  siteKey: string;
+  onToken: (token: string) => void;
+  onUnavailable: () => void;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const handlers = useRef({ onToken, onUnavailable });
+  // 渲染期不碰 ref（react-compiler 红线）：每次渲染后同步最新回调
+  useEffect(() => {
+    handlers.current = { onToken, onUnavailable };
+  });
+  useEffect(() => {
+    let widget = '';
+    let cancelled = false;
+    loadTurnstile()
+      .then(() => {
+        if (cancelled || !host.current || !window.turnstile) return;
+        // token 一次性：拿到就回调，过期/出错回空串让按钮重新要求验证
+        widget = window.turnstile.render(host.current, {
+          sitekey: siteKey,
+          callback: (token) => handlers.current.onToken(token),
+          'expired-callback': () => handlers.current.onToken(''),
+          'error-callback': () => handlers.current.onToken(''),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) handlers.current.onUnavailable();
+      });
+    return () => {
+      cancelled = true;
+      if (widget && window.turnstile) window.turnstile.remove(widget);
+    };
+  }, [siteKey]);
+  return <div className="account-turnstile" ref={host} />;
+}
 export function AccountProvider({ children }: { children: ReactNode }) {
   const { t, localize } = useI18n();
   const [user, setUser] = useState<User | null>(null);
@@ -65,6 +141,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState('');
   const submitting = useRef(false);
   const [error, setError] = useState('');
+  // 人机验证：siteKey 空串=服务端未开启（发码不带 token）；token 发码时随
+  // 请求交出、之后作废；epoch 换一换就重挂 widget 拿新 token
+  const [gateSiteKey, setGateSiteKey] = useState('');
+  const [gateToken, setGateToken] = useState('');
+  const [gateEpoch, setGateEpoch] = useState(0);
   // 翻页计数：驱动底纸堆每次切换换一个略不同的静止姿态（走 CSS transform 过渡），
   // 关弹窗时清零，下次打开回到默认姿态、不抢开场动画
   const turns = useRef(0);
@@ -143,6 +224,22 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
+  // 开弹窗时问一次服务端要不要人机验证；没配密钥就一直空串，后面零打扰
+  useEffect(() => {
+    if (!opened || gateSiteKey) return;
+    let cancelled = false;
+    fetch('/api/auth/turnstile')
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && typeof data.siteKey === 'string') setGateSiteKey(data.siteKey);
+      })
+      .catch(() => {
+        /* 拿不到配置就当未开启，别拦着发码 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [opened, gateSiteKey]);
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);
@@ -157,6 +254,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setSuccess(null);
     setCountdown(0);
     setVisible(false);
+    setGateToken('');
     turns.current = 0;
     if (successTimer.current) {
       clearTimeout(successTimer.current);
@@ -189,6 +287,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   };
   const sendCode = async () => {
     if (busy || sending || countdown > 0) return;
+    if (gateSiteKey && !gateToken) {
+      setError('请先完成人机验证。');
+      return;
+    }
     setError('');
     setNotice('');
     setSending(true);
@@ -196,8 +298,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const purpose = user ? 'bind' : mode === 'forgot' ? 'reset' : 'register';
       const body =
         purpose === 'reset'
-          ? { purpose, username: username.trim() }
-          : { purpose, email: email.trim() };
+          ? { purpose, username: username.trim(), turnstileToken: gateToken }
+          : { purpose, email: email.trim(), turnstileToken: gateToken };
       const response = await fetch('/api/auth/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -215,6 +317,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           : '暂时无法连接，请稍后重试。',
       );
     } finally {
+      // token 一次性（无论成没成都交出去了）：重挂 widget 换新 token
+      setGateToken('');
+      setGateEpoch((epoch) => epoch + 1);
       setSending(false);
     }
   };
@@ -354,6 +459,16 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setError('');
     setNotice('');
   };
+  // 人机验证块只出现在会发码的三处（注册/找回第一步、绑定）；key=epoch
+  // 让发码后重挂换新 token
+  const gate = gateSiteKey ? (
+    <TurnstileGate
+      key={gateEpoch}
+      siteKey={gateSiteKey}
+      onToken={setGateToken}
+      onUnavailable={() => setError('人机验证加载失败，请刷新页面重试。')}
+    />
+  ) : null;
   const codeSendButton = (disabled: boolean) => (
     <button
       type="button"
@@ -633,6 +748,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                 </div>
                               </label>
                               {codeField}
+                              {gate}
                             </>
                           )}
                           {mode === 'forgot' && step === 2 && (
@@ -683,6 +799,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                 </div>
                               </label>
                               {codeField}
+                              {gate}
                             </>
                           )}
                           {mode === 'register' && step === 2 && (
@@ -801,6 +918,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                             </div>
                           </label>
                           {codeField}
+                          {gate}
                           <small>
                             {t('验证码将发到新邮箱，10 分钟内有效。')}
                           </small>

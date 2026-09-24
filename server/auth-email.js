@@ -13,6 +13,7 @@
 import { randomBytes, randomUUID, randomInt, timingSafeEqual } from 'node:crypto';
 import { digest, normalize, validPassword, validEmail, derive } from './auth-util.js';
 import { sendVerificationEmail, mailReady, mailDevLog } from './mail.js';
+import { verifyTurnstile } from './turnstile.js';
 
 export function installAuthEmail(app, db, auth) {
   db.exec(`
@@ -209,6 +210,16 @@ export function installAuthEmail(app, db, auth) {
       const purpose = req.body?.purpose;
       if (!['register', 'bind', 'reset'].includes(purpose))
         return res.status(400).json({ error: '请求类型无效。' });
+      // 人机验证（Turnstile）只卡这一道：注册/绑定/找回都先拿码，发码被守住
+      // 就等于全链路被守住，登录与后续提交不打扰用户。限流计数在它之前已走，
+      // 无 token 的脚本刷接口照样烧自己的配额
+      const verdict = await verifyTurnstile(req.body?.turnstileToken, req.ip);
+      if (verdict === 'fail')
+        return res.status(400).json({ error: '人机验证未通过，请重试。' });
+      if (verdict === 'down')
+        return res
+          .status(503)
+          .json({ error: '人机验证服务暂时不可用，请稍后重试。' });
       // register/bind 以邮箱为目标；reset 以账号名找到绑定邮箱为目标
       let email = '';
       if (purpose === 'reset') {

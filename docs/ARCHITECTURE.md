@@ -56,6 +56,7 @@
 | `server/auth-util.js` | 账号公共工具：digest/normalize、密码与邮箱校验、scrypt derive（auth 与 auth-email 共用，保持单向依赖） |
 | `server/mail.js` | 零依赖 SMTP 客户端（465/587、STARTTLS、AUTH PLAIN/LOGIN）+ 验证码邮件模板；`MAIL_DEV_LOG=1` 只打日志不真发 |
 | `server/auth-email.js` | 邮箱账号体系（2026-09-24）：注册（必填邮箱+验证码）、`email/send`/`email/bind`、`password/reset`（重置后清全部会话）、`email_codes` 表、发码限流与冷却 |
+| `server/turnstile.js` | Cloudflare Turnstile 人机验证（2026-09-24）：只守 `email/send`，零依赖 fetch 校验 siteverify；不配密钥整功能关闭 |
 | `server/works-register.js` | 作品登记公共核心（043/044）：CLI 脚本与后台收件箱共用 |
 | `app/admin/` | 后台页（041-045/063）：dashboard / log / works / inbox / prompts / guess / placeholder（活动管理占位） |
 | `scripts/validate-*.mjs` | 各域校验（arena/guess/placeholder/matchmaking/leaderboard/votes/comments/admin/locale）：自带临时 SQLite 与随机端口；guess 34 项 |
@@ -78,7 +79,8 @@
 | 接口 | 说明 |
 | --- | --- |
 | `POST /api/auth/register` `/login` `/logout`；`GET /api/auth/me` | 注册必填邮箱+验证码（一邮箱一账号）；用户名 `^[a-z0-9_]{3,24}$`、密码 12–128；scrypt；登录防时序探测；注册即登录 |
-| `POST /api/auth/email/send` | 发 6 位验证码：purpose=register/bind（按邮箱，占用明示 409）/reset（按账号名，不存在或未绑邮箱明示 400）；bind 须登录；同址 60 秒冷却、按 IP/目标限流；响应带打码邮箱 |
+| `POST /api/auth/email/send` | 发 6 位验证码：purpose=register/bind（按邮箱，占用明示 409）/reset（按账号名，不存在或未绑邮箱明示 400）；bind 须登录；同址 60 秒冷却、按 IP/目标限流；响应带打码邮箱；开启 Turnstile 时须带 `turnstileToken` |
+| `GET /api/auth/turnstile` | 人机验证配置：`{siteKey}` 或未开启时 `{siteKey:null}` |
 | `POST /api/auth/email/verify` | 验证码预校验（分步表单第二步门槛）：正确放行不消耗，错码计次（5 次作废） |
 | `POST /api/auth/email/bind` | 登录后绑定/换绑邮箱（验码即验证）；`users.email` 唯一 |
 | `POST /api/auth/password/reset` | 忘记密码：账号名+验证码+新密码；成功后删除该账号全部会话 |
@@ -119,7 +121,7 @@ npm start          # 生产形态：http://localhost:3000
 
 后台本地访问：`http://127.0.0.1:5173/admin.html`，使用管理员账号登录；本机自动验证仍可通过受回环门禁保护的 `/api/auth/dev` 登录以及 `/api/dev/clear-my-votes` 清理 dev 测试票。面板不再提供不可达的 dev 切号/清票控件。
 
-环境变量（均有默认值，本地开发可不设）：`PORT`/`HOST`、`DATA_DIR`（SQLite 目录）、`RATE_LIMIT_PER_MIN`、`ADMIN_OWNER`（管理员引导，已被 dev 即管理员弱化）、`APP_ORIGIN`、`TRUST_PROXY`（反代必设）、`WORKS_DIR`（作品目录，大文件不入 git）、`WORKS_INBOX_DIR`（收件箱）。邮件验证码（2026-09-24）：`SMTP_HOST/PORT/USER/PASS`（个人邮箱 SMTP+授权码，如 smtp.163.com:465）+ 可选 `SMTP_FROM`/`SMTP_FROM_NAME`；`MAIL_DEV_LOG=1` 只打日志不真发（本地调试/测试，生产禁开）；节流参数 `MAIL_CODE_TTL_MS`/`MAIL_COOLDOWN_MS`/`MAIL_CODE_MAX_ATTEMPTS`/`MAIL_IP_MAX`/`MAIL_EMAIL_MAX`（默认 10 分钟有效、60 秒冷却、错 5 次作废、15 分钟每 IP 8 次/每邮箱 3 次）。不配 SMTP 时发码接口回 503。
+环境变量（均有默认值，本地开发可不设）：`PORT`/`HOST`、`DATA_DIR`（SQLite 目录）、`RATE_LIMIT_PER_MIN`、`ADMIN_OWNER`（管理员引导，已被 dev 即管理员弱化）、`APP_ORIGIN`、`TRUST_PROXY`（反代必设）、`WORKS_DIR`（作品目录，大文件不入 git）、`WORKS_INBOX_DIR`（收件箱）。邮件验证码（2026-09-24）：`SMTP_HOST/PORT/USER/PASS`（个人邮箱 SMTP+授权码，如 smtp.163.com:465）+ 可选 `SMTP_FROM`/`SMTP_FROM_NAME`；`MAIL_DEV_LOG=1` 只打日志不真发（本地调试/测试，生产禁开）；节流参数 `MAIL_CODE_TTL_MS`/`MAIL_COOLDOWN_MS`/`MAIL_CODE_MAX_ATTEMPTS`/`MAIL_IP_MAX`/`MAIL_EMAIL_MAX`（默认 10 分钟有效、60 秒冷却、错 5 次作废、15 分钟每 IP 8 次/每邮箱 3 次）。不配 SMTP 时发码接口回 503。人机验证（2026-09-24）：`TURNSTILE_SITE_KEY`/`TURNSTILE_SECRET_KEY`（Cloudflare Turnstile，只守发码接口；两把都不配则整功能关闭，回归测试用 `TURNSTILE_VERIFY_URL` 指向本地桩）。
 
 已知环境限制：AI 沙箱内 `vite build` 可能因原生二进制与子进程限制失败（spawn EPERM 等），属环境限制而非代码问题，需在本地终端复核。
 
