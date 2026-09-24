@@ -28,6 +28,7 @@ yarn-error.log*
 
 # local environment
 .env*
+/.local/
 /data/
 tsconfig.tsbuildinfo
 *.db

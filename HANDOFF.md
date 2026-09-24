@@ -1,5 +1,44 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-24 · 检查收尾与同步（进行中）
+
+- 用户已明确授权本轮整理、commit/push 与 VPS 同步；GitHub 当前登录身份 Atmeplz（224206292+Atmeplz@users.noreply.github.com）。origin/main 与本地起点均为 e93fc09。
+- 线上只读核查：PM2 arena online，旧 systemd inactive；HTTPS 200；迁移 11、236 作品（008 已有 60 件）、188 blind 票、5 评论、30 反应。旧“008 待导入”已过时。
+- 本轮业务源码与线上归一换行后相同；锁文件只有 npm 安装产生的可选包/peer 元数据差异。原始作品和本地凭据不进入提交/部署。
+- 本地 typecheck/build、正式/投票/榜单/匹配/管理员/竞技场/反应/模一把/分享/占位/巡览回归、动效/手机/语言/选择反馈检查，以及作品就绪/正式测评/管理员入口浏览器回归通过。全量 lint 有旧脚本 6 错；相机测试缺本地 007 Muse fixture，均留待后续处理。
+- 部署入口已改为 Python + 远端暂存构建，支持现有本地凭据、只传 Git HEAD、只读计划与变更复核、备份与失败恢复，适配当前 PM2。待实际部署验证与最终归档。
+
+## 2026-09-23 · wujisuan 正式入口仍锁定：旧标签页刷新后恢复
+
+- 用户反馈已登录 wujisuan 仍显示“需要资格”。只读查询 VPS 再次确认该账号 role=admin、PM2 arena online；浏览器现场确实登录 wujisuan，但菜单仍是“只汇入偏好数据 / 开发者身份（dev 面板登录）”的旧版前端。
+- 在用户现有 `https://arenaofbias.icu/#play` 标签页执行一次普通刷新，立即更新为“管理员可进入 / 独立的正式测评数据”；点击正式入口后进入 `#formal/006`，两侧未知模型与投票按钮正常显示。未退出登录、未改权限、未投票、未重启或再次部署；无需代码修复。未 commit/push。
+
+
+## 2026-09-23 · 管理员入口死路与面板重登录修复，已上线（本轮）
+
+- 用户提供另一管理员的反馈截图，要求核查/优化并查询账号。只读查询线上 users：管理员只有 `kme7`、`wujisuan`；开发者面板仅 kme7 可见，线上不存在 dev 账号，PM2 `ALLOW_DEV_LOGIN` 未开启、TRUST_PROXY=loopback。未查询/输出密码或改账号权限。
+- 旧构建真实复现两处：①面板只对 kme7 渲染，但“免登录进入”在已登录时 disabled，退出后面板消失，dev 入口不可达；②面板打开时退出、同页重登录后，SurfaceTransition 仍指向旧 DOM，反复点入口也打不开面板。截图中的操作路径属于旧 dev 流程；现在管理员本身已有正式测评资格，无需切号。
+- `components/dev-panel.tsx`：将不可达的 dev 登录/仅 dev 清票 UI 换为当前账号说明与“前往玩法菜单”，登录切换时用独立子组件挂载/卸载面板并 dispose 动画引用；保留仅 kme7 可见的既有边界。`components/account.tsx` 的管理员账号说明增加直接参加正式测评指引；中英 messages 同步。服务端 dev 回环接口不变。
+- 新增 `node scripts/validate-admin-access.mjs`（先 build）：临时数据库/真实账号/独立浏览器验证 kme7 不切号进入正式测评、面板打开时退出并同页重登后的开合、wujisuan 无面板仍可正式评审；全程无 dev 登录请求。`--expect-bug` 已用旧构建成功复现上述两处。截图 `output/playwright/admin-access-panel.png` 已目检。
+- typecheck、build、validate-locale、check-surface(7)、新浏览器回归、diff --check 通过。定向 oxlint 仍报既有两项：account 的 EffectSetState、dev-panel 的 prefer-tag-over-role；对照修改前文件确认已有，未扩范围处理。未跑完整投票/后端套件（只改前端入口和说明）。
+- 定向上传 3 个运行时源文件及新验证脚本，部署前逐文件比对 VPS 基线；在 `/tmp/aob-admin-access-20260923/dist` 通过 Node 直接运行 Vite 构建，复制新哈希资源并原子替换三个入口 HTML。备份 `/www/wwwroot/arenaofbias-deploy-backups/20260923-admin-access/`（source.tgz、dist）。未重启服务、未改数据库/作品，PM2 arena PID 1073082 / restart 526 与部署前一致。
+- 线上 4 份源文件哈希、10 份首页资源响应均核验通过。独立浏览器用已有 wujisuan 登录：无开发者面板、账号弹窗显示管理员指引、进入 `#formal/008` 到 voting，零 pageerror、零 dev 请求、零投票 POST；测试会话已退出。截图 `output/playwright/admin-access-live-account.png` 已目检，结果 `admin-access-live-qa.json`。
+- 保留前轮全部未提交改动与他人未跟踪作品；未 commit/push。PRODUCT/ARCHITECTURE 更新了入口说明，未新增或推翻权限决策。
+
+
+## 2026-09-23 · 正式测评流程与数据隔离，已上线 VPS（本轮）
+
+- 用户要求复用娱乐版流程、数据单独分离、完成后部署 VPS；确认继续保留“不揭晓、不评论、不分享”，并允许保留既有未提交改动后在现状上施工。未授权 Git commit/push，均未执行；原未跟踪作品目录与 zip 未动。
+- 正式入口仍限管理员，直接输入 `#formal/{id}` 同样检查会话资格；复用入场、投票、同题/换题双继续按钮，所有继续路径保持正式模式。结果仍匿名，无模型反应、选择人数反馈、评论和分享；结果链接直达 `#rank/formal`。正式不消费后台测试对局或占位投票，开启占位模式时提示关闭后进入。
+- 题目/作品/账号共用，评审数据按 formal / entertainment 分离。SQLite 迁移 011 只替换去重索引为 `(user_id,pair_key,(mode='formal'))`，同一账号可在两种范围分别评审同一对作品；历史 blind/party 同属娱乐。`/api/votes` 与 `/api/ratings` 默认只读娱乐，可传 `scope=formal`；流水、匹配分、出场次数、Elo、六维画像各自独立，取消原默认混榜。历史票未复制、删除或改写。
+- 新增 `npm run validate:formal`（6 组）：临时库模拟 010→011 升级、历史票原样保留、跨模式可投/模式内去重/UUID 幂等、管理员门禁、分数与出场数隔离、迁移后重启与前端缓存竞态。新增 `npm run validate:formal-ui`：独立临时服务与真浏览器，实投娱乐→正式同一对作品、匿名结果/无互动、双继续/N 键、独立榜单、菜单入场及 320/390px 无溢出；截图 `output/playwright/formal-*.png` 已目检。
+- 本地验证通过：typecheck、build、定向 oxlint、validate:formal/votes(12)/leaderboard(12)/matchmaking(11)/admin(11)/arena(13)、validate:work-ready(5)、validate:formal-ui、validate-locale、check:motion、check-vote-split、check:mobile、git diff --check。没有做手机真机或全站无关功能回归。
+- **VPS 实际运行方式已与旧交接不同**：当前站点 `https://arenaofbias.icu`，PM2 进程 `arena`（HOST=127.0.0.1 / PORT=3000 / APP_ORIGIN=https://arenaofbias.icu）；旧 systemd `arenaofbias` 已停用。本轮沿用 PM2 配置，只定向部署 16 份源码/验证文件，在 `/tmp/aob-formal-20260923/dist` 构建，复制新哈希 assets、原子替换入口 HTML，再 `pm2 restart arena`。旧 assets 保留；没有整站 tar 同步，没有上传本地 data/public 或改作品。
+- VPS 初次 `npm run build` 因既有 `node_modules/.bin/vite` 无执行权限失败，脚本自动恢复源码、旧站持续运行；随后直接 `node node_modules/vite/bin/vite.js build --outDir ...` 构建成功（13.29s），未改依赖权限。SSH 输出曾触发本机 GBK 编码错误，已另行核实部署成功；不能据本机打印错误重做部署。
+- 备份 `/www/wwwroot/arenaofbias-deploy-backups/20260923-formal/`：原 source.tgz、dist、SQLite 在线一致性备份 comments.db、before/after.json。迁移版本 10→11；部署前后 185 张 blind 投票的逐行 SHA256 摘要相同，236 作品/5 评论/29 反应均不变。正式票/声望分/出场数起始为空。不要直接回退整个真库：上线后产生的正式票必须保留。
+- 线上核验：16 份源码哈希一致；首页及 10 份引用资源 200 且响应等于构建文件；HTTPS 首页 200，PM2 online。使用已有管理员账号在独立浏览器登录，菜单进入正式 001、008 同题继续、跨题回 001、正式榜入口及 390px 布局均通过，零 pageerror，**未发送任何线上投票 POST**，随后退出该测试会话。线上截图 `output/playwright/formal-live-{desktop,mobile}.png` 已目检，记录 `output/playwright/formal-live-qa.json`。
+- 本地基线与运维临时脚本仅在已忽略的 `.local/formal-*`；凭据未输出、未放入上传包。PRODUCT、ARCHITECTURE、DECISIONS 已同步。用户可用管理员账号从 `https://arenaofbias.icu/#play` 进入正式测评验收。
+
 ## 2026-09-21 · 008 文字题 + 内测收口 + 退出修复 + VPS 上线（本轮，已归档）
 
 - 已归档：`docs/handoff/2026-09-21-008文字题内测收口与VPS上线-kme7kme7-prog.md`（决策 110–115：008 题/60 件文字作品/对话页样式四轮、反应本地优先、内测文案定稿、退出登录竞态修复、开发者面板仅 kme7、VPS 部署与 `npm run deploy:vps`）。
@@ -456,3 +495,74 @@
 - 本轮改动清单与验证细节见本轮总结；`data/`、`dist/`、截图不提交。
 - 下一步优先级：①用户验收模一把（玩法手感/视觉为第一版，难度分池与合并组刚重构）；②验收后授权提交；③数据集后续：逐模型调难度归档、外部 AI 查证回填存疑字段（null 价/上下文）；④多人对战模式（用户已表达后续意向，未授权开工）。
 - 候选：004–007 正式接入、反应取消语义、iframe 沙箱方案、后台活动管理。均按用户确认范围推进。
+
+## 2026-09-21 · 本机同步远端（本轮）
+
+- 用户授权拉取，明确禁止推送。已 `git pull --ff-only origin main`，本地从 `261ad29` 快进至 `e93fc09`，接入远端 17 个提交；HEAD 与 origin/main 一致。
+- 上轮本机比较记录已备份至 `.git/sync-backup-20260921-215645/`，并将有效边界重新追加到本文与 DECISIONS.md。首次快进因这两份文档的 CRLF 索引状态中止；刷新索引确认无暂存内容后，第二次快进成功。没有丢失远端文档。
+- 遗留未跟踪 public/works/005、006、007 与 works_2026-09-11,a-k.zip 未动；本地 data 数据未动。Git 不包含远端数据库及作品数据，同步代码不代表同步作品。
+- 已读 scripts/deploy-vps.sh 与最新 VPS 归档：脚本通过 SSH 上传本地工作区、安装依赖、构建并重启线上服务；它会写 VPS，不能当作只读同步命令。本轮未执行脚本、未连接 VPS，未 commit/push。
+- 校验：快进成功、提交差异为 0/0、git diff --check 通过。未安装依赖、启动应用或运行测试，本轮任务为拉取代码，不据此宣称运行环境已验证。
+
+## 2026-09-21 · Claude Fable 5.2 Max 飞瀑穿云上传
+
+- 用户明确授权把 Downloads/voxel-cloud-falls 测试作品上传 VPS，并提供登录方式。已核对线上 005=飞瀑穿云，新增作品 `005-claude-fable-5.2-max`，显示模型 `Claude Fable 5.2 Max`、标题「云巅飞瀑」。
+- 上传用户现成 dist 的 index.html 与两份 assets，位置 `/www/wwwroot/arenaofbias/data/works/005/005-claude-fable-5.2-max/`；未改原作品。三文件 SHA256 与本地一致，所有权 arena:arena。
+- 使用线上现有 insertWork 登记函数新增一条已发布作品，API 已返回新作品；未覆盖数据库、未改既有作品或投票，无需重启。未整站部署、未 commit/push。
+- 验证：HTML/JS/CSS HTTP 200，公网 HTML 200，作品清单包含新 id。未浏览器视觉验收或性能测试。源码和 node_modules 未上传，线上使用现成静态构建产物。
+- 登录凭据未写入项目文件；本机首次连接已记录服务器主机公钥。早先文档仅记录旧部署机器的 ~/.ssh/id_ed25519，并非本机存在该密钥。
+
+## 2026-09-21 · Fable 5.1 xhigh 鹈鹕作品上传
+
+- 用户授权将 Desktop/testarea/zero-pelican/pelican-bike.html 上传 VPS。已发布到 001「鹈鹕大挑战」，作品 id `001-claude-fable-5.1`，文件 `/www/wwwroot/arenaofbias/data/works/001/001-claude-fable-5.1.html`。
+- 遵循既有 effort 归组规则，复用 `claude-fable-5.1` / `Claude Fable 5.1`，作品标题「鹈鹕骑自行车（xhigh）」保留用户给出的 effort。
+- 原 HTML 字节未改，SHA256 `7d92c31add0efe45b55da2afe467da59586c06fdf375917742e0b13973f2e15b`；使用现有 insertWork 新增一条已发布记录。未改其他作品/票、未重启或整站部署、未 Git commit/push。
+- 验证：线上文件与 HTTP 响应哈希均与原件一致，公网 HTML 200，作品 API 已收录；未做浏览器视觉验收。SCP 新连接被服务器关闭，改用已建立 SSH 会话传输并校验；临时上传文件已清理。
+
+## 2026-09-21 · 继续按钮拆分方案（待用户批准）
+
+- 用户要求先构思：左「换个题库继续」，右「同一题库继续」；本轮仅更新文档。完整方案见 IDEAS D09，审批边界见 DECISIONS 同日条目。
+- 已核对 app/page.tsx：现有 gotoRandomArena 排除当前题并走 match 纸幕；nextMatchup 已有同题换组且 N 键已调用它。建议复用两条路径，非正式模式展示成组双按钮，正式模式保持现状；手机保持两列，边界与回归范围见 D09。
+- 本轮仅追加 IDEAS、DECISIONS、HANDOFF；未改代码、未连接 VPS、未部署、未 commit/push。git diff --check 通过；未跑应用测试，因为仅记录方案。
+
+## 2026-09-21 · 双继续按钮已实现并上线 VPS
+
+- 用户批准 D09 并明确授权上线看效果；Git commit/push 仍未授权，未执行。左「换个题库继续」随机其他可比较题，右「同一题库继续」当前题重新配对。右酸黄主按钮，两按钮桌面/手机等宽并排；中英已覆盖。正式测评保留原单按钮，N 仍同题换组。
+- 源码仅改 app/page.tsx、app/arena-refinement.css、lib/messages.ts。复用现有两条切换路径，新增共享防连点锁和禁用/单题/单组合提示；专门保留加载超时「跳过此题」出口。未改动过场时间轴、配对或计票规则。PRODUCT/IDEAS/DECISIONS 同步。
+- 本地安装了远端新增依赖，未保留 npm 对锁文件的自动变动。通过 typecheck、build、定向 oxlint、validate-locale、validate:matchmaking（11）、validate:reactions（6）、check:mobile、check:motion 与 diff --check。
+- 浏览器以隔离模拟接口检查：同题避开上一对、N 键、结果状态重置、换题与交叉连点、单题禁用、单组合重看、加载超时逃生、正式模式原行为；320/390/699/897/1100/1440 无横向溢出，手机按钮仍并排，中英文截图已目检。预览为 5317（关闭时以进程实际状态为准）；无真实测试投票。
+- VPS 三个目标源码部署前均与本地 HEAD 基线内容一致；仅传这三文件，服务器构建至 `/tmp/aob-continue-20260921-2235/dist`，成功后先复制新哈希 assets，再原子替换入口 HTML。保留旧 assets 兼容已打开页面，不执行全量 deploy:vps、不重启、不触碰 data 数据或作品。
+- 回滚备份在 VPS `/www/wwwroot/arenaofbias-deploy-backups/20260921-continue-buttons/`：source.tgz 为原三源码，dist 为原构建。临时上传/构建日志在 `/tmp/aob-continue-20260921-2235/`。
+- 线上验证：首页与新资源 200，systemd active；实点右按钮 001 保持题号且作品全换，左按钮从 001 切到 003；390px 无溢出，0 pageerror。线上截图 `output/playwright/continue-live-{desktop,mobile}.png` 已目检。未跑完整后端/真实登录投票回归（后端未改，避免新增真实数据）。
+- 查看 `http://114.66.27.88:3000/#arena/001`，用户实际效果验收待反馈。下一次拉取远端前务必保留本轮本地未提交源码及文档，避免与其他机器更新互相覆盖。
+
+## 2026-09-21 · 005 长加载现场诊断（未修复）
+
+- 用户报告005卡死并明确禁止刷新保留证据。已只读检查Chrome当前对局：A=GPT-5.6 Sol（005-gpt-5.6-sol-0829），B=GPT-5.6 Cyber（005-gpt-5.6-cyber-0mxzh）；phase=intro/run=2，真正待就绪的是B。
+- 两作品文档均complete、JS/CSS下载完成、canvas已创建。A在readyWindows中，B不在；B探针闭包d=true（一次性通知已尝试发送）。同题换组先setPair加载iframe，transition期间无消息监听，620ms后intro才装回监听；B约276ms完成，消息丢失空窗与现场吻合。该监听/探针契约既存，双按钮复用同题换组时暴露；不是服务器负载或资源404。
+- VPS active/running、NRestarts=0，内存约117MiB，负载0.10，可用内存约2.9GiB；接口和作品200。journalctl无journal文件，历史日志无法核验。
+- 详细证据：output/diagnostics/005-ready-signal-20260921.md；截图保留于本次会话。未刷新、导航、点击或修改用户现场，未更改代码/部署/数据，未commit/push。
+- 修复建议：就绪监听覆盖换组全过程，或可靠可查询/重发握手；增加620ms切换窗口内快作品就绪回归。不能仅超时强放行替代真实加载。后续验证另开隔离页面，不碰用户保留的卡死标签页。
+
+## 2026-09-21 · 005 就绪通知丢失已复现、修复并上线
+
+- 用户要求核实并修复。使用旧构建和隔离浏览器，在同题换组的 620ms transition 内让两件新作品各发送一次就绪通知：两边均已发送，父页面仍停在 `phase-intro works-hold`，稳定复现接收空窗；证据见 `output/playwright/work-ready-before.json` 和同名 png。原 Chrome 卡死证据页全程未刷新、导航、点击或注入事件。
+- `app/page.tsx` 将就绪接收移至组件生命期常驻的 layout effect，限定当前 A/B iframe 来源；舞台 Work 按作品 id 加 key，换作品创建新窗口，避免沿用上一作品的 readyWindows 状态；重播原作品保留已收到的通知。不改过场时长，不靠超时强行放行。
+- 新增 `scripts/validate-work-ready.mjs` / `npm run validate:work-ready`：隔离静态构建和模拟接口，不连接真库。快加载、慢加载防旧状态、原对局重播、减少动态效果、超时仍遮挡并提供跳过出口，五组均通过；结果 `output/playwright/work-ready-after.json`。ARCHITECTURE 已补运行方法。
+- 本地 typecheck、build、定向 oxlint、check:motion、check-vote-split、git diff --check 均通过；没有再跑完整后端/真实登录投票回归（仅改前端就绪接收，避免制造线上投票）。
+- VPS 部署前校验 app/page.tsx、package.json 与本地修改前的内容一致。只上传这两份源码与新增回归脚本，在 `/tmp/aob-work-ready-20260921/dist` 构建，通过后复制新哈希 assets、原子替换三个入口 HTML。保留旧 assets，不重启、不改数据库或作品。备份 `/www/wwwroot/arenaofbias-deploy-backups/20260921-work-ready/` 含原 source.tgz 和 dist。
+- 线上首页及新 JS/CSS 均 200、字节与构建一致，服务 active、NRestarts=0；首页 HTML 因服务端注入 social meta 与静态原件不同，已确认差异且按引用资源核验。另开 Chrome 验证页：原 Sol/Cyber 对局正常到 voting，实点同题继续抽到 MiniMax M3 / Claude Fable 5.2 Max 后再次正常到 voting，页面 error 日志为空。未点击投票。
+- 已上线修复只作用于新打开页面；原卡死页继续保留旧代码与故障现场。体验修复请另开页面，不能据本条擅自刷新证据页。未 Git commit/push；其他未跟踪作品目录未动。
+
+## 2026-09-21 · Claude Opus 5.5? 云瀑作品上传
+
+- 用户授权上传 `C:/Users/Atmeplz/Downloads/voxel-cloudfall/` 到 VPS 005「飞瀑穿云」，并强调保留模型名问号。显示名称严格为 `Claude Opus 5.5?`；内部 modelId 为 `claude-opus-5.5-question`，作品 id 为 `005-claude-opus-5.5-question`，标题取原页面「云瀑 — 体素山水」。命名约束已记入 DECISIONS。
+- 原目录没有 dist，使用其现有依赖运行 `npm run build -- --base ./ --outDir D:/webarenabias/output/uploads/005-claude-opus-5.5-question/dist`；只为部署子目录指定相对资源路径，原源码未修改，未另装依赖。上传三份构建文件至 VPS `/www/wwwroot/arenaofbias/data/works/005/005-claude-opus-5.5-question/`，所有权 arena:arena；打包 SHA256 `eb050487fac9c260ced0b17f3f4255bcaa4549a80773ff9a0a8a495aa1042175`，三文件逐一哈希核验通过。
+- 使用线上现有 insertWork 新增一条已发布记录；API 中模型名称保留英文问号，005 现有 32 模型 / 40 作品。没有覆盖其他作品、数据库或投票，没有整站部署、重启或 Git commit/push。
+- 验证：build 成功，三文件 HTTP 200 且响应字节等于构建原件；服务 active。另开后台浏览器页，将新作品与 Fable 5.2 Max 配对，两作品正常显示并到 voting，页面 error 日志为空，未点击投票。没有做全套性能/交互测试。旧卡死证据页未动。
+- 作品直链 `http://114.66.27.88:3000/works/005/005-claude-opus-5.5-question/index.html`。本机构建与上传包保留于 output/uploads，均不入 Git；上传临时目录 `/tmp/aob-opus55q-20260921/`。
+
+## 2026-09-22 · 鹈鹕竞赛场：仅构思（本轮）
+
+- 用户要求沿用各 AI 原作中的鹈鹕，保留丑、抽象和不像鹈鹕的形态，不重新美化，也不违背原作表达。
+- 本轮仅查看并构思，具体玩法尚未定稿；未授权实施玩法、修改原作品或部署。已获准只在 HANDOFF 与 DECISIONS 末尾追加这两条原则，既有未提交内容保留。

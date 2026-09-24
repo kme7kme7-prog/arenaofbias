@@ -48,14 +48,14 @@ const ROLLING_MOTION = {
 // 返回 null 表示加载失败（与「无票」区分，空态给不同指引）
 // ---------------------------------------------------------------------------
 
-function loadVotes(): Promise<VoteRecord[] | null> {
+function loadVotes(scope: BoardScope): Promise<VoteRecord[] | null> {
   if (isPlaceholderMode()) {
-    return Promise.resolve(readPlaceholderVotes());
+    return Promise.resolve(scope === 'formal' ? [] : readPlaceholderVotes());
   }
-  return fetchVotes().then((votes) => (votes ? votes.map(voteToRecord) : null));
+  return fetchVotes(undefined, scope).then((votes) => (votes ? votes.map(voteToRecord) : null));
 }
 
-function useBoardVotes(replaySeed: number): {
+function useBoardVotes(replaySeed: number, scope: BoardScope): {
   votes: VoteRecord[] | null;
   failed: boolean;
   loading: boolean;
@@ -66,19 +66,21 @@ function useBoardVotes(replaySeed: number): {
   const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
   const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
   const [state, setState] = useState<{
+    scope: BoardScope;
     votes: VoteRecord[] | null;
     failed: boolean;
-  }>({ votes: null, failed: false });
+  }>({ scope, votes: null, failed: false });
   useEffect(() => {
     let live = true;
-    void loadVotes().then((result) => {
+    void loadVotes(scope).then((result) => {
       if (!live) return;
-      setState({ votes: result, failed: result === null });
+      setState({ scope, votes: result, failed: result === null });
     });
     return () => {
       live = false;
     };
-  }, [replaySeed, worksState, promptsState]);
+  }, [replaySeed, scope, worksState, promptsState]);
+  if (state.scope !== scope) return { votes: null, failed: false, loading: true };
   return {
     votes: state.votes,
     failed: state.failed,
@@ -349,13 +351,13 @@ function ProfilePanel({
 // 页面本体
 // ---------------------------------------------------------------------------
 
-export default function Ranking() {
+export default function Ranking({ initialScope = 'entertainment' }: { initialScope?: BoardScope }) {
   const { t, localize } = useI18n();
   const [category, setCategory] = useState<BoardCategory>('all');
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // 榜单口径（决策 026）：混榜 / 只看正式。占位投票无模式之分，开关只对真实数据出现
-  const [scope, setScope] = useState<BoardScope>('mixed');
+  // 正式与娱乐分榜，切换时重新读取对应流水，不混算分数和画像。
+  const [scope, setScope] = useState<BoardScope>(initialScope);
   const placeholder = isPlaceholderMode();
   // 开发者面板生成/清空占位投票后立即重读并重播入场（storage 事件同页不触发）
   useEffect(() => {
@@ -364,7 +366,7 @@ export default function Ranking() {
     return () =>
       window.removeEventListener('aob:placeholder-votes-changed', refresh);
   }, []);
-  const { votes, failed, loading } = useBoardVotes(replaySeed);
+  const { votes, failed, loading } = useBoardVotes(replaySeed, scope);
   const data = useMemo(
     () => (votes ? leaderboardData(category, votes, scope) : null),
     [category, scope, votes],
@@ -558,11 +560,11 @@ export default function Ranking() {
                 className={`rank-scope${scope === 'formal' ? ' active' : ''}`}
                 aria-pressed={scope === 'formal'}
                 onClick={() =>
-                  setScope((value) => (value === 'mixed' ? 'formal' : 'mixed'))
+                  setScope((value) => (value === 'entertainment' ? 'formal' : 'entertainment'))
                 }
-                title={t('正式与娱乐混榜，或只看正式测评的票（决策 026）')}
+                title={t('正式与娱乐数据独立，点击切换榜单')}
               >
-                <i aria-hidden="true" /> {t('只看正式')}
+                <i aria-hidden="true" /> {t(scope === 'formal' ? '正式测评榜' : '娱乐测评榜')}
               </button>
             )}
             <button

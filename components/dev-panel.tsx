@@ -1,5 +1,5 @@
 import { useI18n } from '@/lib/locale';
-// 开发者面板：右下角低对比入口，仅本地使用，后期上线时删除挂载即可整体隐藏。
+// 开发者面板：仅 kme7 可见；正式测评资格独立按管理员权限判定。
 // 功能与 lib/placeholder.ts 的存储一一对应：占位符模式开关、模型数量、占位投票。
 import { useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/account';
@@ -23,6 +23,12 @@ const MODEL_COUNT_OPTIONS = [2, 4, 6, 8, 10, 12, 14, 16];
 const GENERATED_VOTE_COUNT = 200;
 
 export function DevPanel() {
+  const { user } = useAccount();
+  // 账号退出时卸载整个面板，避免重登录后复用已脱离 DOM 的动画引用。
+  return user?.username === 'kme7' ? <OwnerDevPanel /> : null;
+}
+
+function OwnerDevPanel() {
   const { t, localize } = useI18n();
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<DevSettings>(readDevSettings);
@@ -30,68 +36,8 @@ export function DevPanel() {
     () => readPlaceholderVotes().length,
   );
   const [status, setStatus] = useState('');
-  const [devBusy, setDevBusy] = useState(false);
-  const [clearBusy, setClearBusy] = useState(false);
   const [homeEdition, setHomeEdition] = useState<HomeEdition>(readHomeEdition);
-  const { user, refresh: refreshAccount } = useAccount();
-
-  // 清空 dev 自己的真实投票（服务端 DELETE + 榜单刷新），本地反复测试用。
-  // 只清 dev 账号的票，不碰任何真实用户数据。
-  const clearMyVotes = async () => {
-    setClearBusy(true);
-    setStatus('');
-    try {
-      const response = await fetch('/api/dev/clear-my-votes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        cleared?: number;
-        error?: string;
-      };
-      if (!response.ok) throw new Error(data.error || '清空失败');
-      setStatus(
-        `已清空 dev 的 ${data.cleared ?? 0} 条真实投票，可以重新投票测试；后台流水与偏好榜随之更新`,
-      );
-      notifyVotesChanged();
-    } catch (cause) {
-      setStatus(
-        cause instanceof Error && cause.message !== 'Failed to fetch'
-          ? cause.message
-          : '无法连接服务端，清空需要服务端在线。',
-      );
-    } finally {
-      setClearBusy(false);
-    }
-  };
-
-  const devSignIn = async () => {
-    setDevBusy(true);
-    setStatus('');
-    try {
-      // 无 body 的 POST 会被 auth 中间件的 req.is() 判为非 JSON，需带空对象
-      const response = await fetch('/api/auth/dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      if (!response.ok) throw new Error(data.error || '开发者登录失败');
-      await refreshAccount();
-      setStatus('已以开发者身份（dev）登录，投票与评论都会计入。');
-    } catch (cause) {
-      setStatus(
-        cause instanceof Error && cause.message !== 'Failed to fetch'
-          ? cause.message
-          : '无法连接服务端（npm run dev 的 api 部分）。开发者登录需要服务端在线。',
-      );
-    } finally {
-      setDevBusy(false);
-    }
-  };
+  const { user } = useAccount();
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +53,7 @@ export function DevPanel() {
   // React 不会覆盖（prop 不变不写 DOM）。
   const panelRef = useRef<HTMLDivElement>(null);
   const transitionRef = useRef<SurfaceTransition | null>(null);
+  useEffect(() => () => transitionRef.current?.dispose(), []);
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -189,12 +136,6 @@ export function DevPanel() {
     window.dispatchEvent(new CustomEvent('aob:placeholder-votes-changed'));
   };
 
-  // 开发者面板只对 kme7 显示（2026-09-20 用户拍板）：其余账号与游客一律不渲染
-  // 入口与面板。放在所有 hooks 之后，遵守 hooks 规则。用独立布尔判断，避免把
-  // user.username 收窄成字面量后，下面 dev 账号相关的比较被 TS 判为不可能。
-  const isOwner = user?.username === 'kme7';
-  if (!isOwner) return null;
-
   return (
     <>
       {settings.placeholderMode && (
@@ -232,23 +173,18 @@ export function DevPanel() {
         </header>
         <div className="dev-row">
           <span>
-            {t('开发者身份')}
-            <small>
-              {localize(
-                user
-                  ? user.username === 'dev'
-                    ? '当前已以 dev 身份登录'
-                    : `已登录账号 ${user.username}，无需开发者登录`
-                  : '一键以 dev 账号登录（投票计入），无需输密码',
-              )}
-            </small>
+            {t('正式测评')}
+            <small>{t('当前登录：{user}', { user: user?.username ?? '' })}</small>
+            <small>{t('管理员可直接进入正式测评，无需退出或切换账号。')}</small>
           </span>
           <button
             type="button"
-            onClick={devSignIn}
-            disabled={devBusy || !!user}
+            onClick={() => {
+              setOpen(false);
+              window.location.hash = '#play';
+            }}
           >
-            {localize(devBusy ? '登录中…' : '免登录进入')}
+            {t('前往玩法菜单')}
           </button>
         </div>
         <label className="dev-row">
@@ -323,25 +259,10 @@ export function DevPanel() {
             {t('清空')}
           </button>
         </div>
-        {user?.username === 'dev' && (
-          <div className="dev-row">
-            <span>
-              {t('我的真实投票')}
-              <small>
-                {t(
-                  '清空 dev 账号已落库的票（对局去重会让重复测试投不进，清掉即可重投）',
-                )}
-              </small>
-            </span>
-            <button type="button" onClick={clearMyVotes} disabled={clearBusy}>
-              {localize(clearBusy ? '清空中…' : '清空重投')}
-            </button>
-          </div>
-        )}
         {localize(status && <p className="dev-status">{localize(status)}</p>)}
         <p className="dev-note">
           {t(
-            '占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票驱动 #rank 偏好榜演示，仅存本地不入库。开发者身份走 /api/auth/dev，仅限本机回环（或服务端 ALLOW_DEV_LOGIN=1）。',
+            '占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票仅存本地。本面板不切换登录账号。',
           )}
         </p>
       </div>

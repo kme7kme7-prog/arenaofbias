@@ -18,7 +18,7 @@
 | `app/prompt-library.tsx` | 提示词库：目录/单题档案、搜索筛选、键盘选题；library.css 供预览页与首页公共片段 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页 |
 | `app/ranking.tsx` | 偏好榜 `#rank`：三赛道 tab、Elo 排行、模型档案卡（主题色染头部，决策 017） |
-| `app/play-menu.tsx` | 玩法菜单 `#play`（仪器档案风列表）：`MODES` + dev 资格判定（028） |
+| `app/play-menu.tsx` | 玩法菜单 `#play`（仪器档案风列表）：`MODES` + 管理员资格判定（2026-09-23） |
 | `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位） |
 | `app/guess.tsx` + `guess.css` | 模一把玩法页 `#guess`（057-065）：选择屏（每日+三档练习）、搜索补全（全库、不按池过滤）、七属性反馈表、揭晓条、分享、战绩；视觉维护见文件头「美化接手须知」 |
 | `lib/guess-logic.ts` | 模一把判定核心（纯函数、双端同码）：数据集适配层（variants 合并组展开）/`judge()` 七属性判定/`answerForDate()` 两级派生（槽散列+组内轮转）/三档分池/`VENDOR_REGION` 厂商地区（062）。**规则只改这里**；契约见文件头 |
@@ -48,7 +48,7 @@
 | `components/account.tsx` | 账号 Provider/登录注册 Dialog/账号按钮 |
 | `components/afterparty.tsx` | 评论区：登录门槛、幂等 id、匿名观测员显示 |
 | `components/vote-split.tsx` + `lib/vote-split.ts` | 选择人数反馈牌（072-074）：点击即时挂载、数据只负责填充、2 秒内收起 |
-| `components/dev-panel.tsx` | 开发者面板：dev 免登录、首页版本切换、占位符开关、清票重投 |
+| `components/dev-panel.tsx` | 开发者面板：仅 kme7 可见，管理员玩法入口、首页版本切换与占位符工具；会话退出时卸载面板及动画引用 |
 | `lib/home-edition.ts` | 首页版本本地偏好：`aob-home-edition` 读写 + `aob:home-edition-changed` 事件（面板写入、首页即时换版） |
 | `components/ui/` | 只保留实际使用的 shadcn 组件（按需 add，016） |
 | `server/index.js` | Express 全家桶：静态双入口、评论/作品/题目/投票/反应/模一把/访客统计 API、`PRAGMA user_version` 迁移、`/api/admin/*` 管理组、限流分组（070）、同源校验、`TRUST_PROXY`/`APP_ORIGIN` |
@@ -79,7 +79,7 @@
 | `GET /api/comments?round=` | 按题最新 100 条，公开 |
 | `POST /api/comments` | 登录 401/同源 403/JSON 415/校验 400/幂等 409 |
 | `GET /api/works` `/api/prompts` | 已发布作品/题目清单，公开（040/045） |
-| `GET /api/votes` | 全量投票流水（含联表快照 promptKind/promptWeights/双方显示名），公开，**永不过滤**——下架题/作品的历史票保留在榜单、按原权重重放（045⑤/093） |
+| `GET /api/votes?scope=entertainment` / `scope=formal` | 对应范围的全量投票流水（含联表快照 promptKind/promptWeights/双方显示名），公开，**不按上架状态过滤**——下架题/作品的历史票保留在榜单、按原权重重放（045⑤/093） |
 | `POST /api/votes` | 登录/同源/校验/票面与 works 表核对（039）；对局去重 409（code:pair）、同 UUID 幂等或 409（code:id）；formal 票非 admin 403（070） |
 | `POST /api/track` | 访客上报（042）：同源即可，204 静默 |
 | `POST /api/reactions`；`GET /api/reactions?prompt=` | 模型反应（054）：一人一题一模型一槽覆盖；登录写、公开读 |
@@ -87,7 +87,7 @@
 | `POST /api/guess/check` | 判定：每日题按难度池派生（060），练习局带 gameId（064）；猜中或 final 才附答案；跨零点守护（070） |
 | `POST /api/guess/practice/start` | 练习开局（064）：服务端随机抽题发 gameId，内存持有，重启失效 |
 | `POST /api/guess/result` | 每日题结果上报（063）：answer_id 服务端重新派生防伪造；只收每日题（064） |
-| `GET /api/ratings` | 声望分（046）：全量重放 Elo（基准 1200/K=32），供匹配，非排行榜；同一次重放顺带返回各模型出场次数 `games`（109，冷门优先加权用） |
+| `GET /api/ratings?scope=entertainment` / `scope=formal` | 声望分（046）：按范围独立全量重放 Elo（基准 1200/K=32），供匹配，非排行榜；同一次重放顺带返回各模型出场次数 `games`（109，冷门优先加权用） |
 | `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log、works（清单+PATCH 编辑/发布）、inbox（清单+register+DELETE）、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
 | `POST /api/dev/clear-my-votes` | dev 清自己的票重投（042），同 dev 门禁 |
 
@@ -110,7 +110,7 @@ npm start          # 生产形态：http://localhost:3000
 
 检查命令：`typecheck`、`lint`、`validate:arena/scroll/placeholder/leaderboard/votes/admin/matchmaking/guess`（均自带临时 SQLite 与随机端口）、`validate-locale.mjs`；`validate:comments` 需先起服务；`check:motion` 校验全部动效不变量（或分开跑 `check:wipe/surface/game/arena-scroll`）。改动效遵循决策 029：先建/更新对照工具（`scripts/check-*.mjs` + `reference/*-review.html`）再改行为。
 
-后台本地访问：`http://127.0.0.1:5173/admin.html`，dev 面板一键登录即管理员（042）。重复测试投票被去重挡下时用 dev 面板「清空重投」。
+后台本地访问：`http://127.0.0.1:5173/admin.html`，使用管理员账号登录；本机自动验证仍可通过受回环门禁保护的 `/api/auth/dev` 登录以及 `/api/dev/clear-my-votes` 清理 dev 测试票。面板不再提供不可达的 dev 切号/清票控件。
 
 环境变量（均有默认值，本地开发可不设）：`PORT`/`HOST`、`DATA_DIR`（SQLite 目录）、`RATE_LIMIT_PER_MIN`、`ADMIN_OWNER`（管理员引导，已被 dev 即管理员弱化）、`APP_ORIGIN`、`TRUST_PROXY`（反代必设）、`WORKS_DIR`（作品目录，大文件不入 git）、`WORKS_INBOX_DIR`（收件箱）。
 
@@ -125,6 +125,8 @@ npm start          # 生产形态：http://localhost:3000
 5. 某题补齐两个不同 modelId 的结果后，`#arena/{id}` 自动从预览页变为竞技场。
 
 ## 已知不一致 / 技术备注
+
+- 作品就绪接收在竞技场组件的 `useLayoutEffect` 中常驻，覆盖同题换组的 transition 和 intro；只接收当前 A/B iframe 的通知。舞台 `Work` 以作品 id 为 key，新作品不能复用旧窗口的就绪状态，重播原作品则不重载。先 `npm run build` 再 `npm run validate:work-ready`，使用独立浏览器与内存接口验证快加载、慢加载、单组重播、减少动态效果和超时出口；不连接真实数据库。浏览器路径可用 `THUMB_BROWSER` 指定，Windows 默认 Edge。
 
 - 竞技场页「本场收录 N 个模型的 M 份结果」未过滤 isDemo，与题库页口径不一致；当前可进竞技场的题都没有 demo，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
@@ -184,3 +186,22 @@ npm start          # 生产形态：http://localhost:3000
 - `data/thumbs/<id>.png` 配套指纹 JSON（作品内容含 framing/camera、题号、渲染版本）。旧无指纹 PNG 不复用；分享时自动生成缺失/失效图，同一作品同指纹请求合并，成功后替换。截图失败返回 503，前端重试。代码升级改变截图表现时递增 fingerprint 版本；仅原文件资产改变而元数据不变时运行预生成脚本刷新。
 - 生产先 `npm run build`，确保 `dist/capture.html` 存在；需要服务器安装 Chrome/Chromium（Windows 默认 Edge）。可用 `THUMB_BROWSER=/absolute/path/to/chromium` 指定可执行文件。`playwright-core` 不自带下载浏览器。服务端沙箱保持浏览器默认，不使用 `--no-sandbox`。
 - `npm run thumbs:works -- --only id,id` 可离线预生成；遵循 DATA_DIR。原有无校准截图自动失效，无需手工清空 data。
+
+
+### 正式测评隔离（2026-09-23）
+
+- 作品、题库和账号共用；`votes.mode` 区分正式与娱乐。迁移 011 以 `(user_id,pair_key,(mode='formal'))` 唯一索引替代旧跨模式索引，不改历史行；服务启动不再重建旧索引。
+- `/api/votes`、`/api/ratings` 的 `scope` 默认 `entertainment`，另可选 `formal`，非法值 400；各范围完整重放历史，未提供混合统计入口。后台管理总览/流水仍可查看两类记录。
+- `lib/ratings.ts` 的缓存与请求代次按范围独立；`currentMatchup` 接收范围，正式页面首次抽取、换组及投票后刷新均使用正式快照。榜单 `#rank` 默认娱乐，`#rank/formal` 默认正式，切换范围重读流水。
+- `npm run validate:formal`：临时库验证迁移、双范围去重/幂等/权限、统计隔离、重启及缓存竞态。`npm run build` 后 `npm run validate:formal-ui`：独立浏览器和临时服务，真实登录投票、匿名结果、双继续、分榜及 320/390px 布局；截图写 `output/playwright/formal-*.png`。
+
+- 管理员入口回归：先 `npm run build`，再 `node scripts/validate-admin-access.mjs`。临时库与独立浏览器验证 kme7 面板→玩法→正式测评、面板打开时退出并原页重新登录后的开合、wujisuan 无面板仍可正式评审；全程不调用 dev 登录。`--expect-bug` 用旧构建复现旧按钮死路与悬空动画引用。
+
+## VPS 部署（2026-09-24）
+
+- 当前生产站点为 `https://arenaofbias.icu`；PM2 进程 `arena`，目录 `/www/wwwroot/arenaofbias`，监听 `127.0.0.1:3000`。旧 systemd `arenaofbias` 已停用，不再使用旧整站 tar 命令。
+- `npm run deploy:vps -- --check` 只读核对远端文件，输出变更清单并保存本机 `.local/deploy-vps/plan.json`；审阅清单后运行 `npm run deploy:vps`。必须先提交本轮代码；脚本只打包当前 Git HEAD，排除本地数据、凭据、未跟踪作品与旧截图目录。不会清理远端额外文件。
+- 本机需要 Python 3 与 Paramiko（常规安装或既有 `.local/vps-python`）。默认读取 `.local/vps-credentials.txt`，也支持 `VPS_HOST` / `VPS_USER` / `VPS_PORT` 配合 SSH 密钥或 agent；主机公钥必须已在 `~/.ssh/known_hosts`。覆盖连接目标时不会把原保存的密码发给其他目标。凭据不打印、不进入上传包。
+- 远端先在独立暂存目录构建，复核计划中的文件哈希未变化，再备份将覆盖的源码、构建文件与 SQLite 在线一致性快照；保留旧哈希 assets，最后替换三个入口 HTML。后端或共享 lib 内容变化才重启 PM2；仅换行差异、前端及文档同步不重启。
+- 部署后逐文件核对源码哈希、三个入口及其引用资源响应，并检查 PM2。失败恢复本轮覆盖的代码与构建文件，绝不自动回退真库。备份在 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-时间-提交号/`。
+- 脚本复用已安装的 `node_modules`；发现 package.json 的 dependencies/devDependencies 改变即中止，依赖升级须另行安排安装。不会自动删除远端多余源码；涉及删除/重命名时需单独核对旧文件引用。这是现有站点的同步流程，不是空机初始化脚本。

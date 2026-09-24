@@ -5,6 +5,9 @@
 import type { Mode } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
 
+/** 正式与娱乐共用作品题库，评审数据按此范围独立。 */
+export type EvaluationScope = 'entertainment' | 'formal';
+
 /** 一票 = 一次对局选择；rid 是作品 id（ModelResult.id），mid 是模型 id（决策 021）。
  * outcome = draw 时（决策 048「无法抉择」平局票）winner/loser 四个字段只表示
  * 出场左右顺序（a 侧入 winner、b 侧入 loser），无胜负语义 */
@@ -183,12 +186,15 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
   }
 }
 
-/** 拉全量投票流水；失败返回 null（调用方区分「无票」与「加载失败」）。
+/** 拉指定测评范围的全量投票流水；失败返回 null（调用方区分「无票」与「加载失败」）。
  * 不按题号白名单过滤（决策 045 ⑤：下架题/下架作品的历史票保留在榜单），
  * 形态非法的行跳过 */
-export async function fetchVotes(signal?: AbortSignal): Promise<VoteFlowRow[] | null> {
+export async function fetchVotes(
+  signal?: AbortSignal,
+  scope: EvaluationScope = 'entertainment',
+): Promise<VoteFlowRow[] | null> {
   try {
-    const response = await fetch('/api/votes', { signal });
+    const response = await fetch(`/api/votes?scope=${scope}`, { signal });
     if (!response.ok) return null;
     const data = (await response.json()) as { votes?: unknown };
     if (!Array.isArray(data.votes)) return null;
@@ -202,7 +208,7 @@ export async function fetchVotes(signal?: AbortSignal): Promise<VoteFlowRow[] | 
   }
 }
 
-/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供「只看正式」口径过滤）。
+/** 服务端流水 → 榜单聚合记录（模型层面，与占位投票同构；mode 供正式/娱乐分榜过滤）。
  * promptKind、promptWeights 与双方显示名随行透传——下架题的赛道归类、维度权重
  * 与历史模型的命名靠它们 */
 export function voteToRecord(vote: VoteFlowRow): {

@@ -85,8 +85,8 @@ if (
 
 // 投票流水：一行 = 一次对局选择。去重单位是「对局」（两份作品，pair_key），
 // 同一对作品同一账号只计一票；同一对模型换作品（不同 rid）是新的对局，可以再投
-// （见 docs/DECISIONS.md 决策 021）。mode 记录投票发生的模式（blind/party），
-// 为将来「娱乐是否计入正式榜」的分流留位，当前两类都计入。
+// （见 docs/DECISIONS.md 决策 021）。mode 记录投票发生的模式（blind/party/formal），
+// 正式与娱乐按模式分流；同一账号可在两个范围分别评审（2026-09-23）。
 db.exec(`
   CREATE TABLE IF NOT EXISTS votes (
     id         TEXT PRIMARY KEY NOT NULL,
@@ -100,10 +100,7 @@ db.exec(`
     user_id    TEXT,
     created_at INTEGER NOT NULL
   );
-  -- 唯一索引按 (user_id, pair_key) 去重；user_id 为 NULL 的行不受唯一约束
-  --（SQLite 的 NULL 互不相等），但 API 层写票必先登录，不会写入 NULL
-  CREATE UNIQUE INDEX IF NOT EXISTS votes_user_pair
-    ON votes (user_id, pair_key);
+  -- 去重索引由迁移 011 管理，启动时不能重建旧的跨模式唯一索引。
   CREATE INDEX IF NOT EXISTS votes_created ON votes (created_at);
 `);
 
@@ -388,6 +385,21 @@ const MIGRATIONS = [
       );
     },
   },
+  {
+    // 011 · 正式/娱乐数据独立；blind 与历史 party 同属娱乐。
+    // 仅替换索引，历史票面不改、不复制，两种模式各自允许投一票。
+    up() {
+      db.transaction(() => {
+        db.exec(`
+          DROP INDEX IF EXISTS votes_user_pair;
+          CREATE UNIQUE INDEX IF NOT EXISTS votes_user_pair_scope
+            ON votes (user_id, pair_key, (mode = 'formal'));
+          CREATE INDEX IF NOT EXISTS votes_scope_created
+            ON votes ((mode = 'formal'), created_at, id);
+        `);
+      })();
+    },
+  },
 ];
 
 {
@@ -419,7 +431,7 @@ const selectVoteById = db.prepare(
    FROM votes WHERE id = ?`,
 );
 const selectVoteIdByPair = db.prepare(
-  'SELECT id FROM votes WHERE user_id = ? AND pair_key = ?',
+  "SELECT id FROM votes WHERE user_id = ? AND pair_key = ? AND (mode = 'formal') = ?",
 );
 // 反应（迁移 005）：一人一题一模型一槽，换态度覆盖 kind
 const upsertReaction = db.prepare(
@@ -446,7 +458,7 @@ const reactionModelExists = db.prepare(
 // 题目当前 kind 与六维权重（prompts 表含下架题——下架题的历史票仍按
 // 原赛道与权重归类）、双方作品当前显示名（作品全下架后，模型仍能以
 // 名字上榜而不是裸 id）。
-// 票本身永不过滤：/api/votes 始终全量返回，榜单口径由客户端聚合。
+// 按正式/娱乐分流；各自完整返回历史票，不按题目或作品是否上架过滤。
 const listVotes = db.prepare(
   `SELECT v.id, v.prompt_id AS promptId, v.winner_rid AS winnerRid, v.winner_mid AS winnerMid,
           v.loser_rid AS loserRid, v.loser_mid AS loserMid, v.mode, v.created_at AS ts, v.outcome,
@@ -456,6 +468,7 @@ const listVotes = db.prepare(
    LEFT JOIN works wp ON wp.id = v.winner_rid
    LEFT JOIN works lp ON lp.id = v.loser_rid
    LEFT JOIN prompts p ON p.id = v.prompt_id
+   WHERE (v.mode = 'formal') = ?
    ORDER BY v.created_at ASC, v.id ASC`,
 );
 
@@ -735,13 +748,23 @@ app.get('/api/prompts', (_req, res) => {
 // 这里只是给 lib/matchmaking.ts 的配对参考分（「暗分」）。无票时返回空对象，
 // 调用方把未知模型按基础分处理。规模大后可换落表缓存，当前全量重放演示规模够用。
 
-app.get('/api/ratings', (_req, res) => {
+// 旧客户端未传 scope 时只读娱乐数据；未知值拒绝，避免误读另一套统计。
+function voteScope(req, res) {
+  const scope = req.query.scope ?? 'entertainment';
+  if (scope === 'entertainment' || scope === 'formal') return scope;
+  res.status(400).json({ error: '测评数据范围无效' });
+  return null;
+}
+
+app.get('/api/ratings', (req, res) => {
+  const scope = voteScope(req, res);
+  if (!scope) return;
   try {
     const rows = db
       .prepare(
-        'SELECT winner_mid, loser_mid, created_at AS ts, outcome FROM votes ORDER BY created_at ASC, id ASC',
+        "SELECT winner_mid, loser_mid, created_at AS ts, outcome FROM votes WHERE (mode = 'formal') = ? ORDER BY created_at ASC, id ASC",
       )
-      .all();
+      .all(Number(scope === 'formal'));
     const K = 32;
     const BASE = 1200;
     const ratings = {};
@@ -769,11 +792,13 @@ app.get('/api/ratings', (_req, res) => {
 
 // ---------- 投票：写入要求登录（决策 020），读取公开、不带用户信息 ----------
 
-app.get('/api/votes', (_req, res) => {
+app.get('/api/votes', (req, res) => {
+  const scope = voteScope(req, res);
+  if (!scope) return;
   try {
     // 全量流水，按时间升序；榜单在客户端重放 Elo（演示规模够用，
     // 数据量上来后再换聚合接口，勿在此静默截断——截断会让 Elo 失真）
-    const rows = listVotes.all();
+    const rows = listVotes.all(Number(scope === 'formal'));
     for (const row of rows) {
       const weights = parseWeightsColumn(row.promptWeights);
       if (weights) row.promptWeights = weights;
@@ -801,7 +826,7 @@ app.post('/api/votes', limiterFor('social'), (req, res) => {
     return res.status(403).json({ error: '正式测评为资格制，暂未开放。' });
   const pairKey = pairKeyOf(vote.winnerRid, vote.loserRid);
   try {
-    const existing = selectVoteIdByPair.get(req.user.id, pairKey);
+    const existing = selectVoteIdByPair.get(req.user.id, pairKey, Number(vote.mode === 'formal'));
     if (existing) {
       // 同 UUID 重试视为成功（幂等，但票面必须完全一致）；换一个 UUID 重投同一对局才叫重复
       if (existing.id === vote.id) {

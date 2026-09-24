@@ -1,5 +1,5 @@
 import { useI18n } from '@/lib/locale';
-import { AccountProvider } from '@/components/account';
+import { AccountProvider, useAccount } from '@/components/account';
 import '@/app/account.css';
 import { createRoot } from 'react-dom/client';
 import Arena from '@/app/page';
@@ -16,7 +16,7 @@ import { BetaNotice } from '@/components/beta-notice';
 import { PageShare } from '@/components/share';
 import { parseSharedDuel, resolveSharedDuel } from '@/lib/shared-duel';
 import '@/app/share.css';
-import { currentPairs, currentRandomArenaHash } from '@/lib/placeholder';
+import { currentPairs, currentRandomArenaHash, isPlaceholderMode } from '@/lib/placeholder';
 import { currentResultsForPrompt } from '@/lib/placeholder';
 import {
   currentPrompts,
@@ -58,6 +58,7 @@ function subscribeRoute(callback: () => void) {
 // 数据消费方从内置花名册切到远端清单（决策 040）
 function Routes() {
   const { t } = useI18n();
+  const { user, loading: authLoading } = useAccount();
   const route = useSyncExternalStore(
     subscribeRoute,
     () => window.location.hash,
@@ -87,7 +88,11 @@ function Routes() {
   if (route === '#guess') return <GuessPage />;
   if (route === '#prompts') return <PromptLibrary />;
   if (route === '#rank') return <Ranking />;
+  if (route === '#rank/formal') return <Ranking key="formal" initialScope="formal" />;
   if (route.startsWith('#formal/')) {
+    if (authLoading) return <output className="route-empty">{t('正在接入试验场')}</output>;
+    if (user?.role !== 'admin') return <PlayMenu />;
+    if (isPlaceholderMode()) return <div className="route-empty"><p>{t('正式测评使用真实作品，请先关闭占位模式。')}</p><a href="#play">{t('正式测评')}</a></div>;
     const prompt = currentPrompts().find((item) => item.id === route.slice(8));
     // 清单加载中先不判型（2026-09-20 审查修复）：用内置兜底挂载竞技场后，
     // 远端清单到达可能把页面换成预览页，入场序列被中途卸载
@@ -144,6 +149,7 @@ trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
 loadWorks();
 loadPrompts(); // 动态题库（决策 045）
 loadRatings(); // 声望分：软性匹配的数据源（决策 046）
+loadRatings('formal'); // 正式匹配使用独立快照，不借用娱乐分数或出场数。
 reactRoot.render(
   <AccountProvider>
     <Routes />

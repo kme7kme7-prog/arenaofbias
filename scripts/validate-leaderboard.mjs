@@ -162,7 +162,7 @@ check('分类过滤：写作榜只计入 text 题的票', () => {
   assert.ok(webData.promptCount < textData.promptCount + webData.promptCount);
 });
 
-check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', () => {
+check('正式与娱乐分榜：票数、分数、六维画像和题目覆盖互不混入', () => {
   // 手工构造带 mode 的票（真实流水经 voteToRecord 映射后同构）。
   // 用 001 题：占位生成的 200 票覆盖全部阵容，001 必然让任意两个模型进 meta
   const models = leaderboardData('all').rows.map((row) => row.modelId);
@@ -179,7 +179,7 @@ check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', ()
     vote(models[1], models[0], 'party', 2),
     vote(models[0], models[1], 'blind', 3),
   ];
-  assert.equal(leaderboardData('all', mixedVotes, 'mixed').totalVotes, 3);
+  assert.equal(leaderboardData('all', mixedVotes, 'entertainment').totalVotes, 2);
   const formalData = leaderboardData('all', mixedVotes, 'formal');
   assert.equal(formalData.totalVotes, 1);
   // 只有 formal 那一票：模型 0 一胜、模型 1 一负
@@ -187,9 +187,21 @@ check('口径过滤（决策 026）：只看正式只计 mode=formal 的票', ()
   const loser = formalData.rows.find((row) => row.modelId === models[1]);
   assert.equal(winner?.wins, 1);
   assert.equal(loser?.losses, 1);
-  // 无 mode 的票（占位口径）在混入时计入、只看正式时排除
+  assert.deepEqual(
+    leaderboardData('all', mixedVotes, 'formal'),
+    leaderboardData('all', mixedVotes.slice(0, 1), 'formal'),
+  );
+  assert.deepEqual(
+    computeRadarProfiles('all', mixedVotes, 'entertainment'),
+    computeRadarProfiles('all', mixedVotes.slice(1), 'entertainment'),
+  );
+  assert.deepEqual(
+    computeRadarProfiles('all', mixedVotes, 'formal'),
+    computeRadarProfiles('all', mixedVotes.slice(0, 1), 'formal'),
+  );
+  // 无 mode 的票（占位口径）在娱乐时计入、只看正式时排除
   const legacyVotes = [vote(models[0], models[1], undefined, 4)];
-  assert.equal(leaderboardData('all', legacyVotes, 'mixed').totalVotes, 1);
+  assert.equal(leaderboardData('all', legacyVotes, 'entertainment').totalVotes, 1);
   assert.equal(leaderboardData('all', legacyVotes, 'formal').totalVotes, 0);
 });
 
@@ -206,7 +218,7 @@ check('平局票（决策 048）：双方各得半分、记平局不计胜负、
     outcome: 'win',
   };
   const drawVote = { ...winVote, ts: 2, outcome: 'draw' };
-  const data = leaderboardData('all', [winVote, drawVote], 'mixed');
+  const data = leaderboardData('all', [winVote, drawVote], 'entertainment');
   assert.equal(data.totalVotes, 2);
   const rowA = data.rows.find((row) => row.modelId === a);
   const rowB = data.rows.find((row) => row.modelId === b);
@@ -219,7 +231,7 @@ check('平局票（决策 048）：双方各得半分、记平局不计胜负、
   assert.equal(rowB.losses, 1);
   assert.equal(rowB.draws, 1);
   // Elo：第一票后 a 高 b 低；平局让高分方回跌、低分方回升
-  const onlyWin = leaderboardData('all', [winVote], 'mixed');
+  const onlyWin = leaderboardData('all', [winVote], 'entertainment');
   const aAfterWin = onlyWin.rows.find((row) => row.modelId === a).rating;
   const bAfterWin = onlyWin.rows.find((row) => row.modelId === b).rating;
   assert.ok(aAfterWin > 1200 && bAfterWin < 1200);
@@ -229,7 +241,7 @@ check('平局票（决策 048）：双方各得半分、记平局不计胜负、
   const legacy = leaderboardData(
     'all',
     [{ promptId: '001', winnerId: a, loserId: b, ts: 3, mode: 'blind' }],
-    'mixed',
+    'entertainment',
   );
   assert.equal(legacy.rows.find((row) => row.modelId === a).wins, 1);
 });
@@ -246,7 +258,7 @@ check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史�
     mode: 'blind',
     promptKind: 'web',
   };
-  const retiredPromptData = leaderboardData('web', [retiredPromptVote], 'mixed');
+  const retiredPromptData = leaderboardData('web', [retiredPromptVote], 'entertainment');
   assert.equal(retiredPromptData.totalVotes, 1);
   assert.ok(retiredPromptData.rows.some((row) => row.modelId === models[0]));
   // 作品全下架：模型不在当前阵容，显示名用流水快照，票照常计入聚合
@@ -270,7 +282,7 @@ check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史�
       loserName: '现役',
     },
   ];
-  const retiredData = leaderboardData('all', retiredVotes, 'mixed');
+  const retiredData = leaderboardData('all', retiredVotes, 'entertainment');
   assert.equal(retiredData.totalVotes, 2);
   const gone = retiredData.rows.find((row) => row.modelId === 'gone-a');
   assert.ok(gone);
@@ -281,7 +293,7 @@ check('下架不丢票（决策 045 ⑤）：未知题与历史模型的历史�
   // 快照缺失（旧流水行）：历史模型以模型 id 兜底显示，票不丢
   const nameless = leaderboardData('all', [
     { promptId: '002', winnerId: 'gone-c', loserId: 'gone-d', ts: 13, mode: 'blind' },
-  ], 'mixed');
+  ], 'entertainment');
   assert.equal(nameless.totalVotes, 1);
   assert.equal(nameless.rows.find((row) => row.modelId === 'gone-c')?.name, 'gone-c');
 });

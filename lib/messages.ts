@@ -1,5 +1,17 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  '管理员可直接进入正式测评，无需退出或切换账号。': 'Admins can enter formal evaluation directly without signing out or switching accounts.',
+  '前往玩法菜单': 'Open play menu',
+  '当前登录：{user} · 管理员，可直接从玩法菜单进入正式测评。': 'Signed in as {user} · Admin. Enter formal evaluation from the play menu.',
+  '占位数据与真实数据严格隔离；切换开关会刷新页面。占位投票仅存本地。本面板不切换登录账号。': 'Placeholder data is separate from real data. Switching modes reloads the page. Placeholder votes stay local. This panel does not switch accounts.',
+  '正式与娱乐数据独立，点击切换榜单': 'Formal and entertainment results are separate. Click to switch.',
+  '正式测评榜': 'Formal leaderboard',
+  '娱乐测评榜': 'Entertainment leaderboard',
+  '记录选择': 'Record choice',
+  '你的选择已计入正式测评榜': 'Your choice counts toward the formal leaderboard',
+  '平局已计入正式测评榜，双方各得半分': 'Draw recorded in the formal leaderboard — half a point each',
+  '正式测评使用真实作品，请先关闭占位模式。': 'Formal evaluation uses real works. Turn off placeholder mode first.',
+  '全程匿名的严格盲测：任何环节都不揭示模型名称，也没有评论区，你的选择只汇入独立的正式测评数据。': 'Strict blind evaluation: model names stay hidden and comments are disabled. Choices count only toward the separate formal results.',
   '分享这一局': 'Share this duel',
   '分享这道题': 'Share this prompt',
   '分享这个页面': 'Share this page',
@@ -226,6 +238,11 @@ export const messages: Record<string, string> = {
   '测试对局 · 投票不落库': 'Test matchup · votes are not recorded',
   重新比较本提示词: 'Compare again',
   下一题: 'Next prompt',
+  继续比较: 'Continue comparing',
+  换个题库继续: 'Try another prompt',
+  同一题库继续: 'Continue this prompt',
+  '暂无其他可比较题目。': 'No other prompts are available to compare.',
+  '本题只有一组作品，继续将重新比较本组。': 'Only one pair is available here. Continue to compare it again.',
   '正式测评：全程匿名，本模式不开放评论区。':
     'Formal evaluation stays anonymous. Comments are disabled.',
   '占位符模式：评论区停用，占位数据不入库。':
@@ -308,7 +325,7 @@ export const messages: Record<string, string> = {
   凭直觉: 'Trust your instinct',
   聊两句: 'Join the conversation',
   '答案之外，还想听听你的理由。': 'Beyond your choice, we’d love to hear why.',
-  '资格制 · dev 身份可进入': 'Qualified accounts · dev access enabled',
+  '资格制 · 管理员可进入': 'Qualified accounts · Admin access enabled',
   '全程匿名的严格盲测：任何环节都不揭示模型名称，也没有评论区，你的选择只汇入偏好数据。':
     'A fully anonymous evaluation. No model names or comments; your choices contribute to preference data.',
   随时可玩: 'Open to everyone',
@@ -323,8 +340,8 @@ export const messages: Record<string, string> = {
   '· 资格制 · 暂未开放': '· Qualified accounts · Not yet open',
   需要资格: 'Qualification required',
   进入: 'Enter',
-  '玩法名称为暂定；正式测评为资格制，开发者身份（dev 面板登录）当前持有资格。':
-    'Mode names are provisional. Formal evaluation currently grants access to the dev account.',
+  '玩法名称为暂定；正式测评为资格制，管理员账号当前持有资格。':
+    'Mode names are provisional. Formal evaluation currently grants access to admin accounts.',
   '02 / 题目档案': '02 / Prompt library',
   '03 / 偏好榜 ↗': '03 / Preference index ↗',
   '常驻 / 轮换的特别对局：同一道无厘头题目，看各路作品放飞自我。 特别赛独立成榜，不混入主榜。轮换规则与独立榜单正在筹备，先去看看那道起源之题。':

@@ -12,7 +12,7 @@ export function summarizePairVotes(
   const counts: VoteSplit = { left: 0, right: 0, draw: 0 };
   const seen = new Set<string>();
   for (const vote of votes) {
-    if (vote.promptId !== promptId || seen.has(vote.id)) continue;
+    if (vote.mode === 'formal' || vote.promptId !== promptId || seen.has(vote.id)) continue;
     if (
       !(
         (vote.winnerRid === leftRid && vote.loserRid === rightRid) ||

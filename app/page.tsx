@@ -512,6 +512,7 @@ export default function Arena({
   initialPair?: Matchup;
 }) {
   const { t, localize } = useI18n();
+  const scope = formal ? 'formal' : 'entertainment';
   const promptIndex = currentPrompts().findIndex(
     (item) => item.id === prompt.id,
   );
@@ -528,9 +529,9 @@ export default function Arena({
   );
   // 测试对局（2026-09-19，后台作品管理直达）：挂载时消费一次测试对；testing
   // 从 pair 派生——换组/换题/清单重算把 pair 换掉后自动失效，不用到处补复位
-  const [testPair] = useState(() => takeTestPair(prompt.id));
+  const [testPair] = useState(() => formal ? null : takeTestPair(prompt.id));
   const [pair, setPair] = useState<Matchup>(
-    () => testPair ?? initialPair ?? currentMatchup(prompt.id)!,
+    () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope)!,
   );
   const [testIds, setTestIds] = useState<string[] | null>(() =>
     testPair ? [testPair[0].id, testPair[1].id] : null,
@@ -559,7 +560,7 @@ export default function Arena({
     () =>
       subscribeWorks(() => {
         // 挂载时远端清单还没到 → 测试对查不到作品；清单落地后补消费一次
-        const test = takeTestPair(prompt.id);
+        const test = formal ? null : takeTestPair(prompt.id);
         if (test) {
           setTestIds([test[0].id, test[1].id]);
           setPair(test);
@@ -576,16 +577,28 @@ export default function Arena({
             )
           )
             return current;
-          return currentMatchup(prompt.id) ?? current;
+          return currentMatchup(prompt.id, undefined, scope) ?? current;
         });
       }),
-    [prompt.id],
+    [prompt.id, formal, scope],
   );
   // 进场即刷新配对暗分：启动时那份快照会随着投票漂移（046）
   useEffect(() => {
-    refreshRatings();
-  }, []);
+    refreshRatings(scope);
+  }, [scope]);
   const pairCount = currentPairs(prompt.id).length;
+  const hasOtherArena = currentPrompts().some(
+    (item) => item.id !== prompt.id && currentPairs(item.id).length > 0,
+  );
+  const continueLock = useRef(false);
+  const [continueFromRun, setContinueFromRun] = useState<number | null>(null);
+  const continuing = continueFromRun === state.run ||
+    (continueFromRun !== null && state.phase !== 'voting' && state.phase !== 'result');
+  useEffect(() => {
+    if (state.phase === 'voting' || state.phase === 'result') {
+      continueLock.current = false;
+    }
+  }, [state.phase]);
   const resultCount = currentResultsForPrompt(prompt.id).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
   const drawLabel = DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
@@ -635,7 +648,10 @@ export default function Arena({
   // 按钮看起来就像失灵了。提示一句代替静默无反应（2026-09-15）
   const [soloNotice, setSoloNotice] = useState(false);
   const gotoRandomArena = () => {
-    const next = currentRandomArenaHash(prompt.id);
+    // 加载超时后仍允许既有「跳过此题」出口，普通继续按钮保持禁用。
+    if (((continueLock.current || worksLoading) && !worksStalled) || state.phase === 'transition') return;
+    const candidate = currentRandomArenaHash(prompt.id);
+    const next = formal ? candidate.replace('#arena/', '#formal/') : candidate;
     if (next === window.location.hash) {
       setSoloNotice(true);
       setTimeout(() => setSoloNotice(false), 3000);
@@ -644,7 +660,9 @@ export default function Arena({
     if (arenaTransition.current) return;
     // 上一幕纸幕还被作品就绪门钉着：此刻再起一幕会两张叠放，直接不响应
     if (!worksGateOpen()) return;
-    // 娱乐模式「下一题」：双页纸幕只盖住场内区域（field-meta → 操作行），
+    continueLock.current = true;
+    setContinueFromRun(state.run);
+    // 两种测评「换题继续」：双页纸幕只盖住场内区域（field-meta → 操作行），
     // 盖满时切 hash。层必须挂在 body 上才能活过组件卸载完成扫出；
     // 新竞技场的开场牌有 .game-transition 等待门控，会自动接在扫出之后。
     const terminal = terminalRef.current;
@@ -662,7 +680,7 @@ export default function Arena({
     const rects = parts.map((el) => el.getBoundingClientRect());
     const top = Math.min(...rects.map((r) => r.top));
     const bottom = Math.max(...rects.map((r) => r.bottom));
-    const destination = currentPrompts().find((item) => `#arena/${item.id}` === next);
+    const destination = currentPrompts().find((item) => `#arena/${item.id}` === candidate);
     // 布防作品就绪门（决策 096）：纸幕盖满切 hash 后钉在盖满位，新页双侧
     // 作品就绪（或超时/跳过）才扫出——「正在接入试验场」整拍被牌面吸收
     armWorksGate();
@@ -710,6 +728,21 @@ export default function Arena({
   // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
   const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
   const cardB = useRef<HTMLDivElement>(null);
+  // 换组先装载新 iframe，620ms 后才进入 intro。监听必须覆盖整个组件生命期，
+  // 否则快作品在 transition 中发出的一次性通知会丢失，入场就永久等待。
+  // layout effect 在浏览器处理新 iframe 的消息前就注册；重播同一作品不清空就绪。
+  useLayoutEffect(() => {
+    const onWorkReady = (event: MessageEvent) => {
+      if (
+        event.data === 'aob:work-ready' && event.source &&
+        [cardA, cardB].some((card) =>
+          card.current?.querySelector('iframe')?.contentWindow === event.source,
+        )
+      ) readyWindows.current.add(event.source as Window);
+    };
+    window.addEventListener('message', onWorkReady);
+    return () => window.removeEventListener('message', onWorkReady);
+  }, []);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
   const animations = useRef<Animation[]>([]);
@@ -723,6 +756,7 @@ export default function Arena({
     (state.phase === 'result' && state.mode !== 'formal');
   const transitioning = state.phase === 'transition';
   const blocked = state.phase === 'loading' || transitioning;
+  const continueBlocked = blocked || worksLoading || continuing;
 
   const play = useCallback((kind: 'hover' | 'move' | 'vote' | 'reveal') => {
     if (!soundRef.current || !audioRef.current) return;
@@ -802,13 +836,6 @@ export default function Arena({
     if (state.phase !== 'intro') return;
     const controller = new AbortController();
     const signal = controller.signal;
-    // 场景型作品经探针上报「渲染循环已启动」（data-aob-probe 注入约定）；
-    // 只信来自浏览器窗口的消息，来源对不上就当没收到
-    const onWorkReady = (event: MessageEvent) => {
-      if (event.data === 'aob:work-ready' && event.source)
-        readyWindows.current.add(event.source as Window);
-    };
-    window.addEventListener('message', onWorkReady);
     const resetScroll = () => {
       stageRef.current
         ?.querySelectorAll<HTMLElement>('[data-tour-scroll]')
@@ -992,7 +1019,6 @@ export default function Arena({
     });
     return () => {
       controller.abort();
-      window.removeEventListener('message', onWorkReady);
       animations.current.forEach((animation) => animation.cancel());
       animations.current = [];
       resetScroll();
@@ -1107,7 +1133,7 @@ export default function Arena({
         outcome,
       }).then((result) => {
         // 票一落库就刷新配对暗分（046）：否则整局会话都用启动时的旧快照
-        if (result.ok) refreshRatings();
+        if (result.ok) refreshRatings(scope);
         setVoteRecord({
           run: state.run,
           outcome: result.ok
@@ -1120,7 +1146,7 @@ export default function Arena({
         });
       });
     },
-    [pair, prompt.id, state.mode, state.run, testing],
+    [pair, prompt.id, state.mode, state.run, testing, scope],
   );
 
   const vote = useCallback(
@@ -1133,12 +1159,18 @@ export default function Arena({
     [state.phase, play, recordVote],
   );
   const nextMatchup = useCallback(() => {
-    if (state.phase === 'loading' || state.phase === 'transition') return;
+    if (
+      state.phase === 'loading' || state.phase === 'transition' ||
+      ((worksLoading || continueLock.current) && !worksStalled) ||
+      arenaTransition.current || !worksGateOpen()
+    ) return;
+    continueLock.current = true;
+    setContinueFromRun(state.run);
     play('move');
     // 清单中途失效抽不出新对时保住当前对——null 会让渲染层 pair[0] 崩
-    setPair((current) => currentMatchup(prompt.id, current) ?? current);
+    setPair((current) => currentMatchup(prompt.id, current, scope) ?? current);
     dispatch({ type: 'REPLAY' });
-  }, [state.phase, prompt.id, play]);
+  }, [state.phase, state.run, prompt.id, play, worksLoading, worksStalled, scope]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1278,7 +1310,7 @@ export default function Arena({
             {t('OBSERVATION /')}
             {localize(round.id)}
           </span>
-          {['观看作品', '做出选择', '身份揭晓'].map((label, index) => {
+          {['观看作品', '做出选择', formal ? '记录选择' : '身份揭晓'].map((label, index) => {
             const active =
               index ===
               (state.phase === 'result'
@@ -1445,6 +1477,8 @@ export default function Arena({
                       }
                     >
                       <Work
+                        // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
+                        key={result.id}
                         result={result}
                         side={side}
                         // 投票阶段（及揭晓后）小预览也允许交互：点击画面、作品内按钮
@@ -1643,7 +1677,11 @@ export default function Arena({
                         ? '测试对局，票未计入偏好榜'
                         : isPlaceholderMode()
                           ? '已写入本地演示数据 · 占位模式'
-                          : state.choice === 'draw'
+                          : formal
+                            ? state.choice === 'draw'
+                              ? '平局已计入正式测评榜，双方各得半分'
+                              : '你的选择已计入正式测评榜'
+                            : state.choice === 'draw'
                             ? '平局已计入偏好榜，双方各得半分'
                             : '你的选择已计入偏好榜'),
                   )}
@@ -1668,7 +1706,7 @@ export default function Arena({
                       '正在记录你的选择…',
                   )}
                 </span>
-                <a className="result-board-link" href="#rank">
+                <a className="result-board-link" href={formal ? '#rank/formal' : '#rank'}>
                   {t('看看偏好榜 ↗')}
                 </a>
               </div>
@@ -1693,11 +1731,11 @@ export default function Arena({
               <i />
               <span>
                 <b>03</b>
-                {t('身份揭晓')}
+                {t(formal ? '记录选择' : '身份揭晓')}
               </span>
             </div>
           )}
-          <div className="round-actions">
+          <div className="round-actions has-continue-options">
             {state.phase === 'result' && state.choice && state.mode !== 'formal' && !testing && !isPlaceholderMode() && (
               <ShareButton key={`${state.run}-${pair[0].id}-${pair[1].id}`} query={duelShareQuery(prompt, pair, state.choice)} />
             )}
@@ -1732,30 +1770,36 @@ export default function Arena({
                 {t('重播入场')}
               </button>
             )}
-            {state.mode === 'formal' ? (
-              <button
-                className={`next-button ${state.phase === 'result' ? 'highlight' : ''}`}
-                onClick={() => nextMatchup()}
-                disabled={blocked}
-              >
-                {localize(
-                  pairCount > 1 ? '同提示词 · 换一组' : '重新比较本提示词',
-                )}
-                <ArrowRight size={17} />
-              </button>
-            ) : (
-              <button
-                className={`next-button next-topic ${state.phase === 'result' ? 'highlight' : ''}`}
-                onClick={() => {
-                  // 娱乐模式：下一题随机抽题（排除当前题），hash 切题由路由重挂载
-                  gotoRandomArena();
-                }}
-                disabled={blocked}
-              >
-                {t('下一题')}
-                <ArrowRight size={17} />
-              </button>
-            )}
+            <div className="continue-options">
+              <fieldset className="continue-buttons" aria-label={t('继续比较')}>
+                <button
+                  type="button"
+                  className="next-button continue-other"
+                  onClick={gotoRandomArena}
+                  disabled={continueBlocked || !hasOtherArena}
+                  aria-describedby={!hasOtherArena ? 'continue-note' : undefined}
+                >
+                  <span>{t('换个题库继续')}</span>
+                  <ArrowUpRight size={17} />
+                </button>
+                <button
+                  type="button"
+                  className="next-button continue-same"
+                  onClick={nextMatchup}
+                  disabled={continueBlocked}
+                  aria-describedby={pairCount === 1 ? 'continue-note' : undefined}
+                >
+                  <span>{t('同一题库继续')}</span>
+                  <ArrowRight size={17} />
+                </button>
+              </fieldset>
+              {(!hasOtherArena || pairCount === 1) && (
+                <p className="continue-note" id="continue-note">
+                  {!hasOtherArena && <span>{t('暂无其他可比较题目。')}</span>}
+                  {pairCount === 1 && <span>{t('本题只有一组作品，继续将重新比较本组。')}</span>}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

@@ -5,16 +5,17 @@
 // 注意：这不是榜单分数。前台榜单照旧由页面重放 /api/votes 得出，两者解耦。
 
 import type { Ratings } from '@/lib/matchmaking';
+import type { EvaluationScope } from '@/lib/votes';
 
 /** 模型出场次数（决策 109）：与声望分同一份响应，供匹配层冷门优先加权 */
 export type Games = Record<string, number>;
 
-export async function fetchRatings(): Promise<{
+export async function fetchRatings(scope: EvaluationScope = 'entertainment'): Promise<{
   ratings: Ratings;
   games: Games;
 } | null> {
   try {
-    const response = await fetch('/api/ratings');
+    const response = await fetch(`/api/ratings?scope=${scope}`);
     if (!response.ok) return null;
     const data = (await response.json()) as {
       ratings?: unknown;
@@ -50,48 +51,53 @@ type State = {
   games: Games;
 };
 
-let state: State = { status: 'loading', ratings: {}, games: {} };
-let started = false;
+const emptyState = (): State => ({ status: 'loading', ratings: {}, games: {} });
+const states: Record<EvaluationScope, State> = {
+  entertainment: emptyState(), formal: emptyState(),
+};
+const started = { entertainment: false, formal: false };
 // 请求代次：loadRatings 与 refreshRatings 可能并发，晚到的旧响应不得覆盖新快照
-let requestSeq = 0;
+const requestSeq = { entertainment: 0, formal: 0 };
 
 /** 启动拉取（幂等）。失败静默——匹配层按空声望分（=均匀随机）继续。 */
-export function loadRatings(): void {
-  if (started) return;
-  started = true;
-  const seq = ++requestSeq;
+export function loadRatings(scope: EvaluationScope = 'entertainment'): void {
+  if (started[scope]) return;
+  started[scope] = true;
+  const seq = ++requestSeq[scope];
   void (async () => {
-    const data = await fetchRatings();
-    if (seq !== requestSeq) return;
+    const data = await fetchRatings(scope);
+    if (seq !== requestSeq[scope]) return;
     // null（拉取失败/结构坏）不覆盖空对象语义：未就绪与失败都按「无分」处理
-    if (data) state = { status: 'ready', ...data };
-    else state = { status: 'ready', ratings: {}, games: {} };
+    if (data) states[scope] = { status: 'ready', ...data };
+    else states[scope] = { status: 'ready', ratings: {}, games: {} };
   })();
 }
 
 /** 重新拉取（进入竞技场、投票落库后调用）：暗分会话内不刷新会随投票漂移。
  * 与 loadRatings 的失败语义不同——拉不到时保留旧分，宁可略旧不退回均匀随机。 */
-export function refreshRatings(): void {
-  const seq = ++requestSeq;
+export function refreshRatings(scope: EvaluationScope = 'entertainment'): void {
+  const seq = ++requestSeq[scope];
   void (async () => {
-    const data = await fetchRatings();
-    if (data && seq === requestSeq) state = { status: 'ready', ...data };
+    const data = await fetchRatings(scope);
+    if (data && seq === requestSeq[scope]) states[scope] = { status: 'ready', ...data };
   })();
 }
 
 /** 测试/调试用：重置回未加载状态（生产代码不调用） */
 export function resetRatingsForTest(): void {
-  started = false;
-  requestSeq += 1; // 让在途的旧响应作废
-  state = { status: 'loading', ratings: {}, games: {} };
+  for (const scope of ['entertainment', 'formal'] as const) {
+    started[scope] = false;
+    requestSeq[scope] += 1; // 让在途的旧响应作废
+    states[scope] = emptyState();
+  }
 }
 
 /** 当前生效的声望分；未就绪/失败时为空对象（匹配层按基础分兜底） */
-export function currentRatings(): Ratings {
-  return state.ratings;
+export function currentRatings(scope: EvaluationScope = 'entertainment'): Ratings {
+  return states[scope].ratings;
 }
 
 /** 当前生效的出场次数（决策 109）；未就绪/失败时为空对象（= 全部均匀） */
-export function currentGames(): Games {
-  return state.games;
+export function currentGames(scope: EvaluationScope = 'entertainment'): Games {
+  return states[scope].games;
 }

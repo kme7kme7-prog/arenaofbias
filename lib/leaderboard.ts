@@ -142,7 +142,7 @@ export type VoteRecord = {
   ts: number;
   /** 流水行 id：同毫秒票的重放次序以此打破平局，与服务端 ORDER BY created_at, id 同口径 */
   id?: string;
-  /** 这票产生的模式（决策 026：混榜可切换只看正式）；占位投票无此字段，只在混入口径计入 */
+  /** 这票产生的模式；占位投票无此字段，只计入娱乐口径 */
   mode?: Mode;
   /** win = 分胜负；draw = 无法抉择的平局（缺省按 win——占位票与早期数据无此字段） */
   outcome?: 'win' | 'draw';
@@ -155,8 +155,8 @@ export type VoteRecord = {
   loserName?: string;
 };
 
-/** 榜单口径（决策 026）：mixed = 正式与娱乐混入；formal = 只看正式测评的票 */
-export type BoardScope = 'mixed' | 'formal';
+/** 榜单口径：entertainment = 仅娱乐（含历史 party）；formal = 仅正式，互不混入 */
+export type BoardScope = 'entertainment' | 'formal';
 
 /** 重放次序：先按时间，同毫秒按流水 id（与服务端 ORDER BY created_at ASC, id ASC
  * 对齐——只按 ts 排序时同毫秒票的先后取决于数据源顺序，榜单与 /api/ratings 会分叉） */
@@ -176,14 +176,14 @@ export function currentVotes(): VoteRecord[] {
 export function scopedPromptIds(
   category: BoardCategory,
   votes: VoteRecord[] = currentVotes(),
-  scope: BoardScope = 'mixed',
+  scope: BoardScope = 'entertainment',
 ): Set<string> {
   const kinds = promptKindMap();
   const ids = new Set<string>();
   for (const vote of votes)
     if (
       matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
-      (scope === 'mixed' || vote.mode === 'formal')
+      (scope === 'formal' ? vote.mode === 'formal' : vote.mode !== 'formal')
     )
       ids.add(vote.promptId);
   return ids;
@@ -192,7 +192,7 @@ export function scopedPromptIds(
 export function leaderboardData(
   category: BoardCategory,
   votes: VoteRecord[] = currentVotes(),
-  scope: BoardScope = 'mixed',
+  scope: BoardScope = 'entertainment',
 ): BoardData {
   const kinds = promptKindMap();
   const meta = modelMeta(votes);
@@ -202,7 +202,7 @@ export function leaderboardData(
   const scoped = votes.filter(
     (vote) =>
       matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
-      (scope === 'mixed' || vote.mode === 'formal'),
+      (scope === 'formal' ? vote.mode === 'formal' : vote.mode !== 'formal'),
   );
 
   const rating = new Map<string, number>();
@@ -331,14 +331,14 @@ export type RadarProfiles = {
 export function computeRadarProfiles(
   category: BoardCategory,
   votes: VoteRecord[] = currentVotes(),
-  scope: BoardScope = 'mixed',
+  scope: BoardScope = 'entertainment',
 ): RadarProfiles {
   const kinds = promptKindMap();
   const weightRows = promptWeightsMap();
   const scoped = votes.filter(
     (vote) =>
       matchesCategory(kinds.get(vote.promptId) ?? vote.promptKind, category) &&
-      (scope === 'mixed' || vote.mode === 'formal'),
+      (scope === 'formal' ? vote.mode === 'formal' : vote.mode !== 'formal'),
   );
   const table = new Map<string, number[]>();
   const touch = (id: string) => {

@@ -21,6 +21,7 @@ import { pickMatchedMatchup } from '@/lib/matchmaking';
 import { currentPrompts } from '@/lib/prompts';
 import { currentGames, currentRatings } from '@/lib/ratings';
 import { currentWorks } from '@/lib/works';
+import type { EvaluationScope } from '@/lib/votes';
 
 // ---------------------------------------------------------------------------
 // 设置与存储
@@ -339,6 +340,7 @@ export function currentPairs(promptId: string): Matchup[] {
 export function currentMatchup(
   promptId: string,
   previous?: Matchup,
+  scope: EvaluationScope = 'entertainment',
 ): Matchup | null {
   // 占位模式维持纯随机（占位作品无真实票，声望分对它无意义）；
   // 真实模式走软性匹配（决策 046）：按声望分同档优先，避开处刑局，
@@ -349,10 +351,10 @@ export function currentMatchup(
   return pickMatchedMatchup(
     promptId,
     currentResults(),
-    currentRatings(),
+    currentRatings(scope),
     previous,
     Math.random,
-    currentGames(),
+    currentGames(scope),
   );
 }
 

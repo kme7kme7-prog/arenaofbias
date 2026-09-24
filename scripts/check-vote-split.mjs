@@ -41,6 +41,7 @@ const votes = [
   vote('6', 'luna', 'third'),
   vote('7', 'luna', 'orbit', 'win', '004'),
   vote('1', 'luna', 'orbit'),
+  { ...vote('formal', 'luna', 'orbit'), mode: 'formal' },
 ];
 assert.deepEqual(summarizePairVotes(votes, '003', 'luna', 'orbit'), {
   left: 2,

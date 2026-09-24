@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-type User = { id: string; username: string };
+type User = { id: string; username: string; role: 'admin' | null };
 type Auth = {
   user: User | null;
   loading: boolean;
@@ -202,7 +202,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                 <DialogDescription>
                   {localize(
                     user
-                      ? t('当前登录：{user}', { user: user.username })
+                      ? user.role === 'admin'
+                        ? t('当前登录：{user} · 管理员，可直接从玩法菜单进入正式测评。', { user: user.username })
+                        : t('当前登录：{user}', { user: user.username })
                       : '登录后，用你的账号参与作品讨论。',
                   )}
                 </DialogDescription>

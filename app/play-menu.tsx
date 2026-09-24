@@ -8,14 +8,14 @@ import { convoyNavigate, guessNavigate } from '@/lib/game-transitions';
 import { enterArena } from '@/lib/works-gate';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
-// 正式测评为资格制：当前 dev 开发者身份拥有资格（决策 028）。
+// 正式测评为资格制：当前管理员身份拥有资格（决策 028、070）。
 export const MODES = [
   {
     id: 'formal',
     code: 'FORMAL',
     name: '正式测评',
-    status: '资格制 · dev 身份可进入',
-    desc: '全程匿名的严格盲测：任何环节都不揭示模型名称，也没有评论区，你的选择只汇入偏好数据。',
+    status: '资格制 · 管理员可进入',
+    desc: '全程匿名的严格盲测：任何环节都不揭示模型名称，也没有评论区，你的选择只汇入独立的正式测评数据。',
   },
   {
     id: 'party',
@@ -43,8 +43,8 @@ export const MODES = [
 export default function PlayMenu() {
   const { t, localize } = useI18n();
   const { user } = useAccount();
-  // 资格判定：当前唯一持资格的是开发者身份（决策 028）
-  const qualified = user?.username === 'dev';
+  // 与服务端 formal 投票门禁一致：管理员持有正式测评资格。
+  const qualified = user?.role === 'admin';
   const formalHref = () => {
     const hash = currentRandomArenaHash();
     return hash.startsWith('#arena/')
@@ -158,7 +158,7 @@ export default function PlayMenu() {
         </ul>
         <p className="play-classic-note">
           {t(
-            '玩法名称为暂定；正式测评为资格制，开发者身份（dev 面板登录）当前持有资格。',
+            '玩法名称为暂定；正式测评为资格制，管理员账号当前持有资格。',
           )}
         </p>
       </main>
