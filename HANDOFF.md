@@ -7,12 +7,12 @@
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
 4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
-## 2026-09-25 提醒文字去歪斜 + 换对局快门钉到作品就绪（未 commit 未部署，等用户发话）
+## 2026-09-25 提醒文字去歪斜 + 换对局快门钉到作品就绪（已 commit 07a6a37 并部署）
 
 - **提醒字去歪**：用户两次反馈登录成功等提醒字是歪的。根因：拍落入场动画起始帧带 rotate(1.8deg)，落定其实是正的，但前 1/3 时程已不透明仍歪着。修法：`account-page-turn` 和表单切换 `account-page` 两个 keyframes 删起始 rotate（拍落位移/缩放/回弹保留）；装饰纸堆倾斜是设计本体没动。对照页 reference/account-turn-review.html 已同步。用户第一次反馈时改了之后仍报歪——因为**修复只在本地没部署**，线上照旧（部署后需用户在线上复验一次）。
 - **换对局快门钉到就绪**：用户反馈娱乐模式换对局「过渡→半加载露出→接入试验场再盖→才好」。两层修法：① 服务端吐作品文档一律注入就绪探针（server/work-bridge.js `injectWorkProbe`，load+3帧+600ms 上报 aob:work-ready，8s 兜底）——此前 data-aob-probe 只存在于测试 fixture，真实作品就绪判定落在 interactive（three.js 还在编译着色器）；② 同一题库继续的 transition 快门从固定 620ms 改为等 waitWorksLoaded（探针口径，已从 intro effect 提升为组件级共用）才 ARRIVE，620ms 降为最短节拍，8s 超时兜底放给 intro 跳过出口。
 - 验证：本地真浏览器逐帧采样——同题库继续快门 1620ms 结束（两作品 1406/1461 就绪之后）、换个题库纸幕 1462ms 扫出（探针 830/913 之后），全程零裸加载零加载遮罩闪现；typecheck 干净、lint 基线 9 无新增；测试投票已清。
-- 改动文件：app/account.css、reference/account-turn-review.html、server/work-bridge.js、server/index.js、app/page.tsx、docs/DECISIONS.md、HANDOFF.md。**未 commit 未部署**，等用户验收发话（与上轮模型治理无关，独立一轮）。
+- 改动文件：app/account.css、reference/account-turn-review.html、server/work-bridge.js、server/index.js、app/page.tsx、docs/DECISIONS.md、HANDOFF.md。**已 commit `07a6a37` 并部署 VPS**（备份 aob-deploy-20260925T130610Z-07a6a37b；线上已验证探针注入生效、API 200、PM2 在线）。待用户在线上复验：提醒字是否已正、换对局过渡是否一幕到底。
 
 ## 2026-09-25 内测开闸前模型数据治理（五组合并 + 榜单单题规则 + 家族名两套口径；已 commit 部署）
 
