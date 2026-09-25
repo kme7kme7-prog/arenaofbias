@@ -602,7 +602,11 @@
   box-shadow: 3px 3px 0 #a2ad87;
 }
 .account-success h2 {
-  margin: 0 0 8px;
+  margin: 0 auto 8px;
+  /* 全局 .account-dialog h2 的 max-width:330px 是给登录页长标题避开印章的；
+     成功页的短标题继承它会变成一个靠左的 330px 盒，文字只在盒内居中——
+     整体吊在卡片中轴左边 60px+，用户看到的就是「提醒字是歪的」（2026-09-25） */
+  max-width: none;
 }
 .account-success p {
   margin: 0;

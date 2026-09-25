@@ -494,3 +494,14 @@
 - 根因一层：`data-aob-probe` 就绪探针只存在于测试 fixture，真实作品从未注入——就绪判定落到 readyState=interactive（three.js 此刻着色器还在编译）。**修法：服务端吐作品文档一律注入探针**（server/work-bridge.js `injectWorkProbe`：window load + 3 渲染帧 + 600ms 上报 aob:work-ready，8s 兜底），竞技场/纸幕原有的探针等待逻辑零改动生效。
 - 根因二层：同题库继续（REPLAY）走场内相位机，transition 快门按固定 620ms 到点 ARRIVE，不看就绪。**修法：transition 相位等 waitWorksLoaded（探针口径）才放 ARRIVE**，620ms 降为最短节拍，ARENA_TIMING.worksSkipAt(8s) 超时兜底放给 intro 的跳过出口；就绪判定函数从 intro effect 提升为组件级共用。
 - 验证（本地真浏览器逐帧采样）：同题库继续——两作品 1406/1461ms 上报就绪、快门 1620ms 才结束（旧逻辑 620ms 必走）、全程零裸加载零加载遮罩；换个题库继续——探针 830/913ms、纸幕 1462ms 扫出、零裸加载。typecheck 干净、lint 基线 9 无新增。本轮未授权 commit/push/部署。
+
+## 2026-09-25 · 提醒字居中补刀 + 快门重构：盖满才换稿、进度条、退场直接落成品（不占编号）
+
+- 用户线上复验仍报「还是歪的」+ 快门期间右缘/字面仍见加载过程（截图）。像素级量证：**歪不是旋转，是没居中**——全局 `.account-dialog h2 { max-width: 330px }`（为登录页长标题避开印章设的）被成功页短标题继承，330px 盒靠左，文字只在盒内居中，整体吊在卡片中轴左边 73px。**修法：`.account-success h2 { max-width: none; margin: 0 auto 8px }`**，与 ✓ 圆、说明文字同轴（残差 6px = 内容盒左右内边距差 48/36px 的一半，与其它居中元素完全一致）。上一轮「去旋转」修的是另一个真问题但不是用户指的这个。
+- 快门根因二层：`shutter-in` keyframes 自带退场（50–70% 全盖、70–100% 自己扫走），0.61s 一到快门消失，之后 ARRIVE 还在等就绪——加载全程裸奔再被「正在接入试验场」盖住，正是用户截图那串。**拍板（用户原话「不论如何 都不能看到后面作品的加载过程」）：**
+  - 快门拆成进/退两段：`shutter-cover` 进场后 fill both 钉在盖满位不动；退场 `shutter-exit` 只在 `.shutter-exit` 类（= transition 门控真等到双侧就绪才放的 ARRIVE）时播，扫开直接落在成品上。
+  - **换稿时机后移**：点「同一题库继续」只暂存新对（nextPairRef），快门盖满（500ms）才 setPair——原来点击瞬间换稿，进场扫的 0.45s 里右缘还露着，新作品加载过程从缝里漏。
+  - 换稿提交竞态补刀：setPair 后先等 iframe src 属性真正变掉再等就绪——提交前 poll 读到旧稿的假就绪，门会在换稿落地前放行（帧采样抓到过 2 帧裸加载）。就绪判定加「文档地址必须对上当前 src」防旧文档假阳性。
+  - 快门上加双侧进度条（用户指定形态）：A 红 B 蓝各一条，该侧作品就绪即填满队色（复用 worksPendingBySide）。
+  - 门控放行的 ARRIVE 走 intro 快速通道：整段加载过场跳过、「正在接入试验场」遮罩不再挂载（快门退场即揭幕）；首次入场/8s 兜底路径行为不变。8s 兜底放行时卡死状态直接带进 intro，跳过按钮立即可见（原来还要再叠 8s 计时）。
+- 验证：临时帧采样脚本 13/13（换对/重播全程零裸加载帧、遮罩零出现、换源在盖满后 50ms、揭幕双侧 sent）；旧回归 validate-work-ready 5/5（慢作品断言按新口径更新为 phase-transition）；快门保持期截图人工复核（全盖+双条在跑）。typecheck 干净、lint 基线 9。**本轮未授权 commit/push/部署。**

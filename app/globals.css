@@ -1208,8 +1208,60 @@ kbd {
 .transition-shutter b {
   font: 800 110px/1.3 var(--mono);
 }
+/* 快门上的双侧加载进度（2026-09-25 用户拍板的形态：盖住→下面出进度条→
+   全就绪才退场）：A 红 B 蓝各一条，该侧作品就绪即填满队色 */
+.shutter-progress {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.shutter-progress i {
+  position: relative;
+  width: 76px;
+  height: 3px;
+  overflow: hidden;
+  background: #e8eee31f;
+}
+.shutter-progress i[data-side='a'] {
+  --team: var(--red);
+}
+.shutter-progress i[data-side='b'] {
+  --team: var(--blue);
+}
+.shutter-progress i::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--team);
+  transform: translateX(-101%);
+}
+.shutter-progress i.is-pending::before {
+  animation: shutter-progress 1.2s var(--ease-in-out) infinite;
+}
+.shutter-progress i.is-done::before {
+  transform: translateX(0);
+  transition: transform 0.3s var(--ease-out);
+}
+@keyframes shutter-progress {
+  from {
+    transform: translateX(-101%);
+  }
+  to {
+    transform: translateX(101%);
+  }
+}
 .phase-transition .transition-shutter {
-  animation: shutter-in 0.61s var(--ease-in-out) both;
+  /* 快门进场后停在盖满位（fill both 钉住末帧），一直压着场上画面——
+     新对作品在盖满的快门后面加载。原来 shutter-in 的 70%→100% 段是
+     自带退场：0.61s 一到快门自己扫走，之后作品的加载过程全程裸奔，
+     再被「正在接入试验场」突然盖住（2026-09-25 用户反馈的正是这段）。
+     退场改由 .shutter-exit 在 ARRIVE（双侧就绪）时播放 */
+  animation: shutter-cover 0.45s var(--ease-in-out) both;
+}
+/* 仅「快门门控放行」的 intro（重播/换对已验证就绪）播退场；首次入场
+   从未盖过幕，不播——否则首屏会凭空扫过一道快门 */
+.arena-shell.shutter-exit .transition-shutter {
+  animation: shutter-exit 0.42s var(--ease-in-out) both;
 }
 .phase-transition .work-panel,
 .phase-transition .vote-button {
@@ -2052,12 +2104,16 @@ kbd {
     visibility: hidden;
   }
 }
-@keyframes shutter-in {
+@keyframes shutter-cover {
   0% {
     clip-path: inset(0 100% 0 0);
   }
-  50%,
-  70% {
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes shutter-exit {
+  0% {
     clip-path: inset(0 0 0 0);
   }
   100% {

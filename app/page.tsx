@@ -591,6 +591,12 @@ export default function Arena({
     (item) => item.id !== prompt.id && currentPairs(item.id).length > 0,
   );
   const continueLock = useRef(false);
+  // 换对的新稿暂存：快门盖满前旧作还在场上，提前 setPair 会让新作品的加载
+  // 过程从没盖住的缝隙里漏出来——transition 效应在盖满那一刻才真正换稿
+  const nextPairRef = useRef<Matchup | null>(null);
+  // transition 门控是否真等到了双侧就绪（8s 兜底放行不算）：放行了的 ARRIVE
+  // 走 intro 快速通道（不再闪「正在接入试验场」），快门退场直接落在成品上
+  const [gatePassed, setGatePassed] = useState(false);
   const [continueFromRun, setContinueFromRun] = useState<number | null>(null);
   const continuing = continueFromRun === state.run ||
     (continueFromRun !== null && state.phase !== 'voting' && state.phase !== 'result');
@@ -848,6 +854,15 @@ export default function Arena({
         if (!doc) return true;
         if (doc.location.href === 'about:blank') return false;
         if (doc.readyState === 'loading') return false;
+        // 换稿竞态：新 src 已写进属性但新文档未落地时，挂着的还是上一稿的
+        // 旧文档（就绪、探针都齐）——地址对不上当前 src 就不算就绪，否则
+        // 门控在换稿提交前放行，新稿在揭幕下裸加载（2026-09-25 采样抓到）
+        const target = frame.getAttribute('src');
+        if (
+          target &&
+          doc.location.pathname !== new URL(target, doc.location.href).pathname
+        )
+          return false;
         if (
           doc.querySelector('script[data-aob-probe]') &&
           (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow))
@@ -902,9 +917,18 @@ export default function Arena({
     };
     const sequence = async () => {
       resetScroll();
+      // 快门门控放行的 ARRIVE（重播/换对已验证双侧就绪）：整段加载过场跳过，
+      // 不再闪「正在接入试验场」——快门退场扫完直接落在成品作品上
+      if (gatePassed) {
+        setWorksSettled(true);
+        setWorksPendingBySide({ a: false, b: false });
+        await delay(reducedMotion ? 60 : 440, signal);
+        play('reveal');
+        dispatch({ type: 'READY' });
+        return;
+      }
       setWorksSettled(false);
       setWorksPendingBySide({ a: true, b: true });
-      setWorksStalled(false);
       if (reducedMotion) {
         await Promise.all([delay(200, signal), waitWorksLoaded(signal)]);
         setWorksSettled(true);
@@ -1034,26 +1058,59 @@ export default function Arena({
     play,
     tour,
     waitWorksLoaded,
+    gatePassed,
   ]);
 
   useEffect(() => {
-    // transition 快门钉到作品就绪（2026-09-25 用户反馈）：同一题库继续/切轮
-    // 的新对在快门下加载，双侧就绪（探针口径）才放 ARRIVE——不再固定 620ms
-    // 到点就走、露出半加载画面再被加载遮罩重盖。620ms 只是最短节拍保底；
-    // 卡死超过 worksSkipAt 放行给 intro 的「跳过此题」出口，不死等。
+    // transition 快门钉到作品就绪（2026-09-25 用户反馈）：盖满（shutter-cover
+    // 末帧）才换稿，新对在盖满的快门后面加载，双侧就绪（探针口径）才放
+    // ARRIVE——退场扫开直接落在成品上，加载过程全程不可见。原 shutter-in
+    // 自带的 70%→100% 退场已拆掉：0.61s 一到快门自己扫走、露出裸加载，
+    // 再被「正在接入试验场」盖住，正是用户截图里那一串。卡死超过
+    // worksSkipAt 放行给 intro 的「跳过此题」出口，不死等。
     if (state.phase === 'transition') {
       const controller = new AbortController();
       const signal = controller.signal;
       let live = true;
       const arrive = async () => {
-        await Promise.all([
-          delay(reducedMotion ? 50 : 620, signal),
-          Promise.race([
-            waitWorksLoaded(signal),
-            delay(ARENA_TIMING.worksSkipAt, signal),
-          ]),
+        // 上一轮 intro 遗留的放行标记先清掉：8s 兜底放行的 ARRIVE 不准
+        // 复用上一轮的快速通道
+        setGatePassed(false);
+        setWorksStalled(false);
+        await delay(reducedMotion ? 60 : 500, signal);
+        if (nextPairRef.current) {
+          const next = nextPairRef.current;
+          nextPairRef.current = null;
+          setPair(next);
+          // 等 React 把换稿提交进 DOM（iframe src 属性指向新稿）再等就绪：
+          // 提交前 poll 读到的是旧稿——旧稿文档、探针俱全，门会在换稿
+          // 落地前放行，新稿就在退场动画下裸加载（帧采样抓到过）
+          const before = [
+            ...document.querySelectorAll('iframe.html-work'),
+          ].map((frame) => frame.getAttribute('src'));
+          for (let i = 0; before.length > 0 && i < 40; i++) {
+            await delay(16, signal);
+            const now = [
+              ...document.querySelectorAll('iframe.html-work'),
+            ].map((frame) => frame.getAttribute('src'));
+            if (
+              now.length === before.length &&
+              now.some((src, index) => src !== before[index])
+            )
+              break;
+          }
+        }
+        const winner = await Promise.race([
+          waitWorksLoaded(signal).then(() => 'ready' as const),
+          delay(ARENA_TIMING.worksSkipAt, signal).then(
+            () => 'stalled' as const,
+          ),
         ]);
         if (!live) return;
+        setGatePassed(winner === 'ready');
+        // 8s 兜底放行：卡死状态带进 intro，「跳过此题」立刻可见——
+        // 用户在快门下已经等了 8s，不再叠一层 intro 的 8s 计时
+        if (winner === 'stalled') setWorksStalled(true);
         setExpanded(null);
         dispatch({ type: 'ARRIVE' });
       };
@@ -1185,10 +1242,13 @@ export default function Arena({
     continueLock.current = true;
     setContinueFromRun(state.run);
     play('move');
-    // 清单中途失效抽不出新对时保住当前对——null 会让渲染层 pair[0] 崩
-    setPair((current) => currentMatchup(prompt.id, current, scope) ?? current);
+    // 新对先暂存不换稿（真正换稿在 transition 效应盖满那一刻）：快门进场
+    // 扫的这 0.45s 里右侧还没盖住，提前 setPair 会让新作品的加载过程从
+    // 缝里漏出来。清单失效抽不出新对时退回当前对——null 会让渲染层
+    // pair[0] 崩
+    nextPairRef.current = currentMatchup(prompt.id, pair, scope) ?? pair;
     dispatch({ type: 'REPLAY' });
-  }, [state.phase, state.run, prompt.id, play, worksLoading, worksStalled, scope]);
+  }, [state.phase, state.run, prompt.id, play, worksLoading, worksStalled, scope, pair]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1274,7 +1334,7 @@ export default function Arena({
     <div
       className={`arena-shell ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
-      }`}
+      } ${state.phase === 'intro' && gatePassed ? 'shutter-exit' : ''}`}
     >
       <div className="ambient-grid" aria-hidden="true" />
 
@@ -1639,7 +1699,7 @@ export default function Arena({
 
             <div className="spine-line" />
           </div>
-          {(state.phase === 'loading' || state.phase === 'intro') && (
+          {(state.phase === 'loading' || (state.phase === 'intro' && !gatePassed)) && (
             <div
               className={`loading-overlay ${worksSettled ? 'is-clearing' : ''}`}
             >
@@ -1667,6 +1727,16 @@ export default function Arena({
           <div className="transition-shutter" aria-hidden="true">
             <span>{t('SWITCHING FREQUENCY')}</span>
             <b>{localize(String(state.pendingRound + 1).padStart(2, '0'))}</b>
+            <div className="shutter-progress">
+              <i
+                className={worksPendingBySide.a ? 'is-pending' : 'is-done'}
+                data-side="a"
+              />
+              <i
+                className={worksPendingBySide.b ? 'is-pending' : 'is-done'}
+                data-side="b"
+              />
+            </div>
           </div>
         </div>
 

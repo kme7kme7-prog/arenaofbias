@@ -81,9 +81,11 @@ try {
       results.push({ name, reproduced: true, state: stalled });
     } else {
       if (delay === null || delay >= 1500) {
+        // 2026-09-25 快门重构：慢作品加载期整个钉在 transition 盖满位
+        // （换稿在盖满后、退场等就绪），不再先进 intro 由加载遮罩接手
         await page.waitForTimeout(900);
         const waiting = await state();
-        assert.match(waiting.phase, /phase-intro.*works-hold/, 'new slow work must not inherit old readiness');
+        assert.match(waiting.phase, /phase-transition/, 'new slow work must not inherit old readiness');
         assert.ok(waiting.frames.every(frame => !frame.sent));
       }
       if (delay === null) {
