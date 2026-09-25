@@ -1,0 +1,6730 @@
+<!doctype html>
+<!--
+  模一把 · 独立单文件版（2026-09-23 自主站剥离）
+  ────────────────────────────────────────────────────────────
+  一个 HTML = 整个游戏：数据集、判定核心、界面全部内嵌，离线可用，
+  双击打开即玩（file:// 亦可），不依赖任何服务端与网络。
+
+  来源（与主站同口径移植，改动需两边同步）：
+    - 判定核心  ← lib/guess-logic.ts（__CORE__ 标记内是逐行移植副本）
+    - 数据集    ← lib/guess-models.json（__DATA__ 标记内，168 槽 / 204 可猜名）
+    - 界面样式  ← app/guess.css 全文 + app/home.css 字标节选
+    - 页面结构  ← app/guess.tsx（React 版改写为原生 DOM）
+
+  与主站的差异（有意为之）：
+    - 无服务端：判定本地跑；「防查看源码」在单文件里无意义，答案可从
+      文件里推出来——独立版不设防，随便玩
+    - 无分享卡（用户拍板不要）、无登录、无中英切换（仅中文）
+    - 无路由与入场/翻页过场；棋盘逐格揭示等 CSS 动效保留
+    - localStorage 键加 standalone- 前缀，不与同域主站的战绩互相污染
+    - 每日答案与主站同算法（epoch 2026-09-13 散列派生）：只要主站没走
+      后台增量通道加过模型，同一天两边出同一道题
+
+  维护：数据集更新后，重跑一次 JSON 内嵌（把 lib/guess-models.json 的
+  内容替换进 __DATA__ 段）；判定口径以 lib/guess-logic.ts 为准，
+  npm run check:standalone 可机器对拍防漂移。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>模一把 — 猜 AI 模型</title>
+<style>
+/* ── 全局字标与变量节选自 app/globals.css / app/home.css ── */
+:root {
+  color-scheme: light;
+  --ink: #1c2423;
+  --paper: #dfe3dd;
+  --acid: #d9fb51;
+  --mono: 'Bahnschrift', 'Consolas', monospace;
+}
+html,
+body {
+  margin: 0;
+}
+.lobby-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+  color: inherit;
+  font:
+    400 22px 'MiSans',
+    'Bahnschrift',
+    'Microsoft YaHei',
+    sans-serif;
+  letter-spacing: -0.7px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lobby-brand .brand-tag {
+  background: none;
+  color: inherit;
+  font-weight: 800;
+  padding: 0;
+  margin-left: 0.14em;
+  clip-path: none;
+}
+.lobby-brand small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  margin-top: 7px;
+  color: #667361;
+  font-family:
+    'MiSans',
+    'Bahnschrift',
+    'Microsoft YaHei',
+    sans-serif;
+}
+.lobby-mark {
+  background: var(--ink);
+  color: var(--acid);
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  transform: skew(-12deg);
+  box-shadow: 3px 3px 0 #a2ad87;
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+}
+/* 盒子斜切是贴纸质感，牌面反斜切保持直立 */
+.lobby-mark svg {
+  transform: skew(12deg);
+}
+.lobby-brand:hover .lobby-mark {
+  transform: skew(-12deg) translate(-1px, -2px);
+  box-shadow: 4px 5px 0 #a2ad87;
+}
+.lobby-brand:active .lobby-mark {
+  transform: skew(-12deg) translate(1px, 1px);
+  box-shadow: 0 0 0 #a2ad87;
+}
+
+/* ── 翻页过场（folio）：picker ↔ game 换屏时的轻薄实色幕 ── */
+.game-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  pointer-events: auto;
+  isolation: isolate;
+  container-type: size;
+}
+.game-transition * {
+  box-sizing: border-box;
+}
+/* 入场期间藏住目的地内容：牌盖满前只露底色，
+   避免「页面先渲染出来、牌后跳上去」的贴片感 */
+.gt-entering .guess-header,
+.gt-entering .guess-main {
+  visibility: hidden;
+}
+.gt-folio-leaf {
+  position: absolute;
+  inset: -2px;
+  background: #14231b;
+  border-inline: 5px solid #84946c;
+  box-shadow: inset 0 0 0 1px #cad5ae40;
+}
+.gt-folio-leaf:after {
+  content: '';
+  position: absolute;
+  inset: 7vh 7vw;
+  border-block: 1px solid #9dae8020;
+}
+
+/* ── 发牌入场（deal）：打开页面时的今日密牌揭示 ── */
+.gt-deal-shell,
+.gt-deal-back {
+  position: absolute;
+  inset: -2px;
+  transform-origin: center;
+  will-change: transform;
+}
+.gt-deal-back {
+  background: #aab58a;
+}
+.gt-deal-back-1 {
+  background: #d5d8c7;
+}
+.gt-deal-seal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #c4cfac;
+  font:
+    400 40cqmin Georgia,
+    system-ui;
+}
+.gt-deal-seal:before {
+  content: '';
+  position: absolute;
+  inset: 3cqmin;
+  border: 1px solid #b7c49a45;
+  box-shadow:
+    inset 0 0 0 5px #111c17,
+    inset 0 0 0 6px #b7c49a18;
+}
+.gt-deal-seal:after {
+  content: '';
+  position: absolute;
+  inset: 4cqmin;
+  opacity: 0.045;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 5px,
+    #b7c49a 5px 6px
+  );
+}
+.gt-deal-half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(50% + 1px);
+  background: #111c17;
+  overflow: hidden;
+}
+.gt-deal-half-0 {
+  left: 0;
+}
+.gt-deal-half-1 {
+  right: 0;
+}
+.gt-deal-half:after {
+  content: '';
+  position: absolute;
+  inset: 6cqh 5cqw;
+  border-top: 1px solid #bdcba51c;
+  border-bottom: 1px solid #bdcba51c;
+}
+.gt-deal-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11cqw;
+  color: #e6e9da;
+  font-family: MiSans, system-ui, sans-serif;
+  padding: 9cqw;
+}
+.gt-deal-info {
+  min-width: 0;
+}
+.gt-deal-kicker {
+  font-size: clamp(12px, 1.2cqmin, 20px);
+  letter-spacing: 0.24em;
+  color: #c4cfac;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gt-deal-kicker:before {
+  content: '';
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+}
+.gt-deal-title {
+  font-size: clamp(44px, 11cqmin, 150px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+  margin: 3cqmin 0 2cqmin;
+  white-space: nowrap;
+}
+.gt-deal-note {
+  font-size: clamp(11px, 1.6cqmin, 22px);
+  color: #8c9b88;
+  letter-spacing: 0.07em;
+}
+.gt-deal-clues {
+  display: flex;
+  gap: 1cqmin;
+  margin-top: 5cqmin;
+}
+.gt-deal-clue {
+  position: relative;
+  width: 4.6cqmin;
+  height: 5cqmin;
+  min-width: 22px;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  color: #c0cba9;
+  border-bottom: 1px solid #a7b68a38;
+  font: clamp(9px, 1.15cqmin, 16px) monospace;
+  letter-spacing: 0.08em;
+}
+.gt-deal-clue:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 22%;
+  right: 22%;
+  height: 2px;
+  background: #b9c99a;
+  box-shadow: 0 0 9px #b9c99a20;
+}
+.gt-deal-symbol {
+  position: relative;
+  flex-shrink: 0;
+  width: 27cqmin;
+  height: 37cqmin;
+  border: 1px solid #bac6a572;
+  background: linear-gradient(135deg, #56654b -25%, #28392c 42%, #18261e 100%);
+  color: #d9dfc5;
+  border-radius: 0.6cqmin;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow:
+    1px 1px 0 #070e0a,
+    2px 2px 0 #647055,
+    3px 3px 0 #070e0a,
+    0 18px 38px #0005,
+    inset 0 0 0 4px #15241e,
+    inset 0 0 0 5px #aeb99835;
+}
+.gt-deal-symbol:before {
+  content: '';
+  position: absolute;
+  inset: 2.2cqmin;
+  border: 1px solid #aeb99838;
+  border-radius: 0.15cqmin;
+}
+.gt-deal-symbol:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.055;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    #e5ecd3 3px 4px
+  );
+  pointer-events: none;
+}
+.gt-deal-mystery {
+  z-index: 1;
+  font:
+    italic 400 23cqmin Georgia,
+    'Times New Roman',
+    serif;
+  line-height: 1;
+  margin-top: -2cqmin;
+  text-shadow:
+    0 1px #ffffff35,
+    0 -1px #0008;
+}
+.gt-deal-count {
+  position: absolute;
+  top: 3.4cqmin;
+  left: 3.5cqmin;
+  font: 1.4cqmin monospace;
+  letter-spacing: 0.15em;
+  color: #c6d0b2;
+}
+.gt-deal-count-label {
+  position: absolute;
+  bottom: 3.4cqmin;
+  right: 3.5cqmin;
+  font-size: 1.1cqmin;
+  letter-spacing: 0.15em;
+  color: #b8c4a5;
+}
+.gt-deal-orbit {
+  position: absolute;
+  inset: 8cqmin 2cqmin;
+  border: 1px solid #c0cea326;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+  background: repeating-radial-gradient(
+    ellipse at center,
+    transparent 0 5px,
+    #c0cea316 5px 6px
+  );
+}
+.gt-deal-sheen {
+  position: absolute;
+  inset: -30% -15%;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    #eef6cf44 49%,
+    #f2f9d9 50%,
+    transparent 72%
+  );
+  pointer-events: none;
+}
+@container (max-aspect-ratio: 3/4) {
+  .gt-deal-copy {
+    flex-direction: column-reverse;
+    gap: 10cqmin;
+    padding: 10cqmin;
+  }
+  .gt-deal-info {
+    text-align: center;
+  }
+  .gt-deal-kicker {
+    justify-content: center;
+  }
+  .gt-deal-title {
+    font-size: 15cqmin;
+  }
+  .gt-deal-note {
+    font-size: 3cqmin;
+  }
+  .gt-deal-clues {
+    justify-content: center;
+    gap: 2cqmin;
+  }
+  .gt-deal-clue {
+    width: 7cqmin;
+    height: 7cqmin;
+    font-size: 2.5cqmin;
+  }
+  .gt-deal-symbol {
+    width: 30cqmin;
+    height: 41cqmin;
+  }
+  .gt-deal-count {
+    font-size: 2.2cqmin;
+  }
+  .gt-deal-count-label {
+    font-size: 2cqmin;
+  }
+}
+
+/* ── app/guess.css 全文快照（2026-09-23）── */
+/* Daily model puzzle. Motion is decorative; judging and persistence never wait on CSS. */
+.guess-page {
+  --guess-accent: #d8f36a;
+  --guess-hit: #b9e6b5;
+  --guess-near: #e8cf7c;
+  --guess-miss: #34443c;
+  --guess-line: #36473c;
+  color: #edf0df;
+  background: #101e18;
+  min-height: 100svh;
+  font-family: MiSans, system-ui, sans-serif;
+  background-image: radial-gradient(
+    ellipse at 75% 5%,
+    #29402c 0,
+    transparent 44%
+  );
+}
+.guess-page * {
+  box-sizing: border-box;
+}
+.guess-page button,
+.guess-page input {
+  font: inherit;
+}
+.guess-page button,
+.guess-page a {
+  touch-action: manipulation;
+}
+.guess-page button {
+  cursor: pointer;
+}
+.guess-page button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+.guess-page a {
+  color: inherit;
+}
+.guess-page :focus-visible {
+  outline: 2px solid var(--guess-accent);
+  outline-offset: 5px;
+}
+.guess-header {
+  height: 84px;
+  max-width: 1360px;
+  margin: auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--guess-line);
+}
+.guess-header .lobby-brand {
+  color: #edf0df;
+}
+.guess-header .lobby-mark {
+  color: var(--guess-accent);
+  border-color: var(--guess-accent);
+}
+.guess-header .brand-tag {
+  background: var(--guess-accent);
+  color: #101e18;
+}
+.guess-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.guess-header-actions button {
+  color: inherit;
+}
+.guess-main {
+  max-width: 1180px;
+  margin: auto;
+  padding: 0 40px 48px;
+}
+.guess-hero {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  align-items: center;
+  min-height: 350px;
+  position: relative;
+}
+.guess-hero-copy {
+  padding: 28px 0 36px;
+  animation: guess-enter 0.65s both;
+}
+.guess-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  text-decoration: none;
+  color: #a5b4a4 !important;
+  cursor: pointer;
+}
+.guess-back:hover {
+  color: var(--guess-accent) !important;
+}
+.guess-edition {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  margin-top: 26px;
+  color: #a8b7a7;
+}
+.guess-edition > span:first-child {
+  color: var(--guess-accent);
+  border: 1px solid #728546;
+  padding: 4px 7px;
+}
+.guess-edition b {
+  font-family: var(--mono);
+  font-weight: 400;
+}
+.guess-hero h1 {
+  font-size: clamp(56px, 6vw, 84px);
+  letter-spacing: -0.06em;
+  line-height: 1.15;
+  margin: 14px 0 12px;
+  font-weight: 800;
+}
+.guess-hero h1 > span {
+  color: var(--guess-accent);
+  font-weight: 400;
+  font-size: 0.7em;
+  display: inline-block;
+  margin-left: 24px;
+  vertical-align: top;
+}
+.guess-tagline {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.guess-intro {
+  color: #a6b4a4;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0;
+}
+.guess-art {
+  height: 320px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  animation: guess-enter 0.8s 0.12s both;
+}
+.guess-card-stack {
+  width: 164px;
+  height: 216px;
+  position: relative;
+  transform: rotate(9deg);
+  animation: guess-float 7s ease-in-out infinite;
+}
+.guess-card-sheet {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #809269;
+  border-radius: 8px;
+}
+.sheet-back {
+  background: #263c2b;
+  transform: rotate(-25deg) translate(-30px, 8px);
+}
+.sheet-mid {
+  background: #637542;
+  transform: rotate(-13deg) translate(-15px, 3px);
+}
+.sheet-front {
+  background: var(--guess-accent);
+  color: #17251a;
+  box-shadow: 0 18px 40px #0004;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.guess-card-top,
+.guess-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+}
+.guess-card-top {
+  font-family: var(--mono);
+}
+.sheet-front strong {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 110px;
+  line-height: 1;
+  font-weight: 500;
+}
+.guess-card-bottom {
+  font-weight: 700;
+  font-size: 9px;
+}
+.guess-art-orbit {
+  position: absolute;
+  width: 360px;
+  height: 190px;
+  border: 1px solid #52634366;
+  border-radius: 50%;
+  z-index: -1;
+  transform: rotate(-23deg);
+}
+.orbit-two {
+  transform: rotate(33deg);
+  height: 225px;
+  width: 300px;
+  border-style: dashed;
+}
+.orbit-one:after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  right: 26px;
+  width: 7px;
+  height: 7px;
+  background: var(--guess-accent);
+  border-radius: 50%;
+}
+.guess-art-shadow {
+  position: absolute;
+  bottom: 25px;
+  width: 180px;
+  height: 20px;
+  background: #0005;
+  filter: blur(12px);
+  z-index: -1;
+}
+.guess-art-caption {
+  position: absolute;
+  bottom: 7px;
+  font-size: 10px;
+  color: #9cab99;
+  letter-spacing: 0.1em;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+.guess-art-caption > span {
+  font-family: var(--mono);
+  color: var(--guess-accent);
+  font-size: 15px;
+}
+.guess-console {
+  background: #17271e;
+  border: 1px solid #42513a;
+  padding: 26px 28px 16px;
+  box-shadow: 0 16px 60px #0002;
+  animation: guess-enter 0.7s 0.15s both;
+}
+.guess-console-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  gap: 16px;
+}
+.guess-turn {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  /* console-top 里难度标签在最左，机会数与次数格整体靠右 */
+  margin-left: auto;
+}
+.guess-turn > span {
+  font-size: 12px;
+  color: #c6cfbb;
+}
+.guess-turn strong {
+  color: #edf0df;
+  font-size: 32px;
+  font-family: var(--mono);
+  font-weight: 400;
+  line-height: 1;
+  animation: guess-enter 0.35s;
+}
+.guess-turn small {
+  font-size: 13px;
+  color: #8b9c89;
+}
+.guess-attempts {
+  display: flex;
+  gap: 6px;
+}
+.guess-attempts > span {
+  width: 29px;
+  height: 29px;
+  border: 1px solid #3b4c3d;
+  display: grid;
+  place-items: center;
+  font: 10px var(--mono);
+  color: #7c8e79;
+  transition:
+    background 0.25s,
+    color 0.25s;
+}
+.guess-attempts .is-current {
+  border-color: var(--guess-accent);
+  color: var(--guess-accent);
+  box-shadow: inset 0 -2px var(--guess-accent);
+}
+.guess-attempts .is-used {
+  background: #344537;
+  color: #bdc8b3;
+}
+.guess-attempts .is-win {
+  background: var(--guess-accent);
+  color: #17271e;
+}
+.guess-input-wrap {
+  position: relative;
+  z-index: 5;
+}
+.guess-input {
+  display: flex;
+  align-items: center;
+  background: #edf0df;
+  color: #233222;
+  min-height: 64px;
+  padding: 7px 7px 7px 20px;
+  gap: 14px;
+  border: 2px solid transparent;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.guess-input:focus-within {
+  border-color: var(--guess-accent);
+  box-shadow: 0 0 0 4px #d8f36a18;
+}
+.guess-input input {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none !important;
+  color: inherit;
+  font-size: 15px;
+}
+.guess-input input::placeholder {
+  color: #64705c;
+}
+.guess-submit,
+.guess-primary {
+  border: 0;
+  background: var(--guess-accent);
+  color: #17271e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-weight: 700;
+  padding: 14px 20px;
+  font-size: 12px;
+  transition:
+    transform 0.18s,
+    background 0.18s;
+}
+.guess-submit {
+  background: #223724;
+  color: #edf0df;
+  min-height: 46px;
+  white-space: nowrap;
+}
+.guess-submit:hover {
+  background: #385035;
+}
+.guess-primary:hover {
+  background: #e5ff87;
+  transform: translateY(-2px);
+}
+.guess-submit svg {
+  transition: transform 0.2s;
+}
+.guess-submit:hover svg {
+  transform: translate(2px, -2px);
+}
+.guess-search-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #97a68f;
+  font-size: 10px;
+  margin: 10px 0 26px;
+}
+.guess-search-hint > span:last-child {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.guess-suggest {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #eef1e2;
+  color: #233222;
+  box-shadow: 0 18px 40px #0006;
+  border: 1px solid #d8f36a;
+  animation: guess-menu 0.2s both;
+  transform-origin: top;
+  overflow: hidden;
+}
+.guess-suggest-heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 18px;
+  color: #6c785f;
+  font-size: 10px;
+  border-bottom: 1px solid #cfd6bd;
+}
+.guess-suggest-heading > span:last-child {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.guess-suggest ul {
+  list-style: none;
+  margin: 0;
+  padding: 5px;
+  max-height: 312px;
+  overflow: auto;
+}
+.guess-suggest li button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.guess-suggest li.is-active {
+  background: #dce6c9;
+}
+.guess-model-mark {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #adba98;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+.guess-suggest b {
+  font-size: 13px;
+  display: block;
+}
+.guess-suggest small {
+  display: block;
+  font-size: 10px;
+  color: #6a775d;
+  margin-top: 3px;
+}
+.guess-suggest time {
+  margin-left: auto;
+  font: 10px var(--mono);
+  color: #6a775d;
+}
+.guess-no-match {
+  font-size: 13px;
+  padding: 20px;
+}
+.guess-board-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 10px;
+}
+.guess-board-heading h2 {
+  font-size: 12px;
+  margin: 0;
+  font-weight: 600;
+}
+.guess-legend {
+  display: flex;
+  gap: 13px;
+  font-size: 10px;
+  color: #b1bfaa;
+}
+.guess-legend span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.guess-legend i {
+  width: 7px;
+  height: 7px;
+  display: block;
+}
+.guess-legend .hit {
+  background: var(--guess-hit);
+}
+.guess-legend .near {
+  background: var(--guess-near);
+}
+.guess-legend .miss {
+  background: #73816d;
+}
+.guess-board-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #73816d #17271e;
+  padding-bottom: 3px;
+}
+.guess-board {
+  width: 100%;
+  min-width: 810px;
+  border-collapse: separate;
+  border-spacing: 5px 6px;
+  table-layout: fixed;
+}
+.guess-row-head th {
+  font-size: 10px;
+  font-weight: 400;
+  color: #9cad92;
+  padding: 8px 3px;
+  text-align: center;
+}
+.guess-board .gcell-name {
+  width: 204px;
+  text-align: left;
+}
+.guess-row .gcell-name {
+  padding: 10px 8px 10px 0;
+  font-size: 12px;
+}
+.guess-row .gcell-name > span {
+  display: inline-block;
+  vertical-align: middle;
+}
+.guess-row .gcell-name b {
+  display: block;
+  max-width: 160px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.guess-row .gcell-name small {
+  display: block;
+  color: #8fa185;
+  font-size: 9px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.guess-row-number {
+  font: 10px var(--mono);
+  color: #718568;
+  margin-right: 10px;
+}
+.gcell {
+  position: relative;
+  text-align: center;
+  height: 66px;
+  padding: 10px 4px;
+  font-size: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gcell-value {
+  display: block;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.gcell-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 5px auto 0;
+  height: 12px;
+  opacity: 0.65;
+}
+.gcell.hit {
+  background: var(--guess-hit);
+  color: #183b23;
+}
+.gcell.near {
+  background: var(--guess-near);
+  color: #473918;
+}
+.gcell.miss {
+  background: var(--guess-miss);
+  color: #cad4bf;
+}
+.gcell.unknown {
+  background: #223327;
+  color: #a1b297;
+  border: 1px dashed #506347;
+}
+.guess-row.is-new .gcell {
+  animation: guess-tile 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--cell-order)*90ms);
+}
+.guess-row.is-new .gcell:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #243729;
+  transform-origin: bottom;
+  animation: guess-uncover 0.4s both;
+  animation-delay: calc(var(--cell-order)*90ms + 100ms);
+}
+.guess-row.is-new .gcell-name {
+  animation: guess-enter 0.4s both;
+}
+.guess-ghost td {
+  height: 56px;
+  color: #819174;
+  font-size: 11px;
+}
+.guess-ghost td:not(.gcell-name) {
+  border: 1px dashed #3f5137;
+  text-align: center;
+  border-radius: 3px;
+  color: #657c59;
+}
+.guess-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 8px;
+  color: #a8ba9b;
+}
+.guess-empty strong {
+  font-size: 12px;
+  color: #d1dcc5;
+  font-weight: 500;
+}
+.guess-empty p {
+  font-size: 10px;
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+.guess-empty-tiles {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+  transform: rotate(-8deg);
+}
+.guess-empty-tiles i {
+  display: block;
+  width: 20px;
+  height: 27px;
+  border: 1px solid #6b7f53;
+  background: #243622;
+}
+.guess-empty-tiles i:nth-child(2) {
+  background: #5b7040;
+  transform: translateY(-5px);
+}
+.guess-empty-tiles i:nth-child(3) {
+  background: var(--guess-accent);
+}
+.guess-board-foot {
+  border-top: 1px solid #33472f;
+  display: flex;
+  justify-content: space-between;
+  color: #8ea080;
+  font-size: 9px;
+  padding-top: 13px;
+  margin-top: 10px;
+  gap: 14px;
+}
+.guess-result {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #253c24;
+  border: 1px solid #718b43;
+  position: relative;
+  overflow: hidden;
+}
+.guess-result.is-loss {
+  background: #26352d;
+  border-color: #4e6254;
+}
+.guess-result.is-fresh {
+  animation: guess-enter 0.6s 0.95s both;
+}
+.guess-result-symbol {
+  color: var(--guess-accent);
+}
+.guess-result-copy > span {
+  font-size: 10px;
+  color: #c3d5a6;
+}
+.guess-result h2 {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  margin: 6px 0;
+  line-height: 1.2;
+}
+.guess-result p {
+  font-size: 10px;
+  color: #b2c49d;
+  margin: 0;
+}
+.guess-result-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.guess-share {
+  white-space: nowrap;
+}
+/* 重玩：次级幽灵按钮，酸黄描边与分享主按钮拉开层级；悬停图标倒转半圈呼应「重开」 */
+.guess-replay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--guess-accent);
+  background: transparent;
+  border: 1px solid #718b43;
+  transition:
+    border-color 0.18s,
+    background 0.18s,
+    transform 0.18s;
+}
+.guess-replay:hover {
+  border-color: var(--guess-accent);
+  background: #d8f36a14;
+  transform: translateY(-2px);
+}
+.guess-replay svg {
+  transition: transform 0.35s;
+}
+.guess-replay:hover svg {
+  transform: rotate(-180deg);
+}
+.guess-reveal {
+  background: transparent;
+  border: 0;
+  color: #d8f36a;
+}
+/* 对局进行中的「直接看答案」入口（2026-09-15 从结果面板移到搜索区，
+   原位置的显示条件永远不成立，按钮一直点不到） */
+.guess-search-section .guess-reveal {
+  display: block;
+  margin: -14px 0 18px;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.guess-search-section .guess-reveal:hover:not(:disabled) {
+  opacity: 1;
+}
+.guess-search-section .guess-reveal:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+
+/* 模式选择：每日挑战为主，三档练习为次。 */
+.guess-difficulty {
+  animation: guess-enter 0.5s both;
+  padding: 28px 0 40px;
+}
+.guess-main:focus {
+  outline: none;
+}
+.guess-picker-back {
+  margin-bottom: 14px;
+}
+.guess-page a[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: wait;
+}
+.guess-difficulty-head {
+  position: relative;
+  padding: 0 0 28px;
+}
+.guess-difficulty-head .guess-edition {
+  margin-top: 14px;
+}
+.guess-difficulty-head h1 {
+  font-size: clamp(48px, 5.4vw, 76px);
+  letter-spacing: -0.055em;
+  line-height: 1.15;
+  margin: 18px 0 14px;
+  font-weight: 650;
+}
+.guess-difficulty-head h1 > span {
+  color: #c4d394;
+  font-weight: 400;
+  font-size: 0.65em;
+  display: inline-block;
+  margin-left: 25px;
+  vertical-align: top;
+}
+.guess-difficulty-head p {
+  color: #a1b09a;
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 0;
+  max-width: 560px;
+}
+.guess-difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.guess-difficulty-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  text-align: left;
+  padding: 25px 24px 20px;
+  background: #19291f;
+  border: 1px solid #3a4b35;
+  color: inherit;
+  cursor: pointer;
+  min-height: 250px;
+  isolation: isolate;
+  transition:
+    border-color 0.2s,
+    transform 0.2s,
+    background 0.2s;
+}
+.guess-difficulty-card:hover:not(:disabled) {
+  border-color: #a3b982;
+  background: #213323;
+  transform: translateY(-3px);
+}
+.guess-difficulty-card:focus-visible {
+  outline: 2px solid var(--guess-accent);
+  outline-offset: 4px;
+}
+.guess-difficulty-card[data-level]:before {
+  content: '0' attr(data-level);
+  position: absolute;
+  right: 24px;
+  top: 17px;
+  font: 70px var(--mono);
+  color: #a5bb8112;
+  letter-spacing: -0.08em;
+  z-index: -1;
+}
+.guess-difficulty-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid #a8bd7d5e;
+  color: #b9cf92;
+}
+.guess-difficulty-name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.guess-difficulty-name b {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.guess-difficulty-name small {
+  font: 9px var(--mono);
+  letter-spacing: 0.12em;
+  color: #91a27e;
+}
+.guess-difficulty-blurb {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #a6b69a;
+}
+.guess-difficulty-meta {
+  margin-top: auto;
+  width: 100%;
+  padding-top: 18px;
+  border-top: 1px solid #83976b30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 10px;
+  color: #a0b28f;
+}
+.guess-difficulty-status {
+  font-size: 9px;
+  padding: 4px 7px;
+  background: #263922;
+  color: #b2c49b;
+  white-space: nowrap;
+}
+.guess-difficulty-status.is-playing {
+  color: #d8f36a;
+  background: #3b4e24;
+}
+.guess-difficulty-status.is-done {
+  color: #d5e7bb;
+  background: #385034;
+}
+.guess-difficulty-go {
+  position: absolute;
+  top: 25px;
+  right: 23px;
+  color: #a2b78c;
+  transition: transform 0.2s;
+}
+.guess-difficulty-card:hover .guess-difficulty-go {
+  transform: translate(2px, -2px);
+  color: #d8f36a;
+}
+.guess-difficulty-card.guess-daily-card {
+  width: 100%;
+  min-height: 255px;
+  padding: 30px 34px;
+  background: #223622;
+  border-color: #64764b;
+  box-shadow: inset 3px 0 #c5d89b;
+  overflow: hidden;
+}
+.guess-daily-card .guess-difficulty-icon {
+  border: 0;
+  color: #d9e8b7;
+}
+.guess-daily-card .guess-difficulty-name b {
+  font-size: 32px;
+}
+.guess-daily-card .guess-difficulty-name small {
+  color: #c3d5a5;
+}
+.guess-daily-card .guess-difficulty-blurb,
+.guess-daily-card .guess-difficulty-meta {
+  width: 62%;
+}
+.guess-daily-art {
+  position: absolute;
+  right: 12%;
+  top: 30px;
+  width: 124px;
+  height: 170px;
+  transform: rotate(8deg);
+  pointer-events: none;
+  opacity: 0.85;
+}
+.guess-daily-art > span {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b7c8968a;
+  background: #34472c;
+  box-shadow:
+    inset 0 0 0 5px #24371f,
+    inset 0 0 0 6px #b7c89635,
+    0 12px 24px #0003;
+  color: #dbe5c3;
+  font:
+    italic 92px Georgia,
+    serif;
+  border-radius: 3px;
+}
+.guess-daily-art i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #b7c8963a;
+  background: #2b3e23;
+  transform: rotate(-10deg) translate(-9px, 4px);
+  border-radius: 3px;
+}
+.guess-daily-art i:last-child {
+  transform: rotate(-18deg) translate(-18px, 9px);
+  z-index: -1;
+}
+.guess-practice-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 29px 0 14px;
+}
+.guess-practice-heading h2 {
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+  color: #d1dcc3;
+}
+.guess-practice-heading > span {
+  font-size: 10px;
+  color: #879c7a;
+}
+.guess-difficulty-foot {
+  margin: 19px 0 0;
+  color: #8d9f80;
+  font-size: 10px;
+  line-height: 1.8;
+}
+/* 地狱档（决策 079）：横跨栅格整行的低调横条，比前三档低一个视觉层级，
+   不抢三张主卡的风头；池未收录时禁用（全局 button:disabled 半透明兜底），
+   数据集收录该档模型后自动开放。点缀用克制的余烬橙，落在图标与大字号上 */
+.guess-difficulty-card[data-level='4'] {
+  grid-column: 1 / -1;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 16px 22px;
+  background: #131d17;
+  border-color: #2c3a32;
+}
+.guess-difficulty-card[data-level='4']:hover:not(:disabled) {
+  background: #182720;
+  border-color: #5a6b52;
+  transform: none;
+}
+.guess-difficulty-card[data-level='4']:before {
+  font-size: 42px;
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-icon {
+  width: 34px;
+  height: 34px;
+  color: #d08a5a;
+  border-bottom-color: #d08a5a40;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-name b {
+  font-size: 19px;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-blurb {
+  flex: 1 1 200px;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-meta {
+  width: auto;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.guess-difficulty-card[data-level='4'] .guess-difficulty-go {
+  position: static;
+}
+.guess-picker-pending {
+  font-size: 12px;
+  color: #c1d79c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .guess-difficulty {
+    padding-top: 21px;
+  }
+  .guess-difficulty-head h1 {
+    font-size: 58px;
+  }
+  .guess-difficulty-head p {
+    font-size: 11px;
+  }
+  .guess-difficulty-card.guess-daily-card {
+    padding: 23px;
+    min-height: 265px;
+  }
+  .guess-daily-card .guess-difficulty-name b {
+    font-size: 27px;
+  }
+  .guess-daily-card .guess-difficulty-name {
+    width: 66%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .guess-daily-card .guess-difficulty-blurb {
+    width: 66%;
+    font-size: 10px;
+  }
+  .guess-daily-card .guess-difficulty-meta {
+    width: 100%;
+    margin-top: 17px;
+  }
+  .guess-daily-art {
+    width: 70px;
+    height: 98px;
+    right: 25px;
+    top: 42px;
+    opacity: 0.65;
+  }
+  .guess-daily-art > span {
+    font-size: 58px;
+  }
+  .guess-difficulty-grid {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+  .guess-difficulty-card {
+    min-height: 205px;
+    padding: 22px;
+  }
+  .guess-difficulty-name b {
+    font-size: 23px;
+  }
+  .guess-practice-heading {
+    margin-top: 25px;
+  }
+}
+
+/* 游戏中的当前难度标签：点它回选择屏换难度 */
+.guess-difficulty-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  background: transparent;
+  border: 1px solid #3b4c3d;
+  color: #c6cfbb;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.18s,
+    color 0.18s;
+}
+.guess-difficulty-chip small {
+  font: 8px var(--mono);
+  letter-spacing: 0.16em;
+  color: #7c8e79;
+}
+.guess-difficulty-chip:hover {
+  border-color: var(--guess-accent);
+  color: var(--guess-accent);
+}
+.guess-error {
+  font-size: 12px;
+  color: #f4bb9a;
+  border-left: 2px solid #e09a6f;
+  padding: 10px 14px;
+  background: #e09a6f0a;
+}
+.guess-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30px;
+  padding: 0 4px 25px;
+  border-bottom: 1px solid #33462e;
+  gap: 35px;
+}
+.guess-stats-intro {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #c4d0b7;
+  font-size: 12px;
+}
+.guess-stats-intro small {
+  display: block;
+  color: #829574;
+  font-size: 9px;
+  margin-top: 5px;
+}
+.guess-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 48px;
+  margin: 0;
+}
+.guess-stats dt {
+  font-size: 10px;
+  color: #94a685;
+  margin-bottom: 5px;
+}
+.guess-stats dd {
+  font: 27px var(--mono);
+  margin: 0;
+  color: #dce6cb;
+}
+.guess-stats dd small {
+  font:
+    9px MiSans,
+    system-ui;
+  margin-left: 5px;
+  color: #8b9e7b;
+}
+.guess-rules {
+  font-size: 11px;
+  color: #97ab85;
+  margin-top: 19px;
+  line-height: 1.9;
+}
+.guess-rules summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  list-style: none;
+  width: fit-content;
+}
+.guess-rules summary::-webkit-details-marker {
+  display: none;
+}
+.guess-rules[open] summary svg {
+  transform: rotate(180deg);
+}
+.guess-rules > div {
+  max-width: 740px;
+  margin-top: 15px;
+}
+.guess-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.guess-loading h1 {
+  margin: 0;
+  font-size: 40px;
+}
+.guess-loading p {
+  font-size: 13px;
+  color: #a8ba9b;
+}
+.guess-loading-symbol {
+  color: var(--guess-accent);
+  animation: guess-float 4s infinite;
+}
+.guess-spinner {
+  animation: guess-spin 1s linear infinite;
+}
+@keyframes guess-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes guess-menu {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scaleY(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+@keyframes guess-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(9deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(6deg);
+  }
+}
+@keyframes guess-tile {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes guess-uncover {
+  to {
+    transform: scaleY(0);
+  }
+}
+@keyframes guess-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (min-width: 1500px) {
+  .guess-main {
+    max-width: 1280px;
+  }
+  .guess-hero {
+    min-height: 380px;
+  }
+  .guess-art {
+    margin-right: 40px;
+  }
+  .guess-console {
+    padding: 28px 32px 18px;
+  }
+}
+@media (max-width: 900px) {
+  .guess-header {
+    padding: 0 24px;
+    height: 72px;
+  }
+  .guess-main {
+    padding: 0 24px 36px;
+  }
+  .guess-hero {
+    grid-template-columns: 1.2fr 1fr;
+    min-height: 320px;
+  }
+  .guess-art {
+    transform: scale(0.85);
+    margin: 0 -20px;
+  }
+  .guess-hero h1 {
+    font-size: 60px;
+  }
+  .guess-console {
+    padding: 22px 18px 16px;
+  }
+  .guess-stats {
+    gap: 30px;
+  }
+  .guess-header-actions {
+    gap: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .guess-header {
+    /* 一行放不下品牌+语言切换+登录按钮，允许折行，否则登录按钮被挤出屏外 */
+    height: auto;
+    min-height: 65px;
+    padding: 10px 18px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .guess-header .lobby-brand {
+    font-size: 11px;
+  }
+  .guess-header .lobby-brand small {
+    font-size: 8px;
+  }
+  .guess-header-actions {
+    gap: 7px;
+  }
+  .guess-main {
+    padding: 0 16px 30px;
+  }
+  .guess-hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .guess-hero-copy {
+    padding: 22px 3px 0;
+  }
+  .guess-edition {
+    margin-top: 22px;
+    font-size: 9px;
+    gap: 11px;
+  }
+  .guess-hero h1 {
+    font-size: 65px;
+    margin: 14px 0 12px;
+  }
+  .guess-hero h1 > span {
+    margin-left: 18px;
+  }
+  .guess-tagline {
+    font-size: 17px;
+  }
+  .guess-intro {
+    font-size: 11px;
+    max-width: 310px;
+  }
+  .guess-art {
+    height: 215px;
+    transform: none;
+    margin: 0;
+    overflow: hidden;
+  }
+  .guess-card-stack {
+    width: 112px;
+    height: 148px;
+  }
+  .guess-card-sheet {
+    border-radius: 5px;
+  }
+  .sheet-front {
+    padding: 12px;
+  }
+  .sheet-front strong {
+    font-size: 73px;
+  }
+  .sheet-front strong svg {
+    width: 70px;
+    height: 70px;
+  }
+  .guess-card-top {
+    font-size: 8px;
+  }
+  .guess-card-top svg {
+    width: 16px;
+    height: 16px;
+  }
+  .guess-card-bottom {
+    font-size: 7px;
+  }
+  .guess-card-bottom svg {
+    width: 17px;
+    height: 17px;
+  }
+  .guess-art-orbit {
+    width: 290px;
+    height: 125px;
+  }
+  .orbit-two {
+    width: 230px;
+    height: 170px;
+  }
+  .guess-art-caption {
+    bottom: 7px;
+    font-size: 8px;
+  }
+  .guess-art-caption > span {
+    font-size: 12px;
+  }
+  .guess-art-shadow {
+    bottom: 21px;
+    width: 140px;
+  }
+  .guess-console {
+    padding: 18px 13px 14px;
+  }
+  .guess-console-top {
+    align-items: flex-start;
+    margin-bottom: 17px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .guess-difficulty-grid {
+    grid-template-columns: 1fr;
+  }
+  .guess-difficulty-card {
+    padding: 18px 16px;
+    gap: 10px;
+  }
+  .guess-difficulty-head h1 {
+    font-size: 46px;
+  }
+  .guess-difficulty-head p {
+    margin-bottom: 22px;
+  }
+  .guess-turn {
+    display: block;
+  }
+  .guess-turn > span {
+    font-size: 10px;
+    display: block;
+    margin-bottom: 7px;
+  }
+  .guess-turn strong {
+    font-size: 29px;
+  }
+  .guess-turn small {
+    font-size: 11px;
+  }
+  .guess-attempts {
+    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(4, 23px);
+  }
+  .guess-attempts > span {
+    width: 23px;
+    height: 23px;
+    font-size: 8px;
+  }
+  .guess-input {
+    min-height: 58px;
+    padding: 5px 5px 5px 12px;
+    gap: 9px;
+  }
+  .guess-input > svg {
+    width: 17px;
+    flex-shrink: 0;
+  }
+  .guess-input input {
+    font-size: 12px;
+  }
+  .guess-submit {
+    padding: 10px;
+    min-height: 42px;
+    gap: 4px;
+    font-size: 10px;
+  }
+  .guess-submit svg {
+    width: 16px;
+  }
+  .guess-search-hint {
+    font-size: 8px;
+    margin-bottom: 22px;
+  }
+  .guess-suggest li button {
+    padding: 10px 7px;
+    gap: 8px;
+  }
+  .guess-suggest b {
+    font-size: 11px;
+  }
+  .guess-suggest time {
+    font-size: 8px;
+  }
+  .guess-suggest-heading {
+    padding: 10px 12px;
+    font-size: 9px;
+  }
+  .guess-board-heading h2 {
+    font-size: 11px;
+  }
+  .guess-legend {
+    gap: 9px;
+    font-size: 9px;
+  }
+  .guess-board {
+    min-width: 740px;
+  }
+  .guess-board .gcell-name {
+    width: 175px;
+  }
+  .guess-row .gcell-name b {
+    max-width: 139px;
+  }
+  .guess-row-number {
+    margin-right: 7px;
+  }
+  .guess-empty {
+    padding: 17px 2px;
+    gap: 10px;
+  }
+  .guess-empty > svg {
+    width: 25px;
+    flex-shrink: 0;
+  }
+  .guess-empty strong {
+    font-size: 11px;
+  }
+  .guess-empty p {
+    font-size: 9px;
+  }
+  .guess-empty-tiles {
+    display: none;
+  }
+  .guess-board-foot {
+    font-size: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .guess-result {
+    padding: 18px 13px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .guess-result-symbol svg {
+    width: 25px;
+  }
+  .guess-result-copy {
+    flex: 1;
+    min-width: 0;
+  }
+  .guess-result h2 {
+    font-size: 23px;
+    overflow-wrap: anywhere;
+  }
+  .guess-result p {
+    font-size: 9px;
+  }
+  .guess-result-actions {
+    width: 100%;
+    margin-top: 8px;
+    gap: 8px;
+  }
+  .guess-replay {
+    flex: 1;
+    padding: 12px;
+  }
+  .guess-share {
+    flex: 1;
+    padding: 12px;
+  }
+  .guess-footer {
+    margin-top: 25px;
+    display: block;
+    padding: 0 4px 20px;
+  }
+  .guess-stats-intro {
+    font-size: 11px;
+    margin-bottom: 22px;
+  }
+  .guess-stats-intro small {
+    display: inline;
+    margin-left: 12px;
+  }
+  .guess-stats {
+    gap: 12px;
+  }
+  .guess-stats dd {
+    font-size: 25px;
+  }
+  .guess-stats dt {
+    font-size: 9px;
+  }
+  .guess-rules {
+    font-size: 10px;
+  }
+  .guess-rules > div {
+    padding: 0 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guess-page *,
+  .guess-page *:before,
+  .guess-page *:after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .guess-row.is-new .gcell:after {
+    display: none;
+  }
+}
+.guess-reduced .guess-page *,
+.guess-reduced .guess-page *:before,
+.guess-reduced .guess-page *:after {
+  animation: none !important;
+  transition: none !important;
+}
+.guess-reduced .guess-row.is-new .gcell:after {
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="guess-page" id="root" data-screen="picker">
+  <header class="guess-header">
+    <a class="lobby-brand" id="brand" role="button" tabindex="0">
+      <span class="lobby-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="26" height="26" fill="currentColor"><rect x="2" y="10" width="10" height="16" rx="2" transform="rotate(-24 7 18)" opacity=".55"/><rect x="20" y="10" width="10" height="16" rx="2" transform="rotate(24 25 18)" opacity=".55"/><rect x="11" y="5" width="10" height="18" rx="2" stroke="#1c2423" stroke-width="1.5"/></svg></span>
+      <span>模一把<b class="brand-tag">?</b><small>猜 AI 模型</small></span>
+    </a>
+  </header>
+  <main class="guess-main" id="main" tabindex="-1"></main>
+</div>
+
+<script>
+/* __DATA_START__ */
+const RAW_DATA = {
+  "version": 1,
+  "updatedAt": "2026-09-16",
+  "source": "models.dev snapshot 2026-09-13 + manual curation for classic models；2026-09-14 重构：近亲小版本合并为 variants 组（决策 061）；2026-09-16 层叠分池第一版映射（决策 081）：29 条退役入地狱、追加 66 条",
+  "models": [
+    {
+      "id": "glm-5-x",
+      "name": "GLM-5.x",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 205,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 3.2,
+      "popularity": 85,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "glm-5",
+          "name": "GLM-5",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.2,
+          "popularity": 43
+        },
+        {
+          "id": "glm-5-1",
+          "name": "GLM-5.1",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.4,
+          "popularity": 53
+        },
+        {
+          "id": "glm-5-2",
+          "name": "GLM-5.2",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2026,
+          "month": 6,
+          "openWeights": true,
+          "contextK": 1049,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.4,
+          "popularity": 85
+        }
+      ]
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "name": "DeepSeek V4 Flash",
+      "org": "DeepSeek",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 1311,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.6,
+      "popularity": 82,
+      "difficulty": 1
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "org": "DeepSeek",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 1050,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.87,
+      "popularity": 72,
+      "difficulty": 1
+    },
+    {
+      "id": "kimi-k2-x",
+      "name": "Kimi K2.x",
+      "org": "Moonshot AI",
+      "year": 2026,
+      "month": 1,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 64,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "kimi-k2-5",
+          "name": "Kimi K2.5",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 1,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 43
+        },
+        {
+          "id": "kimi-k2-6",
+          "name": "Kimi K2.6",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4,
+          "popularity": 64
+        },
+        {
+          "id": "kimi-k2-7-code",
+          "name": "Kimi K2.7 Code",
+          "org": "Moonshot AI",
+          "year": 2026,
+          "month": 6,
+          "openWeights": true,
+          "contextK": 271,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4,
+          "popularity": 60
+        }
+      ]
+    },
+    {
+      "id": "kimi-k3",
+      "name": "Kimi K3",
+      "org": "Moonshot AI",
+      "year": 2026,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 15,
+      "popularity": 63,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-oss",
+      "name": "GPT OSS",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 131,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 54,
+      "difficulty": 3,
+      "variants": [
+        {
+          "id": "gpt-oss-120b",
+          "name": "GPT OSS 120B",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 54
+        },
+        {
+          "id": "gpt-oss-20b",
+          "name": "GPT OSS 20B",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 33
+        }
+      ]
+    },
+    {
+      "id": "glm-5-3-flash",
+      "name": "GLM-5.3-Flash",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 1311,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.25,
+      "popularity": 51,
+      "difficulty": 1
+    },
+    {
+      "id": "glm-5-3",
+      "name": "GLM-5.3",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 1311,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 4.4,
+      "popularity": 48,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 15,
+      "popularity": 46,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-5",
+      "name": "GPT-5.5",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 30,
+      "popularity": 45,
+      "difficulty": 1
+    },
+    {
+      "id": "minimax-m2-x",
+      "name": "MiniMax-M2.x",
+      "org": "MiniMax",
+      "year": 2025,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 1000,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 1.2,
+      "popularity": 44,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "minimax-m2",
+          "name": "MiniMax-M2",
+          "org": "MiniMax",
+          "year": 2025,
+          "month": 10,
+          "openWeights": true,
+          "contextK": 1000,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 18
+        },
+        {
+          "id": "minimax-m2-1",
+          "name": "MiniMax-M2.1",
+          "org": "MiniMax",
+          "year": 2025,
+          "month": 12,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 23
+        },
+        {
+          "id": "minimax-m2-5",
+          "name": "MiniMax-M2.5",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 229,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 44
+        },
+        {
+          "id": "minimax-m2-7",
+          "name": "MiniMax-M2.7",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 3,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.2,
+          "popularity": 42
+        },
+        {
+          "id": "minimax-m2-7-highspeed",
+          "name": "MiniMax-M2.7 Highspeed",
+          "org": "MiniMax",
+          "year": 2026,
+          "month": 3,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.4,
+          "popularity": 17
+        }
+      ]
+    },
+    {
+      "id": "minimax-m3",
+      "name": "MiniMax-M3",
+      "org": "MiniMax",
+      "year": 2026,
+      "month": 6,
+      "openWeights": true,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 1.2,
+      "popularity": 44,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-opus-4-8",
+      "name": "Claude Opus 4.8",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 5,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 25,
+      "popularity": 43,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-4",
+      "name": "GPT-5.4",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 15,
+      "popularity": 42,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "name": "Claude Haiku 4.5",
+      "org": "Anthropic",
+      "year": 2025,
+      "month": 10,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 5,
+      "popularity": 41,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-opus-4-7",
+      "name": "Claude Opus 4.7",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 25,
+      "popularity": 41,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-opus-4-x",
+      "name": "Claude Opus 4.x",
+      "org": "Anthropic",
+      "year": 2025,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "high",
+      "priceOut": 75,
+      "popularity": 37,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "claude-opus-4-1",
+          "name": "Claude Opus 4.1",
+          "org": "Anthropic",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 75,
+          "popularity": 18
+        },
+        {
+          "id": "claude-opus-4-5",
+          "name": "Claude Opus 4.5",
+          "org": "Anthropic",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 25,
+          "popularity": 30
+        },
+        {
+          "id": "claude-opus-4-6",
+          "name": "Claude Opus 4.6",
+          "org": "Anthropic",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 25,
+          "popularity": 37
+        }
+      ]
+    },
+    {
+      "id": "gpt-5-6-luna",
+      "name": "GPT-5.6 Luna",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 1.2,
+      "popularity": 37,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-6-sol",
+      "name": "GPT-5.6 Sol",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 20,
+      "popularity": 37,
+      "difficulty": 1
+    },
+    {
+      "id": "claude-fable-5",
+      "name": "Claude Fable 5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 50,
+      "popularity": 36,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-x-mini",
+      "name": "GPT-5.x Mini",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 2,
+      "popularity": 36,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gpt-5-mini",
+          "name": "GPT-5 Mini",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 32
+        },
+        {
+          "id": "gpt-5-4-mini",
+          "name": "GPT-5.4 Mini",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 4.5,
+          "popularity": 36
+        }
+      ]
+    },
+    {
+      "id": "gpt-5-6-terra",
+      "name": "GPT-5.6 Terra",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 12,
+      "popularity": 36,
+      "difficulty": 1
+    },
+    {
+      "id": "glm-4-x",
+      "name": "GLM-4.x",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2025,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 131,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 2.2,
+      "popularity": 35,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "glm-4-5",
+          "name": "GLM-4.5",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 7,
+          "openWeights": true,
+          "contextK": 131,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 18
+        },
+        {
+          "id": "glm-4-6",
+          "name": "GLM-4.6",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 9,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 25
+        },
+        {
+          "id": "glm-4-7",
+          "name": "GLM-4.7",
+          "org": "Zhipu AI (Z.ai)",
+          "year": 2025,
+          "month": 12,
+          "openWeights": true,
+          "contextK": 205,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.2,
+          "popularity": 35
+        }
+      ]
+    },
+    {
+      "id": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 10,
+      "popularity": 34,
+      "difficulty": 1
+    },
+    {
+      "id": "qwen3-x-max",
+      "name": "Qwen3.x Max",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 6,
+      "popularity": 33,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "qwen3-max",
+          "name": "Qwen3 Max",
+          "org": "Alibaba",
+          "year": 2025,
+          "month": 9,
+          "openWeights": false,
+          "contextK": 262,
+          "modality": "text",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 21
+        },
+        {
+          "id": "qwen3-7-max",
+          "name": "Qwen3.7 Max",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 5,
+          "openWeights": false,
+          "contextK": 1064,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 7.5,
+          "popularity": 33
+        },
+        {
+          "id": "qwen3-8-max",
+          "name": "Qwen3.8 Max",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 30
+        }
+      ]
+    },
+    {
+      "id": "claude-sonnet-4-5",
+      "name": "Claude Sonnet 4.5",
+      "org": "Anthropic",
+      "year": 2025,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 15,
+      "popularity": 32,
+      "difficulty": 1
+    },
+    {
+      "id": "gemini-2-5-flash",
+      "name": "Gemini 2.5 Flash",
+      "org": "Google",
+      "year": 2025,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 1066,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 2.5,
+      "popularity": 32,
+      "difficulty": 1
+    },
+    {
+      "id": "gemini-3-5-flash",
+      "name": "Gemini 3.5 Flash",
+      "org": "Google",
+      "year": 2026,
+      "month": 5,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 9,
+      "popularity": 32,
+      "difficulty": 1
+    },
+    {
+      "id": "llama-3-3-70b",
+      "name": "Llama 3.3 70B",
+      "org": "Meta",
+      "year": 2024,
+      "month": 11,
+      "openWeights": true,
+      "contextK": 131,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 32,
+      "difficulty": 4
+    },
+    {
+      "id": "claude-opus-5",
+      "name": "Claude Opus 5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 25,
+      "popularity": 31,
+      "difficulty": 1
+    },
+    {
+      "id": "deepseek-v3-2",
+      "name": "DeepSeek V3.2",
+      "org": "DeepSeek",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 164,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.42,
+      "popularity": 31,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-x-nano",
+      "name": "GPT-5.x Nano",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 0.4,
+      "popularity": 31,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-nano",
+          "name": "GPT-5 Nano",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 0.4,
+          "popularity": 27
+        },
+        {
+          "id": "gpt-5-4-nano",
+          "name": "GPT-5.4 Nano",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1048,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 1.25,
+          "popularity": 31
+        }
+      ]
+    },
+    {
+      "id": "qwen3-5-397b-a17b",
+      "name": "Qwen3.5 397B A17B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 3.6,
+      "popularity": 31,
+      "difficulty": 3
+    },
+    {
+      "id": "qwen3-x-plus",
+      "name": "Qwen3.x Plus",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 2.4,
+      "popularity": 31,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "qwen3-5-plus",
+          "name": "Qwen3.5 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 2.4,
+          "popularity": 16
+        },
+        {
+          "id": "qwen3-6-plus",
+          "name": "Qwen3.6 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3,
+          "popularity": 28
+        },
+        {
+          "id": "qwen3-7-plus",
+          "name": "Qwen3.7 Plus",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 1064,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3,
+          "popularity": 31
+        }
+      ]
+    },
+    {
+      "id": "qwen3-x-27b",
+      "name": "Qwen3.x 27B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 2.4,
+      "popularity": 31,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-5-27b",
+          "name": "Qwen3.5 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2.4,
+          "popularity": 14
+        },
+        {
+          "id": "qwen3-6-27b",
+          "name": "Qwen3.6 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.6,
+          "popularity": 25
+        },
+        {
+          "id": "qwen3-8-27b",
+          "name": "Qwen3.8 27B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": true,
+          "contextK": 1131,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": null,
+          "popularity": 31
+        }
+      ]
+    },
+    {
+      "id": "gemini-2-5-pro",
+      "name": "Gemini 2.5 Pro",
+      "org": "Google",
+      "year": 2025,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 1066,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1
+    },
+    {
+      "id": "gemini-3-1-pro-preview",
+      "name": "Gemini 3.1 Pro Preview",
+      "org": "Google",
+      "year": 2026,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 12,
+      "popularity": 30,
+      "difficulty": 1
+    },
+    {
+      "id": "gpt-5-x",
+      "name": "GPT-5.x",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 11,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gpt-5-1",
+          "name": "GPT-5.1",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 10,
+          "popularity": 29
+        },
+        {
+          "id": "gpt-5-2",
+          "name": "GPT-5.2",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 12,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 14,
+          "popularity": 30
+        }
+      ]
+    },
+    {
+      "id": "gpt-5",
+      "name": "GPT-5",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 10,
+      "popularity": 29,
+      "difficulty": 2
+    },
+    {
+      "id": "gpt-5-x-codex",
+      "name": "GPT-5.x Codex",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 11,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 10,
+      "popularity": 27,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-1-codex",
+          "name": "GPT-5.1 Codex",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 10,
+          "popularity": 17
+        },
+        {
+          "id": "gpt-5-1-codex-mini",
+          "name": "GPT-5.1 Codex Mini",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 16
+        },
+        {
+          "id": "gpt-5-2-codex",
+          "name": "GPT-5.2 Codex",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 12,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": null,
+          "popularity": 20
+        },
+        {
+          "id": "gpt-5-3-codex",
+          "name": "GPT-5.3 Codex",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 14,
+          "popularity": 27
+        }
+      ]
+    },
+    {
+      "id": "grok-4-x",
+      "name": "Grok 4.x",
+      "org": "xAI",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 2.5,
+      "popularity": 27,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "grok-4-3",
+          "name": "Grok 4.3",
+          "org": "xAI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "mid",
+          "priceOut": 2.5,
+          "popularity": 27
+        },
+        {
+          "id": "grok-4-5",
+          "name": "Grok 4.5",
+          "org": "xAI",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 26
+        },
+        {
+          "id": "grok-4-6",
+          "name": "Grok 4.6",
+          "org": "xAI",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 524,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 6,
+          "popularity": 27
+        }
+      ]
+    },
+    {
+      "id": "gemini-x-flash-lite",
+      "name": "Gemini Flash-Lite",
+      "org": "Google",
+      "year": 2025,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.4,
+      "popularity": 26,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gemini-2-5-flash-lite",
+          "name": "Gemini 2.5 Flash-Lite",
+          "org": "Google",
+          "year": 2025,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 0.4,
+          "popularity": 22
+        },
+        {
+          "id": "gemini-3-1-flash-lite",
+          "name": "Gemini 3.1 Flash Lite",
+          "org": "Google",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.5,
+          "popularity": 26
+        },
+        {
+          "id": "gemini-3-5-flash-lite",
+          "name": "Gemini 3.5 Flash Lite",
+          "org": "Google",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2.5,
+          "popularity": 23
+        }
+      ]
+    },
+    {
+      "id": "gpt-4-1",
+      "name": "GPT-4.1",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1048,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "mid",
+      "priceOut": 8,
+      "popularity": 26,
+      "difficulty": 2
+    },
+    {
+      "id": "qwen3-x-35b-a3b",
+      "name": "Qwen3.x 35B A3B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 2,
+      "popularity": 26,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-5-35b-a3b",
+          "name": "Qwen3.5 35B A3B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 2,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "cheap",
+          "priceOut": 2,
+          "popularity": 17
+        },
+        {
+          "id": "qwen3-6-35b-a3b",
+          "name": "Qwen3.6 35B A3B",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": true,
+          "contextK": 262,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.485,
+          "popularity": 26
+        }
+      ]
+    },
+    {
+      "id": "mimo-v2-5-pro",
+      "name": "MiMo-V2.5-Pro",
+      "org": "Xiaomi",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 1050,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.87,
+      "popularity": 25,
+      "difficulty": 2
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek R1",
+      "org": "DeepSeek",
+      "year": 2025,
+      "month": 1,
+      "openWeights": true,
+      "contextK": 164,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 2.19,
+      "popularity": 24,
+      "difficulty": 1
+    },
+    {
+      "id": "mimo-v2-5",
+      "name": "MiMo-V2.5",
+      "org": "Xiaomi",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 1050,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 0.28,
+      "popularity": 24,
+      "difficulty": 2
+    },
+    {
+      "id": "claude-fable-5-1",
+      "name": "Claude Fable 5.1",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "high",
+      "priceOut": 50,
+      "popularity": 23,
+      "difficulty": 1
+    },
+    {
+      "id": "gemini-3-x-flash",
+      "name": "Gemini 3.x Flash",
+      "org": "Google",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 3.75,
+      "popularity": 23,
+      "difficulty": 1,
+      "variants": [
+        {
+          "id": "gemini-3-6-flash",
+          "name": "Gemini 3.6 Flash",
+          "org": "Google",
+          "year": 2026,
+          "month": 7,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.75,
+          "popularity": 23
+        },
+        {
+          "id": "gemini-3-7-flash",
+          "name": "Gemini 3.7 Flash",
+          "org": "Google",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 3.75,
+          "popularity": 22
+        }
+      ]
+    },
+    {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "org": "Google",
+      "year": 2025,
+      "month": 12,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 3,
+      "popularity": 23,
+      "difficulty": 2
+    },
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "org": "OpenAI",
+      "year": 2024,
+      "month": 5,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "mid",
+      "priceOut": 15,
+      "popularity": 21,
+      "difficulty": 2
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o mini",
+      "org": "OpenAI",
+      "year": 2024,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 0.6,
+      "popularity": 21,
+      "difficulty": 2
+    },
+    {
+      "id": "qwen3-x-flash",
+      "name": "Qwen3.x Flash",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 1.125,
+      "popularity": 21,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "qwen3-6-flash",
+          "name": "Qwen3.6 Flash",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1000,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 1.125,
+          "popularity": 21
+        },
+        {
+          "id": "qwen3-8-flash",
+          "name": "Qwen3.8 Flash",
+          "org": "Alibaba",
+          "year": 2026,
+          "month": 8,
+          "openWeights": false,
+          "contextK": 1049,
+          "modality": "text+image+video",
+          "reasoning": true,
+          "priceTier": "free",
+          "priceOut": 0.47,
+          "popularity": 21
+        }
+      ]
+    },
+    {
+      "id": "inkling",
+      "name": "Inkling",
+      "org": "Thinking Machines",
+      "year": 2026,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 1049,
+      "modality": "text+image+audio",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 4.68,
+      "popularity": 20,
+      "difficulty": 3
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "name": "Kimi K2 Thinking",
+      "org": "Moonshot AI",
+      "year": 2025,
+      "month": 11,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 2.5,
+      "popularity": 20,
+      "difficulty": 2
+    },
+    {
+      "id": "deepseek-v3-1",
+      "name": "DeepSeek V3.1",
+      "org": "DeepSeek",
+      "year": 2025,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 164,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "cheap",
+      "priceOut": 1.68,
+      "popularity": 19,
+      "difficulty": 2
+    },
+    {
+      "id": "gpt-6-astra",
+      "name": "GPT-6 Astra",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "high",
+      "priceOut": 50,
+      "popularity": 19,
+      "difficulty": 1
+    },
+    {
+      "id": "gemini-3-8-flash",
+      "name": "Gemini 3.8 Flash",
+      "org": "Google",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 3.75,
+      "popularity": 18,
+      "difficulty": 2
+    },
+    {
+      "id": "gpt-5-x-pro",
+      "name": "GPT-5.x Pro",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 10,
+      "openWeights": false,
+      "contextK": 400,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "high",
+      "priceOut": 120,
+      "popularity": 18,
+      "difficulty": 2,
+      "variants": [
+        {
+          "id": "gpt-5-pro",
+          "name": "GPT-5 Pro",
+          "org": "OpenAI",
+          "year": 2025,
+          "month": 10,
+          "openWeights": false,
+          "contextK": 400,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "high",
+          "priceOut": 120,
+          "popularity": 14
+        },
+        {
+          "id": "gpt-5-4-pro",
+          "name": "GPT-5.4 Pro",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "premium",
+          "priceOut": 180,
+          "popularity": 18
+        },
+        {
+          "id": "gpt-5-5-pro",
+          "name": "GPT-5.5 Pro",
+          "org": "OpenAI",
+          "year": 2026,
+          "month": 4,
+          "openWeights": false,
+          "contextK": 1050,
+          "modality": "text+image",
+          "reasoning": true,
+          "priceTier": "premium",
+          "priceOut": 180,
+          "popularity": 18
+        }
+      ]
+    },
+    {
+      "id": "grok-build-0-1",
+      "name": "Grok Build 0.1",
+      "org": "xAI",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 2,
+      "popularity": 18,
+      "difficulty": 3
+    },
+    {
+      "id": "o4-mini",
+      "name": "o4-mini",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 4.4,
+      "popularity": 18,
+      "difficulty": 3
+    },
+    {
+      "id": "deepseek-v3",
+      "name": "DeepSeek V3",
+      "org": "DeepSeek",
+      "year": 2024,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 164,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": 1.1,
+      "popularity": 17,
+      "difficulty": 2
+    },
+    {
+      "id": "o3",
+      "name": "o3",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 8,
+      "popularity": 17,
+      "difficulty": 2
+    },
+    {
+      "id": "qwen3-5-122b-a10b",
+      "name": "Qwen3.5 122B A10B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 3.2,
+      "popularity": 17,
+      "difficulty": 3
+    },
+    {
+      "id": "step-3-7-flash",
+      "name": "Step 3.7 Flash",
+      "org": "StepFun",
+      "year": 2026,
+      "month": 5,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 1.11,
+      "popularity": 16,
+      "difficulty": 2
+    },
+    {
+      "id": "glm-5v-turbo",
+      "name": "GLM-5V Turbo",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 203,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": 4,
+      "popularity": 15,
+      "difficulty": 2
+    },
+    {
+      "id": "hy3",
+      "name": "Hy3",
+      "org": "Tencent",
+      "year": 2026,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 15,
+      "difficulty": 2
+    },
+    {
+      "id": "qwen3-coder-plus",
+      "name": "Qwen3 Coder Plus",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 1049,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": 5,
+      "popularity": 15,
+      "difficulty": 3
+    },
+    {
+      "id": "qwen3-vl-235b-a22b",
+      "name": "Qwen3 VL 235B A22B",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 2.8,
+      "popularity": 15,
+      "difficulty": 3
+    },
+    {
+      "id": "gpt-3",
+      "name": "GPT-3 175B",
+      "org": "OpenAI",
+      "year": 2020,
+      "month": 6,
+      "openWeights": false,
+      "contextK": 2,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "premium",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gpt-4",
+      "name": "GPT-4",
+      "org": "OpenAI",
+      "year": 2023,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 8,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "premium",
+      "priceOut": 60,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gpt-4-turbo",
+      "name": "GPT-4 Turbo",
+      "org": "OpenAI",
+      "year": 2023,
+      "month": 11,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "high",
+      "priceOut": 30,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gpt-35-turbo",
+      "name": "GPT-3.5 Turbo",
+      "org": "OpenAI",
+      "year": 2022,
+      "month": 11,
+      "openWeights": false,
+      "contextK": 4,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 1.5,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "o1",
+      "name": "o1",
+      "org": "OpenAI",
+      "year": 2024,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": "premium",
+      "priceOut": 60,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "claude-1",
+      "name": "Claude 1",
+      "org": "Anthropic",
+      "year": 2023,
+      "month": 3,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": null,
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "claude-2",
+      "name": "Claude 2",
+      "org": "Anthropic",
+      "year": 2023,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 100,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "high",
+      "priceOut": 24,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "claude-3-opus",
+      "name": "Claude 3 Opus",
+      "org": "Anthropic",
+      "year": 2024,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "premium",
+      "priceOut": 75,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "claude-3-x-sonnet",
+      "name": "Claude 3.x Sonnet",
+      "org": "Anthropic",
+      "year": 2024,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "high",
+      "priceOut": 15,
+      "popularity": 0,
+      "difficulty": 4,
+      "variants": [
+        {
+          "id": "claude-3-sonnet",
+          "name": "Claude 3 Sonnet",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 2,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "high",
+          "priceOut": 15,
+          "popularity": 0
+        },
+        {
+          "id": "claude-35-sonnet",
+          "name": "Claude 3.5 Sonnet",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 6,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "high",
+          "priceOut": 15,
+          "popularity": 0
+        }
+      ]
+    },
+    {
+      "id": "claude-3-x-haiku",
+      "name": "Claude 3.x Haiku",
+      "org": "Anthropic",
+      "year": 2024,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 1.25,
+      "popularity": 0,
+      "difficulty": 4,
+      "variants": [
+        {
+          "id": "claude-3-haiku",
+          "name": "Claude 3 Haiku",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 3,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text+image",
+          "reasoning": false,
+          "priceTier": "cheap",
+          "priceOut": 1.25,
+          "popularity": 0
+        },
+        {
+          "id": "claude-35-haiku",
+          "name": "Claude 3.5 Haiku",
+          "org": "Anthropic",
+          "year": 2024,
+          "month": 11,
+          "openWeights": false,
+          "contextK": 200,
+          "modality": "text",
+          "reasoning": false,
+          "priceTier": "cheap",
+          "priceOut": 4,
+          "popularity": 0
+        }
+      ]
+    },
+    {
+      "id": "gemini-1-0-pro",
+      "name": "Gemini 1.0 Pro",
+      "org": "Google",
+      "year": 2023,
+      "month": 12,
+      "openWeights": false,
+      "contextK": 32,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 0.5,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gemini-15-pro",
+      "name": "Gemini 1.5 Pro",
+      "org": "Google",
+      "year": 2024,
+      "month": 2,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "mid",
+      "priceOut": 5,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gemini-15-flash",
+      "name": "Gemini 1.5 Flash",
+      "org": "Google",
+      "year": 2024,
+      "month": 5,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": 0.3,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "gemma",
+      "name": "Gemma 7B",
+      "org": "Google",
+      "year": 2024,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 8,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "llama-2",
+      "name": "Llama 2 70B",
+      "org": "Meta",
+      "year": 2023,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 4,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "llama-3",
+      "name": "Llama 3 70B",
+      "org": "Meta",
+      "year": 2024,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 8,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "code-llama",
+      "name": "Code Llama 34B",
+      "org": "Meta",
+      "year": 2023,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 16,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "mistral-7b",
+      "name": "Mistral 7B",
+      "org": "Mistral",
+      "year": 2023,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 8,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "mixtral-8x7b",
+      "name": "Mixtral 8x7B",
+      "org": "Mistral",
+      "year": 2023,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "vicuna",
+      "name": "Vicuna 13B",
+      "org": "LMSYS",
+      "year": 2023,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 2,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "alpaca",
+      "name": "Alpaca 7B",
+      "org": "Stanford",
+      "year": 2023,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 2,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "phi-3",
+      "name": "Phi-3",
+      "org": "Microsoft",
+      "year": 2024,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 4,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "qwen-15",
+      "name": "Qwen1.5 72B",
+      "org": "Alibaba",
+      "year": 2024,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "qwen2",
+      "name": "Qwen2 72B",
+      "org": "Alibaba",
+      "year": 2024,
+      "month": 6,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "glm-4",
+      "name": "GLM-4",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2024,
+      "month": 1,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": null,
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "ernie-bot",
+      "name": "ERNIE Bot",
+      "org": "Baidu",
+      "year": 2023,
+      "month": 3,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": null,
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "doubao",
+      "name": "Doubao Pro",
+      "org": "ByteDance",
+      "year": 2024,
+      "month": 5,
+      "openWeights": false,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "cheap",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "yi",
+      "name": "Yi 34B",
+      "org": "01.AI",
+      "year": 2023,
+      "month": 11,
+      "openWeights": true,
+      "contextK": 4,
+      "modality": "text",
+      "reasoning": false,
+      "priceTier": "free",
+      "priceOut": null,
+      "popularity": 0,
+      "difficulty": 4
+    },
+    {
+      "id": "doubao-seed-1-8",
+      "name": "Doubao Seed 1.8",
+      "org": "ByteDance",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 2.16,
+      "popularity": 30,
+      "difficulty": 2
+    },
+    {
+      "id": "doubao-seed-2-0-pro",
+      "name": "Doubao Seed 2.0 Pro",
+      "org": "ByteDance",
+      "year": 2026,
+      "month": 2,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 2.2,
+      "popularity": 38,
+      "difficulty": 1
+    },
+    {
+      "id": "doubao-seed-2-1-pro",
+      "name": "Doubao Seed 2.1 Pro",
+      "org": "ByteDance",
+      "year": 2026,
+      "month": 6,
+      "openWeights": false,
+      "contextK": null,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 4.2,
+      "popularity": 40,
+      "difficulty": 1
+    },
+    {
+      "id": "hy4-preview",
+      "name": "Hy4 Preview",
+      "org": "Tencent",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 1024,
+      "modality": "text",
+      "reasoning": true,
+      "priceTier": null,
+      "priceOut": null,
+      "popularity": 35,
+      "difficulty": 2
+    },
+    {
+      "id": "muse-spark-1-3",
+      "name": "Muse Spark 1.3",
+      "org": "Meta",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceTier": "mid",
+      "priceOut": 4.25,
+      "popularity": 40,
+      "difficulty": 2
+    },
+    {
+      "id": "nemotron-3-ultra-550b-a55b",
+      "name": "Nemotron 3 Ultra",
+      "org": "NVIDIA",
+      "year": 2026,
+      "month": 6,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 3.125,
+      "difficulty": 3,
+      "popularity": 34
+    },
+    {
+      "id": "laguna-s-2-1",
+      "name": "Laguna S 2.1",
+      "org": "Poolside",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.18,
+      "difficulty": 3,
+      "popularity": 30
+    },
+    {
+      "id": "gemma-4-31b-it",
+      "name": "Gemma 4 31B IT",
+      "org": "Google",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": null,
+      "difficulty": 3,
+      "popularity": 29
+    },
+    {
+      "id": "nemotron-3-5-lightning",
+      "name": "Nemotron 3.5 Lightning",
+      "org": "NVIDIA",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.2,
+      "difficulty": 3,
+      "popularity": 29
+    },
+    {
+      "id": "solar-pro4",
+      "name": "Solar Pro 4",
+      "org": "Upstage",
+      "year": 2026,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 512,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.36,
+      "difficulty": 3,
+      "popularity": 29
+    },
+    {
+      "id": "ling-3-0-flash-fin",
+      "name": "Ling 3.0 Flash Fin",
+      "org": "inclusionAI",
+      "year": 2026,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.18,
+      "difficulty": 3,
+      "popularity": 27
+    },
+    {
+      "id": "nemotron-3-super-120b-a12b",
+      "name": "Nemotron 3 Super",
+      "org": "NVIDIA",
+      "year": 2026,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.45,
+      "difficulty": 3,
+      "popularity": 26
+    },
+    {
+      "id": "gpt-4-1-mini",
+      "name": "GPT-4.1 mini",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1048,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 1.6,
+      "difficulty": 3,
+      "popularity": 25
+    },
+    {
+      "id": "deepseek-v4-1-flash",
+      "name": "DeepSeek V4.1 Flash",
+      "org": "DeepSeek",
+      "year": 2026,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 0.6,
+      "difficulty": 1,
+      "popularity": 24
+    },
+    {
+      "id": "qwen3-7-flash",
+      "name": "Qwen3.7 Flash",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 977,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": 0.13,
+      "difficulty": 2,
+      "popularity": 24
+    },
+    {
+      "id": "glm-4-7-flash",
+      "name": "GLM-4.7 Flash",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 1,
+      "openWeights": true,
+      "contextK": 203,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.4,
+      "difficulty": 2,
+      "popularity": 23
+    },
+    {
+      "id": "mistral-nemo",
+      "name": "Mistral Nemo",
+      "org": "Mistral",
+      "year": 2024,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.03,
+      "difficulty": 3,
+      "popularity": 23
+    },
+    {
+      "id": "muse-spark-1-2-contributor",
+      "name": "Muse Spark 1.2 Contributor",
+      "org": "Meta",
+      "year": 2026,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 0.2,
+      "difficulty": 2,
+      "popularity": 22
+    },
+    {
+      "id": "gpt-4-1-nano",
+      "name": "GPT-4.1 nano",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 4,
+      "openWeights": false,
+      "contextK": 1048,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.4,
+      "difficulty": 3,
+      "popularity": 21
+    },
+    {
+      "id": "qwen3-235b-a22b-instruct-2507",
+      "name": "Qwen3 235B A22B Instruct 2507",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": null,
+      "difficulty": 3,
+      "popularity": 21
+    },
+    {
+      "id": "qwen3-32b",
+      "name": "Qwen3 32B",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 131,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 2.8,
+      "difficulty": 3,
+      "popularity": 21
+    },
+    {
+      "id": "ling-3-0-flash",
+      "name": "Ling 3.0 Flash",
+      "org": "inclusionAI",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.063,
+      "difficulty": 3,
+      "popularity": 21
+    },
+    {
+      "id": "laguna-xs-2-1",
+      "name": "Laguna XS 2.1",
+      "org": "Poolside",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.12,
+      "difficulty": 3,
+      "popularity": 21
+    },
+    {
+      "id": "qwen3-5-9b",
+      "name": "Qwen3.5 9B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": null,
+      "difficulty": 3,
+      "popularity": 20
+    },
+    {
+      "id": "qwen3-coder-30b-a3b",
+      "name": "Qwen3 Coder 30B A3B",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 2.25,
+      "difficulty": 3,
+      "popularity": 20
+    },
+    {
+      "id": "qwen3-next-80b-a3b-instruct",
+      "name": "Qwen3-Next 80B-A3B Instruct",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 2,
+      "difficulty": 3,
+      "popularity": 20
+    },
+    {
+      "id": "ling-3-0-flash-vl",
+      "name": "Ling 3.0 Flash VL",
+      "org": "inclusionAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": 0.18,
+      "difficulty": 3,
+      "popularity": 20
+    },
+    {
+      "id": "llama-3-1-8b-instruct",
+      "name": "Llama 3.1 8B Instruct",
+      "org": "Meta",
+      "year": 2024,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.08,
+      "difficulty": 3,
+      "popularity": 20
+    },
+    {
+      "id": "muse-spark-1-2",
+      "name": "Muse Spark 1.2",
+      "org": "Meta",
+      "year": 2026,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 4.25,
+      "difficulty": 2,
+      "popularity": 19
+    },
+    {
+      "id": "gemma-3-27b-it",
+      "name": "Gemma 3 27B",
+      "org": "Google",
+      "year": 2025,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.45,
+      "difficulty": 3,
+      "popularity": 19
+    },
+    {
+      "id": "glm-5-turbo",
+      "name": "GLM-5 Turbo",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2026,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 203,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 4,
+      "difficulty": 2,
+      "popularity": 18
+    },
+    {
+      "id": "gemma-4-26b-a4b-it",
+      "name": "Gemma 4 26B A4B IT",
+      "org": "Google",
+      "year": 2026,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": null,
+      "difficulty": 3,
+      "popularity": 18
+    },
+    {
+      "id": "qwen3-coder-480b-a35b",
+      "name": "Qwen3 Coder 480B A35B",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 4,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 7.5,
+      "difficulty": 3,
+      "popularity": 18
+    },
+    {
+      "id": "qwen3-8-2-4t-a95b",
+      "name": "Qwen3.8 2.4T A95B",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 1024,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 6,
+      "difficulty": 3,
+      "popularity": 18
+    },
+    {
+      "id": "qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen3 30B A3B Instruct 2507",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.193,
+      "difficulty": 3,
+      "popularity": 18
+    },
+    {
+      "id": "grok-4-20",
+      "name": "Grok 4.20",
+      "org": "xAI",
+      "year": 2026,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 1953,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 2.5,
+      "difficulty": 3,
+      "popularity": 17
+    },
+    {
+      "id": "nova-micro-v1",
+      "name": "Nova Micro 1.0",
+      "org": "Amazon",
+      "year": 2024,
+      "month": 12,
+      "openWeights": false,
+      "contextK": 125,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.14,
+      "difficulty": 3,
+      "popularity": 17
+    },
+    {
+      "id": "muse-spark-1-1",
+      "name": "Muse Spark 1.1",
+      "org": "Meta",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 4.25,
+      "difficulty": 2,
+      "popularity": 16
+    },
+    {
+      "id": "deepseek-v4-flash-vision-exp",
+      "name": "DeepSeek V4 Flash Vision Exp",
+      "org": "DeepSeek",
+      "year": 2026,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 1049,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 0.6,
+      "difficulty": 3,
+      "popularity": 16
+    },
+    {
+      "id": "o3-mini",
+      "name": "o3-mini",
+      "org": "OpenAI",
+      "year": 2025,
+      "month": 1,
+      "openWeights": false,
+      "contextK": 200,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 4.4,
+      "difficulty": 3,
+      "popularity": 16
+    },
+    {
+      "id": "mistral-small-2603",
+      "name": "Mistral Small 4",
+      "org": "Mistral",
+      "year": 2026,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 0.6,
+      "difficulty": 3,
+      "popularity": 16
+    },
+    {
+      "id": "qwen3-vl-32b-instruct",
+      "name": "Qwen3 VL 32B Instruct",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.416,
+      "difficulty": 3,
+      "popularity": 16
+    },
+    {
+      "id": "glm-4-5-air",
+      "name": "GLM-4.5 Air",
+      "org": "Zhipu AI (Z.ai)",
+      "year": 2025,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 131,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 1.1,
+      "difficulty": 3,
+      "popularity": 15
+    },
+    {
+      "id": "qwen3-coder-next",
+      "name": "Qwen3 Coder Next",
+      "org": "Alibaba",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 262,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": null,
+      "difficulty": 3,
+      "popularity": 15
+    },
+    {
+      "id": "muse-glimmer-30b",
+      "name": "Muse Glimmer 30B",
+      "org": "Meta",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 1.5,
+      "difficulty": 3,
+      "popularity": 15
+    },
+    {
+      "id": "nemotron-3-nano-30b-a3b",
+      "name": "Nemotron 3 Nano 30B A3B",
+      "org": "NVIDIA",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.2,
+      "difficulty": 3,
+      "popularity": 15
+    },
+    {
+      "id": "gemma-3-12b-it",
+      "name": "Gemma 3 12B",
+      "org": "Google",
+      "year": 2025,
+      "month": 3,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.15,
+      "difficulty": 3,
+      "popularity": 15
+    },
+    {
+      "id": "mercury-2-5",
+      "name": "Mercury 2.5",
+      "org": "Inception",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 254,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.15,
+      "difficulty": 3,
+      "popularity": 14
+    },
+    {
+      "id": "qwen3-vl-8b-instruct",
+      "name": "Qwen3 VL 8B Instruct",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.455,
+      "difficulty": 3,
+      "popularity": 14
+    },
+    {
+      "id": "mistral-small-24b-instruct-2501",
+      "name": "Mistral Small 3",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 1,
+      "openWeights": false,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.08,
+      "difficulty": 3,
+      "popularity": 14
+    },
+    {
+      "id": "aion-3-0",
+      "name": "Aion-3.0",
+      "org": "Aion Labs",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 6,
+      "difficulty": 3,
+      "popularity": 13
+    },
+    {
+      "id": "seed-2-0-mini",
+      "name": "Seed-2.0-Mini",
+      "org": "ByteDance",
+      "year": 2026,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": 0.4,
+      "difficulty": 3,
+      "popularity": 13
+    },
+    {
+      "id": "mistral-large-2512",
+      "name": "Mistral Large 3 2512",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 12,
+      "openWeights": false,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 1.5,
+      "difficulty": 3,
+      "popularity": 13
+    },
+    {
+      "id": "qwen3-vl-30b-a3b-instruct",
+      "name": "Qwen3 VL 30B A3B Instruct",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.6,
+      "difficulty": 3,
+      "popularity": 13
+    },
+    {
+      "id": "deepseek-r1-0528",
+      "name": "R1 0528",
+      "org": "DeepSeek",
+      "year": 2025,
+      "month": 5,
+      "openWeights": true,
+      "contextK": 160,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 2.15,
+      "difficulty": 3,
+      "popularity": 13
+    },
+    {
+      "id": "longcat-2-0",
+      "name": "LongCat 2.0",
+      "org": "Meituan",
+      "year": 2026,
+      "month": 7,
+      "openWeights": false,
+      "contextK": 1024,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 1.2,
+      "difficulty": 2,
+      "popularity": 12
+    },
+    {
+      "id": "ministral-8b-2512",
+      "name": "Ministral 3 8B 2512",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.15,
+      "difficulty": 3,
+      "popularity": 11
+    },
+    {
+      "id": "qwen-2-5-7b-instruct",
+      "name": "Qwen2.5 7B Instruct",
+      "org": "Alibaba",
+      "year": 2024,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.2,
+      "difficulty": 3,
+      "popularity": 11
+    },
+    {
+      "id": "l3-lunaris-8b",
+      "name": "Llama 3 8B Lunaris",
+      "org": "Sao10K",
+      "year": 2024,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 8,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.05,
+      "difficulty": 3,
+      "popularity": 11
+    },
+    {
+      "id": "granite-4-0-h-micro",
+      "name": "Granite 4.0 Micro",
+      "org": "IBM",
+      "year": 2025,
+      "month": 10,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.112,
+      "difficulty": 3,
+      "popularity": 10
+    },
+    {
+      "id": "nova-lite-v1",
+      "name": "Nova Lite 1.0",
+      "org": "Amazon",
+      "year": 2024,
+      "month": 12,
+      "openWeights": false,
+      "contextK": 293,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.24,
+      "difficulty": 3,
+      "popularity": 10
+    },
+    {
+      "id": "llama-3-1-70b-instruct",
+      "name": "Llama 3.1 70B Instruct",
+      "org": "Meta",
+      "year": 2024,
+      "month": 7,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.4,
+      "difficulty": 3,
+      "popularity": 10
+    },
+    {
+      "id": "mercury-2",
+      "name": "Mercury 2",
+      "org": "Inception",
+      "year": 2026,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 125,
+      "modality": "text",
+      "reasoning": true,
+      "priceOut": 0.75,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "seed-1-6-flash",
+      "name": "Seed 1.6 Flash",
+      "org": "ByteDance",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": 0.3,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "ministral-14b-2512",
+      "name": "Ministral 3 14B 2512",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 256,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.2,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "ministral-3b-2512",
+      "name": "Ministral 3 3B 2512",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 12,
+      "openWeights": true,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 0.1,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "qwen3-coder-flash",
+      "name": "Qwen3 Coder Flash",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 977,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.975,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "mistral-medium-3-1",
+      "name": "Mistral Medium 3.1",
+      "org": "Mistral",
+      "year": 2025,
+      "month": 8,
+      "openWeights": false,
+      "contextK": 128,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 2,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "qwen2-5-vl-72b-instruct",
+      "name": "Qwen2.5 VL 72B Instruct",
+      "org": "Alibaba",
+      "year": 2025,
+      "month": 2,
+      "openWeights": true,
+      "contextK": 125,
+      "modality": "text+image",
+      "reasoning": false,
+      "priceOut": 1,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "qwen-2-5-72b-instruct",
+      "name": "Qwen2.5 72B Instruct",
+      "org": "Alibaba",
+      "year": 2024,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 32,
+      "modality": "text",
+      "reasoning": false,
+      "priceOut": 0.4,
+      "difficulty": 3,
+      "popularity": 9
+    },
+    {
+      "id": "grok-4-20-multi-agent",
+      "name": "Grok 4.20 Multi-Agent",
+      "org": "xAI",
+      "year": 2026,
+      "month": 3,
+      "openWeights": false,
+      "contextK": 1953,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 2.5,
+      "difficulty": 3,
+      "popularity": 8
+    }
+  ]
+};
+/* __DATA_END__ */
+
+/* __CORE_START__ */
+// ═══════════════════════════════════════════════════════════════
+// 判定核心：lib/guess-logic.ts 的逐行移植副本（2026-09-23）。
+// 口径以主站文件为准；npm run check:standalone 会对拍防漂移。
+// ═══════════════════════════════════════════════════════════════
+
+/** 四档难度（层叠）：难度 k 的池 = difficulty ≤ k 的全部模型 */
+const GUESS_DIFFICULTIES = [1, 2, 3, 4];
+const DIFFICULTY_INFO = [
+  { zh: '简单', en: 'Easy' },
+  { zh: '普通', en: 'Common' },
+  { zh: '困难', en: 'Hard' },
+  { zh: '地狱', en: 'Hell' },
+];
+
+/** 某难度的候选池（层叠：difficulty ≤ k，保持数据集原序即热度降序） */
+function poolForDifficulty(models, difficulty) {
+  return models.filter((m) => m.difficulty <= difficulty);
+}
+
+/** 每日一题的答案池：普通池上限 = 2（简单+普通） */
+const DAILY_DIFFICULTIES = [1, 2];
+function dailyPool(models) {
+  return models.filter((m) => m.difficulty <= 2);
+}
+
+/** 价格档边界：priceOut < 0.5 → 0 档；< 2 → 1；< 8 → 2；< 25 → 3；≥ 25 → 4 */
+const PRICE_BAND_EDGES = [0.5, 2, 8, 25];
+
+/** 厂商 → 国家/地区（厂商格「同国家给黄」） */
+const VENDOR_REGION = {
+  'DeepSeek': 'CN',
+  'Moonshot AI': 'CN',
+  'Zhipu AI (Z.ai)': 'CN',
+  'MiniMax': 'CN',
+  'Alibaba': 'CN',
+  'Xiaomi': 'CN',
+  'StepFun': 'CN',
+  'Tencent': 'CN',
+  'Baidu': 'CN',
+  'ByteDance': 'CN',
+  '01.AI': 'CN',
+  'inclusionAI': 'CN',
+  'Meituan': 'CN',
+  'OpenAI': 'US',
+  'Anthropic': 'US',
+  'Google': 'US',
+  'Meta': 'US',
+  'xAI': 'US',
+  'Microsoft': 'US',
+  'Thinking Machines': 'US',
+  'LMSYS': 'US',
+  'Stanford': 'US',
+  'NVIDIA': 'US',
+  'Poolside': 'US',
+  'Amazon': 'US',
+  'Inception': 'US',
+  'Aion Labs': 'US',
+  'Sao10K': 'US',
+  'IBM': 'US',
+  'Mistral': 'FR',
+  'Upstage': 'KR',
+};
+
+function priceBandOf(priceOut) {
+  if (priceOut === null || !Number.isFinite(priceOut)) return null;
+  for (let i = 0; i < PRICE_BAND_EDGES.length; i++)
+    if (priceOut < PRICE_BAND_EDGES[i]) return i;
+  return PRICE_BAND_EDGES.length;
+}
+
+function toModel(entry, group) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    vendor: entry.org,
+    region: VENDOR_REGION[entry.org] ?? '??',
+    released: `${entry.year}-${String(entry.month).padStart(2, '0')}`,
+    openWeights: entry.openWeights,
+    contextK: entry.contextK,
+    modalities: entry.modality.split('+'),
+    reasoning: entry.reasoning,
+    priceOut: entry.priceOut,
+    priceTier: priceBandOf(entry.priceOut),
+    popularity: entry.popularity,
+    difficulty: (entry.difficulty ?? (group ? group.difficulty : undefined)),
+    sinceDay: entry.sinceDay ?? (group ? group.sinceDay : undefined),
+    groupId: group ? group.id : undefined,
+  };
+}
+
+// 合并组：带 variants 的条目展开为「组内每个小版本一个可猜模型」，
+// 组条目本身不可猜也不可当答案
+function normalizeEntry(entry) {
+  if (!entry.variants || !entry.variants.length) return [toModel(entry)];
+  return entry.variants.map((v) => toModel(v, entry));
+}
+
+const GUESS_MODELS = RAW_DATA.models.flatMap(normalizeEntry);
+const modelById = new Map(GUESS_MODELS.map((m) => [m.id, m]));
+
+/** 价格档显示文案，index = priceTier（0-4） */
+const PRICE_TIERS = [
+  { zh: '近免费', en: 'Near-free' },
+  { zh: '便宜', en: 'Cheap' },
+  { zh: '中等', en: 'Mid' },
+  { zh: '贵', en: 'High' },
+  { zh: '旗舰', en: 'Premium' },
+];
+
+/** 属性 key。顺序即反馈格渲染顺序 */
+const ATTRIBUTE_KEYS = [
+  'vendor',
+  'released',
+  'openWeights',
+  'contextK',
+  'modalities',
+  'reasoning',
+  'priceTier',
+];
+
+// ── 手感参数：黄阈值 ──
+const GUESS_CONFIG = {
+  releasedNearMonths: 6,
+  contextNearRatio: 2,
+};
+
+/** 玩家输入 → 模型（name 不区分大小写匹配；null = 没猜到） */
+function resolveGuess(name) {
+  const key = name.trim().toLowerCase();
+  if (!key) return null;
+  return GUESS_MODELS.find((m) => m.name.toLowerCase() === key) ?? null;
+}
+
+// 搜索规范化：剥掉大小写与一切分隔符
+function normalizeGuessKey(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/** 搜索框补全候选：规范化子串匹配 + 多词乱序兜底。
+ *  档位：规范化全等 > 前缀 > 名字/id 子串 > 逐词全命中；同档内按 released 倒序 */
+function searchGuessModels(models, rawQuery, limit = 8) {
+  const q = normalizeGuessKey(rawQuery);
+  if (!q) return [];
+  const tokens = rawQuery
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  const scored = models
+    .map((m) => {
+      const name = normalizeGuessKey(m.name);
+      const id = normalizeGuessKey(m.id);
+      if (name === q) return { m, rank: 0 };
+      if (name.startsWith(q)) return { m, rank: 1 };
+      if (name.includes(q) || id.includes(q)) return { m, rank: 2 };
+      if (
+        tokens.length > 1 &&
+        tokens.every((tk) => name.includes(tk) || id.includes(tk))
+      )
+        return { m, rank: 3 };
+      return null;
+    })
+    .filter((x) => x !== null);
+  scored.sort(
+    (a, b) =>
+      a.rank - b.rank ||
+      (b.m.released ?? '').localeCompare(a.m.released ?? '') ||
+      a.m.name.localeCompare(b.m.name),
+  );
+  return scored.slice(0, limit).map((x) => x.m);
+}
+
+function monthIndex(released) {
+  const match = /^(\d{4})-(\d{2})$/.exec(released);
+  if (!match) throw new Error(`bad released: ${released}`);
+  return Number(match[1]) * 12 + Number(match[2]) - 1;
+}
+
+function judgeNumeric(guessValue, answerValue, nearThreshold, mode) {
+  // 未公开：只标 unknown，不给箭头
+  if (guessValue === null || answerValue === null)
+    return { state: 'unknown', arrow: null };
+  if (guessValue === answerValue) return { state: 'hit', arrow: null };
+  const arrow = answerValue > guessValue ? 'up' : 'down';
+  const near =
+    mode === 'ratio'
+      ? Math.max(guessValue, answerValue) / Math.min(guessValue, answerValue) <=
+        nearThreshold
+      : Math.abs(guessValue - answerValue) <= nearThreshold;
+  return { state: near ? 'near' : 'miss', arrow };
+}
+
+/** 判定一次猜测（核心函数） */
+function judge(guess, answer) {
+  const attributes = {};
+
+  // 厂商：同厂商=绿；不同厂商但同国家/地区=黄；跨国=灰。无箭头
+  attributes.vendor =
+    guess.vendor === answer.vendor
+      ? { state: 'hit', arrow: null }
+      : guess.region === answer.region
+        ? { state: 'near', arrow: null }
+        : { state: 'miss', arrow: null };
+
+  // 发布时间：月序号比较
+  attributes.released = judgeNumeric(
+    monthIndex(guess.released),
+    monthIndex(answer.released),
+    GUESS_CONFIG.releasedNearMonths,
+    'diff',
+  );
+
+  // 开放权重：二值
+  attributes.openWeights =
+    guess.openWeights === answer.openWeights
+      ? { state: 'hit', arrow: null }
+      : { state: 'miss', arrow: null };
+
+  // 上下文窗口：比值接近
+  attributes.contextK = judgeNumeric(
+    guess.contextK,
+    answer.contextK,
+    GUESS_CONFIG.contextNearRatio,
+    'ratio',
+  );
+
+  // 模态：二元口径（纯文本 / 多模态）。同纯文本=绿；同多模态=黄（恒黄）；一纯一多=灰
+  const guessMulti = guess.modalities.some((m) => m !== 'text');
+  const answerMulti = answer.modalities.some((m) => m !== 'text');
+  attributes.modalities =
+    guessMulti !== answerMulti
+      ? { state: 'miss', arrow: null }
+      : { state: answerMulti ? 'near' : 'hit', arrow: null };
+
+  // 推理模型：二值
+  attributes.reasoning =
+    guess.reasoning === answer.reasoning
+      ? { state: 'hit', arrow: null }
+      : { state: 'miss', arrow: null };
+
+  // 价格档：档位序数比较（0-4）。相邻档给黄、差 ≥2 给灰 + 箭头
+  if (guess.priceTier === null || answer.priceTier === null) {
+    attributes.priceTier = { state: 'unknown', arrow: null };
+  } else if (guess.priceTier === answer.priceTier) {
+    attributes.priceTier = { state: 'hit', arrow: null };
+  } else {
+    attributes.priceTier = {
+      state:
+        Math.abs(guess.priceTier - answer.priceTier) === 1 ? 'near' : 'miss',
+      arrow: answer.priceTier > guess.priceTier ? 'up' : 'down',
+    };
+  }
+
+  return {
+    guessId: guess.id,
+    attributes,
+    won: guess.id === answer.id,
+  };
+}
+
+// ── 每日一题派生 ──
+// 同一天全世界同答案；不引随机源；数据集末尾追加（带 sinceDay）不改历史答案。
+
+/** 数据集冻结锚点：模一把上线日。改它=重排所有历史答案 */
+const GUESS_EPOCH = '2026-09-13';
+
+/** UTC+8 日历日（模一把的「一天」按东八区切） */
+function guessDayKey(date = new Date()) {
+  const shifted = new Date(date.getTime() + 8 * 3600 * 1000);
+  return shifted.toISOString().slice(0, 10);
+}
+
+/** 距 epoch 的天数（epoch=0）。Date.UTC 真历法差 */
+function dayNumber(date = new Date()) {
+  const key = guessDayKey(date);
+  const ms = Date.UTC(
+    Number(key.slice(0, 4)),
+    Number(key.slice(5, 7)) - 1,
+    Number(key.slice(8, 10)),
+  );
+  const epochMs = Date.UTC(
+    Number(GUESS_EPOCH.slice(0, 4)),
+    Number(GUESS_EPOCH.slice(5, 7)) - 1,
+    Number(GUESS_EPOCH.slice(8, 10)),
+  );
+  return Math.round((ms - epochMs) / 86400000);
+}
+
+/**
+ * 每日答案：确定性派生，无随机源。
+ * 两层散列混合把相邻日期打散；两级派生：第一层散列选答案槽（组或独立条目），
+ * 第二层在组内按「该槽第几次被抽中」轮转实例化版本。
+ */
+function answerForDate(date = new Date(), pool = GUESS_MODELS) {
+  // 负序号（上线前的日期）clamp 到 0
+  const n = Math.max(0, dayNumber(date));
+  // 第一层：答案槽去重（同组只占一槽），保持池内首次出现顺序保证确定性
+  const slots = new Map();
+  for (const m of pool) {
+    const key = m.groupId ?? m.id;
+    const slot = slots.get(key);
+    if (slot) slot.push(m);
+    else slots.set(key, [m]);
+  }
+  // 基础槽 / 追加槽分流（追加不改历史的关键）
+  const baseSlots = [];
+  const extraSlots = [];
+  for (const slot of slots.values())
+    (slot[0].sinceDay === undefined ? baseSlots : extraSlots).push(slot);
+  const select = (d) => {
+    const h = (d * 2654435761) % 0xffffffff;
+    const eligible = extraSlots.filter((s) => (s[0].sinceDay ?? 0) <= d);
+    const r = h % (baseSlots.length + eligible.length);
+    return r < baseSlots.length ? baseSlots[r] : eligible[r - baseSlots.length];
+  };
+  const slot = select(n);
+  if (slot.length === 1) return slot[0];
+  // 第二层：第 hitCount 次命中该槽取第 hitCount 个版本（轮转，天然全覆盖）
+  let hits = 0;
+  for (let d = 0; d < n; d++) if (select(d) === slot) hits++;
+  return slot[hits % slot.length];
+}
+
+const __CORE__ = {
+  GUESS_MODELS,
+  modelById,
+  GUESS_CONFIG,
+  GUESS_DIFFICULTIES,
+  GUESS_EPOCH,
+  DAILY_DIFFICULTIES,
+  DIFFICULTY_INFO,
+  PRICE_BAND_EDGES,
+  PRICE_TIERS,
+  ATTRIBUTE_KEYS,
+  VENDOR_REGION,
+  priceBandOf,
+  poolForDifficulty,
+  dailyPool,
+  resolveGuess,
+  normalizeGuessKey,
+  searchGuessModels,
+  monthIndex,
+  judge,
+  guessDayKey,
+  dayNumber,
+  answerForDate,
+};
+/* __CORE_END__ */
+
+// ═══════════════════════════════════════════════════════════════
+// 游戏本体：app/guess.tsx 的原生 DOM 改写（无服务端、无分享、仅中文）
+// ═══════════════════════════════════════════════════════════════
+(() => {
+  const MAX_ATTEMPTS = 8;
+  // 战绩键加 standalone- 前缀：即便被挂到与主站同域，也不互写战绩
+  const STATS_KEY = 'standalone-guess-stats';
+  const LAST_DAY_KEY = 'standalone-guess-last-day';
+  const settledKey = (dayKey) => `standalone-guess-settled:${dayKey}`;
+
+  // ── 图标（lucide 1.31.0，ISC）──
+  const ICONS = {
+    'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    'arrow-up-right': '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+    'search': '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+    'trophy': '<path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/>',
+    'brain-circuit': '<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M9 13a4.5 4.5 0 0 0 3-4"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M12 13h4"/><path d="M12 18h6a2 2 0 0 1 2 2v1"/><path d="M12 8h8"/><path d="M16 8V5a2 2 0 0 1 2-2"/><circle cx="16" cy="13" r=".5"/><circle cx="18" cy="3" r=".5"/><circle cx="20" cy="21" r=".5"/><circle cx="20" cy="8" r=".5"/>',
+    'fingerprint': '<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>',
+    'check': '<path d="M20 6 9 17l-5-5"/>',
+    'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    'arrow-down': '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+    'corner-down-left': '<path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/>',
+    'rotate-ccw': '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+    'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+    'sprout': '<path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3"/><path d="M4 9a5 5 0 0 1 8 4 5 5 0 0 1-8-4"/><path d="M5 21h14"/>',
+    'compass': '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
+    'flame': '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+    'skull': '<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>',
+  };
+  function icon(name, size = 16, sw = 2) {
+    return (
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + size +
+      '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + sw +
+      '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>'
+    );
+  }
+
+  // ── 战绩存取（lib/guess.ts 本地部分同口径；独立版不迁移旧键）──
+  function readJson(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+  function writeJson(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      /* 存储不可用：当次会话内存态继续可用 */
+    }
+  }
+  function wasCounted(dayKey) {
+    try {
+      return localStorage.getItem(settledKey(dayKey)) === '1';
+    } catch {
+      return false;
+    }
+  }
+  function markCounted(dayKey) {
+    try {
+      localStorage.setItem(settledKey(dayKey), '1');
+    } catch {}
+  }
+  function loadStats() {
+    return (
+      readJson(STATS_KEY) ?? { played: 0, won: 0, streak: 0, best: null }
+    );
+  }
+  // 连胜宽松口径：只有「玩了且输了」才断，隔天没玩不断（Wordle 同款）
+  function settleStats(dayKey, won, attempts) {
+    const stats = loadStats();
+    const next = {
+      played: stats.played + 1,
+      won: stats.won + (won ? 1 : 0),
+      streak: won ? stats.streak + 1 : 0,
+      best: won
+        ? stats.best === null
+          ? attempts
+          : Math.min(stats.best, attempts)
+        : stats.best,
+    };
+    writeJson(STATS_KEY, next);
+    writeJson(LAST_DAY_KEY, dayKey);
+  }
+
+  // ── 属性格显示值（app/guess.tsx attributeValue 同口径）──
+  const ATTRIBUTE_LABELS = {
+    vendor: '厂商',
+    released: '发布',
+    openWeights: '权重',
+    contextK: '上下文',
+    modalities: '模态',
+    reasoning: '推理',
+    priceTier: '价格',
+  };
+  function attributeValue(model, key) {
+    switch (key) {
+      case 'vendor':
+        return model.vendor;
+      case 'released':
+        return model.released;
+      case 'openWeights':
+        return model.openWeights ? '开放' : '闭源';
+      case 'contextK':
+        return model.contextK === null ? '?' : `${model.contextK}K`;
+      case 'modalities': {
+        const extra = model.modalities.filter((m) => m !== 'text');
+        if (extra.length === 0) return '纯文本';
+        const map = { image: '图', audio: '音', video: '视' };
+        return extra.map((m) => map[m] ?? m).join('+');
+      }
+      case 'reasoning':
+        return model.reasoning ? '推理' : '直答';
+      case 'priceTier':
+        return model.priceTier === null ? '?' : PRICE_TIERS[model.priceTier].zh;
+      default:
+        return '?';
+    }
+  }
+
+  const DIFFICULTY_ICONS = ['sprout', 'compass', 'flame', 'skull'];
+  const DIFFICULTY_BLURBS = [
+    '热门模型专场，都叫得上名字',
+    '热门与主流都在场，答案得绕点弯',
+    '上面两档之外，经典与冷门也进场',
+    '全库上阵，含只在这里出没的化石与传说',
+  ];
+
+  // ── 状态 ──
+  const emptySession = () => ({
+    guesses: [],
+    finished: false,
+    revealed: false,
+    answer: null,
+  });
+  const state = {
+    mode: null, // null 选择屏；'daily' 每日一题；1-4 练习难度
+    session: null,
+    dayKey: null,
+    dayNumber: null,
+    dailyAnswer: null,
+    practiceAnswer: null,
+    query: '',
+    open: false,
+    activeIndex: 0,
+    error: null,
+    freshGuess: null,
+    settled: false,
+    stats: loadStats(),
+  };
+  const animatedRows = new Set(); // 每行逐格揭示只播一次
+
+  const root = document.getElementById('root');
+  const main = document.getElementById('main');
+
+  function currentAnswer() {
+    return state.mode === 'daily' ? state.dailyAnswer : state.practiceAnswer;
+  }
+  function canGuess() {
+    const s = state.session;
+    return !!s && !s.finished && !s.revealed && s.guesses.length < MAX_ATTEMPTS;
+  }
+
+  // ── 抽题 ──
+  // 练习：合并组算一槽、组内随机版本（与主站 practice/start 同语义）
+  function pickPracticeAnswer(difficulty) {
+    const pool = poolForDifficulty(GUESS_MODELS, difficulty);
+    if (!pool.length) return null;
+    const slots = new Map();
+    for (const m of pool) {
+      const key = m.groupId ?? m.id;
+      const slot = slots.get(key);
+      if (slot) slot.push(m);
+      else slots.set(key, [m]);
+    }
+    const groups = [...slots.values()];
+    const slot = groups[Math.floor(Math.random() * groups.length)];
+    return slot[Math.floor(Math.random() * slot.length)];
+  }
+
+  // ── 结算（只记每日一题，一天一次）──
+  function settleIfDue() {
+    const s = state.session;
+    if (state.mode !== 'daily' || !s || !s.finished || state.settled) return;
+    if (wasCounted(state.dayKey)) {
+      state.settled = true;
+      return;
+    }
+    state.settled = true;
+    const won = s.guesses.some((r) => r.won);
+    settleStats(state.dayKey, won, s.guesses.length);
+    markCounted(state.dayKey);
+    state.stats = loadStats();
+  }
+
+  // 跨零点守护（UTC+8）：页面开着跨过零点后，旧棋盘混两个答案，换新题
+  function dailyRolledOver() {
+    if (state.mode !== 'daily' || !state.dayKey) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(state.dayKey)) return false;
+    if (guessDayKey() === state.dayKey) return false;
+    enterDaily();
+    state.error = '已过零点，新的一天开始了——已为你切到今天的题。';
+    updateError();
+    return true;
+  }
+
+  // ── 翻页过场（folio，与主站 createGameTransition('folio') 同口径）──
+  // 轻薄实色幕横扫：盖满时换屏，再扫出。独立版无重 WebGL 加载，
+  // 不需要主站那套帧时间防卡顿机制，直接用 WAAPI 时间线。
+  const FOLIO = { covered: 230, exitStart: 310, duration: 570 };
+  function reducedMotion() {
+    return (
+      document.documentElement.classList.contains('guess-reduced') ||
+      (window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    );
+  }
+  function folioTransition(direction, onCovered, onFinish) {
+    if (reducedMotion()) {
+      onCovered();
+      onFinish();
+      return;
+    }
+    const sign = direction === 'back' ? -1 : 1;
+    const ease = 'cubic-bezier(.76,0,.24,1)';
+    const layer = document.createElement('div');
+    layer.className = 'game-transition gt-folio';
+    layer.setAttribute('aria-hidden', 'true');
+    const leaf = document.createElement('div');
+    leaf.className = 'gt-folio-leaf';
+    layer.append(leaf);
+    document.body.append(layer);
+    const anim = leaf.animate(
+      [
+        { transform: `translateX(${sign * 102}%)`, offset: 0, easing: ease },
+        { transform: 'translateX(0)', offset: FOLIO.covered / FOLIO.duration },
+        {
+          transform: 'translateX(0)',
+          offset: FOLIO.exitStart / FOLIO.duration,
+          easing: ease,
+        },
+        { transform: `translateX(${-sign * 102}%)`, offset: 1 },
+      ],
+      { duration: FOLIO.duration, fill: 'both', easing: 'linear' },
+    );
+    let coveredFired = false;
+    const fireCovered = () => {
+      if (coveredFired) return;
+      coveredFired = true;
+      onCovered();
+    };
+    const tick = () => {
+      const t = anim.currentTime;
+      if (typeof t === 'number' && t >= FOLIO.covered) fireCovered();
+      if (anim.playState !== 'finished') requestAnimationFrame(tick);
+    };
+    anim.onfinish = () => {
+      fireCovered();
+      layer.remove();
+      onFinish();
+    };
+    requestAnimationFrame(tick);
+  }
+
+  let switching = false;
+  function changeScreen(commit, direction = 'forward') {
+    if (switching) return;
+    switching = true;
+    folioTransition(
+      direction,
+      () => {
+        commit();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      },
+      () => {
+        switching = false;
+        main.focus({ preventScroll: true });
+      },
+    );
+  }
+
+  // ── 发牌入场（deal，与主站 guessNavigate 的 createGameTransition('deal') 同口径）──
+  // 打开页面时播一次：背卡飞入、密牌放大盖满、停顿揭示文案、双半屏拉开。
+  const DEAL = { covered: 720, exitStart: 1370, duration: 2020 };
+  function dealEntrance(onCovered, onDone) {
+    if (reducedMotion()) {
+      if (onCovered) onCovered();
+      if (onDone) onDone();
+      return;
+    }
+    const { covered, exitStart, duration } = DEAL;
+    const dwell = exitStart - covered;
+    const ease = 'cubic-bezier(.76,0,.24,1)';
+    const layer = document.createElement('div');
+    layer.className = 'game-transition gt-deal';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.append(layer);
+    const el = (className, parent, text) => {
+      const node = document.createElement('div');
+      node.className = className;
+      if (text !== undefined) node.textContent = text;
+      (parent || layer).append(node);
+      return node;
+    };
+    const track = (node, frames, start, dur, easing) =>
+      node.animate(frames, {
+        delay: start,
+        duration: dur,
+        fill: 'both',
+        easing: easing || ease,
+      });
+    const move = (node, from, to, start, dur) =>
+      track(node, [{ transform: from }, { transform: to }], start, dur);
+    const fade = (node, from, to, start, dur) =>
+      track(node, [{ opacity: from }, { opacity: to }], start, dur, 'linear');
+
+    for (let i = 0; i < 2; i++) {
+      const back = el(`gt-deal-back gt-deal-back-${i}`);
+      track(
+        back,
+        [
+          {
+            transform: `translateY(120%) rotate(${-18 + i * 7}deg) scale(.22)`,
+            opacity: 1,
+            offset: 0,
+          },
+          {
+            transform: `translateY(0) rotate(${-9 + i * 15}deg) scale(.32)`,
+            opacity: 1,
+            offset: 0.48,
+          },
+          { transform: 'translateY(0) rotate(0deg) scale(1.04)', opacity: 1, offset: 0.88 },
+          { transform: 'translateY(0) rotate(0deg) scale(1.04)', opacity: 0, offset: 1 },
+        ],
+        i * 35,
+        covered + 90,
+        ease,
+      );
+    }
+    const shell = el('gt-deal-shell');
+    track(
+      shell,
+      [
+        {
+          transform: 'translateY(125%) rotate(-11deg) scale(.22)',
+          offset: 0,
+          easing: 'cubic-bezier(.16,1,.3,1)',
+        },
+        {
+          transform: 'translateY(0) rotate(4deg) scale(.32)',
+          offset: 0.46,
+          easing: 'cubic-bezier(.7,0,.15,1)',
+        },
+        { transform: 'translateY(0) rotate(0deg) scale(1)', offset: 1 },
+      ],
+      0,
+      covered,
+      'linear',
+    );
+    for (let i = 0; i < 2; i++) {
+      const half = el(`gt-deal-half gt-deal-half-${i}`, shell);
+      move(half, 'translateX(0)', `translateX(${i ? 101 : -101}%)`, exitStart, 650);
+    }
+    const seal = el('gt-deal-seal', shell, '?');
+    fade(seal, 1, 0, covered - 150, 150);
+    const copy = el('gt-deal-copy', shell);
+    const info = el('gt-deal-info', copy);
+    el('gt-deal-kicker', info, '每日谜题');
+    el('gt-deal-title', info, '模一把');
+    el('gt-deal-note', info, '七条线索，锁定一个名字。');
+    const clues = el('gt-deal-clues', info);
+    for (let i = 0; i < 7; i++) {
+      const clue = el('gt-deal-clue', clues, String(i + 1).padStart(2, '0'));
+      track(
+        clue,
+        [
+          { opacity: 0.18, transform: 'translateY(3px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        covered + (dwell * i) / 10,
+        Math.min(160, dwell * 0.35),
+      );
+    }
+    const symbol = el('gt-deal-symbol', copy);
+    el('gt-deal-orbit', symbol);
+    el('gt-deal-mystery', symbol, '?');
+    el('gt-deal-count', symbol, '08');
+    el('gt-deal-count-label', symbol, '次机会');
+    const sheen = el('gt-deal-sheen', symbol);
+    track(
+      sheen,
+      [
+        { transform: 'translateX(-160%) rotate(-20deg)', opacity: 0 },
+        { transform: 'translateX(0) rotate(-20deg)', opacity: 0.22, offset: 0.45 },
+        { transform: 'translateX(180%) rotate(-20deg)', opacity: 0 },
+      ],
+      covered + 50,
+      dwell + 80,
+      'cubic-bezier(.22,.6,.3,1)',
+    );
+    track(
+      copy,
+      [
+        { opacity: 0, transform: 'translateY(9px)', offset: 0 },
+        { opacity: 1, transform: 'translateY(0)', offset: 0.2 },
+        { opacity: 1, transform: 'translateY(0)', offset: 0.8 },
+        { opacity: 0, transform: 'translateY(-8px)', offset: 1 },
+      ],
+      covered,
+      dwell + 150,
+      'linear',
+    );
+    move(
+      symbol,
+      'perspective(1000px) rotateY(-18deg) rotate(-6deg)',
+      'perspective(1000px) rotateY(-3deg) rotate(1deg)',
+      covered,
+      dwell + 150,
+    );
+
+    const t0 = performance.now();
+    let coveredFired = false;
+    const fireCovered = () => {
+      if (coveredFired) return;
+      coveredFired = true;
+      if (onCovered) onCovered();
+    };
+    const tick = (now) => {
+      const t = now - t0;
+      if (t >= covered) fireCovered();
+      if (t < duration) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      layer.remove();
+      fireCovered();
+      if (onDone) onDone();
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // ── 流程 ──
+  function enterDaily(animate) {
+    const commit = () => {
+      state.mode = 'daily';
+      state.dayKey = guessDayKey();
+      state.dayNumber = dayNumber();
+      state.dailyAnswer = answerForDate(new Date(), dailyPool(GUESS_MODELS));
+      state.practiceAnswer = null;
+      state.session = emptySession();
+      state.stats = loadStats();
+      state.settled = false;
+      resetRoundUi();
+      showGame();
+    };
+    if (animate) changeScreen(commit);
+    else commit();
+  }
+
+  function enterPractice(d, animate) {
+    const pool = poolForDifficulty(GUESS_MODELS, d);
+    if (!pool.length) {
+      state.error = '这一档还没有收录模型，先玩别的难度吧。';
+      renderPicker();
+      return;
+    }
+    const commit = () => {
+      state.mode = d;
+      state.dayKey = guessDayKey();
+      state.dayNumber = dayNumber();
+      state.dailyAnswer = null;
+      state.practiceAnswer = pickPracticeAnswer(d);
+      state.session = emptySession();
+      state.settled = false;
+      resetRoundUi();
+      showGame();
+    };
+    if (animate) changeScreen(commit);
+    else commit();
+  }
+
+  function resetRoundUi() {
+    state.query = '';
+    state.open = false;
+    state.activeIndex = 0;
+    state.error = null;
+    state.freshGuess = null;
+    animatedRows.clear();
+  }
+
+  function backToPicker(animate) {
+    const commit = () => {
+      state.mode = null;
+      state.session = null;
+      state.dailyAnswer = null;
+      state.practiceAnswer = null;
+      resetRoundUi();
+      renderPicker();
+    };
+    if (animate) changeScreen(commit, 'back');
+    else commit();
+  }
+
+  // 重玩今天（每日一题）：清盘重开，答案不变，战绩不重复结算
+  function replay() {
+    if (state.mode !== 'daily') return;
+    state.session = emptySession();
+    resetRoundUi();
+    updateAll();
+  }
+
+  // 再来一把（练习模式）：同难度开新随机题
+  function playAgain() {
+    if (state.mode === null || state.mode === 'daily') return;
+    state.practiceAnswer = pickPracticeAnswer(state.mode);
+    state.session = emptySession();
+    resetRoundUi();
+    updateAll();
+  }
+
+  function submit(model) {
+    if (!model || !canGuess()) return;
+    if (dailyRolledOver()) return;
+    const answer = currentAnswer();
+    if (!answer) return;
+    const fb = judge(model, answer);
+    const s = state.session;
+    s.guesses = s.guesses.concat([{ guess: model, attributes: fb.attributes, won: fb.won }]);
+    const isFinalAttempt = s.guesses.length === MAX_ATTEMPTS;
+    s.finished = fb.won || isFinalAttempt;
+    s.revealed = fb.won || isFinalAttempt;
+    s.answer = s.finished ? answer : null;
+    state.query = '';
+    state.open = false;
+    state.activeIndex = 0;
+    state.error = null;
+    state.freshGuess = model.id;
+    settleIfDue();
+    updateAll();
+    focusInput();
+  }
+
+  // 手动看答案（按负场结算，与主站同口径）
+  function revealAnswer() {
+    const s = state.session;
+    if (!s || !s.guesses.length) return;
+    if (dailyRolledOver()) return;
+    s.revealed = true;
+    s.finished = true;
+    s.answer = currentAnswer();
+    state.error = null;
+    settleIfDue();
+    updateAll();
+  }
+
+  // ── 渲染 ──
+  function esc(s) {
+    return String(s).replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+    );
+  }
+
+  function feedbackCellHtml(fb, value, index, label) {
+    const status =
+      fb.state === 'hit' ? '吻合' : fb.state === 'near' ? '接近' : fb.state === 'unknown' ? '未公开' : '不符';
+    const arrow = fb.arrow;
+    const indicator = arrow
+      ? arrow === 'up'
+        ? icon('arrow-up', 13)
+        : icon('arrow-down', 13)
+      : fb.state === 'hit'
+        ? icon('check', 12)
+        : fb.state === 'unknown'
+          ? '?'
+          : '<span class="gcell-dash"></span>';
+    const aria =
+      label + ': ' + value + ', ' + status +
+      (arrow ? ', ' + (arrow === 'up' ? '答案更大或更新' : '答案更小或更早') : '');
+    return (
+      '<td class="gcell ' + fb.state + '" style="--cell-order:' + index +
+      '" aria-label="' + esc(aria) + '">' +
+      '<span class="gcell-value">' + esc(value) + '</span>' +
+      '<span class="gcell-indicator" aria-hidden="true">' + indicator + '</span></td>'
+    );
+  }
+
+  function editionHtml() {
+    const num = String(state.dayNumber).padStart(3, '0');
+    if (state.mode === 'daily')
+      return (
+        '<div class="guess-edition"><span>每日挑战</span><b>#' + num + '</b><span>' +
+        esc(state.dayKey.replaceAll('-', '.')) + '</span></div>'
+      );
+    return (
+      '<div class="guess-edition"><span>练习模式</span><b>' +
+      esc(DIFFICULTY_INFO[state.mode - 1].zh) + '</b><span>随机出题</span></div>'
+    );
+  }
+
+  function renderPicker() {
+    root.dataset.screen = 'picker';
+    const dayKey = guessDayKey();
+    const num = String(dayNumber()).padStart(3, '0');
+    const done = wasCounted(dayKey);
+    const dailyCount = dailyPool(GUESS_MODELS).length;
+
+    let cards = '';
+    for (const d of GUESS_DIFFICULTIES) {
+      const info = DIFFICULTY_INFO[d - 1];
+      const count = poolForDifficulty(GUESS_MODELS, d).length;
+      const unavailable = count === 0;
+      cards +=
+        '<button type="button" class="guess-difficulty-card" data-level="' + d +
+        '" data-action="enter-practice" data-difficulty="' + d + '"' +
+        (unavailable ? ' disabled' : '') + '>' +
+        '<span class="guess-difficulty-icon" aria-hidden="true">' + icon(DIFFICULTY_ICONS[d - 1], 26, 1.6) + '</span>' +
+        '<span class="guess-difficulty-name"><b>' + esc(info.zh) + '</b><small>' +
+        String(d).padStart(2, '0') + ' / ' + String(GUESS_DIFFICULTIES.length).padStart(2, '0') + '</small></span>' +
+        '<span class="guess-difficulty-blurb">' + esc(DIFFICULTY_BLURBS[d - 1]) + '</span>' +
+        '<span class="guess-difficulty-meta"><span>候选 ' + count + ' 个模型</span>' +
+        '<span class="guess-difficulty-status is-fresh">' +
+        (unavailable ? '筹备中' : '随机出题 · 不限次数') + '</span></span>' +
+        icon('arrow-up-right', 18).replace('<svg ', '<svg class="guess-difficulty-go" ') +
+        '</button>';
+    }
+
+    main.innerHTML =
+      '<section class="guess-difficulty" aria-labelledby="guess-difficulty-title">' +
+      '<div class="guess-difficulty-head">' +
+      '<div class="guess-edition"><span>每日挑战</span><b>#' + num + '</b><span>' +
+      esc(dayKey.replaceAll('-', '.')) + '</span></div>' +
+      '<h1 id="guess-difficulty-title">模一把<span aria-hidden="true">↗</span></h1>' +
+      '<p>每天一道全世界同题；或者选个难度练习，随机出题不限次。</p></div>' +
+      '<button type="button" class="guess-difficulty-card guess-daily-card" data-action="enter-daily">' +
+      '<span class="guess-daily-art" aria-hidden="true"><span>?</span><i></i><i></i></span>' +
+      '<span class="guess-difficulty-icon" aria-hidden="true">' + icon('trophy', 26, 1.6) + '</span>' +
+      '<span class="guess-difficulty-name"><b>每日一题</b><small>全球同题</small></span>' +
+      '<span class="guess-difficulty-blurb">全世界同一道题，从热门与主流模型里出，猜完见分晓。</span>' +
+      '<span class="guess-difficulty-meta"><span>候选 ' + dailyCount + ' 个模型</span>' +
+      '<span class="guess-difficulty-status is-' + (done ? 'done' : 'fresh') + '">' +
+      (done ? '今日战绩已记录' : '今天还没玩') + '</span></span>' +
+      icon('arrow-up-right', 18).replace('<svg ', '<svg class="guess-difficulty-go" ') +
+      '</button>' +
+      '<div class="guess-practice-heading"><h2>练习模式</h2><span>随机出题 · 不限次数</span></div>' +
+      '<div class="guess-difficulty-grid">' + cards + '</div>' +
+      (state.error ? '<p class="guess-error" role="alert">' + esc(state.error) + '</p>' : '') +
+      '<p class="guess-difficulty-foot">每日一题只从简单与普通池出；练习不限次，战绩只记每日题。</p>' +
+      '</section>';
+  }
+
+  function showGame() {
+    root.dataset.screen = 'game';
+    const won = state.session.guesses.some((r) => r.won);
+    const poolSize =
+      state.mode === 'daily'
+        ? dailyPool(GUESS_MODELS).length
+        : poolForDifficulty(GUESS_MODELS, state.mode).length;
+
+    main.innerHTML =
+      '<section class="guess-hero" aria-labelledby="guess-title">' +
+      '<div class="guess-hero-copy">' +
+      '<a class="guess-back" data-action="back-picker">' + icon('arrow-left', 14) + '返回选择模式</a>' +
+      editionHtml() +
+      '<h1 id="guess-title">模一把<span aria-hidden="true">↗</span></h1>' +
+      '<p class="guess-tagline">把它的名字，猜出来。</p>' +
+      '<p class="guess-intro">' +
+      (state.mode === 'daily'
+        ? '七条线索，八次机会。今天的 AI 模型，会是谁？'
+        : '七条线索，八次机会。不限次数，再来一把。') +
+      '</p></div>' +
+      '<div class="guess-art' + (won ? ' is-solved' : '') + '" id="guess-art" aria-hidden="true">' +
+      '<div class="guess-art-orbit orbit-one"></div>' +
+      '<div class="guess-art-orbit orbit-two"></div>' +
+      '<div class="guess-card-stack">' +
+      '<div class="guess-card-sheet sheet-back"></div>' +
+      '<div class="guess-card-sheet sheet-mid"></div>' +
+      '<div class="guess-card-sheet sheet-front">' +
+      '<div class="guess-card-top">' + icon('brain-circuit', 22) + '<span>#' + String(state.dayNumber).padStart(3, '0') + '</span></div>' +
+      '<strong>' + (won ? icon('check', 106, 1.5) : '?') + '</strong>' +
+      '<div class="guess-card-bottom"><span>' + (won ? '身份已揭晓' : '今日未知模型') + '</span>' + icon('fingerprint', 24) + '</div>' +
+      '</div></div>' +
+      '<div class="guess-art-shadow"></div>' +
+      '<div class="guess-art-caption"><span id="pool-size">' + poolSize + '</span>个模型，唯一答案</div>' +
+      '</div></section>' +
+      '<section class="guess-console" aria-label="猜模型">' +
+      '<div class="guess-console-top" id="console-top"></div>' +
+      '<div id="search-area"></div>' +
+      '<div id="error-slot"></div>' +
+      '<div class="guess-board-heading"><h2>推理记录</h2><div class="guess-legend">' +
+      '<span><i class="hit"></i>吻合</span><span><i class="near"></i>接近</span><span><i class="miss"></i>不符</span>' +
+      '</div></div>' +
+      '<div class="guess-board-scroll" tabindex="0" role="region" aria-label="猜测历史，可横向滚动">' +
+      '<table class="guess-board" aria-label="猜测历史"><thead><tr class="guess-row guess-row-head">' +
+      '<th class="gcell-name" scope="col">模型</th>' +
+      ATTRIBUTE_KEYS.map((k) => '<th scope="col">' + ATTRIBUTE_LABELS[k] + '</th>').join('') +
+      '</tr></thead><tbody id="board-body"></tbody></table></div>' +
+      '<div id="empty-slot"></div>' +
+      '<div class="guess-board-foot"><span>↑ ↓ 指向答案的方向</span><span>? 表示未公开，不计对错</span></div>' +
+      '</section>' +
+      '<div id="stats-slot"></div>' +
+      '<details class="guess-rules"><summary>怎么玩' + icon('chevron-down', 14) + '</summary><div>' +
+      '<p>每日一题全世界同一道题（东八区零点更新），只从热门与主流模型里出；练习模式选难度随机出题、不限次数。反馈规则：厂商相同为绿、同国家为黄；发布时间、上下文、价格接近为黄并给箭头方向；「?」表示该属性未公开，不计对错。</p>' +
+      '<p>价格按官方 API 输出单价分档；箭头指向答案更高或更低的方向。</p>' +
+      '<p>战绩只记每日一题，一天只记一次；练习模式随便刷，不影响连胜。对局不保存：退出或刷新就重新开局，每日题的答案不变。</p>' +
+      '</div></details>';
+
+    updateAll();
+    if (canGuess()) focusInput();
+  }
+
+  function updateAll() {
+    updateConsoleTop();
+    updateSearchArea();
+    updateBoard();
+    updateEmpty();
+    updateStats();
+    updateHero();
+    updateError();
+    root.dataset.finished = String(!!(state.session && state.session.finished));
+    root.dataset.revealing = String(!!state.freshGuess);
+  }
+
+  function updateConsoleTop() {
+    const s = state.session;
+    const attempts = s.guesses.length;
+    const won = s.guesses.some((r) => r.won);
+    const cg = canGuess();
+    const chip =
+      '<button type="button" class="guess-difficulty-chip" data-action="back-picker" title="返回选择模式">' +
+      (state.mode === 'daily' ? '每日一题<small>DAILY</small>' : esc(DIFFICULTY_INFO[state.mode - 1].zh) + '<small>' + DIFFICULTY_INFO[state.mode - 1].en.toUpperCase() + '</small>') +
+      icon('rotate-ccw', 12) + '</button>';
+    const turn =
+      '<div class="guess-turn"><span>' +
+      (s.finished ? (state.mode === 'daily' ? '今日挑战已完成' : '本局结束') : '剩余机会') +
+      '</span><strong>' + String(MAX_ATTEMPTS - attempts).padStart(2, '0') +
+      '<small> / ' + MAX_ATTEMPTS + '</small></strong></div>';
+    let cells = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const cls =
+        i < attempts
+          ? s.guesses[i].won ? 'is-win' : 'is-used'
+          : i === attempts && cg ? 'is-current' : '';
+      const inner =
+        i < attempts && s.guesses[i].won ? icon('check', 14) : String(i + 1).padStart(2, '0');
+      cells += '<span class="' + cls + '">' + inner + '</span>';
+    }
+    document.getElementById('console-top').innerHTML =
+      chip + turn + '<div class="guess-attempts" aria-label="已使用 ' + attempts + ' 次机会">' + cells + '</div>';
+  }
+
+  function updateSearchArea() {
+    const s = state.session;
+    const attempts = s.guesses.length;
+    const cg = canGuess();
+    const area = document.getElementById('search-area');
+    if (cg) {
+      area.innerHTML =
+        '<div class="guess-search-section">' +
+        '<div class="guess-input-wrap">' +
+        '<div class="guess-input">' + icon('search', 22) +
+        '<input id="guess-input" type="text" autocomplete="off" spellcheck="false"' +
+        ' placeholder="输入模型名，开始推理…" role="combobox" aria-autocomplete="list"' +
+        ' aria-expanded="false" aria-controls="guess-candidates" aria-label="输入要猜的模型名" />' +
+        '<button class="guess-submit" type="button" data-action="submit-active" disabled>' +
+        '<span>猜一下</span>' + icon('arrow-up-right', 20) + '</button></div>' +
+        '<div id="suggest-host"></div></div>' +
+        '<p class="guess-search-hint"><span>支持模型名称搜索</span><span>' +
+        icon('corner-down-left', 12) + '回车提交</span></p>' +
+        (attempts > 0
+          ? '<button class="guess-reveal" data-action="reveal">不想猜了，直接看答案</button>'
+          : '') +
+        '</div>';
+      bindInput();
+      renderSuggest();
+    } else {
+      const won = s.guesses.some((r) => r.won);
+      const answer = s.answer;
+      area.innerHTML =
+        '<div class="guess-result ' + (won ? 'is-win' : 'is-loss') + (state.freshGuess ? ' is-fresh' : '') +
+        '" aria-live="polite">' +
+        '<div class="guess-result-symbol">' + icon(won ? 'trophy' : 'fingerprint', 32) + '</div>' +
+        '<div class="guess-result-copy"><span>' +
+        (won ? '漂亮，锁定目标。' : state.mode === 'daily' ? '答案揭晓，明天再来。' : '答案揭晓，再来一把？') +
+        '</span><h2>' +
+        esc(answer ? answer.name : s.guesses.find((r) => r.won) ? s.guesses.find((r) => r.won).guess.name : '…') +
+        '</h2><p>' +
+        esc(answer ? answer.vendor : '') +
+        (won ? ' · 用了 ' + attempts + ' 次猜中' : '') +
+        (answer && answer.priceOut != null ? ' · $' + answer.priceOut + '/M' : '') +
+        '</p></div>' +
+        '<div class="guess-result-actions">' +
+        (state.mode === 'daily'
+          ? '<button type="button" class="guess-replay" data-action="replay">' + icon('rotate-ccw', 15) + '重玩今天</button>'
+          : '<button type="button" class="guess-primary guess-share" data-action="play-again">' + icon('rotate-ccw', 17) + '再来一把</button>') +
+        '</div></div>';
+    }
+  }
+
+  function bindInput() {
+    const input = document.getElementById('guess-input');
+    if (!input) return;
+    input.value = state.query;
+    input.addEventListener('input', () => {
+      state.query = input.value;
+      state.activeIndex = 0;
+      state.open = true;
+      renderSuggest();
+    });
+    input.addEventListener('focus', () => {
+      state.open = true;
+      renderSuggest();
+    });
+    input.addEventListener('blur', () => {
+      state.open = false;
+      renderSuggest();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        state.open = false;
+        renderSuggest();
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        state.open = true;
+        const cands = candidates();
+        state.activeIndex = cands.length
+          ? (state.activeIndex + (e.key === 'ArrowDown' ? 1 : -1) + cands.length) % cands.length
+          : 0;
+        renderSuggest();
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const cands = candidates();
+        if (cands.length) submit(cands[Math.min(state.activeIndex, cands.length - 1)]);
+      }
+    });
+  }
+
+  function candidates() {
+    const usedIds = new Set(state.session.guesses.map((r) => r.guess.id));
+    return searchGuessModels(
+      GUESS_MODELS.filter((m) => !usedIds.has(m.id)),
+      state.query,
+    );
+  }
+
+  function renderSuggest() {
+    const host = document.getElementById('suggest-host');
+    const input = document.getElementById('guess-input');
+    const submitBtn = host ? host.parentElement.querySelector('.guess-submit') : null;
+    const cands = candidates();
+    if (input) {
+      input.setAttribute('aria-expanded', String(state.open && state.query.trim() !== ''));
+      input.setAttribute(
+        'aria-activedescendant',
+        state.open && cands.length
+          ? 'guess-option-' + Math.min(state.activeIndex, cands.length - 1)
+          : '',
+      );
+    }
+    if (submitBtn) submitBtn.disabled = !cands.length;
+    if (!host) return;
+    if (!state.open || state.query.trim() === '') {
+      host.innerHTML = '';
+      return;
+    }
+    const list = cands
+      .map(
+        (m, i) =>
+          '<li id="guess-option-' + i + '" role="option" aria-selected="' + (i === state.activeIndex) + '"' +
+          (i === state.activeIndex ? ' class="is-active"' : '') + '>' +
+          '<button type="button" tabindex="-1" data-action="pick" data-id="' + esc(m.id) + '" data-index="' + i + '">' +
+          '<span class="guess-model-mark">' + esc(m.vendor.slice(0, 1)) + '</span>' +
+          '<span><b>' + esc(m.name) + '</b><small>' + esc(m.vendor) + '</small></span>' +
+          '<time>' + esc(m.released) + '</time>' + icon('arrow-up-right', 17) +
+          '</button></li>',
+      )
+      .join('');
+    host.innerHTML =
+      '<div class="guess-suggest"><div class="guess-suggest-heading"><span>匹配的模型</span><span>' +
+      icon('corner-down-left', 12) + '确认</span></div>' +
+      (cands.length
+        ? '<ul id="guess-candidates" role="listbox" aria-label="模型候选">' + list + '</ul>'
+        : '<p class="guess-no-match">没有找到这个模型，换个名字试试。</p>') +
+      '</div>';
+    // 保持键盘选中项可见（只滚列表，不动页面）
+    const listEl = document.getElementById('guess-candidates');
+    const option = listEl && listEl.children[Math.min(state.activeIndex, cands.length - 1)];
+    if (listEl && option) {
+      const top = option.getBoundingClientRect().top - listEl.getBoundingClientRect().top + listEl.scrollTop;
+      if (top < listEl.scrollTop) listEl.scrollTop = top;
+      else if (top + option.offsetHeight > listEl.scrollTop + listEl.clientHeight)
+        listEl.scrollTop = top + option.offsetHeight - listEl.clientHeight;
+    }
+  }
+
+  function updateBoard() {
+    const s = state.session;
+    const cg = canGuess();
+    const rows = s.guesses
+      .map((row, rowIndex) => {
+        const fresh = row.guess.id === state.freshGuess && !animatedRows.has(row.guess.id);
+        if (fresh) animatedRows.add(row.guess.id);
+        return (
+          '<tr class="guess-row' + (fresh ? ' is-new' : '') + (row.won ? ' is-correct' : '') + '">' +
+          '<th class="gcell-name" scope="row"><span class="guess-row-number">' +
+          String(rowIndex + 1).padStart(2, '0') + '</span><span><b>' + esc(row.guess.name) +
+          '</b><small>' + esc(row.guess.vendor) + '</small></span></th>' +
+          ATTRIBUTE_KEYS.map((key, index) => {
+            const fb = row.attributes[key] ?? { state: 'unknown', arrow: null };
+            return feedbackCellHtml(fb, attributeValue(row.guess, key), index, ATTRIBUTE_LABELS[key]);
+          }).join('') +
+          '</tr>'
+        );
+      })
+      .join('');
+    const ghost = cg
+      ? '<tr class="guess-row guess-ghost" aria-hidden="true"><td class="gcell-name">' +
+        '<span class="guess-row-number">' + String(s.guesses.length + 1).padStart(2, '0') + '</span>' +
+        '<span>下一个猜测</span></td>' +
+        ATTRIBUTE_KEYS.map((k) => '<td><span>?</span></td>').join('') + '</tr>'
+      : '';
+    document.getElementById('board-body').innerHTML = rows + ghost;
+  }
+
+  function updateEmpty() {
+    const slot = document.getElementById('empty-slot');
+    slot.innerHTML = state.session.guesses.length
+      ? ''
+      : '<div class="guess-empty">' + icon('fingerprint', 30, 1.3) +
+        '<div><strong>每一次猜测，离答案更近。</strong><p>先选一个熟悉的模型，七条线索会在这里揭开。</p></div>' +
+        '<div class="guess-empty-tiles" aria-hidden="true"><i></i><i></i><i></i></div></div>';
+  }
+
+  function updateStats() {
+    const slot = document.getElementById('stats-slot');
+    if (state.mode !== 'daily') {
+      slot.innerHTML = '';
+      return;
+    }
+    const st = state.stats;
+    slot.innerHTML =
+      '<section class="guess-footer" aria-label="本地战绩">' +
+      '<div class="guess-stats-intro">' + icon('fingerprint', 21) +
+      '<span>你的战绩<small>只记每日一题，保存在这台设备</small></span></div>' +
+      '<dl class="guess-stats">' +
+      '<div><dt>已玩</dt><dd>' + st.played + '<small>场</small></dd></div>' +
+      '<div><dt>胜率</dt><dd>' + (st.played ? Math.round((st.won / st.played) * 100) : 0) + '<small>%</small></dd></div>' +
+      '<div><dt>连胜</dt><dd>' + st.streak + '<small>场</small></dd></div>' +
+      '<div><dt>最少步数</dt><dd>' + (st.best ?? '·') + '<small>次</small></dd></div>' +
+      '</dl></section>';
+  }
+
+  function updateHero() {
+    const art = document.getElementById('guess-art');
+    if (!art || !state.session) return;
+    const won = state.session.guesses.some((r) => r.won);
+    art.classList.toggle('is-solved', won);
+    const strong = art.querySelector('.sheet-front strong');
+    if (strong) strong.innerHTML = won ? icon('check', 106, 1.5) : '?';
+    const bottom = art.querySelector('.guess-card-bottom span');
+    if (bottom) bottom.textContent = won ? '身份已揭晓' : '今日未知模型';
+  }
+
+  function updateError() {
+    const slot = document.getElementById('error-slot');
+    if (!slot) return;
+    slot.innerHTML = state.error
+      ? '<p class="guess-error" role="alert">' + esc(state.error) + '</p>'
+      : '';
+  }
+
+  function focusInput() {
+    const input = document.getElementById('guess-input');
+    if (input) input.focus();
+  }
+
+  // ── 事件委托 ──
+  root.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    if (action === 'enter-daily') enterDaily(true);
+    else if (action === 'enter-practice') enterPractice(Number(target.dataset.difficulty), true);
+    else if (action === 'back-picker') backToPicker(true);
+    else if (action === 'submit-active') {
+      const cands = candidates();
+      if (cands.length) submit(cands[Math.min(state.activeIndex, cands.length - 1)]);
+    } else if (action === 'pick') {
+      const m = modelById.get(target.dataset.id);
+      if (m) submit(m);
+    } else if (action === 'reveal') revealAnswer();
+    else if (action === 'replay') replay();
+    else if (action === 'play-again') playAgain();
+    else if (action === 'brand') backToPicker();
+  });
+  // 点建议列表不抢输入框焦点（与 React 版 onMouseDown preventDefault 同效）
+  root.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.guess-suggest')) e.preventDefault();
+  });
+  document.getElementById('brand').addEventListener('click', backToPicker);
+
+  const revealPicker = () => document.body.classList.remove('gt-entering');
+  renderPicker();
+  document.body.classList.add('gt-entering');
+  dealEntrance(revealPicker, revealPicker);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1016 @@
+@charset "UTF-8";
+/* ==========================================================================
+   DESIGN KIT — 「纸面仪器 / Paper Instrument」
+
+   一套可搬去任何项目的设计系统：零依赖、零构建、无 CSS 预处理器。
+   引入方式：<link rel="stylesheet" href="design-kit.css">
+   或把第 1 节 TOKENS 单独复制进你的 :root。
+
+   结构：
+     1  TOKENS      —— 换皮只改这一节
+     2  BASE        —— reset 与全局默认
+     3  TYPE        —— 排版（两极字距是核心）
+     4  SURFACE     —— 纸面 / 墨面 / 顶栏
+     5  SHAPE       —— 切角、角括号、细线
+     6  BUTTON      —— 硬投影物理按键 + 切角按钮
+     7  INSTRUMENT  —— 刻度尺、网格、状态点、字标、水印
+     8  FEEDBACK    —— 高光扫过、粒子迸发、禁用与焦点
+     9  MOTION      —— 入场、错峰、折叠
+    10  THEME       —— 深色子世界
+    11  RESPONSIVE  —— 断点与触摸热区
+    12  A11Y        —— reduced-motion
+
+   所有类名带 dk- 前缀，不会与宿主项目冲突。
+   类名可自由改名；**token 名与结构关系不要改**，它们是这套系统的骨架。
+
+   TOKEN 设计原则（踩过坑，务必保留）：
+   「字面量」与「角色」必须分开。
+     字面量 = --dk-paper* / --dk-ink*，是具体的表面颜色，永远指"某块面的底色"。
+     角色   = --dk-fg* / --dk-line*，是"文字/描边该用什么"，随主题重指向。
+   早期版本在深色主题里把 --dk-ink 翻转成前景色，结果所有把 ink 当背景用的
+   地方（顶栏、墨面卡片）全部变成浅字压浅底。不要重蹈覆辙。
+   ========================================================================== */
+
+/* ==========================================================================
+   1. TOKENS
+   六个色角色 + 三套字体 + 两条缓动 + 四档时长。
+   换皮 = 只改色值，不改结构。角色比数值重要。
+   ========================================================================== */
+
+:root {
+  /* ---- 字面量：纸（三层）----
+     paper-2 是页面底，paper 是普通面，paper-3 是凸起面（卡片/输入框）。
+     三层之间只差 3–6 个亮度单位——纸面质感靠"几乎看不见的层次"，不靠强对比。 */
+  --dk-paper: #dfe3dd;
+  --dk-paper-2: #d9ddda;
+  --dk-paper-3: #e8eae6;
+  --dk-paper-hi: #eef0e9; /* hover 提亮面 */
+
+  /* ---- 字面量：墨（深色表面）----
+     永远指"一块深色的面"，不指文字。 */
+  --dk-ink: #1c2423;
+  --dk-ink-2: #263029; /* 深面的浅一档（条幅/黑条） */
+
+  /* ---- 角色：前景文字 ----
+     fg 三档用在纸面上；fg-on-ink 三档用在墨面上。
+     深色主题里这两组会指向同一批浅色值——这正是"角色"存在的意义。 */
+  --dk-fg: #1c2423;
+  --dk-fg-soft: #5b655f;
+  --dk-fg-faint: #71806b;
+  --dk-fg-on-ink: #e8eee6;
+  --dk-fg-on-ink-soft: #a0ad97;
+  --dk-fg-on-ink-faint: #90a181;
+
+  /* ---- 角色：描边 ---- */
+  --dk-line: #b4beb5;      /* 纸面常规描边 */
+  --dk-line-soft: #c7cebd; /* 更弱的分隔线 */
+  --dk-line-ink: #4a5b3c;  /* 墨面上的描边 */
+  --dk-line-on-ink: #455048;
+
+  /* ---- 角色：强调（唯一）----
+     accent 是全站唯一的强调色。出现频率最高，但每次只用于"这里最重要"。
+     accent-ink 是 accent 底上的文字色——不要用纯黑，用带同色相的深墨。
+     accent-dim 是 accent 的暗版，用于浅色面上的焦点环/描边。 */
+  --dk-accent: #d9fb51;
+  --dk-accent-ink: #192020;
+  --dk-accent-dim: #718522;
+
+  /* ---- 角色：硬投影 ----
+     投影不是黑，是比纸面暗一档的橄榄灰。这是"纸叠纸"而非"物体悬浮"。 */
+  --dk-shadow: #a2ad87;
+  --dk-shadow-alt: #aabc95;
+
+  /* ---- 字面量：二元对立（可选）----
+     只在需要区分"左/右""A/B""我方/对方"时使用，永远不当主色。 */
+  --dk-a: #ff7869;
+  --dk-a-soft: #fb9a8b;
+  --dk-b: #8bc9dd;
+  --dk-b-soft: #b7dce4;
+
+  /* ---- 字体 ----
+     sans：工业感窄体无衬线。Bahnschrift(Win) / DIN Alternate(mac) 优先，
+           都缺则退到系统中性无衬线——气质会弱一点，但布局不塌。
+           想要完整气质就自托管一个 DIN 系或 MiSans/Archivo Narrow。
+     mono：仪器标签专用。注意原系统里 Bahnschrift 排在 Consolas 前面——
+           标签要的其实是"工业窄体"的气质，不是严格等宽。这是有意的。
+     serif-en / serif-cjk：长文与引文，制造与界面的材质反差。 */
+  --dk-sans: 'Bahnschrift', 'DIN Alternate', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+  --dk-mono: 'Bahnschrift', 'Consolas', ui-monospace, 'Courier New', monospace;
+  --dk-serif-en: Georgia, 'Times New Roman', serif;
+  --dk-serif-cjk: 'Songti SC', 'SimSun', 'Noto Serif SC', serif;
+
+  /* ---- 形 ----
+     radius 恒为 0：这套系统靠切角（chamfer）而非圆角塑形。
+     chamfer 是招牌形状——右下角斜切。12px 是标准，7px 用于小元件。 */
+  --dk-radius: 0;
+  --dk-chamfer: 12px;
+  --dk-chamfer-sm: 7px;
+
+  /* ---- 动 ----
+     只有两条曲线。ease-out 用于一切"出场/抬升/揭幕"，
+     ease-in-out 用于一切"横扫/开合/对称运动"。
+     bounce 曲线（0.34,1.96,0.64,1）全站只允许用一次——点击确认的那下 pop。 */
+  --dk-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dk-ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --dk-ease-pop: cubic-bezier(0.34, 1.96, 0.64, 1);
+
+  /* 四档时长：不要在档位之间取中间值，那会让节奏散掉。 */
+  --dk-t-micro: 0.2s;   /* 颜色、边框、transform 抬升 */
+  --dk-t-enter: 0.55s;  /* 单个元素入场 */
+  --dk-t-stage: 0.85s;  /* 布局/容器尺寸/舞台切换 */
+  --dk-t-slow: 1.3s;    /* 慢镜头（图片缓推） */
+  --dk-stagger: 0.08s;  /* 错峰步进，唯一值 */
+
+  /* ---- 投影 ----
+     三态一套：静置 3/4，hover 涨到 5/7，active 塌到 1/1。
+     "涨"和"塌"配合 translate 才成立——投影是位移的影子，不能单独动。 */
+  --dk-lift: 3px 4px 0 var(--dk-shadow);
+  --dk-lift-hover: 5px 7px 0 var(--dk-shadow);
+  --dk-lift-active: 1px 1px 0 var(--dk-shadow);
+
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   2. BASE
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* 浅色纸面站点必须显式声明 light：
+     否则手机系统深色模式会让 UA 把下拉弹层、勾选框、滚动条画成深色，
+     浅底上冒黑块。深色子世界在 [data-dk-theme] 里翻成 dark。 */
+  color-scheme: light;
+  background: var(--dk-paper-2);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--dk-paper-2);
+  color: var(--dk-fg);
+  font-family: var(--dk-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  cursor: default;
+}
+
+/* 焦点环：3px 实线 + 5px offset，在纸面上够醒目又不精致过头。
+   墨面上要用负 offset 内缩，否则环会跑出面板。 */
+:focus-visible {
+  outline: 3px solid var(--dk-accent-dim);
+  outline-offset: 5px;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+::selection {
+  color: var(--dk-fg);
+  background: var(--dk-accent);
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   3. TYPE —— 两极字距
+   核心规律：字号越大字距越紧（负值），字号越小字距越松（正值）。
+   中间地带几乎不存在。这个反差是整套视觉的张力来源。
+   ========================================================================== */
+
+/* 巨型展示：斜体 + 900 + 极紧字距。用于水印、封面数字。 */
+.dk-display {
+  font: italic 900 clamp(64px, 12vw, 180px)/0.85 var(--dk-sans);
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+/* 区块标题：850 字重 + 负字距。clamp 保证跨屏一致。 */
+.dk-title {
+  font-size: clamp(23px, 2.4vw, 35px);
+  font-weight: 850;
+  line-height: 1.1;
+  letter-spacing: -1.6px;
+  margin: 0;
+}
+.dk-title > span {
+  color: var(--dk-accent-dim); /* 标题里允许一段降调，制造层次 */
+}
+
+.dk-h3 {
+  font-size: clamp(17px, 1.6vw, 23px);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.dk-body {
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* 长文正文：切到衬线，行高拉到 1.9。材质反差让"阅读"和"操作"分开。 */
+.dk-longform {
+  font-family: var(--dk-serif-cjk);
+  font-size: 16px;
+  line-height: 1.9;
+}
+.dk-longform p {
+  margin: 0 0 12px;
+}
+
+/* 仪器标签：整套系统最有辨识度的元素。
+   7–11px + 等宽 + 1–4px 正字距 + 全大写。用于编号、状态、时间戳、元数据。 */
+.dk-label {
+  font-family: var(--dk-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dk-fg-faint);
+}
+.dk-label--xs { font-size: 8px;  letter-spacing: 1.4px; }
+.dk-label--lg { font-size: 12px; letter-spacing: 2.5px; }
+
+/* 大数字：等宽 + 高字重，用于分数、票数、编号。 */
+.dk-num {
+  font: 650 clamp(24px, 3vw, 36px)/1 var(--dk-mono);
+  letter-spacing: -1px;
+}
+
+/* 英文引文 / 装饰衬线 */
+.dk-quote {
+  font: italic 60px/0.7 var(--dk-serif-en);
+  color: var(--dk-line);
+}
+
+/* 键帽 */
+.dk-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--dk-fg) 34%, transparent);
+  font: 400 11px var(--dk-mono);
+}
+
+/* ==========================================================================
+   4. SURFACE
+   ========================================================================== */
+
+/* 页面容器：纸底 + 中心提亮的径向渐变。
+   不铺满屏线性渐变——那是另一种风格。 */
+.dk-page {
+  position: relative;
+  min-height: 100svh; /* 禁用裸 vh，见第 11 节 */
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 48% 35%, #f0f2eaaa 0%, transparent 63%),
+    var(--dk-paper-2);
+}
+
+/* 纸面卡片：1px 描边 + 左侧 3px 强色条（仪器面板的"装订边"）。 */
+.dk-panel {
+  position: relative;
+  background: var(--dk-paper-hi);
+  border: 1px solid var(--dk-line);
+  border-left: 3px solid var(--dk-fg);
+  padding: 16px 20px;
+}
+
+/* 墨面卡片：深色面板 = 墨底 + 纸色字 + accent 点缀。
+   与纸面交替出现制造节奏，是这套系统最主要的对比手段。 */
+.dk-panel--ink {
+  background: var(--dk-ink);
+  border-color: var(--dk-line-ink);
+  border-left-color: var(--dk-accent);
+  color: var(--dk-fg-on-ink);
+}
+.dk-panel--ink .dk-label { color: var(--dk-fg-on-ink-faint); }
+
+/* 顶栏：墨底 + 4px accent 下边框。这一条亮线是全站最强的横向锚。 */
+.dk-topbar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  height: 76px;
+  padding: 0 clamp(18px, 3vw, 36px);
+  background: var(--dk-ink);
+  border-bottom: 4px solid var(--dk-accent);
+  color: var(--dk-fg-on-ink);
+}
+
+/* 凹陷面：输入框/读数窗。用 inset 阴影做"压进纸里"。 */
+.dk-well {
+  background: var(--dk-paper-3);
+  border: 1px solid var(--dk-line);
+  box-shadow: inset 3px 0 var(--dk-line);
+  padding: 12px 15px;
+}
+.dk-well:focus-within {
+  border-color: var(--dk-accent-dim);
+  box-shadow: inset 3px 0 var(--dk-accent-dim);
+  outline: none;
+}
+
+/* ==========================================================================
+   5. SHAPE —— 零圆角 + 切角 + 角括号
+   ========================================================================== */
+
+/* 招牌切角：右下斜切。
+   ⚠ clip-path 会裁掉本元素的 border 和 box-shadow。
+     描边必须改走 inset 阴影（.dk-inset-line）；
+     外投影必须交给父级 drop-shadow（.dk-liftwrap）。 */
+.dk-chamfer {
+  --_c: var(--dk-chamfer);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--_c)),
+    calc(100% - var(--_c)) 100%,
+    0 100%
+  );
+  border-radius: 0;
+}
+.dk-chamfer--sm { --_c: var(--dk-chamfer-sm); }
+/* 字标/小标签用 em 单位，切角随字号缩放 */
+.dk-chamfer--tag { --_c: 0.38em; }
+
+/* 描边补偿：clip-path 吃掉 border，用 inset 阴影画回来 */
+.dk-inset-line {
+  box-shadow: inset 0 0 0 1px var(--dk-fg);
+}
+
+/* 角括号：L 形取景框。仪器语汇里最便宜也最有效的一笔。
+   用法：<div class="dk-corners">…</div>，自动出左上 + 右下两个角。 */
+.dk-corners { position: relative; }
+.dk-corners::before,
+.dk-corners::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.dk-corners::before {
+  top: 10px;
+  left: 10px;
+  border-top: 1px solid currentColor;
+  border-left: 1px solid currentColor;
+}
+.dk-corners::after {
+  right: 10px;
+  bottom: 10px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+}
+/* 粗角标：用于区块收尾，3px */
+.dk-corners--heavy::before,
+.dk-corners--heavy::after {
+  border-width: 3px;
+  opacity: 1;
+  color: var(--dk-fg);
+}
+
+/* 细线分隔 */
+.dk-rule {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: var(--dk-line);
+}
+/* 两端渐隐的细线：用于"或者"这类分隔语义 */
+.dk-rule--fade {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--dk-fg) 25%, transparent));
+}
+/* 斜切竖线：分隔但不呆板。用于深色顶栏内。 */
+.dk-rule--skew {
+  width: 1px;
+  height: 30px;
+  background: var(--dk-line-on-ink);
+  transform: skew(-14deg);
+}
+
+/* ==========================================================================
+   6. BUTTON
+   两个家族，不要混用：
+     .dk-key    —— 直角矩形 + 硬投影，物理按键手感（主要 CTA）
+     .dk-btn    —— 可切角，靠底色/描边区分（次要操作、工具条）
+   ========================================================================== */
+
+/* --- 家族一：物理按键 ---
+   静置 3/4 → hover 抬升 + 投影涨到 5/7 → active 压回 + 投影塌到 1/1。
+   位移和投影必须同步：投影是位移的影子，单独动一个就假了。 */
+.dk-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--dk-fg);
+  background: var(--dk-accent);
+  color: var(--dk-accent-ink);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: var(--dk-lift);
+  transition:
+    transform var(--dk-t-micro) var(--dk-ease-out),
+    box-shadow var(--dk-t-micro) var(--dk-ease-out),
+    background var(--dk-t-micro);
+}
+.dk-key:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--dk-lift-hover);
+}
+.dk-key:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: var(--dk-lift-active);
+}
+
+/* 次级物理按键：纸底 + 前景字，同样走"涨/塌"投影。
+   .dk-key 的文字色是为 accent 底配的，换底色必须同时换字色——
+   直接用这个变体，别手写 background 覆盖。 */
+.dk-key--quiet {
+  background: var(--dk-paper-3);
+  color: var(--dk-fg);
+}
+.dk-key--quiet:hover:not(:disabled) {
+  background: var(--dk-paper-hi);
+  color: var(--dk-fg);
+}
+
+/* --- 家族二：通用按钮 --- */
+.dk-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 17px;
+  border: 1px solid var(--dk-line);
+  border-radius: var(--dk-radius);
+  background: transparent;
+  color: var(--dk-fg);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  overflow: hidden; /* 为 .dk-shine 的高光条裁切 */
+  transition:
+    background var(--dk-t-micro),
+    color var(--dk-t-micro),
+    border-color var(--dk-t-micro),
+    transform var(--dk-t-micro) var(--dk-ease-out);
+}
+.dk-btn:hover:not(:disabled) {
+  background: var(--dk-accent);
+  border-color: var(--dk-fg);
+  color: var(--dk-accent-ink);
+}
+.dk-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* 墨底反白：用于深色面板内，或需要最高优先级的次级操作 */
+.dk-btn--ink {
+  background: var(--dk-ink);
+  border-color: var(--dk-ink);
+  color: var(--dk-accent);
+}
+.dk-btn--ink:hover:not(:disabled) {
+  background: #3b482e;
+  color: var(--dk-accent);
+}
+
+/* 战队色：只在 A/B 对立项上使用 */
+.dk-btn--a { background: var(--dk-a); border-color: transparent; color: var(--dk-ink); }
+.dk-btn--a:hover:not(:disabled) { background: var(--dk-a-soft); color: var(--dk-ink); }
+.dk-btn--b { background: var(--dk-b); border-color: transparent; color: var(--dk-ink); }
+.dk-btn--b:hover:not(:disabled) { background: var(--dk-b-soft); color: var(--dk-ink); }
+
+/* 图标按钮：正方形，hover 反白 */
+.dk-btn--icon {
+  width: 35px;
+  height: 35px;
+  min-height: 0;
+  padding: 0;
+  border-color: color-mix(in srgb, var(--dk-line) 40%, transparent);
+}
+
+/* 文字按钮：无边框无底，只靠颜色变化 */
+.dk-btn--text {
+  border-color: transparent;
+  background: transparent;
+  color: var(--dk-fg-soft);
+  font-size: 12px;
+  padding: 8px 0;
+  min-height: 0;
+}
+.dk-btn--text:hover:not(:disabled) {
+  background: transparent;
+  color: var(--dk-fg);
+}
+
+/* 切角 + 硬投影的正确做法：clip-path 会裁掉自己的 box-shadow，
+   所以投影交给父级的 drop-shadow——它会沿着子元素的裁剪轮廓生成影子。
+   用法：<span class="dk-liftwrap"><button class="dk-btn dk-chamfer">…</button></span> */
+.dk-liftwrap {
+  display: inline-block;
+  filter: drop-shadow(3px 4px 0 var(--dk-shadow));
+  transition:
+    filter var(--dk-t-micro) var(--dk-ease-out),
+    transform var(--dk-t-micro) var(--dk-ease-out);
+}
+.dk-liftwrap:hover {
+  filter: drop-shadow(5px 7px 0 var(--dk-shadow));
+  transform: translate(-2px, -3px);
+}
+.dk-liftwrap:active {
+  filter: drop-shadow(1px 1px 0 var(--dk-shadow));
+  transform: translate(0, 0);
+}
+
+/* 禁用态：降饱和度而非单纯变灰——纸面质感靠色相偏移，不靠透明度。 */
+.dk-key:disabled,
+.dk-btn:disabled {
+  opacity: 0.4;
+  filter: saturate(0.45);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   7. INSTRUMENT —— 让界面"像仪器"的细节
+   这些元素单独看毫无用处，堆在一起才成立。新页面应当复用而非另造。
+   ========================================================================== */
+
+/* 刻度尺：主刻度每 72px 全高，次刻度每 12px 半高。 */
+.dk-ticks {
+  height: 7px;
+  background-image:
+    repeating-linear-gradient(90deg, var(--dk-line) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(90deg, var(--dk-line-soft) 0 1px, transparent 1px 12px);
+  background-size: 100% 7px, 100% 4px;
+  background-position: bottom left, bottom left;
+  background-repeat: no-repeat;
+}
+
+/* 环境网格：48–64px 网格 + 水平 mask 淡出 + 斜向条纹叠加。
+   放在页面容器里 z-index:-1，pointer-events:none。
+   不要铺满整屏不透明——它是底纹，不是壁纸。 */
+.dk-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image:
+    linear-gradient(#78887920 1px, transparent 1px),
+    linear-gradient(90deg, #78887920 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(90deg, #000, transparent 25%, transparent 75%, #000);
+}
+.dk-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0 300px,
+    #8a938918 300px 390px,
+    transparent 390px 690px
+  );
+}
+
+/* 状态点：5px 发光小方点 + 呼吸。方点不是圆点——圆点太"web 2.0"。 */
+.dk-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: var(--dk-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dk-accent) 38%, transparent);
+  animation: dk-pulse 2.4s ease-in-out infinite;
+}
+
+/* 仪器元数据行：两端对齐 + 4px 方块项目符号 + 斜杠分隔。 */
+.dk-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 35px;
+  color: var(--dk-fg-faint);
+  font: 400 11px var(--dk-mono);
+  letter-spacing: 0.7px;
+}
+.dk-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dk-meta i {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+}
+.dk-meta-slash {
+  color: var(--dk-line);
+  margin: 0 3px;
+}
+
+/* 区块编号：每个区块上方的小号等宽编号，是"仪器面板"叙事的关键。 */
+.dk-code {
+  display: block;
+  font: 400 11px var(--dk-mono);
+  letter-spacing: 2.5px;
+  color: var(--dk-fg-faint);
+}
+
+/* 三横杠字标：skew(-13deg) + 硬 drop-shadow。
+   用法：<span class="dk-mark"><i></i><i></i><i></i></span>
+   hover 时上下两杠左移，"像菜单被唤醒"。 */
+.dk-mark {
+  position: relative;
+  display: inline-block;
+  width: 37px;
+  height: 38px;
+  transform: skew(-13deg);
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.42));
+  transition:
+    transform 0.25s var(--dk-ease-out),
+    filter 0.25s var(--dk-ease-out);
+}
+.dk-mark i {
+  position: absolute;
+  display: block;
+  width: 26px;
+  height: 10px;
+  background: var(--dk-accent);
+  transition: transform 0.3s var(--dk-ease-out);
+}
+.dk-mark i:nth-child(1) { top: 0;    left: 10px; }
+.dk-mark i:nth-child(2) { top: 13px; left: 0; }
+.dk-mark i:nth-child(3) { top: 26px; left: 10px; }
+a:hover .dk-mark,
+.dk-mark:hover {
+  transform: skew(-13deg) translate(-1px, -2px);
+  filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, 0.5));
+}
+a:hover .dk-mark i:nth-child(1),
+a:hover .dk-mark i:nth-child(3),
+.dk-mark:hover i:nth-child(1),
+.dk-mark:hover i:nth-child(3) {
+  transform: translateX(-10px);
+}
+a:active .dk-mark {
+  transform: skew(-13deg) translate(1px, 1px);
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0.5));
+}
+
+/* 巨型水印：压在内容底下，用极低透明度而非浅灰色值。 */
+.dk-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  text-align: center;
+  font: italic 900 clamp(180px, 30vw, 460px)/1 var(--dk-sans);
+  letter-spacing: -0.05em;
+  color: color-mix(in srgb, var(--dk-fg) 12%, transparent);
+}
+
+/* 竖排坐标注记：贴左边缘，用于长页面的方位感。 */
+.dk-edge {
+  position: absolute;
+  left: 20px;
+  top: 51%;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font: 400 12px var(--dk-mono);
+  letter-spacing: 2px;
+  color: var(--dk-fg-faint);
+}
+
+/* 中轴：竖线 + 45° 菱形轨道。用于 A/B 对峙的中缝。 */
+.dk-spine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 72px;
+}
+.dk-spine-line {
+  flex: 1;
+  width: 1px;
+  min-height: 15px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--dk-fg) 50%, transparent));
+  position: relative;
+}
+.dk-spine-line::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--dk-fg-faint);
+  transform: rotate(45deg);
+}
+.dk-spine-orbit {
+  width: 52px;
+  height: 52px;
+  border: 1px solid color-mix(in srgb, var(--dk-fg) 50%, transparent);
+  transform: rotate(45deg);
+}
+
+/* ==========================================================================
+   8. FEEDBACK
+   ========================================================================== */
+
+/* 高光扫过：skew(-25deg) 的白色渐变条，hover 时从左扫到右。
+   父元素需要 overflow:hidden。 */
+.dk-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, #fff7, transparent);
+  transform: skew(-25deg);
+  transition: left 0.6s var(--dk-ease-out);
+  pointer-events: none;
+}
+.dk-shine:hover::before {
+  left: 130%;
+}
+
+/* 粒子迸发：点击确认时的酸黄小点，各带自己的向量变量。
+   用法：容器加 .dk-burst 触发，内含 4 个 <i>。 */
+.dk-dots {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  color: var(--dk-accent);
+}
+.dk-dots i {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+.dk-burst .dk-dots i { animation: dk-burst 0.55s ease-out forwards; }
+.dk-burst .dk-dots i:nth-child(1) { --px: 14px;  --py: -16px; }
+.dk-burst .dk-dots i:nth-child(2) { --px: 18px;  --py: -4px;  }
+.dk-burst .dk-dots i:nth-child(3) { --px: -16px; --py: -14px; }
+.dk-burst .dk-dots i:nth-child(4) { --px: -13px; --py: 6px;   }
+
+/* 聚光灯：hover 一侧时压暗另一侧。用于并列对比。 */
+.dk-dimmed {
+  opacity: 0.34;
+  filter: blur(2.5px) grayscale(0.72);
+  transition:
+    opacity 0.5s var(--dk-ease-out),
+    filter 0.5s var(--dk-ease-out);
+}
+.dk-spotlit {
+  box-shadow:
+    0 25px 65px rgba(16, 27, 59, 0.25),
+    0 0 0 1px var(--dk-accent);
+}
+
+/* ==========================================================================
+   9. MOTION
+   铁律：只动 transform / opacity。不动 width/height/top/left/clip-path。
+   原因：前四者触发重排，clip-path 触发整屏重绘；transform/opacity 走合成器。
+   ========================================================================== */
+
+/* 入场：上移 8px + 淡入。全站唯一的元素入场动作。
+   错峰：给元素设 --dk-i: 0/1/2/3…，自动按 0.08s 步进延迟。 */
+.dk-enter {
+  animation: dk-enter var(--dk-t-enter) var(--dk-ease-out) both;
+  animation-delay: calc(var(--dk-i, 0) * var(--dk-stagger));
+}
+
+/* 按钮就绪：比 enter 多 10px 位移 + 从 0.35 透明度起。用于"可以点了"的信号。 */
+.dk-ready {
+  animation: dk-ready 0.7s var(--dk-ease-out) both;
+  animation-delay: calc(var(--dk-i, 0) * var(--dk-stagger));
+}
+
+/* 折叠面板：grid-template-rows 0fr→1fr，不需要 JS 量高。
+   用法：外层 .dk-unfold，内层 .dk-unfold-inner（overflow:hidden）。 */
+.dk-unfold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dk-t-micro) var(--dk-ease-out);
+}
+.dk-unfold[data-open='true'] { grid-template-rows: 1fr; }
+.dk-unfold-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--dk-t-micro) var(--dk-ease-out),
+    filter var(--dk-t-micro) var(--dk-ease-out);
+}
+.dk-unfold[data-open='true'] .dk-unfold-inner {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* 全屏横扫换页：色块扫入盖满 → 遮挡下换路由 → 扫出露出新页面。
+   只动 transform，不用 clip-path（后者会整屏重绘）。
+   层必须挂在 body 上、独立于路由存活，否则换页瞬间就被卸载。 */
+.dk-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: var(--dk-ink);
+  color: var(--dk-accent);
+  will-change: transform;
+}
+
+/* 慢镜头：图片缓推。hover 触发，1.3s。 */
+.dk-kenburns {
+  transition: transform var(--dk-t-slow) var(--dk-ease-out);
+}
+.dk-kenburns:hover { transform: scale(1.035); }
+
+@keyframes dk-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dk-ready {
+  from { opacity: 0.35; transform: translateY(10px); }
+  to   { opacity: 1;    transform: translateY(0); }
+}
+@keyframes dk-pulse {
+  50% { opacity: 0.4; }
+}
+@keyframes dk-burst {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  25%  { opacity: 1; transform: translate(calc(var(--px) * 0.3), calc(var(--py) * 0.3)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.5); }
+}
+/* 唯一被批准的 pop：点击确认时图标弹一下。别处不要用。 */
+@keyframes dk-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.82); }
+  100% { transform: scale(1); }
+}
+.dk-pop { animation: dk-pop 0.35s var(--dk-ease-pop); }
+
+/* 往复推进光带：加载态。把已有的按钮/条当进度条用，不另造 spinner。 */
+.dk-pending {
+  position: relative;
+  overflow: hidden;
+}
+.dk-pending::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 34%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--dk-accent), transparent);
+  animation: dk-pending 1.5s var(--dk-ease-in-out) infinite;
+}
+@keyframes dk-pending {
+  from { transform: translateX(-130%) skew(-25deg); }
+  to   { transform: translateX(420%) skew(-25deg); }
+}
+
+/* ==========================================================================
+   10. THEME —— 深色子世界
+   某些场景（游戏页、夜间模式、沉浸阅读）需要整体翻到墨面。
+   在 <html> 或任意容器上加 data-dk-theme="ink" 开一个作用域，
+   局部变量整体重定义——结构类一个都不用改。
+
+   注意：这里重定义的是「角色」（fg/line/shadow）与「字面量表面」（paper/ink），
+   绝不把某个字面量翻转成相反语义。
+   ========================================================================== */
+
+[data-dk-theme='ink'] {
+  --dk-paper: #16241d;
+  --dk-paper-2: #101e18;
+  --dk-paper-3: #1b2c24;
+  --dk-paper-hi: #20352d;
+  --dk-ink: #0c1712;   /* 深面上更深的凹槽面 */
+  --dk-ink-2: #14231b;
+
+  --dk-fg: #edf0df;
+  --dk-fg-soft: #a8b8a4;
+  --dk-fg-faint: #7d8f78;
+  --dk-fg-on-ink: #edf0df;
+  --dk-fg-on-ink-soft: #a8b8a4;
+  --dk-fg-on-ink-faint: #7d8f78;
+
+  --dk-line: #36473c;
+  --dk-line-soft: #2b3a31;
+  --dk-line-ink: #2b3a31;
+  --dk-line-on-ink: #36473c;
+
+  --dk-accent: #d8f36a;
+  --dk-accent-ink: #10201a;
+  --dk-accent-dim: #d8f36a; /* 深底上焦点环要亮，不能再用暗版 */
+
+  --dk-shadow: #0a1410; /* 深底上投影要比底色更暗，不是更亮 */
+  --dk-shadow-alt: #0a1410;
+
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   11. RESPONSIVE
+   ========================================================================== */
+
+/* 断点约定：
+   手机线固定在 699/700（max-width:699px 与 min-width:700px 互补）。
+   中屏按自身布局在 1000–1150px 之间取，不强求统一。
+   大屏加高走 min-width:1600px and min-height:950px。
+   小屏策略是「隐藏装饰」而非「缩小装饰」：缩略图、kbd、分隔符、竖排注记直接 display:none。 */
+
+/* 容器查询：让比例由容器宽度决定，而不是视口。
+   并列展示（A/B 对照、卡片网格）里这一条比任何断点都管用。 */
+.dk-container { container-type: inline-size; }
+
+/* 触摸热区：只扩热区不改像素。
+   给小控件盖一层透明 ::after 撑到 44×44，视觉与排版零变化。
+   已有定位的元素（absolute/fixed）不要碰 position，只给静态/行内元素补 relative。 */
+@media (pointer: coarse) {
+  .dk-hit { position: relative; }
+  .dk-hit::after {
+    content: '';
+    position: absolute;
+    inset: -8px -6px; /* 按元素实际尺寸调，目标是 44px */
+  }
+  /* 行内文字链接纵向补更多 */
+  .dk-hit--inline::after { inset: -15px -8px; }
+  /* 已接近 44px 的只补一点，免得吃掉相邻热区 */
+  .dk-hit--tight::after { inset: -4px; }
+  /* 小屏隐藏 kbd */
+  .dk-kbd { display: none; }
+}
+
+/* ==========================================================================
+   12. A11Y
+   ========================================================================== */
+
+/* 全局兜底：所有动画与过渡压到 0.01ms，滚动改瞬时。
+   注意是"立即到达终态"，不是"隐藏内容"——功能不能因为关掉动画而不可用。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 需要更彻底降级的层（遮罩、粒子、扫光）可以用类名直接关掉。
+   由 JS 探测 prefers-reduced-motion 后加到 <html> 上。 */
+.dk-reduced .dk-dots,
+.dk-reduced .dk-shine::before,
+.dk-reduced .dk-pending::before {
+  display: none;
+}
