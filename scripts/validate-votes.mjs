@@ -180,9 +180,41 @@ const child = spawn(process.execPath, ['server/index.js'], {
     PORT: String(port),
     HOST: '127.0.0.1',
     RATE_LIMIT_PER_MIN: '60',
+    // 注册必填邮箱+验证码（2026-09-24）：MAIL_DEV_LOG 打日志由本脚本捕获
+    MAIL_DEV_LOG: '1',
+    MAIL_COOLDOWN_MS: '1',
+    MAIL_IP_MAX: '1000',
+    MAIL_EMAIL_MAX: '1000',
   },
-  stdio: ['ignore', 'inherit', 'inherit'],
+  stdio: ['ignore', 'pipe', 'pipe'],
 });
+// 服务器日志按行转发到控制台，同时解析 MAIL_DEV_LOG 验证码行供注册用
+const codeLines = [];
+let pendingLog = '';
+child.stdout.setEncoding('utf8');
+child.stdout.on('data', (chunk) => {
+  process.stdout.write(chunk);
+  pendingLog += chunk;
+  const parts = pendingLog.split('\n');
+  pendingLog = parts.pop();
+  codeLines.push(...parts);
+});
+child.stderr.setEncoding('utf8');
+child.stderr.on('data', (chunk) => process.stderr.write(chunk));
+const waitForCode = async (purpose, target) => {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const line = codeLines.find(
+      (item) =>
+        item.includes(`purpose=${purpose}`) &&
+        item.includes(`email=${target}`) &&
+        item.includes('code='),
+    );
+    if (line) return line.match(/code=(\d{6})/)[1];
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`未捕获到 ${purpose} ${target} 的验证码`);
+};
 // 端口被占用等启动失败要快速失败，而不是干等 10 秒超时
 let exitCode = -1; // -1 = 仍在运行
 child.on('exit', (code) => {
@@ -360,12 +392,21 @@ try {
     '平局票（决策 048）：draw 写入 201、流水带 outcome、平局同样占用对局',
     async () => {
       // 注册第二个用户（dev 在上面的用例里已把 002/003 两对都投过）
+      const testerEmail = 'draw-tester@aob.test';
+      const sent = await robustFetch(`${base}/api/auth/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', origin: base },
+        body: JSON.stringify({ purpose: 'register', email: testerEmail }),
+      });
+      assert.equal(sent.status, 200);
       const register = await robustFetch(`${base}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', origin: base },
         body: JSON.stringify({
           username: 'draw_tester',
           password: 'draw-tester-password-1',
+          email: testerEmail,
+          code: await waitForCode('register', testerEmail),
         }),
       });
       assert.equal(register.status, 201);

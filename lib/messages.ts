@@ -163,6 +163,75 @@ export const messages: Record<string, string> = {
     '12–128 characters. Longer passphrases welcome.',
   '登录，回到现场 ↗': 'Log in and join us ↗',
   '注册并登录 ↗': 'Create account ↗',
+  邮箱: 'Email',
+  验证码: 'Verification code',
+  发送验证码: 'Send code',
+  '发送中…': 'Sending…',
+  '{seconds} 秒后可重发': 'Resend in {seconds}s',
+  请输入常用邮箱: 'Enter your usual email',
+  '6 位验证码': '6-digit code',
+  '忘记密码？': 'Forgot password?',
+  返回登录: 'Back to sign in',
+  返回: 'Back',
+  上一步: 'Back',
+  '忘了暗号，也能回来。': 'Lost the passphrase? Your seat is safe.',
+  '输入账号，验证码将发到绑定的邮箱。':
+    'Enter your username; the code goes to the bound email.',
+  '验证通过，设置新密码（重置后所有设备需重新登录）。':
+    'Verified. Set a new password (all devices must sign in again).',
+  '邮箱已验证，设置账号和密码。': 'Email verified. Now pick a username and password.',
+  '注册需要一个常用邮箱：先收个验证码。':
+    'A usual email is required — receive a verification code first.',
+  '验证码已发送至 {email}。': 'Code sent to {email}.',
+  邮箱已验证: 'Email verified',
+  验证码已通过验证: 'Code verified',
+  '验证邮箱，继续 ↗': 'Verify email, continue ↗',
+  '验证，继续 ↗': 'Verify, continue ↗',
+  '重置密码 ↗': 'Reset password ↗',
+  '密码已重置，请用新密码登录。': 'Password reset. Please sign in with the new one.',
+  '登录成功。': 'Signed in.',
+  '现在可以参与投票与讨论。': 'You can vote and join discussions now.',
+  '注册成功。': 'Account created.',
+  '邮箱已绑定，忘记密码时可凭它找回。':
+    'Email bound. Use it to recover your password if needed.',
+  '密码已重置。': 'Password reset.',
+  '所有设备已退出，请用新密码登录。':
+    'All devices signed out. Please sign in with the new password.',
+  '邮箱已绑定。': 'Email bound.',
+  '忘记密码时可凭它找回。': 'Use it to recover your password if needed.',
+  '已退出登录。': 'Signed out.',
+  '随时回来。': 'See you around.',
+  绑定邮箱: 'Bound email',
+  未绑定: 'Not bound',
+  绑定: 'Bind',
+  换绑: 'Change',
+  '绑定并验证 ↗': 'Bind and verify ↗',
+  '验证码将发到新邮箱，10 分钟内有效。':
+    'The code goes to the new address and expires in 10 minutes.',
+  '验证码发送失败，请重试。': 'Could not send the code. Please try again.',
+  '请填写正确的邮箱地址。': 'Please enter a valid email address.',
+  '请填写账号名。': 'Please enter your username.',
+  '没有这个账号。': 'No such account.',
+  '该账号未绑定邮箱，无法通过邮箱找回密码。':
+    'This account has no bound email, so it cannot be recovered by email.',
+  '请求类型无效。': 'Invalid request type.',
+  '请先登录后再绑定邮箱。': 'Please sign in before binding an email.',
+  '该邮箱已被其他账号绑定，请换一个。':
+    'This email is already bound to another account. Try another one.',
+  '邮件服务未配置，暂时无法发送验证码。':
+    'Mail service is not configured. Codes are unavailable for now.',
+  '发送太频繁，请稍后再试。': 'Too many requests. Please wait a moment.',
+  '验证码邮件发送失败，请稍后重试。':
+    'The code email failed to send. Please try again later.',
+  '验证码不正确或已过期，请重新获取。':
+    'The code is wrong or expired. Please request a new one.',
+  // Turnstile 人机验证（2026-09-24）：只守发验证码
+  '请先完成人机验证。': 'Please complete the human check first.',
+  '人机验证未通过，请重试。': 'Human check failed. Please try again.',
+  '人机验证服务暂时不可用，请稍后重试。':
+    'Human check is temporarily unavailable. Please try again later.',
+  '人机验证加载失败，请刷新页面重试。':
+    'Could not load the human check. Refresh and try again.',
   '登录状态保留 7 天。公共设备使用后请退出。':
     'You stay logged in for 7 days. Log out on shared devices.',
   '保留偏见 / 保持好奇': 'Stay opinionated / Stay curious',

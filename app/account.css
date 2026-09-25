@@ -344,6 +344,112 @@
 .account-error:empty {
   min-height: 0;
 }
+.account-notice {
+  color: #55733f;
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 12px;
+}
+.account-notice:empty {
+  min-height: 0;
+}
+.account-link {
+  align-self: flex-start;
+  padding: 0;
+  margin-top: -2px;
+  background: none;
+  border: none;
+  color: #69755c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+  transition: color 0.2s;
+}
+.account-link:hover {
+  color: #25302b;
+}
+.code-field {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.code-field input {
+  flex: 1;
+  min-width: 0;
+}
+.account-code-send {
+  flex: none;
+  margin-top: 7px;
+  padding: 0 14px;
+  background: #dfe2d1;
+  color: #25302b;
+  border: 1px solid #a3ad8c;
+  border-bottom: 2px solid #8e997a;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.account-code-send:hover:not(:disabled) {
+  background: #25302b;
+  color: #dcfa63;
+}
+.account-code-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+/* Turnstile 人机验证块（服务端未配密钥时不存在）：官方组件约 65px 高，
+   占位防加载前后布局跳动 */
+.account-turnstile {
+  min-height: 65px;
+  margin: 2px 0;
+}
+.account-email-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  background: #ffffff57;
+  border: 1px solid #a3ad8c80;
+  border-left: 4px solid #cfe95a;
+}
+.account-email-row .account-label {
+  flex: none;
+}
+.account-email-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #3c4636;
+}
+.account-email-action {
+  flex: none;
+  padding: 7px 12px;
+  background: #dfe2d1;
+  color: #25302b;
+  border: 1px solid #a3ad8c;
+  border-bottom: 2px solid #8e997a;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.account-email-action:hover:not(:disabled) {
+  background: #25302b;
+  color: #dcfa63;
+}
 .account-submit {
   position: relative;
   overflow: hidden;
@@ -437,6 +543,71 @@
   color: #4c613c;
   text-align: left;
   text-decoration: underline;
+}
+/* 换纸动画（2026-09-24 用户选定 D / 卡片拍落，对照页 reference/account-turn-review.html）：
+   新页从上方拍落桌面，带轻微歪斜回正；底纸堆的姿态偏移由组件按翻页次数换目标值，
+   走 .account-paper 已有的 0.65s transform 过渡 */
+@keyframes account-page-turn {
+  0% {
+    opacity: 0;
+    transform: translateY(-32px) rotate(1.8deg) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.account-page {
+  animation: account-page-turn 0.5s cubic-bezier(0.2, 1.35, 0.3, 1) both;
+}
+.account-verified {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #55733f;
+}
+.account-verified::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #cfe95a;
+  color: #25302b;
+  font-size: 11px;
+}
+.account-success {
+  padding: 34px 0 26px;
+  text-align: center;
+}
+.account-success-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 14px;
+  border: 2px solid #25302b;
+  border-radius: 50%;
+  background: #cfe95a;
+  color: #25302b;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 3px 3px 0 #a2ad87;
+}
+.account-success h2 {
+  margin: 0 0 8px;
+}
+.account-success p {
+  margin: 0;
+  font-size: 12px;
+  color: #798169;
+  line-height: 1.7;
 }
 @keyframes account-page {
   from {
