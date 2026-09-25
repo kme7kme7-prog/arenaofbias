@@ -7,14 +7,22 @@
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
 4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
-## 2026-09-24 邮箱账号体系（分支 email-auth；主体已 commit 21ff18e，人机验证层未 commit 待验收）
+## 2026-09-25 后台收件箱改版 + 用户管理页（分支 email-auth，未 commit 待验收）
+
+- 收件箱改版（用户拍板：页面直传、文字作品一文件一作品、卡片式带预览）：`/api/admin/models`（模型清单）、`inbox/upload`（octet-stream 直传 8MB，零依赖）、`inbox/file`（预览路由）、register 扩展（.txt/.md 文字作品空行分段纯库内存储、可选 modelId 复用现有模型身份）；前端 inbox.tsx 重写（上传区+卡片+模型组合框+记住上次题目），网页预览复用竞技场 FixedHtmlWork（16:9，比例即上场比例）。
+- 用户管理页（用户拍板：四个操作全要）：`/api/admin/users` 组（清单+授权撤权+重置密码一次性展示+强制下线+删除账号），app/admin/users.tsx 新页；点用户名开详情弹窗（模一把战绩+最近投票/评论，`/api/admin/users/:id/activity`）；删除账号保流水（票/评论作者变匿名）；服务端硬性禁止操作当前登录账号。**模一把开始记名（迁移 012，用户拍板推翻 064 匿名口径）**：登录用户上报记 user_id，游客仍匿名、历史不回溯；数据流水加「模一把」页签。后台表格/副标字号 13→14。顺手修：`.admin-password-dialog` 的 display:flex 会压掉 dialog 未打开时的 UA 隐藏（弹窗常显）——加 `:not([open]) { display:none }`。
+- 顺手修复：本机 Windows `fs.rmSync` 对非 ASCII 路径静默失败/崩进程（纯中文名直接 exit 127 崩掉）——收件箱删除统一走 `removeEntry`（unlink/rmdir 递归），旧「删除中文名条目」路径同样中招已一并修。
+- 测试：`validate:admin` 14 项全绿（收件箱改版/用户管理/模一把记名与用户动态三专项）；typecheck/lint 无新增错误；三页均浏览器实测截图目检（测试数据已清）。`vite.config.ts` 现支持 `VITE_PORT`/`PORT` 平移端口（本地另一项目占了 5173/3000，当前 dev 在 5273/3210）。
+- 待办：用户验收 → commit。email-auth 分支上叠着未推送工作（邮箱体系 21ff18e + 人机验证 1632613 + 本轮两块）。
+
+## 2026-09-24 邮箱账号体系（分支 email-auth；主体 21ff18e + 人机验证 1632613 均已 commit，未 push）
 
 - 用户拍板：个人邮箱 SMTP 发信（163，授权码在 `.local/smtp-credentials.txt`，发件地址 kme7kme7@163.com）；注册必填邮箱+验证码。已实现：注册/绑定/换绑/忘记密码全流程、零依赖 SMTP 客户端（`server/mail.js`，不引 nodemailer 以免动 VPS node_modules 安装流程）、`server/auth-email.js` + `server/auth-util.js`（从 auth.js 抽公共工具）。
 - 安全口径：6 位码 10 分钟有效一次性、错 5 次作废、60 秒冷却、按 IP/邮箱 DB 限流、reset 不泄露邮箱占用、重置密码后清全部会话、库里只存哈希。`MAIL_DEV_LOG=1` 打日志不真发（测试用，生产禁开）。
 - 前端：账号弹窗新增注册验证码字段、忘记密码模式、会员视图邮箱行（打码显示）+绑定/换绑模式；新文案中英双语已入 `lib/messages.ts`。
-- 人机验证层（未 commit，用户拍板 Cloudflare Turnstile，见决策末条）：只守发验证码接口，`server/turnstile.js` + 账号弹窗 widget；不配 `TURNSTILE_*` 密钥整功能关闭。密钥获取与 PM2 配置指引在 `.local/turnstile-keys.txt`。
+- 人机验证层（已 commit 1632613，Cloudflare Turnstile，见决策末条）：只守发验证码接口，`server/turnstile.js` + 账号弹窗 widget；不配 `TURNSTILE_*` 密钥整功能关闭。密钥获取与 PM2 配置指引在 `.local/turnstile-keys.txt`。真机全链已实测（widget → Cloudflare 校验 → 163 真发信）。
 - 测试：`npm run validate:email` 27 项全过（含第二阶段本地桩密封验证人机门禁）；7 个用到注册的既有脚本全部改为 MAIL_DEV_LOG 捕码注册，`validate:comments` 顺势从打本机 3000 改为自起临时库。已实测绿：email(27)/admin(11)/votes(12)/reactions(6)/formal(6)/comments(4)/admin-access(3)/formal-ui(6)/guess(38)/arena/matchmaking(11)/share(10)/check:mobile/typecheck/build/validate-locale。未跑：`validate:camera`（本机缺 007 fixture，既有原因）。
-- 待办：用户注册 Cloudflare Turnstile 取两把密钥 → 配 PM2（连同 SMTP_*）→ 真发信+真 widget 验证 → 用户验收 → commit（含分支合并去 main 的安排）。deploy:vps 流程不变（无新依赖）。
+- 待办：VPS 部署时把 `TURNSTILE_*`（连同 SMTP_*）配进 PM2 并重启；合并 email-auth 到 main 与 push 均待用户发话。deploy:vps 流程不变（无新依赖）。
 
 ## 2026-09-24 收尾状态
 

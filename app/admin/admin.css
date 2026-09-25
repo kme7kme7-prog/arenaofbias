@@ -121,7 +121,7 @@ body {
 }
 .admin-sub {
   color: #6a716a;
-  font-size: 13px;
+  font-size: 14px;
   margin: 0 0 24px;
 }
 
@@ -230,9 +230,9 @@ body {
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 9px 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid #eef0ea;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .admin-table td.wrap {
@@ -411,56 +411,306 @@ body {
 .admin-inbox {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
-.admin-inbox-item {
+
+/* 收件箱改版（2026-09-25）：直传区 + 卡片（预览 + 纵向表单） + 模型组合框 */
+.admin-inbox-upload {
+  border: 2px dashed #c6ccba;
+  border-radius: 12px;
+  background: #f7f8f4;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  color: #556054;
+  margin-bottom: 14px;
+}
+.admin-inbox-upload.dragging {
+  border-color: #3a4032;
+  background: #eef0e7;
+}
+.admin-inbox-upload b {
+  font-size: 14px;
+  color: #3a4032;
+}
+.admin-inbox-upload span {
+  font-size: 12px;
+  color: #8a9184;
+}
+.admin-inbox-upload .admin-mini {
+  margin-top: 6px;
+}
+.inbox-card {
   background: #fff;
   border: 1px solid #dfe2da;
   border-radius: 10px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
-.admin-inbox-name {
+.inbox-card-head {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   font-size: 13px;
 }
-.admin-inbox-name .size {
+.inbox-card-head .size {
   color: #8a9184;
   font-size: 12px;
 }
-.admin-inbox-form {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
+.inbox-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
 }
-.admin-inbox-form label {
+@media (max-width: 900px) {
+  .inbox-card-body {
+    grid-template-columns: 1fr;
+  }
+}
+.inbox-card-preview {
+  border: 1px solid #e7eae0;
+  border-radius: 8px;
+  background: #f4f5f0;
+  overflow: hidden;
+  min-height: 120px;
+}
+/* 网页作品预览：FixedHtmlWork 按竞技场默认 1280×720 画布渲染，容器 16:9 */
+.inbox-card-preview.html {
+  aspect-ratio: 16 / 9;
+}
+.inbox-text-preview {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #3a4032;
+}
+.inbox-text-preview p {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+.inbox-text-preview pre {
+  margin: 8px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.7;
+  border-top: 1px solid #e7eae0;
+  padding-top: 8px;
+}
+.inbox-card-form {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 10px;
+}
+.inbox-card-form label,
+.inbox-card-form .inbox-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 12px;
   color: #556054;
 }
-.admin-inbox-form label input[type='text'],
-.admin-inbox-form label select {
+.inbox-card-form label input[type='text'],
+.inbox-card-form label select {
   border: 1px solid #cfd4c8;
   border-radius: 6px;
-  padding: 6px 9px;
+  padding: 7px 9px;
   font: inherit;
   font-size: 13px;
   background: #fff;
+  width: 100%;
 }
-.admin-inbox-form label input[type='text'] {
-  width: 220px;
+.inbox-card-form .chk {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
 }
-.admin-inbox-form .reason {
+.inbox-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.inbox-card .reason {
   color: #8a9184;
   font-size: 12px;
+}
+/* 模型名组合框 */
+.model-combo {
+  position: relative;
+}
+.model-combo input {
+  width: 100%;
+}
+.model-combo-tag {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  pointer-events: none;
+}
+.model-combo-tag.known {
+  background: #e6ecda;
+  color: #4a5a34;
+}
+.model-combo-tag.new {
+  background: #f4e9d8;
+  color: #8a5a22;
+}
+.model-combo-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: #fff;
+  border: 1px solid #cfd4c8;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(58 64 50 / 0.14);
+  max-height: 260px;
+  overflow: auto;
+  font-size: 13px;
+}
+.model-combo-create {
+  padding: 8px 10px;
+  color: #8a5a22;
+  background: #fbf6ec;
+  font-size: 12px;
+  border-bottom: 1px solid #f0e6d2;
+}
+.model-combo-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.model-combo-list button:hover,
+.model-combo-list button.selected {
+  background: #f2f4ec;
+}
+.model-combo-list button span {
+  color: #8a9184;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 用户管理：一次性密码弹窗 */
+/* 不加这行 display:flex 会压掉 UA 对未打开 dialog 的 display:none（弹窗常显） */
+.admin-password-dialog:not([open]) {
+  display: none;
+}.admin-password-dialog {
+  border: 1px solid #dfe2da;
+  border-radius: 12px;
+  padding: 22px 24px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font: inherit;
+  color: #3a4032;
+}
+.admin-password-dialog::backdrop {
+  background: rgb(30 34 28 / 0.45);
+}
+.admin-password-dialog h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.admin-password-dialog p {
+  margin: 0;
+  font-size: 13px;
+}
+.admin-password-value {
+  display: block;
+  background: #f2f4ec;
+  border: 1px dashed #b9c2a8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 16px;
+  letter-spacing: 1px;
+  user-select: all;
+  word-break: break-all;
+}
+.admin-password-dialog small {
+  color: #8a9184;
+}
+/* 用户管理：用户名链接（点开详情弹窗）与详情弹窗 */
+.admin-user-link {
+  all: unset;
+  cursor: pointer;
+  font-weight: 600;
+  color: #2f5d3a;
+  border-bottom: 1px dashed #9db8a3;
+}
+.admin-user-link:hover {
+  color: #1f4129;
+  border-bottom-style: solid;
+}
+.admin-user-dialog:not([open]) {
+  display: none;
+}
+.admin-user-dialog {
+  border: 1px solid #dfe2da;
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: min(880px, 92vw);
+  max-height: 84vh;
+  font: inherit;
+  color: #3a4032;
+}
+.admin-user-dialog::backdrop {
+  background: rgb(30 34 28 / 0.45);
+}
+.admin-user-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.admin-user-dialog-head h2 {
+  margin: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+.admin-user-dialog-head p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.admin-user-dialog-body {
+  overflow: auto;
+  max-height: calc(84vh - 90px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-right: 4px;
+}
+.admin-user-dialog-body h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.admin-user-dialog-body section > small {
+  display: block;
+  margin-top: 6px;
 }
 
 /* 题目管理表单（决策 045） */

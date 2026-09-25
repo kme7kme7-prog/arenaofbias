@@ -1,8 +1,8 @@
-// 数据流水：投票 / 评论 / 注册三类记录，关键字搜索 + 倒序 + 每页 50 条翻页。
+// 数据流水：投票 / 评论 / 注册 / 模一把四类记录，关键字搜索 + 倒序 + 每页 50 条翻页。
 // 数据来自 GET /api/admin/log（limit/offset/total）。
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type Kind = 'votes' | 'comments' | 'users';
+type Kind = 'votes' | 'comments' | 'users' | 'guess';
 
 type VoteRow = {
   id: string;
@@ -29,6 +29,16 @@ type UserRow = {
   role: string | null;
   ts: number;
 };
+type GuessRow = {
+  id: string;
+  day: string;
+  difficulty: number;
+  answerId: string;
+  won: number;
+  attempts: number;
+  ts: number;
+  username: string | null;
+};
 
 const fmt = (ts: number) =>
   new Date(ts).toLocaleString('zh-CN', { hour12: false });
@@ -37,6 +47,7 @@ const TABS: { key: Kind; label: string }[] = [
   { key: 'votes', label: '投票' },
   { key: 'comments', label: '评论' },
   { key: 'users', label: '注册' },
+  { key: 'guess', label: '模一把' },
 ];
 
 const PAGE_SIZE = 50;
@@ -46,7 +57,7 @@ export function AdminLog() {
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<(VoteRow | CommentRow | UserRow)[]>([]);
+  const [rows, setRows] = useState<(VoteRow | CommentRow | UserRow | GuessRow)[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -112,7 +123,7 @@ export function AdminLog() {
     <section>
       <h1>数据流水</h1>
       <p className="admin-sub">
-        投票、评论与注册的原始记录（倒序）。搜索框支持用户名、题号、内容关键字。
+        投票、评论、注册与模一把的原始记录（倒序）。模一把按人统计自 2026-09-25 起（登录用户记名，此前与游客显示「游客」）。
       </p>
       <div className="admin-toolbar">
         <div className="tabs">
@@ -142,7 +153,7 @@ export function AdminLog() {
                 submitSearch();
               }
             }}
-            placeholder={kind === 'votes' ? '搜索用户 / 题号 / 模型' : kind === 'comments' ? '搜索用户 / 题号 / 内容' : '搜索用户名'}
+            placeholder={kind === 'votes' ? '搜索用户 / 题号 / 模型' : kind === 'comments' ? '搜索用户 / 题号 / 内容' : kind === 'guess' ? '搜索用户 / 答案模型' : '搜索用户名'}
             aria-label="搜索流水"
           />
           <button className="admin-mini primary" type="submit">搜索</button>
@@ -180,6 +191,17 @@ export function AdminLog() {
               <th>身份</th>
             </tr>
           )}
+          {kind === 'guess' && (
+            <tr>
+              <th>时间</th>
+              <th>玩家</th>
+              <th>日期</th>
+              <th>难度</th>
+              <th>答案模型</th>
+              <th>步数</th>
+              <th>结果</th>
+            </tr>
+          )}
         </thead>
         <tbody>
           {kind === 'votes' &&
@@ -209,6 +231,18 @@ export function AdminLog() {
                 <td className="muted">{fmt(row.ts)}</td>
                 <td>{row.username}</td>
                 <td>{row.role === 'admin' ? '管理员' : '普通用户'}</td>
+              </tr>
+            ))}
+          {kind === 'guess' &&
+            (rows as GuessRow[]).map((row) => (
+              <tr key={row.id}>
+                <td className="muted">{fmt(row.ts)}</td>
+                <td>{row.username ?? <span className="muted">游客</span>}</td>
+                <td className="muted">{row.day}</td>
+                <td>{row.difficulty === 0 ? '每日一题' : `旧档 ${row.difficulty}`}</td>
+                <td>{row.answerId}</td>
+                <td>{row.attempts}</td>
+                <td>{row.won ? '猜中' : '未中'}</td>
               </tr>
             ))}
           {!loading && rows.length === 0 && (

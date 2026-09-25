@@ -58,7 +58,7 @@
 | `server/auth-email.js` | 邮箱账号体系（2026-09-24）：注册（必填邮箱+验证码）、`email/send`/`email/bind`、`password/reset`（重置后清全部会话）、`email_codes` 表、发码限流与冷却 |
 | `server/turnstile.js` | Cloudflare Turnstile 人机验证（2026-09-24）：只守 `email/send`，零依赖 fetch 校验 siteverify；不配密钥整功能关闭 |
 | `server/works-register.js` | 作品登记公共核心（043/044）：CLI 脚本与后台收件箱共用 |
-| `app/admin/` | 后台页（041-045/063）：dashboard / log / works / inbox / prompts / guess / placeholder（活动管理占位） |
+| `app/admin/` | 后台页（041-045/063）：dashboard / log / works / inbox / prompts / users（用户管理）/ guess / placeholder（活动管理占位） |
 | `scripts/validate-*.mjs` | 各域校验（arena/guess/placeholder/matchmaking/leaderboard/votes/comments/admin/locale）：自带临时 SQLite 与随机端口；guess 34 项 |
 | `scripts/check-*.mjs` | 动效不变量断言（029）：wipe/surface/game/arena-scroll/library/vote-split，并入 `check:motion` |
 | `scripts/register-works.mjs` | 作品批量登记 CLI（043） |
@@ -95,9 +95,9 @@
 | `GET /api/guess/today` | 模一把当日题面（dayKey/dayNumber/attributes/models 全量公开字段），匿名，无答案信息 |
 | `POST /api/guess/check` | 判定：每日题按难度池派生（060），练习局带 gameId（064）；猜中或 final 才附答案；跨零点守护（070） |
 | `POST /api/guess/practice/start` | 练习开局（064）：服务端随机抽题发 gameId，内存持有，重启失效 |
-| `POST /api/guess/result` | 每日题结果上报（063）：answer_id 服务端重新派生防伪造；只收每日题（064） |
+| `POST /api/guess/result` | 每日题结果上报（063）：answer_id 服务端重新派生防伪造；只收每日题（064）；迁移 012 起登录用户记 user_id（游客匿名，历史不回溯） |
 | `GET /api/ratings?scope=entertainment` / `scope=formal` | 声望分（046）：按范围独立全量重放 Elo（基准 1200/K=32），供匹配，非排行榜；同一次重放顺带返回各模型出场次数 `games`（109，冷门优先加权用） |
-| `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log、works（清单+PATCH 编辑/发布）、inbox（清单+register+DELETE）、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
+| `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log（votes/comments/users/guess 四类）、works（清单+PATCH 编辑/发布）、models（作品体系模型清单，收件箱补全用）、users（用户管理：清单+PATCH 授权/重置密码/强制下线/DELETE/activity 详情，自操作防呆 400）、inbox（清单+register+DELETE+upload 页面直传 octet-stream 8MB+file 预览路由）、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
 | `POST /api/dev/clear-my-votes` | dev 清自己的票重投（042），同 dev 门禁 |
 
 横切行为：
@@ -128,7 +128,7 @@ npm start          # 生产形态：http://localhost:3000
 ## 扩充内容操作步骤
 
 1. 新增题目：后台「题目管理」新增（编号自动，默认草稿）→ 上架；题号白名单收口到 prompts 表，无需改代码。
-2. 新增作品：文件丢 `data/inbox/` → 后台「收件箱」登记（默认草稿）→ 「作品管理」发布；批量走 `npm run register:works`；多文件作品=整个文件夹（根目录 index.html）。
+2. 新增作品：后台「收件箱」页直接拖拽上传 .html/.txt/.md，或手动丢 `data/inbox/` → 登记（默认草稿；文字作品一文件一作品、空行分段、纯库内存储）→ 「作品管理」发布；批量走 `npm run register:works`；多文件作品=整个文件夹（根目录 index.html）。模型名输入框自动补全现有模型，选中即复用其 modelId 与规范显示名，无匹配则登记时新建。注意：本机 Windows 上 `fs.rmSync` 对非 ASCII 路径会静默失败/崩进程（2026-09-25 实测），删收件箱条目统一走 server 里的 `removeEntry`（unlink/rmdir）。
 3. 新增模一把模型：后台「模一把」页追加（写 `data/guess-models-extra.json` 末尾，sinceDay 强制，063/070）；只能追加不能改。
 4. `isDemo: true` 不计模型数、不配对，仅预览页可见。
 5. 某题补齐两个不同 modelId 的结果后，`#arena/{id}` 自动从预览页变为竞技场。

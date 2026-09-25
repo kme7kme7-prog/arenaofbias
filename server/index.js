@@ -40,6 +40,7 @@ import {
 import { installAuth } from './auth.js';
 import { installAuthEmail } from './auth-email.js';
 import { installTurnstile } from './turnstile.js';
+import { derive } from './auth-util.js';
 import {
   insertWork,
   modelIdOf,
@@ -412,6 +413,22 @@ const MIGRATIONS = [
             ON votes ((mode = 'formal'), created_at, id);
         `);
       })();
+    },
+  },
+  {
+    // 012 · 模一把成绩开始记名（2026-09-25 用户拍板）：登录用户玩每日题时记
+    // user_id，游客仍匿名（null）。历史匿名记录无法回溯补名，按人统计从上线起算。
+    up() {
+      if (
+        !db
+          .prepare('PRAGMA table_info(guess_results)')
+          .all()
+          .some((column) => column.name === 'user_id')
+      )
+        db.exec('ALTER TABLE guess_results ADD COLUMN user_id TEXT');
+      db.exec(
+        'CREATE INDEX IF NOT EXISTS guess_results_user ON guess_results (user_id)',
+      );
     },
   },
 ];
@@ -1051,7 +1068,15 @@ app.get('/api/admin/log', requireAdmin, (req, res) => {
               where: q ? 'WHERE username LIKE ?' : '',
               params: q ? [`%${q}%`] : [],
             }
-          : null;
+          : kind === 'guess'
+            ? {
+                from: 'guess_results g LEFT JOIN users u ON u.id = g.user_id',
+                where: q
+                  ? 'WHERE u.username LIKE ? OR g.answer_id LIKE ?'
+                  : '',
+                params: q ? [`%${q}%`, `%${q}%`] : [],
+              }
+            : null;
   if (!table) return res.status(400).json({ error: '未知的流水类型' });
   try {
     const total = db
@@ -1075,6 +1100,15 @@ app.get('/api/admin/log', requireAdmin, (req, res) => {
            ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
         )
         .all(...table.params, limit, offset);
+    } else if (kind === 'guess') {
+      rows = db
+        .prepare(
+          `SELECT g.id, g.day_key AS day, g.difficulty, g.answer_id AS answerId,
+                  g.won, g.attempts, g.created_at AS ts, u.username
+           FROM ${table.from} ${table.where}
+           ORDER BY g.created_at DESC LIMIT ? OFFSET ?`,
+        )
+        .all(...table.params, limit, offset);
     } else {
       rows = db
         .prepare(
@@ -1087,6 +1121,192 @@ app.get('/api/admin/log', requireAdmin, (req, res) => {
     res.set(noStore).json({ rows, total });
   } catch {
     res.status(503).set(noStore).json({ error: '流水暂时无法加载' });
+  }
+});
+
+// ---------- 管理后台：用户管理（2026-09-25） ----------
+//
+// 只做账号级操作：授权/撤权、重置密码、强制下线、删除账号。票/评论/反应的
+// user_id 是可空松引用，删账号后流水保留、作者变匿名（清账号保流水口径）。
+// 不支持改用户名（牵动流水语义与 ADMIN_OWNER）；sessions 有 FK CASCADE，
+// 删账号/改密码时顺带清会话。防呆红线：不能对当前登录账号执行任何写操作。
+
+const adminUserTarget = (req, res) => {
+  const row = db
+    .prepare('SELECT id, username, role FROM users WHERE id = ?')
+    .get(req.params.id);
+  if (!row) {
+    res.status(404).json({ error: '用户不存在' });
+    return null;
+  }
+  if (row.id === req.user.id) {
+    res.status(400).json({ error: '不能对当前登录账号执行该操作' });
+    return null;
+  }
+  return row;
+};
+
+const adminUserView = (id) => {
+  const row = db
+    .prepare(
+      `SELECT u.id, u.username, u.role, u.email, u.email_verified_at AS emailVerifiedAt, u.created_at AS createdAt,
+              (SELECT COUNT(*) FROM votes v WHERE v.user_id = u.id) AS votes,
+              (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id) AS comments
+       FROM users u WHERE u.id = ?`,
+    )
+    .get(id);
+  if (!row) return null;
+  return {
+    ...row,
+    role: row.role ?? null,
+    emailVerified: !!row.emailVerifiedAt,
+    createdAt: row.createdAt,
+  };
+};
+
+// 用户清单：分页 + 用户名/邮箱搜索，每行带票数与评论数
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 64);
+  // 先取整再钳制：小数/Infinity 直接绑给 SQLite 的 LIMIT/OFFSET 会抛错变 503
+  const limit = Math.min(Math.max(Math.floor(Number(req.query.limit)) || 50, 1), 200);
+  const offset = Math.min(Math.max(Math.floor(Number(req.query.offset)) || 0, 0), 1000000);
+  const where = q ? 'WHERE u.username LIKE ? OR u.email LIKE ?' : '';
+  const params = q ? [`%${q}%`, `%${q}%`] : [];
+  try {
+    const total = db
+      .prepare(`SELECT COUNT(*) AS n FROM users u ${where}`)
+      .get(...params).n;
+    const rows = db
+      .prepare(
+        `SELECT u.id, u.username, u.role, u.email, u.email_verified_at AS emailVerifiedAt, u.created_at AS createdAt,
+                (SELECT COUNT(*) FROM votes v WHERE v.user_id = u.id) AS votes,
+                (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id) AS comments
+         FROM users u ${where}
+         ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset)
+      .map((row) => ({ ...row, role: row.role ?? null, emailVerified: !!row.emailVerifiedAt }));
+    res.set(noStore).json({ total, users: rows });
+  } catch {
+    res.status(503).set(noStore).json({ error: '用户清单暂时无法加载' });
+  }
+});
+
+// 授权/撤权管理员：role 'admin' 或 null
+app.patch('/api/admin/users/:id', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const target = adminUserTarget(req, res);
+  if (!target) return;
+  if (req.body?.role !== 'admin' && req.body?.role !== null)
+    return res.status(400).json({ error: 'role 须为 "admin" 或 null' });
+  try {
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(req.body.role, target.id);
+    res.set(noStore).json({ user: adminUserView(target.id) });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没保存上，稍后再试' });
+  }
+});
+
+// 重置密码：生成随机临时密码（一次性返回，不打日志），清空该账号全部会话
+app.post('/api/admin/users/:id/reset-password', requireAdmin, async (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const target = adminUserTarget(req, res);
+  if (!target) return;
+  // base64url(12B) = 16 字符，满足 validPassword 的 ≥12 下限
+  const password = randomBytes(12).toString('base64url');
+  const salt = randomBytes(16).toString('hex');
+  try {
+    const hash = await derive(password, salt);
+    db.transaction(() => {
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(
+        `scrypt:${salt}:${hash.toString('hex')}`,
+        target.id,
+      );
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').run(target.id);
+    })();
+    res.set(noStore).json({ password });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没重置上，稍后再试' });
+  }
+});
+
+// 强制下线：清掉该账号全部会话
+app.post('/api/admin/users/:id/force-offline', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  if (!req.headers['content-type']?.includes('application/json'))
+    return res.status(415).json({ error: '请求格式无效' });
+  const target = adminUserTarget(req, res);
+  if (!target) return;
+  try {
+    const cleared = db.prepare('DELETE FROM sessions WHERE user_id = ?').run(target.id).changes;
+    res.set(noStore).json({ cleared });
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没下线成功，稍后再试' });
+  }
+});
+
+// 删除账号：sessions 靠 FK CASCADE 清掉；票/评论保留（作者变匿名）
+app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  const target = adminUserTarget(req, res);
+  if (!target) return;
+  try {
+    db.prepare('DELETE FROM users WHERE id = ?').run(target.id);
+    res.set(noStore).status(204).end();
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没删掉，稍后再试' });
+  }
+});
+
+// 用户详情（点用户名弹窗）：账号信息 + 近期投票/评论/模一把成绩。
+// 模一把按人统计自迁移 012 起——登录用户才记名，历史匿名记录不在其中
+app.get('/api/admin/users/:id/activity', requireAdmin, (req, res) => {
+  try {
+    const user = adminUserView(req.params.id);
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+    const votes = db
+      .prepare(
+        `SELECT v.id, v.prompt_id AS promptId, v.winner_mid AS winnerMid, v.loser_mid AS loserMid,
+                v.mode, v.outcome, v.created_at AS ts
+         FROM votes v WHERE v.user_id = ? ORDER BY v.created_at DESC LIMIT 20`,
+      )
+      .all(user.id);
+    const comments = db
+      .prepare(
+        `SELECT c.id, c.round_id AS roundId, c.side, c.body, c.created_at AS ts
+         FROM comments c WHERE c.user_id = ? ORDER BY c.created_at DESC LIMIT 20`,
+      )
+      .all(user.id);
+    const guessSummary = db
+      .prepare(
+        `SELECT COUNT(*) AS played, COALESCE(SUM(won), 0) AS won,
+                AVG(CASE WHEN won = 1 THEN attempts END) AS avgSteps
+         FROM guess_results WHERE user_id = ?`,
+      )
+      .get(user.id);
+    const guessRows = db
+      .prepare(
+        `SELECT g.id, g.day_key AS day, g.difficulty, g.answer_id AS answerId,
+                g.won, g.attempts, g.created_at AS ts
+         FROM guess_results g WHERE g.user_id = ? ORDER BY g.created_at DESC LIMIT 30`,
+      )
+      .all(user.id)
+      .map((row) => ({
+        ...row,
+        answerName: guessModelById.get(row.answerId)?.name ?? row.answerId,
+      }));
+    res.set(noStore).json({
+      user,
+      votes,
+      comments,
+      guess: { ...guessSummary, rows: guessRows },
+    });
+  } catch {
+    res.status(503).set(noStore).json({ error: '用户动态暂时无法加载' });
   }
 });
 
@@ -1233,6 +1453,25 @@ app.patch('/api/admin/works/:id', requireAdmin, (req, res) => {
   }
 });
 
+// 模型清单（2026-09-25 收件箱改版）：作品体系用过的全部模型，自动补全数据源。
+// model_name 取该模型最近一次登记的显示名（规范名）；按作品数降序
+app.get('/api/admin/models', requireAdmin, (_req, res) => {
+  try {
+    const models = db
+      .prepare(
+        `SELECT w.model_id AS modelId,
+                (SELECT model_name FROM works WHERE model_id = w.model_id
+                 ORDER BY created_at DESC, id DESC LIMIT 1) AS modelName,
+                COUNT(*) AS works
+         FROM works w GROUP BY w.model_id ORDER BY works DESC, modelId`,
+      )
+      .all();
+    res.set(noStore).json({ models });
+  } catch {
+    res.status(503).set(noStore).json({ error: '模型清单暂时无法加载' });
+  }
+});
+
 // ---------- 管理后台：收件箱（决策 044） ----------
 //
 // 宝塔/本机把待登记文件放进 inboxDir，这里列出、登记、清理。
@@ -1244,6 +1483,28 @@ const safeEntryName = (value) => {
   if (/[\\/]/.test(value) || value.includes('\0') || value === '.' || value === '..')
     return null;
   return value;
+};
+
+// 可登记的单文件类型（2026-09-25 收件箱改版）：.html = 网页作品；.txt/.md =
+// 文字作品（一文件一作品，空行分段，正文纯库内存储不落 works 目录）
+const HTML_FILE = /\.html$/i;
+const TEXT_FILE = /\.(txt|md)$/i;
+const stemOf = (name) => name.replace(/\.(html|txt|md)$/i, '');
+
+// 空行分段（与 008 入库脚本 register-text-works.mjs 同口径），去空段
+const paragraphsOf = (raw) =>
+  raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+
+// 本机 Windows 上 rmSync 对非 ASCII 路径会静默失败甚至崩进程（2026-09-25 实测，
+// unlinkSync/rmdirSync 正常）——收件箱删除统一走这里：文件 unlink、目录递归后 rmdir
+const removeEntry = (target) => {
+  if (fs.lstatSync(target).isDirectory()) {
+    for (const child of fs.readdirSync(target))
+      removeEntry(path.join(target, child));
+    fs.rmdirSync(target);
+  } else {
+    fs.unlinkSync(target);
+  }
 };
 
 app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
@@ -1258,6 +1519,7 @@ app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
             {
               name: entry.name,
               type: 'dir',
+              kind: 'html',
               size: null,
               registerable: hasIndex,
               reason: hasIndex ? null : '文件夹里没有 index.html，无法作为作品登记',
@@ -1266,29 +1528,94 @@ app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
           ];
         }
         if (!entry.isFile()) return []; // 符号链接等非常规条目不进清单
-        const isHtml = entry.name.toLowerCase().endsWith('.html');
-        const parsed = isHtml
-          ? parseWorkFilename(entry.name.replace(/\.html$/i, ''))
-          : null;
-        return [
-          {
-            name: entry.name,
-            type: 'file',
-            size: fs.statSync(full).size,
-            registerable: isHtml,
-            reason: isHtml
+        const isHtml = HTML_FILE.test(entry.name);
+        const isText = TEXT_FILE.test(entry.name);
+        const parsed =
+          isHtml || isText ? parseWorkFilename(stemOf(entry.name)) : null;
+        const base = {
+          name: entry.name,
+          type: 'file',
+          kind: isText ? 'text' : 'html',
+          size: fs.statSync(full).size,
+          registerable: isHtml || isText,
+          reason:
+            isHtml || isText
               ? null
-              : '只登记 .html 文件；多文件作品请整个文件夹放进收件箱',
-            suggest: parsed
-              ? { title: parsed.title, model: parsed.model }
-              : null,
-          },
-        ];
+              : '只登记 .html / .txt / .md 文件；多文件作品请整个文件夹放进收件箱',
+          suggest: parsed
+            ? { title: parsed.title, model: parsed.model }
+            : null,
+        };
+        // 文字文件带正文摘录与段数，卡片直接预览，不用另开请求
+        if (isText) {
+          try {
+            const paragraphs = paragraphsOf(fs.readFileSync(full, 'utf8'));
+            return [
+              {
+                ...base,
+                paragraphs: paragraphs.length,
+                excerpt: paragraphs.join('\n').slice(0, 300),
+              },
+            ];
+          } catch {
+            return [{ ...base, registerable: false, reason: '文件读取失败' }];
+          }
+        }
+        return [base];
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     res.set(noStore).json({ dir: inboxDir, entries });
   } catch {
     res.status(503).set(noStore).json({ error: '收件箱暂时无法读取' });
+  }
+});
+
+// 页面直传（2026-09-25）：前端读 File.arrayBuffer() 以 octet-stream 发原始字节，
+// 零依赖不走 multipart。全局 /api/admin json 中间件只解析 application/json，
+// octet-stream 会原样穿到这里。只收单文件——多文件作品仍手动放目录
+app.post(
+  '/api/admin/inbox/upload',
+  express.raw({ type: () => true, limit: '8mb' }),
+  requireAdmin,
+  (req, res) => {
+    if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+    const name = safeEntryName(String(req.query.name || ''));
+    if (!name) return res.status(400).json({ error: '文件名不合法' });
+    if (!HTML_FILE.test(name) && !TEXT_FILE.test(name))
+      return res.status(400).json({ error: '只支持 .html / .txt / .md 文件' });
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0)
+      return res.status(400).json({ error: '文件内容为空' });
+    const target = path.join(inboxDir, name);
+    if (fs.existsSync(target) && req.query.overwrite !== '1')
+      return res.status(409).json({ error: '同名文件已在收件箱，确认后覆盖' });
+    try {
+      fs.writeFileSync(target, req.body);
+      res.set(noStore).status(201).json({ ok: true, name });
+    } catch {
+      res.status(503).set(noStore).json({ error: '写入失败，稍后再试' });
+    }
+  },
+);
+
+// 卡片预览：html 与文件夹 index.html 以网页吐（前端 iframe sandbox 加载），
+// txt/md 以纯文本吐。登记后文件搬走自然 404
+app.get('/api/admin/inbox/file', requireAdmin, (req, res) => {
+  const name = safeEntryName(String(req.query.name || ''));
+  if (!name) return res.status(400).json({ error: '文件名不合法' });
+  let target = path.join(inboxDir, name);
+  let isHtml = HTML_FILE.test(name);
+  try {
+    if (fs.statSync(target).isDirectory()) {
+      target = path.join(target, 'index.html');
+      isHtml = true;
+    }
+    const body = fs.readFileSync(target, isHtml ? null : 'utf8');
+    res
+      .set(noStore)
+      .type(isHtml ? 'html' : 'text')
+      .send(body);
+  } catch {
+    res.status(404).json({ error: '收件箱里没有这个文件' });
   }
 });
 
@@ -1316,10 +1643,11 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
     return res.status(404).json({ error: '收件箱里已经没有这个文件了，刷新看看' });
   }
   const isDir = stats.isDirectory();
-  if (!isDir && !(stats.isFile() && name.toLowerCase().endsWith('.html')))
+  const isText = !isDir && TEXT_FILE.test(name);
+  if (!isDir && !(stats.isFile() && (HTML_FILE.test(name) || isText)))
     return res
       .status(400)
-      .json({ error: '只能登记 .html 文件或包含 index.html 的文件夹' });
+      .json({ error: '只能登记 .html/.txt/.md 文件或包含 index.html 的文件夹' });
   if (isDir && !fs.existsSync(path.join(source, 'index.html')))
     return res.status(400).json({ error: '文件夹里没有 index.html，无法作为作品登记' });
 
@@ -1328,11 +1656,79 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
   if (!title)
     title = isDir
       ? name
-      : parseWorkFilename(name.replace(/\.html$/i, '')).title ||
-        name.replace(/\.html$/i, '');
+      : parseWorkFilename(stemOf(name)).title || stemOf(name);
 
-  const modelId = modelIdOf(modelName);
+  // modelId 复用（2026-09-25 收件箱自动补全）：选中现有模型时前端直传 modelId，
+  // 沿用该模型最近一次登记的规范显示名——避免同一模型因写法差异（大小写/全半角）
+  // 撕成两个榜单身份。不传 = 新模型，按模型名派生 id（原有行为）
+  let modelId;
+  let finalModelName = modelName;
+  if (req.body?.modelId !== undefined) {
+    modelId = String(req.body.modelId);
+    if (!/^[\w.-]+$/.test(modelId))
+      return res.status(400).json({ error: '模型 ID 不合法' });
+    const known = db
+      .prepare(
+        'SELECT model_name FROM works WHERE model_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+      )
+      .get(modelId);
+    if (!known)
+      return res
+        .status(400)
+        .json({ error: '未知模型 ID——登记新模型不要传 modelId' });
+    finalModelName = known.model_name;
+  } else {
+    modelId = modelIdOf(modelName);
+  }
   const workId = nextFreeWorkId({ db, worksDir, promptId, modelId });
+
+  // 文字作品（一文件一作品，用户拍板 2026-09-25）：正文纯库内存储，登记成功后
+  // 删源文件——与 html 搬走语义一致，收件箱不囤件；入库失败源文件原样留着
+  if (isText) {
+    let paragraphs;
+    try {
+      paragraphs = paragraphsOf(fs.readFileSync(source, 'utf8'));
+    } catch {
+      return res.status(503).set(noStore).json({ error: '文件读取失败，稍后再试' });
+    }
+    if (!paragraphs.length)
+      return res.status(400).json({ error: '文件是空的，没有可登记的正文' });
+    if (paragraphs.some((p) => p.length > 5000))
+      return res.status(400).json({ error: '单段最长 5000 字' });
+    if (paragraphs.join('').length > 50000)
+      return res.status(400).json({ error: '正文总长最多 50000 字' });
+    try {
+      insertWork(db, {
+        id: workId,
+        promptId,
+        modelId,
+        modelName: finalModelName,
+        title,
+        content: { kind: 'text', story: { paragraphs } },
+        published: publish,
+      });
+    } catch (error) {
+      console.error('[arenaofbias] inbox register failed:', error?.code || 'internal');
+      return res
+        .status(503)
+        .set(noStore)
+        .json({ error: '登记没写进数据库，源文件仍在收件箱' });
+    }
+    // Windows 上杀毒扫描/dev watcher 会短暂占住新文件：删不掉只告警（入库已成功，
+    // 残留文件管理员可在清单里删），不因此判登记失败
+    try {
+      removeEntry(source);
+    } catch {
+      // 残留文件留在收件箱，清单里还能删
+    }
+    if (fs.existsSync(source))
+      console.warn(`[arenaofbias] 收件箱源文件暂未删掉（可能被占用）：${name}`);
+    return res
+      .set(noStore)
+      .status(201)
+      .json({ work: adminWorkView(selectWorkById.get(workId)) });
+  }
+
   const dest = isDir
     ? path.join(worksDir, promptId, workId)
     : path.join(worksDir, promptId, `${workId}.html`);
@@ -1346,7 +1742,7 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
       id: workId,
       promptId,
       modelId,
-      modelName,
+      modelName: finalModelName,
       title,
       content: {
         kind: 'html',
@@ -1376,14 +1772,13 @@ app.delete('/api/admin/inbox', requireAdmin, (req, res) => {
   const name = safeEntryName(String(req.query.name || ''));
   if (!name) return res.status(400).json({ error: '文件名不合法' });
   const target = path.join(inboxDir, name);
-  let stats;
   try {
-    stats = fs.statSync(target);
+    fs.statSync(target);
   } catch {
     return res.status(404).json({ error: '收件箱里没有这个文件' });
   }
   try {
-    fs.rmSync(target, { recursive: stats.isDirectory() });
+    removeEntry(target);
     res.set(noStore).status(204).end();
   } catch {
     res.status(503).set(noStore).json({ error: '删除失败，稍后再试' });
@@ -1777,14 +2172,15 @@ app.post('/api/guess/practice/start', limiterFor('guess'), (req, res) => {
 });
 
 // 游玩数据上报：一局结束时前端报一次（与本地战绩结算同一时机，一局一条）。
-// 匿名、无需登录——对局本来就在浏览器本地；answer_id 由服务端按 dayKey 从
+// 无需登录——对局本来就在浏览器本地；answer_id 由服务端按 dayKey 从
 // 每日池（决策 064/081：简单+普通）重新派生，客户端只报「几步、中没中」，伪造不了
 // 答案归属。可刷假数据但没有收益，限流兜底；多刷也只是把统计弄脏。
 // 决策 064 起只有每日一题上报（练习模式不限次、不上报）；请求不再带
 // difficulty，guess_results.difficulty 对每日题记 0，历史 1-3 记录保留。
+// 迁移 012（2026-09-25 用户拍板）起登录用户记 user_id（供后台按人统计），游客仍匿名。
 const insertGuessResult = db.prepare(
-  `INSERT INTO guess_results (id, day_key, difficulty, answer_id, won, attempts, ip_hash, created_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  `INSERT INTO guess_results (id, day_key, difficulty, answer_id, won, attempts, ip_hash, created_at, user_id)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 app.post('/api/guess/result', limiterFor('guess'), (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
@@ -1823,6 +2219,7 @@ app.post('/api/guess/result', limiterFor('guess'), (req, res) => {
       attempts,
       ipHashOfDay(req.ip || 'unknown', dayKey(now)),
       now,
+      req.user?.id ?? null, // 012 起：登录用户记名，游客匿名
     );
     res.set(noStore).status(204).end();
   } catch {
@@ -2225,3 +2622,4 @@ app.listen(port, host, () => {
     `[arenaofbias] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
   );
 });
+
