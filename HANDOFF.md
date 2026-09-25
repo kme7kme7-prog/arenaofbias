@@ -7,7 +7,7 @@
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
 4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
-## 2026-09-25 提醒字居中真因 + 快门重构：盖满才换稿/进度条/退场落成品（未 commit，待用户验收）
+## 2026-09-25 提醒字居中真因 + 快门重构：盖满才换稿/进度条/退场落成品（已 commit e171d8d 并部署）
 
 - **「还是歪的」真因（像素级量证）**：不是旋转——全局 `.account-dialog h2 { max-width: 330px }`（为登录页长标题避印章设的）被成功页短标题继承，330px 盒靠左使「登录成功。」整体吊在卡片中轴左 73px。修法 `.account-success h2 { max-width: none; margin: 0 auto 8px }`（app/account.css）；残差 6px 是内容盒左右内边距差的一半，与 ✓/说明完全同轴。上一轮去 rotate 修的是真问题但不是用户指的这个。
 - **快门重构（用户原话「不论如何 都不能看到后面作品的加载过程」）**，根因三层：
@@ -16,7 +16,7 @@
   3. 换稿提交竞态：setPair 后等 iframe src 属性真变再等就绪；就绪判定加「文档地址对上当前 src」防旧文档假就绪（帧采样抓到过 2 帧裸加载）。
 - 配套：快门上加 A 红/B 蓝双侧进度条（用户指定形态，就绪即填满队色）；门控放行的 ARRIVE 走 intro 快速通道——加载过场整段跳过、「正在接入试验场」遮罩不再挂载；8s 兜底放行把卡死状态带进 intro，跳过按钮立即可见（原要再叠 8s 计时）。首次入场/兜底路径行为不变。
 - 验证：临时帧采样脚本 `scripts/.tmp-verify-transition.mjs` 13/13（换对/重播全程零裸加载帧、遮罩零出现、换源在盖满后 50ms、揭幕双侧 sent；fixture 需真实延迟+探针）；旧回归 validate-work-ready 5/5（慢作品断言按新口径改为 phase-transition）；快门保持期截图人工复核全盖+双条在跑。typecheck 干净、lint 基线 9。
-- 改动文件：app/account.css、app/globals.css、app/page.tsx、scripts/validate-work-ready.mjs、docs/DECISIONS.md、HANDOFF.md。**未 commit——等用户线上验收后发话**（上次部署仍为 07a6a37，本批改动只在本机）。
+- 改动文件：app/account.css、app/globals.css、app/page.tsx、scripts/validate-work-ready.mjs、docs/DECISIONS.md、HANDOFF.md。**已 commit `e171d8d` 并部署 VPS**（备份 aob-deploy-20260925T142201Z-e171d8d3；线上已验：居中规则/shutter-exit/shutter-progress 三标志全在、API 200）。临时验收脚本 scripts/.tmp-verify-transition.mjs 未入库（.tmp 惯例）。待用户线上复验：成功卡标题是否居中、换对局是否一幕到底不再见加载。
 
 ## 2026-09-25 提醒文字去歪斜 + 换对局快门钉到作品就绪（已 commit 07a6a37 并部署）
 
