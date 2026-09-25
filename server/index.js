@@ -1318,7 +1318,8 @@ app.get('/api/admin/users/:id/activity', requireAdmin, (req, res) => {
 
 const selectWorkById = db.prepare(
   `SELECT id, prompt_id AS promptId, model_id AS modelId, model_name AS modelName,
-          title, is_demo AS isDemo, published, created_at AS createdAt, content
+          title, is_demo AS isDemo, published, created_at AS createdAt, content,
+          (SELECT COUNT(*) FROM votes v WHERE v.winner_rid = works.id OR v.loser_rid = works.id) AS votes
    FROM works WHERE id = ?`,
 );
 
@@ -1342,6 +1343,7 @@ const adminWorkView = (row) => {
     isDemo: !!row.isDemo,
     published: !!row.published,
     createdAt: row.createdAt,
+    votes: row.votes ?? 0,
     src,
     content,
   };
@@ -1379,7 +1381,8 @@ app.get('/api/admin/works', requireAdmin, (req, res) => {
     const rows = db
       .prepare(
         `SELECT id, prompt_id AS promptId, model_id AS modelId, model_name AS modelName,
-                title, is_demo AS isDemo, published, created_at AS createdAt, content
+                title, is_demo AS isDemo, published, created_at AS createdAt, content,
+                (SELECT COUNT(*) FROM votes v WHERE v.winner_rid = works.id OR v.loser_rid = works.id) AS votes
          FROM works ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
       )
       .all(...params, limit, offset);
@@ -1469,6 +1472,67 @@ app.get('/api/admin/models', requireAdmin, (_req, res) => {
     res.set(noStore).json({ models });
   } catch {
     res.status(503).set(noStore).json({ error: '模型清单暂时无法加载' });
+  }
+});
+
+// 删除作品（2026-09-25 用户拍板放宽「一律不删」）：只许删零票作品——
+// 票面（winner_rid/loser_rid）引用的作品删了会让历史对局残缺，有票的仍只许下架。
+// 零票 = 无任何流水牵连：库里删行，磁盘删对应文件/目录（演示种子可能无文件，跳过）
+app.delete('/api/admin/works/:id', requireAdmin, (req, res) => {
+  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
+  const row = db
+    .prepare('SELECT id, content FROM works WHERE id = ?')
+    .get(req.params.id);
+  if (!row) return res.status(404).json({ error: '作品不存在' });
+  const votes = db
+    .prepare('SELECT COUNT(*) AS n FROM votes WHERE winner_rid = ? OR loser_rid = ?')
+    .get(row.id, row.id).n;
+  if (votes > 0)
+    return res.status(400).json({
+      error: `该作品已有 ${votes} 票投票记录，删除会让历史对局残缺——请用下架`,
+    });
+  try {
+    db.prepare('DELETE FROM works WHERE id = ?').run(row.id);
+    // 磁盘清理：content.src = /works/<题>/<id>.html 或 /works/<题>/<id>/index.html
+    try {
+      let content = null;
+      try {
+        content = JSON.parse(row.content);
+      } catch {
+        // content 损坏则无从定位文件，只删库
+      }
+      const src = content?.src;
+      if (typeof src === 'string' && src.startsWith('/works/')) {
+        const segments = src.slice('/works/'.length).split('/');
+        const safe =
+          segments.length >= 2 &&
+          segments.every(
+            (segment) =>
+              segment &&
+              segment !== '.' &&
+              segment !== '..' &&
+              !segment.includes('\\'),
+          );
+        if (safe) {
+          // 文件夹作品的 src 指向 <作品id>/index.html：资产目录是作品的一部分，
+          // 删整个 <作品id>/ 目录；单文件件只删文件本身
+          const parentSegments = segments.slice(0, -1);
+          const isFolderWork =
+            segments[segments.length - 1] === 'index.html' &&
+            parentSegments.length >= 2 &&
+            parentSegments[parentSegments.length - 1] === row.id;
+          const target = isFolderWork
+            ? path.join(worksDir, ...parentSegments)
+            : path.join(worksDir, ...segments);
+          if (fs.existsSync(target)) removeEntry(target);
+        }
+      }
+    } catch {
+      // 文件清理失败不回滚入库删除；残留文件可手动清
+    }
+    res.set(noStore).status(204).end();
+  } catch {
+    res.status(503).set(noStore).json({ error: '暂时没删掉，稍后再试' });
   }
 });
 

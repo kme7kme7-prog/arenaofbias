@@ -257,6 +257,10 @@
   background: #eaf3ea;
   color: #3a7548;
 }
+.works-votes {
+  color: #8a9184;
+  font-size: 12px;
+}
 .works-edit {
   display: grid;
   gap: 10px;

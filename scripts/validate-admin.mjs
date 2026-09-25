@@ -1075,6 +1075,40 @@ try {
     );
   });
 
+  await check('作品删除：零票可删（库+磁盘）、有票拒删、门禁', async () => {
+    const del = (id, cookie) =>
+      robustFetch(`${base}/api/admin/works/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: cookie ? { cookie, origin: base } : {},
+      });
+    // 门禁
+    assert.equal((await del('001-test-model')).status, 401);
+    assert.equal((await del('001-test-model', userCookie)).status, 404);
+    assert.equal((await del('no-such-work', ownerCookie)).status, 404);
+    // 有票拒删（002-a 在早期用例被 owner 投过票）
+    const refused = await del('002-a', ownerCookie);
+    assert.equal(refused.status, 400);
+    assert.ok(((await refused.json()).error || '').includes('下架'));
+    // 零票单文件：库行与磁盘文件一起消失
+    assert.equal((await del('001-test-model', ownerCookie)).status, 204);
+    assert.equal((await robustFetch(`${base}/works/001/001-test-model.html`)).status, 404);
+    const list = await (await robustFetch(`${base}/api/admin/works?q=001-test-model`, {
+      headers: { cookie: ownerCookie },
+    })).json();
+    assert.ok(!list.works.some((w) => w.id === '001-test-model'));
+    // 零票文件夹作品：整目录删除
+    assert.equal((await del('005-web-model', ownerCookie)).status, 204);
+    assert.equal(
+      (await robustFetch(`${base}/works/005/005-web-model/assets/style.css`)).status,
+      404,
+    );
+    // 清单行带票数（前端按钮据此启用）
+    const withVotes = (await (await robustFetch(`${base}/api/admin/works?q=inkwell`, {
+      headers: { cookie: ownerCookie },
+    })).json()).works[0];
+    assert.ok(withVotes.votes >= 1, `votes = ${withVotes.votes}`); // owner + resetme（删号前的票保留）
+  });
+
   await check('双入口构建产物：dist/admin.html 存在', async () => {
     const info = await stat(new URL('../dist/admin.html', import.meta.url));
     assert.ok(info.size > 0);

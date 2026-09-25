@@ -112,6 +112,41 @@ export function AdminWorks() {
       setBusy(null);
     }
   };
+  // 删除仅限零票作品（服务端硬校验兜底）：误传件/测试件的清理通道
+  const remove = (work: AdminWork) => {
+    if (busy) return;
+    if (
+      !window.confirm(
+        `删除作品「${work.title}」？连同作品文件一起删除，此操作不可恢复。`,
+      )
+    )
+      return;
+    setBusy(work.id);
+    setError('');
+    setNotice('');
+    fetch(`/api/admin/works/${encodeURIComponent(work.id)}`, {
+      method: 'DELETE',
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(data.error || '删除失败，稍后再试');
+        }
+      })
+      .then(() => {
+        setNotice(`作品 ${work.id} 已删除。`);
+        setLoading(true);
+        setRevision((n) => n + 1);
+      })
+      .catch((removeError: unknown) =>
+        setError(
+          removeError instanceof Error ? removeError.message : '删除失败',
+        ),
+      )
+      .finally(() => setBusy(null));
+  };
   return (
     <section className="works-manager">
       <header className="works-header">
@@ -342,6 +377,9 @@ export function AdminWorks() {
               >
                 {work.published ? '● 已发布' : '○ 草稿'}
               </span>
+              <span className="works-votes">
+                {work.votes > 0 ? `${work.votes} 票` : '零票'}
+              </span>
               <div>
                 {work.content?.kind === 'html' && (
                   <button
@@ -405,6 +443,17 @@ export function AdminWorks() {
                     : work.published
                       ? '下架'
                       : '发布'}
+                </button>
+                <button
+                  disabled={!!busy || loading || !!editing || work.votes > 0}
+                  title={
+                    work.votes > 0
+                      ? `已有 ${work.votes} 票引用，只能下架不能删除`
+                      : '删除（仅限没有任何投票的作品）'
+                  }
+                  onClick={() => remove(work)}
+                >
+                  删除
                 </button>
               </div>
             </div>
