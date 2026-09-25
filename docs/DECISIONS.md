@@ -486,3 +486,11 @@
 - 合并时被覆盖的具体型号名已按作品 id 推导还原（scripts/.tmp-restore-specific-names.mjs，线上 39 行/本地 35 行，幂等）——作品 id 里的旧版本字样是还原依据，这也是「作品 id 保留旧代号字样」决定的红利。
 - 后台登记口径：/api/admin/models 与收件箱登记复用对合并条目返回家族名（MERGED_MODEL_META.board），备注注明来源与「对局揭晓显示具体型号」；新作品登记进家族条目时显示名取家族名。
 - 本轮连前项（合并数据+榜单规则+家族名）一起 commit 并部署（用户授权「commit + 部署吧」）。
+
+## 2026-09-25 · 提醒文字去歪斜 + 换对局快门钉到作品就绪（不占编号）
+
+- 用户反馈「登录成功等提醒字都是歪的」。查证：落定态 transform 全为 none（正的），歪来自拍落入场动画的起始帧 `rotate(1.8deg)`——前三分之一时程卡片已不透明但仍歪着，截图/每次出提醒都撞见。**拍板去歪留落**：`account-page-turn` 与表单切换 `account-page` 两个 keyframes 删掉起始 rotate，拍落的位移/缩放/回弹保留；对照页 reference/account-turn-review.html 已同步标注。装饰纸堆的倾斜属纸堆设计本体，保留。
+- 用户反馈娱乐模式「同一题库继续」过渡链太碎：深色快门（固定 620ms）先走 → 半加载竞技场露出 →「正在接入试验场」再盖一遍 → 才好。**拍板：快门一直遮住直到作品加载完才结束过渡**。
+- 根因一层：`data-aob-probe` 就绪探针只存在于测试 fixture，真实作品从未注入——就绪判定落到 readyState=interactive（three.js 此刻着色器还在编译）。**修法：服务端吐作品文档一律注入探针**（server/work-bridge.js `injectWorkProbe`：window load + 3 渲染帧 + 600ms 上报 aob:work-ready，8s 兜底），竞技场/纸幕原有的探针等待逻辑零改动生效。
+- 根因二层：同题库继续（REPLAY）走场内相位机，transition 快门按固定 620ms 到点 ARRIVE，不看就绪。**修法：transition 相位等 waitWorksLoaded（探针口径）才放 ARRIVE**，620ms 降为最短节拍，ARENA_TIMING.worksSkipAt(8s) 超时兜底放给 intro 的跳过出口；就绪判定函数从 intro effect 提升为组件级共用。
+- 验证（本地真浏览器逐帧采样）：同题库继续——两作品 1406/1461ms 上报就绪、快门 1620ms 才结束（旧逻辑 620ms 必走）、全程零裸加载零加载遮罩；换个题库继续——探针 830/913ms、纸幕 1462ms 扫出、零裸加载。typecheck 干净、lint 基线 9 无新增。本轮未授权 commit/push/部署。

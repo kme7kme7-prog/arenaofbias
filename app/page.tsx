@@ -832,6 +832,50 @@ export default function Arena({
     };
   }, [prompt.id]);
 
+  // 双方作品就绪门控（组件级，transition 快门与 intro 揭幕共用）：HTML 作品挂
+  // 同源沙箱 iframe，读 contentDocument 的地址与 readyState；非 iframe 作品
+  // （文字/模板/图片）视为即时就绪。初始 about:blank 算未就绪——防 src 导航
+  // 尚未提交时的假阳性。不透明源（内联 srcDoc 占位）读不到文档，视为就绪不拦。
+  // 探针作品（2026-09-25 起服务端吐文档时一律注入 data-aob-probe）在文档就绪
+  // 后还要等它上报「渲染循环已启动」（load+3 帧+600ms，8s 兜底）——场景型
+  // 作品不放到「脚本跑着、画面还没画」的中间态；无探针的老文档不等人。
+  const waitWorksLoaded = useCallback(async (abort: AbortSignal) => {
+    const workReady = (card: HTMLElement | null): boolean => {
+      const frame = card?.querySelector('iframe');
+      if (!frame) return true;
+      try {
+        const doc = frame.contentDocument;
+        if (!doc) return true;
+        if (doc.location.href === 'about:blank') return false;
+        if (doc.readyState === 'loading') return false;
+        if (
+          doc.querySelector('script[data-aob-probe]') &&
+          (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow))
+        )
+          return false;
+        return true;
+      } catch {
+        return true;
+      }
+    };
+    // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
+    // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
+    const poll = (): boolean => {
+      const a = workReady(cardA.current);
+      const b = workReady(cardB.current);
+      if (a) reportWorkReady('a');
+      if (b) reportWorkReady('b');
+      setWorksPendingBySide((current) =>
+        current.a === !a && current.b === !b ? current : { a: !a, b: !b },
+      );
+      return a && b;
+    };
+    // 死等：未完全就绪不展开（用户拍板，取消原 8 秒超时放行）
+    while (!poll()) await delay(60, abort);
+    // 双侧就绪：放「下一题」纸幕扫出，揭幕直接落在就绪作品上（096）
+    releaseWorksGate();
+  }, []);
+
   useEffect(() => {
     if (state.phase !== 'intro') return;
     const controller = new AbortController();
@@ -861,51 +905,6 @@ export default function Arena({
       setWorksSettled(false);
       setWorksPendingBySide({ a: true, b: true });
       setWorksStalled(false);
-      // 双方作品就绪门控：HTML 作品挂同源沙箱 iframe，读 contentDocument
-      // 的地址与 readyState；非 iframe 作品（文字/模板/图片）视为即时就绪。
-      // 就绪线 = DOM 解析完且模块脚本已执行（interactive）——灰板对应 loading，
-      // interactive 时页面已有内容；图片等收尾资源不再拦。初始 about:blank
-      // 算未就绪——防 src 导航尚未提交时的假阳性。不透明源（内联 srcDoc
-      // 占位）读不到文档，视为就绪不拦。
-      // 探针作品（index.html 注入 data-aob-probe）在文档就绪后还要等它上报
-      // 「渲染循环已启动」（首帧 rAF / DOMContentLoaded+250ms 兜底）——场景型
-      // 作品不放到「脚本跑着、画面还没画」的中间态；无探针作品不等人。
-      const workReady = (card: HTMLElement | null): boolean => {
-        const frame = card?.querySelector('iframe');
-        if (!frame) return true;
-        try {
-          const doc = frame.contentDocument;
-          if (!doc) return true;
-          if (doc.location.href === 'about:blank') return false;
-          if (doc.readyState === 'loading') return false;
-          if (
-            doc.querySelector('script[data-aob-probe]') &&
-            (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow))
-          )
-            return false;
-          return true;
-        } catch {
-          return true;
-        }
-      };
-      // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
-      // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
-      const pollWorksReady = (): boolean => {
-        const a = workReady(cardA.current);
-        const b = workReady(cardB.current);
-        if (a) reportWorkReady('a');
-        if (b) reportWorkReady('b');
-        setWorksPendingBySide((current) =>
-          current.a === !a && current.b === !b ? current : { a: !a, b: !b },
-        );
-        return a && b;
-      };
-      // 死等：未完全就绪不展开（用户拍板，取消原 8 秒超时放行）
-      const waitWorksLoaded = async (abort: AbortSignal) => {
-        while (!pollWorksReady()) await delay(60, abort);
-        // 双侧就绪：放「下一题」纸幕扫出，揭幕直接落在就绪作品上（096）
-        releaseWorksGate();
-      };
       if (reducedMotion) {
         await Promise.all([delay(200, signal), waitWorksLoaded(signal)]);
         setWorksSettled(true);
@@ -1034,31 +1033,50 @@ export default function Arena({
     reducedMotion,
     play,
     tour,
+    waitWorksLoaded,
   ]);
 
   useEffect(() => {
+    // transition 快门钉到作品就绪（2026-09-25 用户反馈）：同一题库继续/切轮
+    // 的新对在快门下加载，双侧就绪（探针口径）才放 ARRIVE——不再固定 620ms
+    // 到点就走、露出半加载画面再被加载遮罩重盖。620ms 只是最短节拍保底；
+    // 卡死超过 worksSkipAt 放行给 intro 的「跳过此题」出口，不死等。
+    if (state.phase === 'transition') {
+      const controller = new AbortController();
+      const signal = controller.signal;
+      let live = true;
+      const arrive = async () => {
+        await Promise.all([
+          delay(reducedMotion ? 50 : 620, signal),
+          Promise.race([
+            waitWorksLoaded(signal),
+            delay(ARENA_TIMING.worksSkipAt, signal),
+          ]),
+        ]);
+        if (!live) return;
+        setExpanded(null);
+        dispatch({ type: 'ARRIVE' });
+      };
+      arrive().catch(() => {});
+      return () => {
+        live = false;
+        controller.abort();
+      };
+    }
     const timeout =
-      state.phase === 'transition'
+      state.phase === 'locking'
         ? setTimeout(
             () => {
-              setExpanded(null);
-              dispatch({ type: 'ARRIVE' });
+              play('reveal');
+              dispatch({ type: 'REVEAL' });
             },
-            reducedMotion ? 50 : 620,
+            reducedMotion ? 80 : ARENA_TIMING.resultReveal,
           )
-        : state.phase === 'locking'
-          ? setTimeout(
-              () => {
-                play('reveal');
-                dispatch({ type: 'REVEAL' });
-              },
-              reducedMotion ? 80 : ARENA_TIMING.resultReveal,
-            )
-          : null;
+        : null;
     return () => {
       if (timeout) clearTimeout(timeout);
     };
-  }, [state.phase, reducedMotion, play]);
+  }, [state.phase, reducedMotion, play, waitWorksLoaded]);
 
   // 盲测揭晓时的身份解密：真实身份一挂载就用遮黑条盖住（layout effect 保证
   // 用户看不到未遮盖的名字），再按行错峰退开。娱乐模式身份全程公开不解密。

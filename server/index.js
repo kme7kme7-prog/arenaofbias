@@ -33,6 +33,7 @@ import { installShare } from './share.js';
 import { validWorkFraming } from './work-framing.js';
 import {
   injectWorkBridge,
+  injectWorkProbe,
   addonControlsShim,
   passthroughShim,
   validWorkCamera,
@@ -2679,17 +2680,18 @@ app.use('/works', (req, res, next) => {
   }
   if (!workId || !filePath) return next();
   const camera = savedCameraFor(workId);
-  if (!camera && req.query.aob !== 'bridge') return next();
   let html;
   try {
     html = fs.readFileSync(filePath, 'utf8');
   } catch {
     return next(); // 文件不存在/读不到：交回静态走原有 404 口径
   }
-  res
-    .type('html')
-    .set('Cache-Control', 'no-cache')
-    .send(injectWorkBridge(html, camera, `/works/${rel}`));
+  // 就绪探针一律注入（2026-09-25）：换对局纸幕钉到作品渲染起来才结束；
+  // 相机桥只在存视角/?aob=bridge 时叠加
+  let out = injectWorkProbe(html);
+  if (camera || req.query.aob === 'bridge')
+    out = injectWorkBridge(out, camera, `/works/${rel}`);
+  res.type('html').set('Cache-Control', 'no-cache').send(out);
 });
 app.use(
   '/works',

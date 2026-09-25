@@ -35,7 +35,9 @@
     100% { opacity: 1; filter: blur(0); transform: none; }
   }
   @keyframes turn-slap {
-    0% { opacity: 0; transform: translateY(-32px) rotate(1.8deg) scale(1.03); }
+    /* 2026-09-25 用户反馈「提醒字是歪的」：现行实现去掉起始 rotate(1.8deg)，
+       只保留拍落位移+缩放；此对照页保留原 D 姿态供回看对比 */
+    0% { opacity: 0; transform: translateY(-32px) scale(1.03); }
     100% { opacity: 1; transform: none; }
   }
   .turn-slide { animation: turn-slide 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }

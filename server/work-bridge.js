@@ -2,8 +2,9 @@
 // 桥把作品的 OrbitControls 实例登记到 window.__AOB__，后台预览据此「抓取当前
 // 视角」存进作品元数据（content.camera）；竞技场加载同一作品时，服务端把保存
 // 的视角随桥一起注入，桥在 controls 创建后套回好机位。
-// 注入只在两种请求发生：作品存有视角（前台），或 ?aob=bridge（后台校准预览）
-// ——未校准作品的响应字节与改造前完全一致。
+// 桥本身只在两种请求注入：作品存有视角（前台），或 ?aob=bridge（后台校准预览）。
+// 注意：2026-09-25 起作品文档一律先过 injectWorkProbe（就绪探针），响应字节
+// 不再与源文件完全一致——探针只有 postMessage 一个副作用，不碰作品逻辑。
 //
 // 两条钩子路径：
 //  1. 全局 UMD（three.min.js + examples/js OrbitControls）：defineProperty 拦
@@ -14,6 +15,37 @@
 //     与默认导出（lil-gui 只有默认导出，漏了作品会先崩）。
 
 const VIRTUAL = '/works/__aob__';
+
+// 就绪探针（2026-09-25）：此前 data-aob-probe 只存在于测试 fixture——真实作品
+// 从未注入，竞技场的就绪判定落到 readyState=interactive（HTML 解析完+模块脚本
+// 执行完），three.js 作品此刻着色器还在编译、首帧没画，换对局纸幕提前扫出、
+// 露出半加载画面。现在服务端吐作品文档时一律注入本探针：等 window load、
+// 渲染循环跑过 3 帧、再留 600ms 收尾余量后上报 aob:work-ready；8 秒兜底防拖死。
+// 竞技场的探针等待逻辑（page.tsx）与「下一题」纸幕门（works-gate，决策 096）
+// 原本就认这个握手，注入后纸幕才真正钉到「作品加载完才结束过渡」。
+const PROBE_JS = `(function(){
+var posted=false;
+function post(){if(posted)return;posted=true;try{parent.postMessage('aob:work-ready','*');}catch(e){}}
+function arm(){
+  var frames=0;
+  function tick(){frames+=1;if(frames>=3)setTimeout(post,600);else requestAnimationFrame(tick);}
+  requestAnimationFrame(tick);
+}
+if(document.readyState==='complete')arm();
+else window.addEventListener('load',arm);
+setTimeout(post,8000);
+})();`;
+
+/** 注入就绪探针（classic script，进 <head> 顶部；幂等：已有探针不重复加） */
+export function injectWorkProbe(html) {
+  if (html.includes('data-aob-probe')) return html;
+  const tag = `<script data-aob-probe>${PROBE_JS}</script>`;
+  if (/<head[^>]*>/i.test(html))
+    return html.replace(/<head[^>]*>/i, (m) => m + tag);
+  if (/<html[^>]*>/i.test(html))
+    return html.replace(/<html[^>]*>/i, (m) => `${m}<head>${tag}</head>`);
+  return tag + html;
+}
 
 // 注入到 <head> 顶部的桥运行时（classic script，先于作品一切脚本执行）
 const BRIDGE_JS = `(function(){

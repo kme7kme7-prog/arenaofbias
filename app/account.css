@@ -545,12 +545,13 @@
   text-decoration: underline;
 }
 /* 换纸动画（2026-09-24 用户选定 D / 卡片拍落，对照页 reference/account-turn-review.html）：
-   新页从上方拍落桌面，带轻微歪斜回正；底纸堆的姿态偏移由组件按翻页次数换目标值，
-   走 .account-paper 已有的 0.65s transform 过渡 */
+   新页从上方拍落桌面；2026-09-25 用户反馈「提醒字是歪的」——去掉起始的歪斜，
+   只保留拍落的位移与缩放，落定全程文字水平。底纸堆的姿态偏移由组件按翻页次数
+   换目标值，走 .account-paper 已有的 0.65s transform 过渡 */
 @keyframes account-page-turn {
   0% {
     opacity: 0;
-    transform: translateY(-32px) rotate(1.8deg) scale(1.03);
+    transform: translateY(-32px) scale(1.03);
   }
   100% {
     opacity: 1;
@@ -612,7 +613,7 @@
 @keyframes account-page {
   from {
     opacity: 0;
-    transform: translateX(14px) rotate(0.5deg);
+    transform: translateX(14px);
   }
   to {
     opacity: 1;
