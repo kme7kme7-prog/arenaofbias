@@ -76,6 +76,17 @@ const NOTE_POOL = [
   '偏好来源集中，换个赛道可能会看到不同的名次。',
 ];
 
+// 家族条目的榜单显示名（2026-09-25 用户拍板）：对局揭晓/题库显示每件作品的
+// 具体型号（works.model_name，如 Claude Fable 5.1 / Gemini 3.7 Flash），榜单按
+// modelId 合并计算、显示家族名。服务端 /api/admin/models 的登记口径同此映射。
+const FAMILY_BOARD_NAMES: Record<string, string> = {
+  'claude-fable-5.x': 'Claude Fable 5.x',
+  'claude-opus-5.x': 'Claude Opus 5.x',
+  'gemini-3.8-flash': 'Gemini 3.x',
+  'muse-spark-1.3': 'Muse Spark 1.x',
+  'glm-5.3-flash': 'GLM-5.3-Flash',
+};
+
 function promptKindMap(): Map<string, 'image' | 'text' | 'web'> {
   return new Map(currentPrompts().map((prompt) => [prompt.id, prompt.kind]));
 }
@@ -103,7 +114,7 @@ function modelMeta(votes: VoteRecord[]) {
     const ph = placeholder?.get(result.modelId);
     const nn = result.modelId.replace(/^ph-/, '');
     meta.set(result.modelId, {
-      name: result.modelName,
+      name: FAMILY_BOARD_NAMES[result.modelId] ?? result.modelName,
       accent:
         ph?.accent ??
         FALLBACK_PALETTE[hashSeed(result.modelId) % FALLBACK_PALETTE.length],
@@ -121,7 +132,7 @@ function modelMeta(votes: VoteRecord[]) {
     ];
     for (const [modelId, name] of retired) {
       if (meta.has(modelId)) continue;
-      const display = name ?? modelId;
+      const display = FAMILY_BOARD_NAMES[modelId] ?? name ?? modelId;
       meta.set(modelId, {
         name: display,
         accent: FALLBACK_PALETTE[hashSeed(modelId) % FALLBACK_PALETTE.length],
@@ -210,6 +221,22 @@ export function leaderboardData(
   const losses = new Map<string, number>();
   const draws = new Map<string, number>();
   const topicSets = new Map<string, Set<string>>();
+
+  // 单题阵容不进榜（2026-09-25 内测数据治理拍板）：已发布作品只覆盖 1 道题的
+  // 模型（002/003 的占位条目、只有鹈鹕的单题模型）不上榜，发布第 2 道题自动
+  // 回来。只数已发布非演示作品（榜单反映线上可见内容，草稿不算数）；覆盖
+  // 0 题 = 纯历史阵容（决策 045 ⑤），不受此规则影响；占位演示模式不适用。
+  const publishedCoverage = new Map<string, Set<string>>();
+  if (!isPlaceholderMode()) {
+    for (const result of currentResults()) {
+      if (result.isDemo) continue;
+      let prompts = publishedCoverage.get(result.modelId);
+      if (!prompts)
+        publishedCoverage.set(result.modelId, (prompts = new Set()));
+      prompts.add(result.promptId);
+    }
+  }
+
   const touch = (id: string) => {
     if (!rating.has(id)) rating.set(id, ELO_BASE);
     if (!topicSets.has(id)) topicSets.set(id, new Set());
@@ -243,6 +270,8 @@ export function leaderboardData(
     const d = draws.get(modelId) ?? 0;
     const games = w + l + d;
     if (games === 0) continue;
+    const coverage = publishedCoverage.get(modelId);
+    if (coverage && coverage.size < 2) continue;
     rows.push({
       modelId,
       name: info.name,

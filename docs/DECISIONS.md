@@ -465,3 +465,24 @@
 - 用户问作品管理为何没有删除功能（原决策 044 口径：投票流水引用作品、一律只许下架）。拍板放宽为：**零票作品可删**（库行 + 磁盘文件/目录一起清，二次确认，不可恢复）；有票作品服务端硬校验拒删（400 提示用下架），历史票引用不被打断。
 - 作品管理列表每行加票数显示（前端删除按钮据此启用）。
 - 本轮未授权 commit/push（当轮用户随后要求 push 与部署）。
+
+## 2026-09-25 · 内测开闸前模型数据治理：五组合并 + 榜单单题规则（不占编号）
+
+- 开内测前的一次性榜单数据治理，用户逐项拍板。合并（works.model_id/model_name + votes.winner_mid/loser_mid + reactions.mid 三表同改，票数随作品走）：
+  - ox-alpha → **GLM-5.3-Flash**（用户求证 ox-alpha 即 GLM-5.3-Flash 的匿名内测代号）；GLM-5.3 与 GLM-5.3-Flash 经确认是**两个不同模型**，不合并。
+  - Claude Fable 5 / 5.1 / 5.2 Max → **Claude Fable 5.x**；Claude Opus 5 / Claude Opus 5.5? → **Claude Opus 5.x**——均为样本不足合并，后台要有标记（/api/admin/models 加 note 字段，收件箱模型下拉展示「样本不足，由 … 合并而来」）。
+  - Gemini 3.7 Flash → **Gemini 3.8 Flash**；Muse Spark 1.2 → **Muse Spark 1.3**。
+  - 保留不动：DeepSeek V4 Pro（灰测0821凌晨）（用户明示是很特殊的一个，继续单独成行）。
+- 榜单统一隐藏规则：**已发布作品只覆盖 1 道题的模型不进排行榜**（lib/leaderboard.ts 行装配处过滤）。一次覆盖 002/003 占位条目（星图/折线/墨池/回声）与 9 个只有鹈鹕的模型；发布第 2 道题自动回榜；纯历史阵容（覆盖 0 题，决策 045 ⑤）不受影响；占位演示模式不适用。只看已发布——草稿不算数。
+- reactions.mid 同为模型 id：合并时同用户同题双条目反应按 created_at 较新一方合并为一行（线上 30→29 条）。
+- 追加（同日用户指名）：Seed 2.1 Pro 显示名改为 **Doubao Seed 2.1 Pro**（Doubao 系模型，用户指出漏规范；id seed-2.1-pro 不变，线上+本地各改 6 行）。
+- 显示名规范原则：跟各家官方写法，合并改名之外一律不动（MiniMax-M3/GLM-5.3-Flash 连字符，Gemini/Kimi/Grok 空格）。作品 id/URL 里的旧代号字样（如 007-ox-alpha）保留不改。
+- 模一把（lib/guess-models.json）是独立官方名单体系，本轮不动。
+- 执行：幂等脚本三表同改+断言（旧 mid 零残留、票数守恒），线上 264 作品/195 票守恒，本地 dev 同步合并；备份留服务器 /root 与本地 data/。榜单规则与后台标记为代码改动，当轮未授权 commit/push/部署。
+
+## 2026-09-25 · 对局显示具体型号、榜单显示家族名（不占编号）
+
+- 用户拍板两套口径分家：**对局揭晓/题库/作品管理显示每件作品的具体型号**（works.model_name，作品级——如 Claude Fable 5.1 / 5.2 Max、Gemini 3.7 Flash / 3.8 Flash、Muse Spark 1.2 / 1.3、Claude Opus 5 / 5.5?）；**排行榜按 modelId 合并计算、显示家族名**（lib/leaderboard.ts 的 FAMILY_BOARD_NAMES 映射：Claude Fable 5.x、Claude Opus 5.x、Gemini 3.x、Muse Spark 1.x、GLM-5.3-Flash）。
+- 合并时被覆盖的具体型号名已按作品 id 推导还原（scripts/.tmp-restore-specific-names.mjs，线上 39 行/本地 35 行，幂等）——作品 id 里的旧版本字样是还原依据，这也是「作品 id 保留旧代号字样」决定的红利。
+- 后台登记口径：/api/admin/models 与收件箱登记复用对合并条目返回家族名（MERGED_MODEL_META.board），备注注明来源与「对局揭晓显示具体型号」；新作品登记进家族条目时显示名取家族名。
+- 本轮连前项（合并数据+榜单规则+家族名）一起 commit 并部署（用户授权「commit + 部署吧」）。

@@ -7,6 +7,15 @@
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
 4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
+## 2026-09-25 内测开闸前模型数据治理（五组合并 + 榜单单题规则 + 家族名两套口径；已 commit 部署）
+
+- 分支 email-auth 最新提交 `942265c`（视角校准构建时注桥）。本轮模型治理（数据+代码）经用户授权 commit 并部署 VPS。
+- **两套显示口径（用户拍板）**：对局揭晓/题库/作品管理显示每件作品的具体型号（works.model_name，已按作品 id 从合并中还原：Claude Fable 5/5.1/5.2 Max、Gemini 3.7/3.8 Flash、Muse Spark 1.2/1.3、Claude Opus 5/5.5?）；**排行榜按 modelId 合并计算显示家族名**（lib/leaderboard.ts `FAMILY_BOARD_NAMES`：Claude Fable 5.x、Claude Opus 5.x、Gemini 3.x、Muse Spark 1.x、GLM-5.3-Flash）。后台登记/模型清单对合并条目返回家族名 + 备注（server `MERGED_MODEL_META`）；登记复用家族条目时显示名取家族名。
+- 合并已上线（幂等脚本 `scripts/.tmp-merge-models.mjs` + `scripts/.tmp-restore-specific-names.mjs`，works/votes/reactions 三表同改+断言；线上 264 作品/195 票守恒、旧代号零残留）：ox-alpha→**GLM-5.3-Flash**（GLM-5.3 与 GLM-5.3-Flash 是两个模型，不并）、Fable 5/5.1/5.2 Max→`claude-fable-5.x`、Opus 5/5.5?→`claude-opus-5.x`（样本不足合并）、Gemini 3.7→`gemini-3.8-flash`、Muse 1.2→`muse-spark-1.3`；reactions.mid 同步迁移（同用户双条目反应按较新合并）。**DeepSeek V4 Pro（灰测0821凌晨）保留不动**（用户明示特殊）。**Seed 2.1 Pro 显示名已改 Doubao Seed 2.1 Pro**（id 不变）。详见 `docs/DECISIONS.md` 末两条。
+- **榜单规则**：已发布作品只覆盖 1 道题的模型不进榜（一次覆盖星图/折线/墨池/回声占位条目与 9 个只有鹈鹕的模型；发布第 2 道题自动回榜；纯历史阵容不受影响；占位演示模式不适用）。
+- 验证：typecheck 干净、lint 基线 9 无新增；本地浏览器实测榜单家族名/隐藏规则/作品页具体型号/登记下拉家族名与备注；线上库合并与名称还原后逐条校验。线上备份：`data/comments.db.pre-merge-*.bak` 与名称快照。
+- 已知边界：收件箱模型下拉只按家族名/modelId 过滤——将来登记新版本（如 Gemini 3.9）想并入家族时需在后台把作品显示名改成具体型号（PATCH 作品模型名即可）；占位条目作品仍在题库可见（只是不进榜）。
+
 ## 2026-09-25 后台收件箱改版 + 用户管理页（分支 email-auth，已 commit b10c4e3 并部署 VPS）
 
 - 本轮（收件箱改版 + 用户管理 + 模一把记名 + 数据流水模一把页签 + 字号）已 commit `b10c4e3`，连同分支上前两个提交（21ff18e 邮箱体系、1632613 Turnstile）一起于 2026-09-25 部署上线；PM2 arena 已补 SMTP_* + TURNSTILE_* 环境变量并 pm2 save。线上验证：turnstile 下发 siteKey、8 题/236 作品/188 票/5 用户原样、迁移 012 已应用（guess_results.user_id）。部署备份 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-20260925T073352Z-b10c4e32`。**分支 email-auth 已 push（origin/email-auth = 928db81）。**

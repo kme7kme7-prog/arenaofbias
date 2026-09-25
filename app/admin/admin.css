@@ -568,6 +568,16 @@ body {
   background: #f4e9d8;
   color: #8a5a22;
 }
+/* 合并条目备注：下拉行里铺满第二行；选中后显示在输入框下方 */
+.model-combo-note {
+  flex-basis: 100%;
+  font-style: normal;
+  font-size: 12px;
+  color: #8a6d3b;
+}
+.model-combo > .model-combo-note {
+  margin-top: 4px;
+}
 .model-combo-list {
   position: absolute;
   top: calc(100% + 4px);
@@ -591,6 +601,7 @@ body {
 }
 .model-combo-list button {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 10px;
   width: 100%;

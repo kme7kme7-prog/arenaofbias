@@ -1459,6 +1459,32 @@ app.patch('/api/admin/works/:id', requireAdmin, (req, res) => {
 
 // 模型清单（2026-09-25 收件箱改版）：作品体系用过的全部模型，自动补全数据源。
 // model_name 取该模型最近一次登记的显示名（规范名）；按作品数降序
+// 模型合并元数据（2026-09-25 内测数据治理，用户拍板）：合并条目在后台带备注
+// 说明来源，登记/模型清单显示家族名——对局揭晓与题库用作品级具体型号
+// （works.model_name，如 Claude Fable 5.1），两套口径靠这张表分家
+const MERGED_MODEL_META = {
+  'glm-5.3-flash': {
+    board: 'GLM-5.3-Flash',
+    note: '含原匿名内测代号 Ox Alpha 的作品与票',
+  },
+  'claude-fable-5.x': {
+    board: 'Claude Fable 5.x',
+    note: '样本不足，由 Claude Fable 5 / 5.1 / 5.2 Max 合并而来',
+  },
+  'claude-opus-5.x': {
+    board: 'Claude Opus 5.x',
+    note: '样本不足，由 Claude Opus 5 / Claude Opus 5.5? 合并而来',
+  },
+  'gemini-3.8-flash': {
+    board: 'Gemini 3.x',
+    note: '由 Gemini 3.7 Flash 合并而来；对局揭晓显示各件作品的具体型号',
+  },
+  'muse-spark-1.3': {
+    board: 'Muse Spark 1.x',
+    note: '由 Muse Spark 1.2 合并而来；对局揭晓显示各件作品的具体型号',
+  },
+};
+
 app.get('/api/admin/models', requireAdmin, (_req, res) => {
   try {
     const models = db
@@ -1469,7 +1495,12 @@ app.get('/api/admin/models', requireAdmin, (_req, res) => {
                 COUNT(*) AS works
          FROM works w GROUP BY w.model_id ORDER BY works DESC, modelId`,
       )
-      .all();
+      .all()
+      .map((row) => ({
+        ...row,
+        modelName: MERGED_MODEL_META[row.modelId]?.board ?? row.modelName,
+        note: MERGED_MODEL_META[row.modelId]?.note ?? null,
+      }));
     res.set(noStore).json({ models });
   } catch {
     res.status(503).set(noStore).json({ error: '模型清单暂时无法加载' });
@@ -1756,8 +1787,9 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
       : parseWorkFilename(stemOf(name)).title || stemOf(name);
 
   // modelId 复用（2026-09-25 收件箱自动补全）：选中现有模型时前端直传 modelId，
-  // 沿用该模型最近一次登记的规范显示名——避免同一模型因写法差异（大小写/全半角）
-  // 撕成两个榜单身份。不传 = 新模型，按模型名派生 id（原有行为）
+  // 沿用该模型的登记显示名——避免同一模型因写法差异（大小写/全半角）
+  // 撕成两个榜单身份。合并家族条目用家族名（MERGED_MODEL_META.board），
+  // 其余沿用最近一次登记名。不传 = 新模型，按模型名派生 id（原有行为）
   let modelId;
   let finalModelName = modelName;
   if (req.body?.modelId !== undefined) {
@@ -1773,7 +1805,7 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
       return res
         .status(400)
         .json({ error: '未知模型 ID——登记新模型不要传 modelId' });
-    finalModelName = known.model_name;
+    finalModelName = MERGED_MODEL_META[modelId]?.board ?? known.model_name;
   } else {
     modelId = modelIdOf(modelName);
   }

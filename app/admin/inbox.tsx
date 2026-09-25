@@ -22,7 +22,13 @@ type InboxEntry = {
   excerpt?: string;
 };
 
-type ModelOption = { modelId: string; modelName: string; works: number };
+type ModelOption = {
+  modelId: string;
+  modelName: string;
+  works: number;
+  /** 合并标记（2026-09-25）：该条目由哪些旧代号/旧版本合并而来，登记时提示归属 */
+  note?: string | null;
+};
 
 type InboxForm = {
   title: string;
@@ -86,6 +92,9 @@ function ModelCombobox({
   const isKnown =
     modelId !== null &&
     models.some((m) => m.modelId === modelId && m.modelName === value);
+  const pickedNote = isKnown
+    ? (models.find((m) => m.modelId === modelId)?.note ?? null)
+    : null;
   const showCreate = q.length > 0 && !isKnown;
   return (
     <div className="model-combo">
@@ -113,6 +122,9 @@ function ModelCombobox({
           {isKnown ? '已有模型' : '新模型'}
         </i>
       )}
+      {isKnown && pickedNote && (
+        <em className="model-combo-note">{pickedNote}</em>
+      )}
       {open && (matches.length > 0 || showCreate) && (
         <div className="model-combo-list" id={listId}>
           {showCreate && (
@@ -136,6 +148,7 @@ function ModelCombobox({
               <span>
                 {m.modelId} · 已有 {m.works} 件
               </span>
+              {m.note && <em className="model-combo-note">{m.note}</em>}
             </button>
           ))}
         </div>
