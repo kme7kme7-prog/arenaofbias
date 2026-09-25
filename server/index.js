@@ -46,6 +46,7 @@ import {
   modelIdOf,
   nextFreeWorkId,
   parseWorkFilename,
+  removeEntry,
   transferPath,
 } from './works-register.js';
 import Database from 'better-sqlite3';
@@ -1559,18 +1560,6 @@ const stemOf = (name) => name.replace(/\.(html|txt|md)$/i, '');
 const paragraphsOf = (raw) =>
   raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 
-// 本机 Windows 上 rmSync 对非 ASCII 路径会静默失败甚至崩进程（2026-09-25 实测，
-// unlinkSync/rmdirSync 正常）——收件箱删除统一走这里：文件 unlink、目录递归后 rmdir
-const removeEntry = (target) => {
-  if (fs.lstatSync(target).isDirectory()) {
-    for (const child of fs.readdirSync(target))
-      removeEntry(path.join(target, child));
-    fs.rmdirSync(target);
-  } else {
-    fs.unlinkSync(target);
-  }
-};
-
 app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
   try {
     const entries = fs
@@ -1888,7 +1877,8 @@ app.delete('/api/admin/inbox', requireAdmin, (req, res) => {
   try {
     removeEntry(target);
     res.set(noStore).status(204).end();
-  } catch {
+  } catch (error) {
+    console.error('[arenaofbias] inbox delete failed:', error?.code, error?.message);
     res.status(503).set(noStore).json({ error: '删除失败，稍后再试' });
   }
 });
@@ -2730,4 +2720,6 @@ app.listen(port, host, () => {
     `[arenaofbias] 静态目录: ${fs.existsSync(path.join(distDir, 'index.html')) ? distDir : '(未构建)'}`,
   );
 });
+
+
 

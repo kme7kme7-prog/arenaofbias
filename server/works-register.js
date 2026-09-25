@@ -2,7 +2,17 @@
 // （server/index.js）共用的文件名解析、模型 id、作品 id 生成、文件搬运与入库逻辑。
 // 只此一份，不写两份；数据库句柄由调用方传入，路由、鉴权与请求校验不归这里管。
 
-import { copyFileSync, cpSync, existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  rmdirSync,
+  statSync,
+  unlinkSync,
+} from 'node:fs';
 import path from 'node:path';
 
 // 模型 id：小写 slug；原文含非可打印 ASCII（中文模型名等）或 slug 为空时掺短哈希，
@@ -43,8 +53,35 @@ export const parseWorkFilename = (stem) => {
   };
 };
 
+// 本机 Windows 上 rmSync 对非 ASCII 路径会静默失败甚至崩进程（2026-09-25 实测，
+// unlinkSync/rmdirSync 正常）——删除一律走这里：文件 unlink、目录递归后 rmdir
+export function removeEntry(target) {
+  if (lstatSync(target).isDirectory()) {
+    for (const child of readdirSync(target))
+      removeEntry(path.join(target, child));
+    rmdirSync(target);
+  } else {
+    unlinkSync(target);
+  }
+}
+
+// 递归复制——本机 Windows 上 cpSync/rmSync 对非 ASCII 路径会静默崩进程
+// （2026-09-25 实测 exit 127 / 0xC0000409），只有单文件原语安全
+// （copyFileSync/renameSync/unlinkSync/readdirSync 实测正常），手工递归
+export function copyTree(from, to) {
+  const stats = lstatSync(from);
+  if (stats.isDirectory()) {
+    mkdirSync(to, { recursive: true });
+    for (const child of readdirSync(from))
+      copyTree(path.join(from, child), path.join(to, child));
+    return;
+  }
+  copyFileSync(from, to);
+}
+
 // 把源文件/目录放到目标位置。copy 模式只收单文件（登记脚本：原件不动）；
-// move 模式（收件箱登记：登记即搬走）优先 rename（同盘瞬时），跨盘 EXDEV
+// move 模式（收件箱登记：登记即搬走）优先 rename（同盘瞬时），跨盘 EXDEV 或
+// Windows 文件被占用（EPERM/EBUSY，dev watcher/杀毒常驻句柄，2026-09-25 实测）
 // 退化为复制+删除；目录整树搬运。
 export function transferPath(from, to, { move = false } = {}) {
   mkdirSync(path.dirname(to), { recursive: true });
@@ -55,13 +92,22 @@ export function transferPath(from, to, { move = false } = {}) {
   try {
     renameSync(from, to);
   } catch (error) {
-    if (error?.code !== 'EXDEV') throw error;
+    if (error?.code !== 'EXDEV' && error?.code !== 'EPERM' && error?.code !== 'EBUSY')
+      throw error;
     if (statSync(from).isDirectory()) {
-      cpSync(from, to, { recursive: true });
-      rmSync(from, { recursive: true, force: true });
+      copyTree(from, to);
+      try {
+        removeEntry(from);
+      } catch {
+        // 复制已成功；源残留多半是句柄占用，收件箱清单里还能删
+      }
     } else {
       copyFileSync(from, to);
-      rmSync(from, { force: true });
+      try {
+        unlinkSync(from);
+      } catch {
+        // 同上：源文件残留不影响登记
+      }
     }
   }
 }
