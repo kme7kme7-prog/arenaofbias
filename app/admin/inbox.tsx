@@ -36,8 +36,18 @@ type InboxForm = {
 const ACCEPT_FILE = /\.(html|txt|md)$/i;
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const LAST_PROMPT_KEY = 'aob-admin-inbox-prompt';
+// 文本摘录/全文走 file 路由；网页预览走 serve 虚拟静态——文件夹作品的
+// 相对子资源（./main.js、材质）要能跟着加载，否则多文件作品渲染不出画面。
+// 文件夹必须落到 <name>/index.html：文档住在无斜杠的 <name> 上时，
+// ./assets/... 会把 <name> 段顶掉（2026-09-25 实测）
 const previewUrl = (name: string) =>
   `/api/admin/inbox/file?name=${encodeURIComponent(name)}`;
+const serveUrl = (name: string) =>
+  `/api/admin/inbox/serve/${encodeURIComponent(name)}`;
+const workPreviewSrc = (entry: InboxEntry) =>
+  entry.type === 'dir'
+    ? `${serveUrl(entry.name)}/index.html`
+    : serveUrl(entry.name);
 
 const readSavedPrompt = () => {
   try {
@@ -496,9 +506,10 @@ export function AdminInbox() {
                     {entry.kind === 'text' ? (
                       <TextPreview entry={entry} />
                     ) : (
-                      // 与竞技场同一份渲染（默认 1280×720 画布）——预览比例即上场比例
+                      // 与竞技场同一份渲染（默认 1280×720 画布）——预览比例即上场比例；
+                      // 文件夹作品的相对子资源经 serve 虚拟静态解析
                       <FixedHtmlWork
-                        content={{ kind: 'html', src: previewUrl(entry.name) }}
+                        content={{ kind: 'html', src: workPreviewSrc(entry) }}
                         canvas={{
                           width: 1280,
                           height: 720,

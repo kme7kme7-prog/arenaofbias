@@ -1619,6 +1619,50 @@ app.get('/api/admin/inbox/file', requireAdmin, (req, res) => {
   }
 });
 
+// 收件箱虚拟静态（2026-09-25）：文件夹作品的相对子资源（./main.js、材质、模型）
+// 也要能在预览里加载，否则多文件作品在收件箱渲染不出画面。单文件吐自身，
+// 文件夹按内部相对路径吐、默认 index.html。sendFile 以 inboxDir 为 root，
+// 越界（..、绝对路径）自动拒绝；仅管理员
+app.get('/api/admin/inbox/serve/:name', requireAdmin, (req, res) => {
+  const name = safeEntryName(req.params.name);
+  if (!name) return res.status(400).json({ error: '文件名不合法' });
+  const target = path.join(inboxDir, name);
+  try {
+    if (fs.statSync(target).isDirectory()) {
+      if (!fs.existsSync(path.join(target, 'index.html')))
+        return res.status(404).json({ error: '文件夹里没有 index.html' });
+      return res
+        .set(noStore)
+        .sendFile(path.join(name, 'index.html'), { root: inboxDir });
+    }
+    res.set(noStore).sendFile(name, { root: inboxDir });
+  } catch {
+    res.status(404).json({ error: '收件箱里没有这个文件' });
+  }
+});
+app.get('/api/admin/inbox/serve/:name/*', requireAdmin, (req, res) => {
+  const name = safeEntryName(req.params.name);
+  if (!name) return res.status(400).json({ error: '文件名不合法' });
+  const rel = req.params[0] || '';
+  if (
+    !rel ||
+    rel
+      .split('/')
+      .some(
+        (segment) =>
+          !segment ||
+          segment === '.' ||
+          segment === '..' ||
+          segment.includes('\\') ||
+          segment.includes('\0'),
+      )
+  )
+    return res.status(400).json({ error: '路径不合法' });
+  res.set(noStore).sendFile(path.join(name, rel), { root: inboxDir }, (error) => {
+    if (error) res.status(404).json({ error: '收件箱里没有这个文件' });
+  });
+});
+
 // 登记一件收件箱作品：单文件或含 index.html 的文件夹（多文件作品）。
 // 同模型重复登记自动让位（-2、-3……），库与磁盘遗留文件都避开。
 app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {

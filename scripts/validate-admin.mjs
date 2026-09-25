@@ -693,6 +693,45 @@ try {
     );
     // 登记后预览路由 404（文件已搬走/删掉）
     assert.equal((await preview('其二，glm-5.3.txt', ownerCookie)).status, 404);
+
+    // 文件夹虚拟静态：相对子资源可加载（多文件作品预览的关键）
+    await mkdir(path.join(inbox, 'folderwork', 'assets'), { recursive: true });
+    await writeFile(
+      path.join(inbox, 'folderwork', 'index.html'),
+      '<html><script src="./assets/main.js"></' + 'script>folder</html>',
+    );
+    await writeFile(path.join(inbox, 'folderwork', 'assets', 'main.js'), 'console.log(1)');
+    const serve = (rest, cookie) =>
+      robustFetch(`${base}/api/admin/inbox/serve/${rest}`, {
+        headers: cookie ? { cookie } : {},
+      });
+    const indexShown = await serve(encodeURIComponent('folderwork'), ownerCookie);
+    assert.equal(indexShown.status, 200);
+    const indexHtml = await indexShown.text();
+    assert.ok(indexHtml.includes('folderwork') || indexHtml.includes('folder'));
+    const asset = await serve(`${encodeURIComponent('folderwork')}/assets/main.js`, ownerCookie);
+    assert.equal(asset.status, 200);
+    assert.equal(await asset.text(), 'console.log(1)');
+    // 门禁 / 穿越防护 / 不存在。注意 fetch 会把点段（含 %2e%2e）在客户端就
+    // 归一化掉——只有编码斜杠（%2e%2e%2f）这种形态才能真正到达服务端被 400
+    assert.equal((await serve(encodeURIComponent('folderwork'))).status, 401);
+    assert.equal(
+      (await serve(`${encodeURIComponent('folderwork')}/assets/%2e%2e%2fmain.js`, ownerCookie)).status,
+      400,
+    );
+    assert.equal(
+      (await serve(`${encodeURIComponent('folderwork')}/assets/%2e%2e/%2e%2e/secret.txt`, ownerCookie)).status,
+      404, // 客户端已归一化成 /serve/secret.txt，文件不存在
+    );
+    assert.equal((await serve(`${encodeURIComponent('folderwork')}/assets/nope.js`, ownerCookie)).status, 404);
+    // 清理
+    assert.equal(
+      (await robustFetch(`${base}/api/admin/inbox?name=${encodeURIComponent('folderwork')}`, {
+        method: 'DELETE',
+        headers: { origin: base, cookie: ownerCookie },
+      })).status,
+      204,
+    );
   });
 
   await check('题目管理：门禁、新增自动编号、编辑与上下架（下架=公开清单隐藏，白名单认表）', async () => {

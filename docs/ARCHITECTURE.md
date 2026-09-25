@@ -97,7 +97,7 @@
 | `POST /api/guess/practice/start` | 练习开局（064）：服务端随机抽题发 gameId，内存持有，重启失效 |
 | `POST /api/guess/result` | 每日题结果上报（063）：answer_id 服务端重新派生防伪造；只收每日题（064）；迁移 012 起登录用户记 user_id（游客匿名，历史不回溯） |
 | `GET /api/ratings?scope=entertainment` / `scope=formal` | 声望分（046）：按范围独立全量重放 Elo（基准 1200/K=32），供匹配，非排行榜；同一次重放顺带返回各模型出场次数 `games`（109，冷门优先加权用） |
-| `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log（votes/comments/users/guess 四类）、works（清单+PATCH 编辑/发布）、models（作品体系模型清单，收件箱补全用）、users（用户管理：清单+PATCH 授权/重置密码/强制下线/DELETE/activity 详情，自操作防呆 400）、inbox（清单+register+DELETE+upload 页面直传 octet-stream 8MB+file 预览路由）、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
+| `GET/POST/PATCH/DELETE /api/admin/*` | 管理组（041-045/063）：stats、log（votes/comments/users/guess 四类）、works（清单+PATCH 编辑/发布）、models（作品体系模型清单，收件箱补全用）、users（用户管理：清单+PATCH 授权/重置密码/强制下线/DELETE/activity 详情，自操作防呆 400）、inbox（清单+register+DELETE+upload 页面直传 octet-stream 8MB+file 文本预览+serve 虚拟静态（文件夹子资源按相对路径吐，越界拒绝））、prompts（清单+POST+PATCH）、guess（stats+models GET/POST 追加模型）；未登录 401、非管理员 404 |
 | `POST /api/dev/clear-my-votes` | dev 清自己的票重投（042），同 dev 门禁 |
 
 横切行为：
