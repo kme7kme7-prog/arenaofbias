@@ -7,7 +7,9 @@
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
 4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
-## 2026-09-25 后台收件箱改版 + 用户管理页（分支 email-auth，未 commit 待验收）
+## 2026-09-25 后台收件箱改版 + 用户管理页（分支 email-auth，已 commit b10c4e3 并部署 VPS）
+
+- 本轮（收件箱改版 + 用户管理 + 模一把记名 + 数据流水模一把页签 + 字号）已 commit `b10c4e3`，连同分支上前两个提交（21ff18e 邮箱体系、1632613 Turnstile）一起于 2026-09-25 部署上线；PM2 arena 已补 SMTP_* + TURNSTILE_* 环境变量并 pm2 save。线上验证：turnstile 下发 siteKey、8 题/236 作品/188 票/5 用户原样、迁移 012 已应用（guess_results.user_id）。部署备份 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-20260925T073352Z-b10c4e32`。**分支尚未 push GitHub。**
 
 - 收件箱改版（用户拍板：页面直传、文字作品一文件一作品、卡片式带预览）：`/api/admin/models`（模型清单）、`inbox/upload`（octet-stream 直传 8MB，零依赖）、`inbox/file`（预览路由）、register 扩展（.txt/.md 文字作品空行分段纯库内存储、可选 modelId 复用现有模型身份）；前端 inbox.tsx 重写（上传区+卡片+模型组合框+记住上次题目），网页预览复用竞技场 FixedHtmlWork（16:9，比例即上场比例）。
 - 用户管理页（用户拍板：四个操作全要）：`/api/admin/users` 组（清单+授权撤权+重置密码一次性展示+强制下线+删除账号），app/admin/users.tsx 新页；点用户名开详情弹窗（模一把战绩+最近投票/评论，`/api/admin/users/:id/activity`）；删除账号保流水（票/评论作者变匿名）；服务端硬性禁止操作当前登录账号。**模一把开始记名（迁移 012，用户拍板推翻 064 匿名口径）**：登录用户上报记 user_id，游客仍匿名、历史不回溯；数据流水加「模一把」页签。后台表格/副标字号 13→14。顺手修：`.admin-password-dialog` 的 display:flex 会压掉 dialog 未打开时的 UA 隐藏（弹窗常显）——加 `:not([open]) { display:none }`。
