@@ -11,6 +11,7 @@
 - 验证通过：typecheck、lint、build、check:motion、check:mobile、validate-locale、check-vote-split；email 27、admin 15、votes 12、formal 6、guess 38、reactions 6、comments 4、leaderboard 12、matchmaking 11、arena 13、share 10、placeholder 10、camera 8。新增 beta-api 9 组、每日存档与评价队列检查；浏览器 beta-ui 7 组（含投稿全流程、每日多标签/跨日/完成锁定、独立分享页）、work-ready 7、formal-ui 6、admin-access 3 均通过。运行日志 `.local/repair-20260926/`；截图 `output/playwright/beta-*.png`，不入库。
 - 边界如实保留：移动分享为 Edge 触屏视口和能力模拟，未做真实 iOS/Android/QQ 系统保存验收。VPS 当前两件缺缓存的 006 作品只读检查均 `captureReady=true`，无页面/网络错误；历史五件的具体身份没有记录，不能宣称已全部复测。未重生成线上缓存或巡检全部 264 件作品。
 - 用户于 2026-09-27 验收后明确授权“git一下，push”；本轮提交并推送当前修复分支 codex/public-beta-repair，署名 Atmeplz（224206292+Atmeplz@users.noreply.github.com）。生产部署尚未授权。既有未跟踪作品和旧 005 证据页保持原样。
+- 业务与 UI 修复提交：`da27fc0`；整轮记录见 `docs/handoff/2026-09-27-公测修复与UI精简-Atmeplz.md`，本交接索引与归档另作收尾提交。
 - 提交前已 fetch：origin/main 与 origin/email-auth 已到 0119e22；相对本轮基底 1df778e 的变化仅为交接/决策文档整理和既有截图等附件，无业务代码差异。本轮修复分支保留 1df778e 基底，未合并这些额外附件。
 - 本地演示预览：`http://127.0.0.1:5319/#arena/002`（自建 `.local/repair-20260926/preview-data`，仅内置样例，不是线上完整作品库）；服务用本轮最新 dist 与 server 代码运行。
 - 预览批注复验：已删除整条 system-footer；题号/标题与提示词入口组/模式标签统一垂直居中，完整提示词展开改为独占下方整行。Playwright 在 959×830（用户批注视口）、1440/768/390/320px 两种语言共 10 组检查收起与展开：无横向溢出、无运行错误，行内居中偏差 < 0.01px；截图已目检。补跑 typecheck/lint/build/check:arena-scroll/diff --check 均通过。记录 `.local/repair-20260926/ui-feedback-*.txt`，截图 `output/playwright/briefing-*.png`。
@@ -26,7 +27,7 @@
 1. 本文：最新状态、运行入口、仍需处理的事项。
 2. `docs/DECISIONS.md`：既有用户决定，只能由用户显式推翻；优先看末尾最新条目。
 3. 按任务读 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/games/guess.md`。
-4. 本轮详细记录：`docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`；旧根目录完整内容：`docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
+4. 本轮详细记录：`docs/handoff/2026-09-27-公测修复与UI精简-Atmeplz.md`；此前部署记录见 `docs/handoff/2026-09-24-检查收尾与部署-Atmeplz.md`，旧根目录完整内容见 `docs/handoff/2026-09-24-历史交接快照-Atmeplz.md`。历史记录中的旧待办/服务方式/提交限制不可直接当现状。
 
 ## 2026-09-25 提醒字居中真因 + 快门重构：盖满才换稿/进度条/退场落成品（已 commit e171d8d 并部署）
 
