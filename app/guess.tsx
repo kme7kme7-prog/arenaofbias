@@ -4,8 +4,7 @@
 // 视觉层：暗色解谜舞台，配色与动效统一在 guess.css。仅刚提交的一行揭示；
 // CSS 动效不负责写数据或决定胜负。对照页：
 // reference/guess-review.html（隔离存储，演示四种状态）；判定规则仍在 guess-logic。
-// 对局不落盘（2026-09-14 用户拍板）：退出/刷新即清盘，练习每次开新局；
-// 每日一题答案仍是当日种子派生的同一道，战绩靠 guess-settled 标记一天只结算一次。
+// 每日按浏览器保存进度，完成后当天锁定（2026-09-26）；练习每次开新局。
 
 import {
   useEffect,
@@ -43,9 +42,13 @@ import {
   checkGuess,
   fetchToday,
   loadStats,
+  loadDailySession,
+  saveDailySession,
+  withDailyLock,
   markCounted,
   MAX_ATTEMPTS,
   PracticeExpiredError,
+  DailyChangedError,
   RateLimitedError,
   reportResult,
   settleStats,
@@ -175,11 +178,12 @@ const DIFFICULTY_BLURBS = [
 
 type PlayMode = 'daily' | GuessDifficulty;
 
-type ModeStatus = { kind: 'fresh' } | { kind: 'done' };
+type ModeStatus = { kind: 'fresh' | 'done' | 'active' };
 
-/** 今日每日一题的状态，给选择屏的状态角标用（对局不落盘，只有「结算过没」） */
-function dailyStatus(dayKey: string): ModeStatus {
-  return wasCounted(dayKey) ? { kind: 'done' } : { kind: 'fresh' };
+/** 今日状态角标：未开始、可续玩或已完成。 */
+function dailyStatus(data: TodayResponse): ModeStatus {
+  const saved = loadDailySession(data.dayKey, data.models);
+  return { kind: saved?.finished ? 'done' : saved?.guesses.length ? 'active' : 'fresh' };
 }
 
 // ── 主组件 ──
@@ -198,7 +202,7 @@ export default function GuessPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
-  // 结算防重：同次挂载内的守卫（跨挂载由 session.counted 兜底），换模式时重置
+  // 结算防重：同次挂载内的守卫（跨挂载由每日持久状态与结算标记兜底），换模式时重置
   const settledRef = useRef(false);
   const [freshGuess, setFreshGuess] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -274,7 +278,7 @@ export default function GuessPage() {
     answer: null,
   });
 
-  // 进每日一题：每次都是全新棋盘（答案仍是当日种子派生的同一道），战绩照常读。
+  // 进每日一题：恢复当日进度；已完成的棋盘只读。
   // settledRef 必须重置：跨零点自动换题（dailyRolledOver→enterDaily）不清它的话，
   // 新一天的结算会被残留标记挡下，战绩与上报静默丢失（走选择屏的路径由
   // backToPicker 重置，无此问题）
@@ -284,7 +288,7 @@ export default function GuessPage() {
       // 不写的话 today 永远停在开局那天，守卫永不收敛，之后每次提交都被丢弃
       setToday(data);
       setError(null);
-      setSession(emptySession());
+      setSession(loadDailySession(data.dayKey, data.models) ?? emptySession());
       setStats(loadStats());
       setGameId(null);
       setMode('daily');
@@ -292,6 +296,18 @@ export default function GuessPage() {
     };
     if (animate) changeScreen(commit);
     else commit();
+  }
+
+  async function selectDaily() {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+    setPending(true);
+    const data = await fetchToday();
+    pendingRef.current = false;
+    if (!mounted.current) return;
+    setPending(false);
+    if (data) enterDaily(data, true);
+    else setError(t('网络不给力，这把不算，再试一次。'));
   }
 
   // 进练习模式：每次向服务端开新局（随机抽题），不续玩旧局
@@ -349,7 +365,7 @@ export default function GuessPage() {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [loadRun]);
 
-  // 回选择屏：换模式不丢任何一局的进度（每日按天存、练习按难度存）
+  // 回选择屏：每日已保存；练习下次进入仍开新局。
   function backToPicker() {
     changeScreen(() => {
       setMode(null);
@@ -407,6 +423,20 @@ export default function GuessPage() {
       list.scrollTop = top + option.offsetHeight - list.clientHeight;
   }, [activeIndex, candidates.length, open]);
 
+  useEffect(() => {
+    if (!today) return;
+    const sync = (event: StorageEvent) => {
+      if (event.key !== `guess-daily:${today.dayKey}` && event.key !== `guess-settled:${today.dayKey}`) return;
+      setStats(loadStats());
+      if (mode === 'daily') {
+        const saved = loadDailySession(today.dayKey, today.models);
+        if (saved) { setSession(saved); setFreshGuess(null); }
+      }
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, [today, mode]);
+
   const attempts = session?.guesses.length ?? 0;
   const won = session?.guesses.some((row) => row.won) ?? false;
   const finished = session?.finished ?? false;
@@ -420,20 +450,16 @@ export default function GuessPage() {
     if (mode !== 'daily' || !session || !today || !session.finished) return;
     if (settledRef.current || wasCounted(today.dayKey)) return;
     settledRef.current = true;
-    settleStats(today.dayKey, won, session.guesses.length);
-    reportResult(today.dayKey, won, session.guesses.length);
-    markCounted(today.dayKey);
+    void withDailyLock(today.dayKey, () => {
+      if (!wasCounted(today.dayKey)) {
+        settleStats(today.dayKey, won, session.guesses.length);
+        markCounted(today.dayKey);
+        reportResult(today.dayKey, won, session.guesses.length);
+      }
+      return loadStats();
+    }).then(next => { if (mounted.current) setStats(next); });
     // settleStats 与 won 只依赖 session/today；won 在 finished 后不会再变
   }, [session, today, won, mode]);
-
-  // 重玩今天（每日一题）：清盘重开（答案不变，战绩不重复结算）
-  function replay() {
-    if (!today || !session || mode !== 'daily') return;
-    setFreshGuess(null);
-    setQuery('');
-    setOpen(false);
-    setSession(emptySession());
-  }
 
   // 再来一把（练习模式）：同一难度向服务端开新的一局随机题
   async function playAgain() {
@@ -461,10 +487,10 @@ export default function GuessPage() {
   // 2026-09-20 审查修复：本机时钟与服务端可能不一致，本机判换日后再以服务端
   // 的 fresh.dayKey 复核——服务端没换日就不清盘（时钟偏快不误伤）；服务端换了
   // 才 enterDaily(fresh)（内含 setToday，守卫随之收敛，不会再无限拦提交）。
-  async function dailyRolledOver(): Promise<boolean> {
+  async function dailyRolledOver(force = false): Promise<boolean> {
     if (mode !== 'daily' || !today) return false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(today.dayKey)) return false;
-    if (guessDayKey() === today.dayKey) return false;
+    if (!force && guessDayKey() === today.dayKey) return false;
     const fresh = await fetchToday();
     if (!mounted.current) return true;
     if (fresh && fresh.dayKey === today.dayKey) return false;
@@ -479,9 +505,32 @@ export default function GuessPage() {
 
   async function submit(model: GuessApiModel) {
     if (!today || mode === null || !canGuess || pendingRef.current) return;
-    if (await dailyRolledOver()) return;
     pendingRef.current = true;
     setPending(true);
+    try {
+      if (mode === 'daily') await withDailyLock(today.dayKey, () => submitLocked(model));
+      else await submitLocked(model);
+    } finally {
+      pendingRef.current = false;
+      if (mounted.current) setPending(false);
+    }
+  }
+
+  function syncNewerDaily(): boolean {
+    if (mode !== 'daily' || !today) return false;
+    const saved = loadDailySession(today.dayKey, today.models);
+    if (saved && (saved.finished || JSON.stringify(saved.guesses) !== JSON.stringify(session?.guesses ?? []))) {
+      setSession(saved);
+      setFreshGuess(null);
+      return true;
+    }
+    return false;
+  }
+
+  async function submitLocked(model: GuessApiModel) {
+    if (!today || mode === null || syncNewerDaily() || await dailyRolledOver()) return;
+    // 另一个标签页的 storage 更新可能先于本页旧候选项的点击落地。
+    if (session?.guesses.some(row => row.guess.id === model.id)) return;
     setError(null);
     setQuery('');
     setOpen(false);
@@ -491,8 +540,13 @@ export default function GuessPage() {
         model.id,
         isFinalAttempt,
         mode === 'daily' ? undefined : (gameId ?? undefined),
+        mode === 'daily' ? today.dayKey : undefined,
       );
     } catch (error) {
+      if (error instanceof DailyChangedError) {
+        await dailyRolledOver(true);
+        return;
+      }
       if (error instanceof PracticeExpiredError && mode !== 'daily') {
         await recoverExpiredPractice(mode);
         return;
@@ -522,6 +576,11 @@ export default function GuessPage() {
       revealed: result.feedback.won || isFinalAttempt,
       answer: result.answer,
     };
+    if (mode === 'daily') {
+      if (syncNewerDaily()) return;
+      saveDailySession(today.dayKey, next);
+    }
+    if (!mounted.current) return;
     setFreshGuess(model.id);
     setSession(next);
   }
@@ -531,6 +590,19 @@ export default function GuessPage() {
   // 结果面板里，而 finished 与 revealed 恒同时翻转，按钮永远渲染不出来）
   async function revealAnswer() {
     if (!today || !session || mode === null || pendingRef.current) return;
+    pendingRef.current = true;
+    setPending(true);
+    try {
+      if (mode === 'daily') await withDailyLock(today.dayKey, revealLocked);
+      else await revealLocked();
+    } finally {
+      pendingRef.current = false;
+      if (mounted.current) setPending(false);
+    }
+  }
+
+  async function revealLocked() {
+    if (!today || !session || mode === null || !canGuess || syncNewerDaily()) return;
     if (!session.guesses.length) return; // 拿已猜过的模型再问一次，没猜过无从发起
     if (await dailyRolledOver()) return;
     pendingRef.current = true;
@@ -544,8 +616,13 @@ export default function GuessPage() {
         last.guess.id,
         true,
         mode === 'daily' ? undefined : (gameId ?? undefined),
+        mode === 'daily' ? today.dayKey : undefined,
       );
     } catch (error) {
+      if (error instanceof DailyChangedError) {
+        await dailyRolledOver(true);
+        return;
+      }
       if (error instanceof PracticeExpiredError && mode !== 'daily') {
         await recoverExpiredPractice(mode);
         return;
@@ -570,6 +647,11 @@ export default function GuessPage() {
       finished: true,
       answer: result.answer,
     };
+    if (mode === 'daily') {
+      if (syncNewerDaily()) return;
+      saveDailySession(today.dayKey, next);
+    }
+    if (!mounted.current) return;
     setSession(next);
   }
 
@@ -670,7 +752,7 @@ export default function GuessPage() {
               </p>
             </div>
             {(() => {
-              const status = dailyStatus(today.dayKey);
+              const status = dailyStatus(today);
               const dailyCount = today.models.filter((m) =>
                 DAILY_DIFFICULTIES.includes(m.difficulty),
               ).length;
@@ -679,7 +761,7 @@ export default function GuessPage() {
                   type="button"
                   className="guess-difficulty-card guess-daily-card"
                   disabled={pending || switching}
-                  onClick={() => enterDaily(today, true)}
+                  onClick={() => void selectDaily()}
                 >
                   <span className="guess-daily-art" aria-hidden="true">
                     <span>?</span>
@@ -702,8 +784,8 @@ export default function GuessPage() {
                       className={`guess-difficulty-status is-${status.kind}`}
                     >
                       {status.kind === 'done'
-                        ? t('今日战绩已记录')
-                        : t('今天还没玩')}
+                        ? t('查看今日结果')
+                        : status.kind === 'active' ? t('继续今日挑战') : t('今天还没玩')}
                     </span>
                   </span>
                   <ArrowUpRight
@@ -1088,7 +1170,7 @@ export default function GuessPage() {
                     <h2>
                       {session.answer?.name ??
                         session.guesses.find((row) => row.won)?.guess.name ??
-                        '…'}
+                        t('今日挑战已完成')}
                     </h2>
                     <p>
                       {session.answer?.vendor}
@@ -1104,12 +1186,12 @@ export default function GuessPage() {
                         <button
                           type="button"
                           className="guess-replay"
-                          onClick={replay}
+                          onClick={backToPicker}
                         >
-                          <RotateCcw size={15} />
-                          {t('重玩今天')}
+                          <ArrowLeft size={15} />
+                          {t('选择练习模式')}
                         </button>
-                        <ShareButton query={guessShareQuery(session, today.dayKey, won)} label="分享战绩" />
+                        {session.guesses.length > 0 && <ShareButton query={guessShareQuery(session, today.dayKey, won)} label="分享战绩" />}
                       </>
                     ) : (
                       <button

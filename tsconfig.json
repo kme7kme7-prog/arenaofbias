@@ -18,5 +18,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "data", "outputs", "server", "Temp"]
+  "exclude": ["node_modules", "dist", "data", "output", ".local", "outputs", "server", "Temp"]
 }

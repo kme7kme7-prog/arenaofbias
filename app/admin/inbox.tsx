@@ -15,8 +15,9 @@ type InboxEntry = {
   kind: 'html' | 'text';
   size: number | null;
   registerable: boolean;
+  submissionId?: string;
   reason: string | null;
-  suggest: { title: string; model: string } | null;
+  suggest: { title: string; model: string; promptId?: string } | null;
   /** 文字文件附带：段数与开头摘录 */
   paragraphs?: number;
   excerpt?: string;
@@ -237,7 +238,7 @@ export function AdminInbox() {
                 title: entry.suggest?.title ?? '',
                 model: entry.suggest?.model ?? '',
                 modelId: null,
-                promptId: '',
+                promptId: entry.suggest?.promptId ?? '',
                 publish: false,
               };
           }
@@ -516,7 +517,9 @@ export function AdminInbox() {
                   <div
                     className={`inbox-card-preview${entry.kind === 'html' ? ' html' : ''}`}
                   >
-                    {entry.kind === 'text' ? (
+                    {entry.submissionId && entry.kind === 'html' ? (
+                      <p>用户投稿原件已审核。登记后可在作品管理中预览和校准。</p>
+                    ) : entry.kind === 'text' ? (
                       <TextPreview entry={entry} />
                     ) : (
                       // 与竞技场同一份渲染（默认 1280×720 画布）——预览比例即上场比例；

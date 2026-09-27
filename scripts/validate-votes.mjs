@@ -268,8 +268,8 @@ const post = async (cookie, body) =>
   });
 
 try {
-  await check('未登录投票 401；跨源 403', async () => {
-    const anonymous = await post(null, realVote);
+  await check('未登录正式测评 401；跨源 403', async () => {
+    const anonymous = await post(null, { ...realVote, mode: 'formal' });
     assert.equal(anonymous.status, 401);
     const wrongOrigin = await robustFetch(`${base}/api/votes`, {
       method: 'POST',

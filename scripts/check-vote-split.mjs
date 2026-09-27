@@ -132,7 +132,7 @@ assert.doesNotMatch(pageSource, /worksLoadCap/);
 assert.match(pageSource, /const workReady = \(card: HTMLElement \| null\): boolean =>/);
 assert.match(pageSource, /const a = workReady\(cardA\.current\);/);
 assert.match(pageSource, /const b = workReady\(cardB\.current\);/);
-assert.match(pageSource, /while \(!pollWorksReady\(\)\) await delay\(60, abort\);/);
+assert.match(pageSource, /while \(!poll\(\)\) await delay\(60, abort\);/);
 assert.match(pageSource, /doc\.location\.href === 'about:blank'/);
 // 就绪线是「DOM 解析完、脚本已执行」（非 loading），不是等全部资源 complete
 assert.match(pageSource, /doc\.readyState === 'loading'\) return false/);
@@ -213,7 +213,7 @@ assert.match(pageSource, /if \(a\) reportWorkReady\('a'\);/);
 assert.match(pageSource, /if \(b\) reportWorkReady\('b'\);/);
 assert.match(
   pageSource,
-  /while \(!pollWorksReady\(\)\) await delay\(60, abort\);\s*\/\/ 双侧就绪：放「下一题」纸幕扫出[\s\S]{0,80}?releaseWorksGate\(\);/,
+  /while \(!poll\(\)\) await delay\(60, abort\);\s*\/\/ 双侧就绪：放「下一题」纸幕扫出[\s\S]{0,80}?releaseWorksGate\(\);/,
 );
 const gateSource = await readFile(
   new URL('../lib/works-gate.ts', import.meta.url),

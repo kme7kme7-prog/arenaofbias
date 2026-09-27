@@ -29,6 +29,7 @@
     "validate:work-ready": "node scripts/validate-work-ready.mjs",
     "validate:matchmaking": "node scripts/validate-matchmaking.mjs",
     "validate:reactions": "node scripts/validate-reactions.mjs",
+    "validate:reaction-queue": "node scripts/validate-reaction-queue.mjs",
     "validate:email": "node scripts/validate-email.mjs",
     "check:wipe": "node scripts/check-wipe.mjs",
     "check:surface": "node scripts/check-surface.mjs",
@@ -41,7 +42,10 @@
     "deploy:vps": "python scripts/deploy-vps.py",
     "thumbs:works": "node scripts/make-work-thumbs.mjs",
     "hook:works": "node scripts/hook-work-cameras.mjs",
-    "validate:guess": "node scripts/validate-guess.mjs"
+    "validate:guess": "node scripts/validate-guess.mjs",
+    "validate:guess-session": "node scripts/validate-guess-session.mjs",
+    "validate:beta-api": "node scripts/validate-beta-api.mjs",
+    "validate:beta-ui": "node scripts/validate-beta-ui.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

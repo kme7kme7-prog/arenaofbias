@@ -97,7 +97,8 @@ try {
 
   await page.goto(`${base}/#rank/formal`);
   await page.getByRole('button', { name: '正式测评榜', exact: true }).waitFor();
-  await page.waitForSelector('.rank-board');
+  // 单题模型现在不进榜，最小临时阵容可能进入空态；两种状态都须完成数据加载。
+  await page.waitForSelector('.rank-workspace, .rank-empty-action');
   const entertainmentRequest = page.waitForRequest('**/api/votes?scope=entertainment');
   await page.getByRole('button', { name: '正式测评榜', exact: true }).click();
   await entertainmentRequest;

@@ -157,7 +157,7 @@ export type ResultContent =
   | { kind: 'image'; src: string; alt: string }
   | { kind: 'text'; story: Story }
   | { kind: 'web'; template: Side }
-  | { kind: 'html'; src: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number }; camera?: WorkCamera }
+  | { kind: 'html'; src: string; sandboxed?: boolean; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number }; camera?: WorkCamera }
   | { kind: 'html'; html: string; framing?: { width: number; height: number; zoom: number; offsetX: number; offsetY: number } };
 
 export type ModelResult = {

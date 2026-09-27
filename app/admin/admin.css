@@ -797,3 +797,15 @@ body {
     padding: 18px 14px;
   }
 }
+/* 用户投稿：沿用后台工作台，不加载主站样式。 */
+.admin-submission-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 20px; margin-top: 24px; }
+.admin-submission-card { display: grid; align-content: start; gap: 12px; padding: 24px; background: #fff; border: 1px solid #ccd3ce; min-width: 0; overflow-wrap: anywhere; }
+.admin-submission-card h2 { font-size: 22px; margin: 0; }
+.admin-submission-card p { margin: 0; }
+.admin-submission-notes { white-space: pre-wrap; line-height: 1.7; }
+.admin-submission-card > a { color: #325b47; text-decoration: underline; padding: 10px 0; }
+.admin-submission-card label { display: grid; gap: 8px; }
+.admin-submission-card textarea { width: 100%; padding: 10px; border: 1px solid #abb9b0; font: inherit; }
+.admin-submission-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.admin-submission-actions button { padding: 10px 14px; background: #edf1ee; border: 1px solid #abb9b0; cursor: pointer; }
+.admin-submission-actions button:first-child { background: #243d31; color: white; }

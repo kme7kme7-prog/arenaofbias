@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createJiti } from 'jiti';
+import { runInThisContext } from 'node:vm';
 
 const html = readFileSync('standalone/guess.html', 'utf8');
 
@@ -9,9 +10,7 @@ const html = readFileSync('standalone/guess.html', 'utf8');
 const dataMatch = /\/\* __DATA_START__ \*\/([\s\S]*?)\/\* __DATA_END__ \*\//.exec(html);
 const coreMatch = /\/\* __CORE_START__ \*\/([\s\S]*?)\/\* __CORE_END__ \*\//.exec(html);
 assert(dataMatch && coreMatch, '标记段没找到');
-const sandbox = new Function(
-  `${dataMatch[1]}\n${coreMatch[1]}\nreturn __CORE__;`,
-)();
+const sandbox = runInThisContext(`(() => { ${dataMatch[1]}\n${coreMatch[1]}\nreturn __CORE__; })()`);
 const local = sandbox;
 
 const jiti = createJiti(import.meta.url);

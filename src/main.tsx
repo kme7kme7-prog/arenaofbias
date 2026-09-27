@@ -7,6 +7,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import PlayMenu from '@/app/play-menu';
 import Event from '@/app/event';
 import GuessPage from '@/app/guess';
+import SubmitPage from '@/app/submit';
 import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
@@ -86,6 +87,7 @@ function Routes() {
   if (route === '#play') return <PlayMenu />;
   if (route === '#event') return <Event />;
   if (route === '#guess') return <GuessPage />;
+  if (route === '#submit') return <SubmitPage key={user?.id ?? 'guest'} />;
   if (route === '#prompts') return <PromptLibrary />;
   if (route === '#rank') return <Ranking />;
   if (route === '#rank/formal') return <Ranking key="formal" initialScope="formal" />;

@@ -20,9 +20,9 @@
 | `app/ranking.tsx` | 偏好榜 `#rank`：三赛道 tab、Elo 排行、模型档案卡（主题色染头部，决策 017） |
 | `app/play-menu.tsx` | 玩法菜单 `#play`（仪器档案风列表）：`MODES` + 管理员资格判定（2026-09-23） |
 | `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位） |
-| `app/guess.tsx` + `guess.css` | 模一把玩法页 `#guess`（057-065）：选择屏（每日+三档练习）、搜索补全（全库、不按池过滤）、七属性反馈表、揭晓条、分享、战绩；视觉维护见文件头「美化接手须知」 |
-| `lib/guess-logic.ts` | 模一把判定核心（纯函数、双端同码）：数据集适配层（variants 合并组展开）/`judge()` 七属性判定/`answerForDate()` 两级派生（槽散列+组内轮转）/三档分池/`VENDOR_REGION` 厂商地区（062）。**规则只改这里**；契约见文件头 |
-| `lib/guess.ts` | 模一把前端数据层：API 封装、每日对局**不落盘**（09-14 起，只存 `guess-settled:` 结算标记与 `guess-stats` 战绩）、练习局 gameId 管理 |
+| `app/guess.tsx` + `guess.css` | 模一把玩法页 `#guess`（057-065）：选择屏（每日+四档练习）、搜索补全（全库、不按池过滤）、七属性反馈表、揭晓条、分享、战绩；视觉维护见文件头「美化接手须知」 |
+| `lib/guess-logic.ts` | 模一把判定核心（纯函数、双端同码）：数据集适配层（variants 合并组展开）/`judge()` 七属性判定/`answerForDate()` 两级派生（槽散列+组内轮转）/四档分池/`VENDOR_REGION` 厂商地区（062）。**规则只改这里**；契约见文件头 |
+| `lib/guess.ts` | 模一把前端数据层：API 封装、每日 `guess-daily:` 棋盘续局与完成锁定、Web Locks 多标签串行、`guess-settled:` 防重复结算、练习局 gameId 管理 |
 | `lib/guess-models.json` | 模一把数据集（102 答案槽/138 可猜名，含 21 个 variants 合并组，决策 061）：**追加新条目只放数组末尾**（答案按下标散列派生）；字段口径见 `docs/games/guess.md` |
 | `app/page.tsx` | 竞技场舞台：入场序列（ARENA_TIMING 集中节拍，决策 076-077）、投票/锁定/揭晓、换组、Dialog、音效、快捷键 |
 | `app/globals.css` | 竞技场全局视觉（spotlight、锁定、评论区）、`.page-wipe` 横扫过渡层 |
@@ -89,9 +89,9 @@
 | `POST /api/comments` | 登录 401/同源 403/JSON 415/校验 400/幂等 409 |
 | `GET /api/works` `/api/prompts` | 已发布作品/题目清单，公开（040/045） |
 | `GET /api/votes?scope=entertainment` / `scope=formal` | 对应范围的全量投票流水（含联表快照 promptKind/promptWeights/双方显示名），公开，**不按上架状态过滤**——下架题/作品的历史票保留在榜单、按原权重重放（045⑤/093） |
-| `POST /api/votes` | 登录/同源/校验/票面与 works 表核对（039）；对局去重 409（code:pair）、同 UUID 幂等或 409（code:id）；formal 票非 admin 403（070） |
+| `POST /api/votes` | 娱乐允许匿名，签名 HttpOnly cookie + 账号/浏览器双去重 + 独立持久限流；同源/校验/票面与 works 表核对（039）；对局去重 409（code:pair）、同 UUID 幂等或 409（code:id）；formal 票非 admin 403（070） |
 | `POST /api/track` | 访客上报（042）：同源即可，204 静默 |
-| `POST /api/reactions`；`GET /api/reactions?prompt=` | 模型反应（054）：一人一题一模型一槽覆盖；登录写、公开读 |
+| `POST /api/reactions`；`GET /api/reactions?prompt=` | 作品评价：一人一作品一槽，payload 带 rid/userId，拒绝切账号残留队列；登录写、公开读，旧 reactions 表不迁配 |
 | `GET /api/guess/today` | 模一把当日题面（dayKey/dayNumber/attributes/models 全量公开字段），匿名，无答案信息 |
 | `POST /api/guess/check` | 判定：每日题按难度池派生（060），练习局带 gameId（064）；猜中或 final 才附答案；跨零点守护（070） |
 | `POST /api/guess/practice/start` | 练习开局（064）：服务端随机抽题发 gameId，内存持有，重启失效 |
@@ -214,3 +214,13 @@ npm start          # 生产形态：http://localhost:3000
 - 远端先在独立暂存目录构建，复核计划中的文件哈希未变化，再备份将覆盖的源码、构建文件与 SQLite 在线一致性快照；保留旧哈希 assets，最后替换三个入口 HTML。后端或共享 lib 内容变化才重启 PM2；仅换行差异、前端及文档同步不重启。
 - 部署后逐文件核对源码哈希、三个入口及其引用资源响应，并检查 PM2。失败恢复本轮覆盖的代码与构建文件，绝不自动回退真库。备份在 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-时间-提交号/`。
 - 脚本复用已安装的 `node_modules`；发现 package.json 的 dependencies/devDependencies 改变即中止，依赖升级须另行安排安装。不会自动删除远端多余源码；涉及删除/重命名时需单独核对旧文件引用。这是现有站点的同步流程，不是空机初始化脚本。
+
+## 2026-09-26 公测数据与验证补充
+
+- 数据迁移至 014：013 增 `votes.visitor_id`（娱乐浏览器对局唯一索引）与 `work_reactions`；014 增 `submissions`。原投票与旧 reactions 保留。`server/visitor.js` 的 site_secrets 保存匿名签名密钥，vote_limits 保存哈希后的固定窗口计数；IP 默认 60 次/分钟、浏览器/账号默认 12 次/分钟，随 RATE_LIMIT_PER_MIN 成比例调整。正式投票继续按管理员与原范围索引去重。
+- 投稿：`app/submit.tsx` / `lib/submissions.ts` / `app/admin/submissions.tsx`；`server/submissions.js` 管理建单、PUT 原件、本人清单和管理员审核，文件在 DATA_DIR/submissions；`server/submission-zip.js` 仅审核通过时解压至服务器生成的收件箱路径。ZIP 限 1000 项、单项 20 MB、展开合计 80 MB，校验 CRC、路径、类型和本地目录一致性，不引新依赖。
+- 新 API：GET/POST `/api/submissions`，PUT/GET `/api/submissions/:id/file`，DELETE `/api/submissions/:id`（仅本人未完成上传）；GET `/api/admin/submissions?status=`，POST `/api/admin/submissions/:id/review`（通过/退回）。通过后沿用 inbox/register 和 works/PATCH 发布。
+- 投稿作品 `content.sandboxed=true`：iframe 不带 allow-same-origin；`/works` 与贡献收件箱资源附 CSP sandbox，路径解码后检查，公开静态资源 CORS 支持模块。竞技场只认当前 iframe 的就绪消息；截图入口单独等 `aob:capture-ready`，不读取隔离文档，也不把探针超时当截图就绪。
+- `npm run validate:beta-api`：临时 SQLite/HTTP 验证匿名计榜、登录前后去重、限流与重启、作品评价、ZIP 与投稿审核隔离；`npm run validate:guess-session` 验证每日存档恢复、损坏/旧结算标记与存储失败；构建后 `npm run validate:beta-ui` 用独立 Edge 验证真实用户流程、四档视口、每日多标签/刷新/跨日、投稿与手机分享能力降级。手机能力用桩模拟，不能代替真实 iOS/Android/QQ 验收。
+- `validate:camera` 改用脚本生成的最小 HTML/importmap fixture，不再依赖未入库的 007 真作品；`validate:work-ready` 增隔离投稿的慢加载/超时不强放行覆盖。截图在 output/playwright，运行日志在 .local；不作为业务源码提交。
+- `npm run validate:reaction-queue` 覆盖异步补发期间取消评价、保留最新意图与账号队列隔离。投稿未完成上传超过一小时后释放该用户的名额，已提交原件不会自动清理。

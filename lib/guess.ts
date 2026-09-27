@@ -2,9 +2,9 @@
 // 判定规则与类型在 lib/guess-logic.ts（那里的类型从服务端响应反推同构），
 // 本文件只管「状态怎么存、接口怎么调」，不含游戏规则。
 //
-// ── 双模式（决策 064；对局不落盘——2026-09-14 用户拍板）──
+// ── 双模式（2026-09-26：每日按浏览器续局，完成后当日锁定）──
 // 每日一题：全球同题，种子派生，只从简单+普通池出（困难与地狱不进每日）。
-//   对局只在内存：退出/刷新即清盘重开（答案仍是当日种子派生的同一道）。
+//   每次成功猜测立即保存；退出/刷新恢复，完成后只读。练习仍只在内存。
 //   战绩 guess-stats（场次/胜场/连胜/最少步数）只算每日题，一天只结算一次
 //   ——guess-settled:<dayKey> 标记防止反复进出刷战绩与重复上报。
 // 练习模式：三档难度随机出题、不限次、「再来一把」开新局。答案服务端持有，
@@ -14,7 +14,7 @@
 //
 // 没有账号体系绑定——未来联机/账号并入时按记录全量重算。
 
-import type { AttributeKey, Feedback, GuessDifficulty } from './guess-logic';
+import { ATTRIBUTE_KEYS, type AttributeKey, type Feedback, type GuessDifficulty } from './guess-logic';
 
 export type GuessApiModel = {
   id: string;
@@ -73,6 +73,9 @@ const STATS_KEY = 'guess-stats';
 const LAST_DAY_KEY = 'guess-last-day';
 /** 「某日战绩已结算」标记（一天一条，防反复进出刷战绩与重复上报） */
 const settledKey = (dayKey: string) => `guess-settled:${dayKey}`;
+const dailyKey = (dayKey: string) => `guess-daily:${dayKey}`;
+const memoryDaily = new Map<string, string>();
+const memoryCounted = new Set<string>();
 // 三档难度时期（决策 060）的战绩键，读取时并入每日战绩（一次性）
 const LEGACY_STATS_060 = 'guess-stats:1';
 const LEGACY_LAST_DAY_060 = 'guess-last-day:1';
@@ -93,22 +96,79 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
-/** 某日的每日一题战绩是否已结算过（对局不落盘后，这是「今天玩没玩完」的唯一记录） */
+/** 某日战绩是否已结算；旧版本只有此标记时，也能锁定已完成日期。 */
 export function wasCounted(dayKey: string): boolean {
   try {
-    return localStorage.getItem(settledKey(dayKey)) === '1';
+    return localStorage.getItem(settledKey(dayKey)) === '1' || memoryCounted.has(dayKey);
   } catch {
-    return false;
+    return memoryCounted.has(dayKey);
   }
 }
 
 /** 标记某日战绩已结算（与 settleStats 同一时机写，一天只写一次） */
 export function markCounted(dayKey: string) {
+  memoryCounted.add(dayKey);
   try {
     localStorage.setItem(settledKey(dayKey), '1');
   } catch {
     /* 存储不可用：内存态照常，只是刷新后可能重复结算 */
   }
+}
+
+/** 跨标签页串行提交/结算；不支持 Web Locks 的浏览器仍有持久状态校验。 */
+export async function withDailyLock<T>(dayKey: string, action: () => Promise<T> | T): Promise<T> {
+  if (globalThis.navigator?.locks)
+    return navigator.locks.request(`aob-guess:${dayKey}`, action);
+  return action();
+}
+
+/** 存模型 id 而非整份模型资料，恢复时以今日接口的模型列表为准。 */
+export function saveDailySession(dayKey: string, session: GuessSession) {
+  const raw = JSON.stringify({
+    version: 1,
+    guesses: session.guesses.map(row => ({
+      guessId: row.guess.id, attributes: row.attributes, won: row.won,
+    })),
+    finished: session.finished,
+    revealed: session.revealed,
+    answerId: session.answer?.id ?? null,
+  });
+  memoryDaily.set(dayKey, raw);
+  try { localStorage.setItem(dailyKey(dayKey), raw); } catch { /* 当前页面内仍锁定 */ }
+}
+
+export function loadDailySession(dayKey: string, models: GuessApiModel[]): GuessSession | null {
+  // 旧版只存结算标记：没有轨迹可恢复，也不能因此允许重开。
+  const completed = (): GuessSession | null => wasCounted(dayKey)
+    ? { guesses: [], finished: true, revealed: true, answer: null } : null;
+  try {
+    let raw: string | null | undefined;
+    try { raw = localStorage.getItem(dailyKey(dayKey)); }
+    catch { raw = memoryDaily.get(dayKey); }
+    if (!raw) return completed();
+    const value = JSON.parse(raw);
+    if (value?.version !== 1 || !Array.isArray(value.guesses) || value.guesses.length > MAX_ATTEMPTS)
+      return completed();
+    const seen = new Set<string>();
+    const guesses: GuessRow[] = [];
+    for (const row of value.guesses) {
+      const guess = models.find(model => model.id === row?.guessId);
+      if (!guess || seen.has(guess.id) || typeof row.won !== 'boolean') return completed();
+      if (!ATTRIBUTE_KEYS.every(key => {
+        const feedback = row.attributes?.[key];
+        return feedback && ['hit', 'near', 'miss', 'unknown'].includes(feedback.state)
+          && [null, 'up', 'down'].includes(feedback.arrow);
+      })) return completed();
+      seen.add(guess.id);
+      guesses.push({ guess, attributes: row.attributes, won: row.won });
+    }
+    const finished = value.finished === true || value.revealed === true
+      || guesses.some(row => row.won) || guesses.length === MAX_ATTEMPTS || wasCounted(dayKey);
+    return {
+      guesses, finished, revealed: finished,
+      answer: finished ? models.find(model => model.id === value.answerId) ?? null : null,
+    };
+  } catch { return completed(); }
 }
 
 export function loadStats(): GuessStats {
@@ -156,11 +216,14 @@ export function settleStats(dayKey: string, won: boolean, attempts: number) {
 /** 调试用：清空战绩与对局相关记录（dev 面板可调用，正常用户路径不暴露）。
  *  guess-session:/guess-practice: 是对局落盘时期的旧键，一并清掉 */
 export function resetGuessData() {
+  memoryDaily.clear();
+  memoryCounted.clear();
   try {
     const keys = Object.keys(localStorage);
     for (const key of keys)
       if (
         key.startsWith('guess-session:') ||
+        key.startsWith('guess-daily:') ||
         key.startsWith('guess-practice:') ||
         key.startsWith('guess-settled:') ||
         key.startsWith('guess-stats') ||
@@ -195,6 +258,7 @@ export type CheckResponse = {
 
 /** 练习局已过期（服务器重启清内存）的信号：404 + code=game-expired */
 export class PracticeExpiredError extends Error {}
+export class DailyChangedError extends Error {}
 
 /** 服务端限流（429）的信号：checkGuess 抛出，界面给「稍等几秒」的提示，
  *  不再与普通失败混在一起显示「网络不给力」 */
@@ -206,22 +270,25 @@ export async function checkGuess(
   guessId: string,
   final: boolean,
   gameId?: string,
+  dayKey?: string,
 ): Promise<CheckResponse | null> {
   try {
     const response = await fetch('/api/guess/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gameId ? { guessId, final, gameId } : { guessId, final }),
+      body: JSON.stringify(gameId ? { guessId, final, gameId } : { guessId, final, dayKey }),
     });
     if (!response.ok) {
       if (response.status === 404) throw new PracticeExpiredError();
       if (response.status === 429) throw new RateLimitedError();
+      if (response.status === 409) throw new DailyChangedError();
       return null;
     }
     return (await response.json()) as CheckResponse;
   } catch (error) {
     if (
       error instanceof PracticeExpiredError ||
+      error instanceof DailyChangedError ||
       error instanceof RateLimitedError
     )
       throw error;

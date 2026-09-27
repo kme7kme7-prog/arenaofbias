@@ -40,6 +40,9 @@ import {
 } from './work-bridge.js';
 import { installAuth } from './auth.js';
 import { installAuthEmail } from './auth-email.js';
+import { createVisitorIdentity } from './visitor.js';
+import { installWorkReactions } from './work-reactions.js';
+import { migrateSubmissions, installSubmissions } from './submissions.js';
 import { installTurnstile } from './turnstile.js';
 import { derive } from './auth-util.js';
 import {
@@ -433,6 +436,21 @@ const MIGRATIONS = [
       );
     },
   },
+  {
+    // 013 · 娱乐浏览器去重；作品评价另表，保留旧模型级反应历史。
+    up() {
+      if (!db.prepare('PRAGMA table_info(votes)').all().some(column => column.name === 'visitor_id'))
+        db.exec('ALTER TABLE votes ADD COLUMN visitor_id TEXT');
+      db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS votes_visitor_pair
+        ON votes(visitor_id, pair_key) WHERE visitor_id IS NOT NULL AND mode != 'formal';
+        CREATE TABLE IF NOT EXISTS work_reactions (
+          id TEXT PRIMARY KEY, work_id TEXT NOT NULL, kind TEXT NOT NULL,
+          user_id TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE(user_id, work_id)
+        );
+        CREATE INDEX IF NOT EXISTS work_reactions_work ON work_reactions(work_id);`);
+    },
+  },
+  { up() { migrateSubmissions(db); } }, // 014 · 用户投稿与审核记录
 ];
 
 {
@@ -454,38 +472,17 @@ const selectById = db.prepare(
 );
 
 const insertVote = db.prepare(
-  `INSERT OR IGNORE INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at, outcome)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  `INSERT OR IGNORE INTO votes (id, prompt_id, winner_rid, winner_mid, loser_rid, loser_mid, pair_key, mode, user_id, created_at, outcome, visitor_id)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 const selectVoteById = db.prepare(
   `SELECT id, prompt_id AS promptId, winner_rid AS winnerRid, winner_mid AS winnerMid,
           loser_rid AS loserRid, loser_mid AS loserMid, pair_key AS pairKey,
-          mode, created_at AS ts, user_id AS userId, outcome
+          mode, created_at AS ts, user_id AS userId, outcome, visitor_id AS visitorId
    FROM votes WHERE id = ?`,
 );
 const selectVoteIdByPair = db.prepare(
-  "SELECT id FROM votes WHERE user_id = ? AND pair_key = ? AND (mode = 'formal') = ?",
-);
-// 反应（迁移 005）：一人一题一模型一槽，换态度覆盖 kind
-const upsertReaction = db.prepare(
-  `INSERT INTO reactions (id, prompt_id, mid, kind, user_id, created_at)
-   VALUES (?, ?, ?, ?, ?, ?)
-   ON CONFLICT(user_id, prompt_id, mid)
-   DO UPDATE SET kind = excluded.kind, created_at = excluded.created_at`,
-);
-// 取消表态：kind=null 删槽（前端不再本地假取消，2026-09-20 修刷计数 bug）
-const deleteReaction = db.prepare(
-  'DELETE FROM reactions WHERE prompt_id = ? AND mid = ? AND user_id = ?',
-);
-const listReactionCounts = db.prepare(
-  `SELECT mid, kind, COUNT(*) AS n FROM reactions WHERE prompt_id = ? GROUP BY mid, kind`,
-);
-const listMyReactions = db.prepare(
-  'SELECT mid, kind FROM reactions WHERE prompt_id = ? AND user_id = ?',
-);
-// 防伪造：只允许对这道题已发布作品的模型表态
-const reactionModelExists = db.prepare(
-  'SELECT 1 FROM works WHERE prompt_id = ? AND model_id = ? AND published = 1',
+  "SELECT id FROM votes WHERE pair_key = ? AND (mode = 'formal') = ? AND (user_id = ? OR (visitor_id = ? AND mode != 'formal'))",
 );
 // 流水联表补四样展示快照（决策 045 ⑤「历史票保留在榜单」）：
 // 题目当前 kind 与六维权重（prompts 表含下架题——下架题的历史票仍按
@@ -606,9 +603,9 @@ function validateVote(value) {
 
 // 回读比对：同 UUID 必须是同一笔票——用户、题号、双方 rid/mid、模式全一致。
 // INSERT OR IGNORE 被旧票忽略后回读到的是旧记录，不比对就会跨对局回显旧票（B1）。
-const isSameVote = (saved, vote, userId) =>
+const isSameVote = (saved, vote, userId, visitorId) =>
   !!saved &&
-  saved.userId === userId &&
+  ((userId !== null && saved.userId === userId) || (visitorId !== null && saved.visitorId === visitorId)) &&
   saved.promptId === vote.promptId &&
   saved.winnerRid === vote.winnerRid &&
   saved.winnerMid === vote.winnerMid &&
@@ -825,7 +822,7 @@ app.get('/api/ratings', (req, res) => {
   }
 });
 
-// ---------- 投票：写入要求登录（决策 020），读取公开、不带用户信息 ----------
+// ---------- 投票：娱乐允许匿名计榜；正式只限管理员，读取公开、不带用户信息 ----------
 
 app.get('/api/votes', (req, res) => {
   const scope = voteScope(req, res);
@@ -848,25 +845,30 @@ app.get('/api/votes', (req, res) => {
   }
 });
 
-app.post('/api/votes', limiterFor('social'), (req, res) => {
+const visitorIdentity = createVisitorIdentity(db, postsPerMinute);
+app.post('/api/votes', (req, res) => {
   if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
   if (!req.headers['content-type']?.includes('application/json'))
     return res.status(415).json({ error: '请求格式无效' });
-  if (!req.user) return res.status(401).json({ error: '请先登录再投票。' });
   const vote = validateVote(req.body);
   if (!vote) return res.status(400).json({ error: '投票内容无效' });
+  if (vote.mode === 'formal' && !req.user) return res.status(401).json({ error: '请先登录再投票。' });
   // 正式测评资格制（决策 026）：前端菜单只对管理员解锁，这里服务端再拦一道——
   // 任何登录用户直接输 #formal/xxx 的 hash 也进不了正式榜（2026-09-15 收口）
-  if (vote.mode === 'formal' && req.user.role !== 'admin')
+  if (vote.mode === 'formal' && req.user?.role !== 'admin')
     return res.status(403).json({ error: '正式测评为资格制，暂未开放。' });
   const pairKey = pairKeyOf(vote.winnerRid, vote.loserRid);
+  const browserId = visitorIdentity.identify(req, res);
+  if (!visitorIdentity.limit(req, res, browserId)) return;
+  const visitorId = vote.mode === 'formal' ? null : browserId;
+  const userId = req.user?.id ?? null;
   try {
-    const existing = selectVoteIdByPair.get(req.user.id, pairKey, Number(vote.mode === 'formal'));
+    const existing = selectVoteIdByPair.get(pairKey, Number(vote.mode === 'formal'), userId, visitorId);
     if (existing) {
       // 同 UUID 重试视为成功（幂等，但票面必须完全一致）；换一个 UUID 重投同一对局才叫重复
       if (existing.id === vote.id) {
         const saved = selectVoteById.get(vote.id);
-        if (!isSameVote(saved, vote, req.user.id))
+        if (!isSameVote(saved, vote, userId, visitorId))
           return res
             .status(409)
             .json({ code: 'id', error: '投票编号冲突，请重新提交' });
@@ -886,12 +888,13 @@ app.post('/api/votes', limiterFor('social'), (req, res) => {
       vote.loserMid,
       pairKey,
       vote.mode,
-      req.user.id,
+      userId,
       Date.now(),
       vote.outcome,
+      visitorId,
     );
     const saved = selectVoteById.get(vote.id);
-    if (!isSameVote(saved, vote, req.user.id))
+    if (!isSameVote(saved, vote, userId, visitorId))
       return res.status(409).json({
         code: 'id',
         error: '投票编号冲突，请重新提交',
@@ -905,72 +908,9 @@ app.post('/api/votes', limiterFor('social'), (req, res) => {
   }
 });
 
-// ---------- 反应：点赞 / 点踩 / 大笑（迁移 005；写入要求登录，读取公开） ----------
-
-const REACTION_KINDS = new Set(['up', 'down', 'laugh']);
-// 反应跟着题号走（跨对局累计同一模型在这道题下的反应），换态度覆盖不叠票
-app.post('/api/reactions', limiterFor('social'), (req, res) => {
-  if (!sameOrigin(req)) return res.status(403).json({ error: '请求来源无效' });
-  if (!req.headers['content-type']?.includes('application/json'))
-    return res.status(415).json({ error: '请求格式无效' });
-  if (!req.user) return res.status(401).json({ error: '请先登录再表态。' });
-  const { id, promptId, mid, kind } = req.body ?? {};
-  if (!id || !UUID_PATTERN.test(id)) return res.status(400).json({ error: '反应内容无效' });
-  if (!promptId || !promptPublished(promptId))
-    return res.status(400).json({ error: '反应内容无效' });
-  if (typeof mid !== 'string' || !mid.trim())
-    return res.status(400).json({ error: '反应内容无效' });
-  // kind 为显式 null = 取消表态（删槽）；其余必须是合法态度
-  if (kind !== null && !REACTION_KINDS.has(kind))
-    return res.status(400).json({ error: '反应内容无效' });
-  if (!reactionModelExists.get(promptId, mid.trim()))
-    return res.status(400).json({ error: '反应内容无效' });
-  try {
-    if (kind === null)
-      deleteReaction.run(promptId, mid.trim(), req.user.id);
-    else upsertReaction.run(id, promptId, mid.trim(), kind, req.user.id, Date.now());
-    const mine = new Map(
-      listMyReactions.all(promptId, req.user.id).map((row) => [row.mid, row.kind]),
-    );
-    const counts = {};
-    for (const row of listReactionCounts.all(promptId)) {
-      counts[row.mid] ??= { up: 0, down: 0, laugh: 0 };
-      counts[row.mid][row.kind] = row.n;
-    }
-    res.set(noStore).status(201).json({ mine: Object.fromEntries(mine), counts });
-  } catch {
-    res
-      .status(503)
-      .set(noStore)
-      .json({ error: '暂时没有记上这一下，稍后再试？' });
-  }
-});
-
-app.get('/api/reactions', (req, res) => {
-  const promptId = String(req.query.prompt ?? '');
-  if (!promptId || !promptExists(promptId))
-    return res.status(400).json({ error: '题目不存在' });
-  try {
-    const counts = {};
-    for (const row of listReactionCounts.all(promptId)) {
-      counts[row.mid] ??= { up: 0, down: 0, laugh: 0 };
-      counts[row.mid][row.kind] = row.n;
-    }
-    // 本人选择只有登录时返回；未登录只看得到聚合计数
-    const mine = req.user
-      ? Object.fromEntries(
-          listMyReactions
-            .all(promptId, req.user.id)
-            .map((row) => [row.mid, row.kind]),
-        )
-      : {};
-    res.set(noStore).json({ counts, mine });
-  } catch {
-    res
-      .status(503)
-      .set(noStore)
-      .json({ error: '反应数据暂时无法加载，请稍后重试' });
-  }
+// 作品级评价；旧 reactions 表仅保留历史。
+installWorkReactions(app, db, {
+  sameOrigin, limiter: limiterFor('social'), promptPublished, uuidPattern: UUID_PATTERN,
 });
 
 // ---------- 管理后台 API（管理员专用，决策 040） ----------
@@ -981,6 +921,7 @@ const requireAdmin = (req, res, next) => {
     return res.status(404).json({ error: '接口不存在' });
   next();
 };
+installSubmissions(app, db, { dataDir, inboxDir, requireAdmin, sameOrigin, promptPublished });
 
 // 站内「一天」统一按 UTC+8 切（与模一把 guessDayKey 同口径，2026-09-20 审查修复）：
 // 原先这里用 toISOString（UTC），北京时间 00:00–08:00 的浏览会被计入「昨日」
@@ -1592,6 +1533,19 @@ const stemOf = (name) => name.replace(/\.(html|txt|md)$/i, '');
 const paragraphsOf = (raw) =>
   raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 
+// 投稿 HTML 在收件箱保持不透明源；不得继承管理员页面权限。
+app.use('/api/admin/inbox', (req, res, next) => {
+  const parts = req.path.split('/');
+  let name = parts[1] === 'file' ? req.query.name : null;
+  if (parts[1] === 'serve') {
+    try { name = decodeURIComponent(req.path.split('/')[2] || ''); }
+    catch { return res.status(400).json({ error: '文件名不合法' }); }
+  }
+  if (typeof name === 'string' && db.prepare("SELECT 1 FROM submissions WHERE inbox_name = ? AND status = 'approved'").get(name))
+    res.set('Content-Security-Policy', 'sandbox allow-scripts');
+  next();
+});
+
 app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
   try {
     const entries = fs
@@ -1649,6 +1603,14 @@ app.get('/api/admin/inbox', requireAdmin, (_req, res) => {
         return [base];
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+    const submissionForInbox = db.prepare("SELECT id, prompt_id, model_name, title FROM submissions WHERE inbox_name = ? AND status = 'approved'");
+    for (const entry of entries) {
+      const submission = submissionForInbox.get(entry.name);
+      if (submission) {
+        entry.suggest = { title: submission.title, model: submission.model_name, promptId: submission.prompt_id };
+        entry.submissionId = submission.id;
+      }
+    }
     res.set(noStore).json({ dir: inboxDir, entries });
   } catch {
     res.status(503).set(noStore).json({ error: '收件箱暂时无法读取' });
@@ -1876,6 +1838,7 @@ app.post('/api/admin/inbox/register', requireAdmin, (req, res) => {
       title,
       content: {
         kind: 'html',
+        ...(db.prepare("SELECT 1 FROM submissions WHERE inbox_name = ? AND status = 'approved'").get(name) ? { sandboxed: true } : {}),
         src: isDir
           ? `/works/${promptId}/${workId}/index.html`
           : `/works/${promptId}/${workId}.html`,
@@ -2238,7 +2201,10 @@ app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
         .json({ code: 'game-expired', error: '这局练习已过期，开一把新的吧' });
     answer = game.answer;
   } else {
-    answer = guessAnswerForDate(new Date(), guessDailyPool(guessModels));
+    const now = new Date();
+    if (req.body?.dayKey && req.body.dayKey !== guessDayKeyOf(now))
+      return res.status(409).set(noStore).json({ code: 'day-changed', error: '每日挑战已更新，请重新读取今天的题。' });
+    answer = guessAnswerForDate(now, guessDailyPool(guessModels));
   }
   try {
     const feedback = judgeGuess(guess, answer);
@@ -2619,6 +2585,23 @@ function savedCameraFor(workId) {
     return null;
   }
 }
+// 投稿作品可运行脚本，但不能读取主站身份/DOM；资源 CORS 仅放行公开作品。
+app.use('/works', (req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  let decoded;
+  try { decoded = decodeURIComponent(req.path); }
+  catch { return res.status(400).end(); }
+  // 与静态文件实际解析的路径一致，编码后的文件名不能绕过隔离头。
+  const segments = path.posix.normalize(decoded.replaceAll('\\', '/')).split('/').filter(Boolean);
+  const id = segments[1]?.replace(/\.html$/, '');
+  if (id) {
+    const row = selectWorkById.get(id);
+    if (row && JSON.parse(row.content).sandboxed)
+      res.set('Content-Security-Policy', 'sandbox allow-scripts');
+  }
+  next();
+});
+
 app.use('/works', (req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   const rel = req.path.replace(/^\/+/, '');

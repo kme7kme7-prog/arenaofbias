@@ -320,18 +320,16 @@ try {
   });
 
   // ── 判定规则 ──
-  await check('judge：自己猜自己全 hit（未公开属性与模态除外）、won=true', () => {
+  await check('judge：自己猜自己全 hit（未公开属性除外）、won=true', () => {
     for (const m of GUESS_MODELS) {
       const fb = judge(m, m);
       assert.ok(fb.won, m.name);
-      const multi = m.modalities.some((x) => x !== 'text');
       for (const key of ATTRIBUTE_KEYS) {
         // contextK/priceTier 未公开时，自己对自己也是 unknown（诚实口径，非 hit）；
-        // 模态是二元口径：多模态模型自己对自己恒为 near（见模态断言）
+        // 猜中确切模型时，多模态也必须变绿。
         const expect =
           key === 'contextK' ? (m.contextK !== null ? 'hit' : 'unknown')
           : key === 'priceTier' ? (m.priceTier !== null ? 'hit' : 'unknown')
-          : key === 'modalities' ? (multi ? 'near' : 'hit')
           : 'hit';
         assert.equal(fb.attributes[key].state, expect, `${m.name}.${key}`);
       }
@@ -394,8 +392,8 @@ try {
     assert.equal(judge(textOnly, multi).attributes.modalities.arrow, null);
     // 同纯文本 → 绿
     assert.equal(judge(textOnly, textOnly).attributes.modalities.state, 'hit');
-    // 同多模态 → 黄：自己对自己也是黄（二元口径下细节不参与判定）
-    assert.equal(judge(multi, multi).attributes.modalities.state, 'near');
+    // 不同多模态模型仍黄；猜中确切模型则绿。
+    assert.equal(judge(multi, multi).attributes.modalities.state, 'hit');
     assert.equal(judge(multi, multi2).attributes.modalities.state, 'near');
     assert.equal(judge(multi, multi2).attributes.modalities.arrow, null);
   });
@@ -713,6 +711,12 @@ try {
         body: JSON.stringify({ guessId: 'no-such-model' }),
       });
       assert.equal(unknown.status, 400);
+      const staleDay = await fetch('http://127.0.0.1:3997/api/guess/check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin },
+        body: JSON.stringify({ guessId: someOther.id, dayKey: '2020-01-01' }),
+      });
+      assert.equal(staleDay.status, 409);
+      assert.equal((await staleDay.json()).code, 'day-changed');
 
       // ── 游玩数据上报（决策 063/064）：合法 204 落库、非法 400、跨源 403 ──
       // 064 起只有每日一题上报，不再带 difficulty；答案按每日池派生

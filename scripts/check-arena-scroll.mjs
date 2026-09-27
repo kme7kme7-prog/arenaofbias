@@ -67,7 +67,7 @@ assert.match(
 // 「随机换个竞技场」与「下一题」同样挂 blocked，重播过场中不得再叠 match 纸幕
 assert.match(
   pageSource,
-  /onClick=\{gotoRandomArena\} disabled=\{blocked\}/,
+  /onClick=\{gotoRandomArena\}[\s\S]{0,100}disabled=\{continueBlocked \|\| !hasOtherArena\}/,
   'random-arena button must be gated by blocked like next-topic',
 );
 console.log('PASS arena scroll: deferred alignment, smooth, reduced motion, cancellation, detached target, no double route reset, next-prompt regional match, valid-pair retention, random-arena gating');

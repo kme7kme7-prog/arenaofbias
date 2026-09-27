@@ -62,6 +62,7 @@ async function check(label, fn) {
   await fn();
   console.log(`PASS ${++tests} ${label}`);
 }
+const userIds = new Map();
 const register = async (username) => {
   const email = `${username}@aob.test`;
   const sent = await fetch(`${base}/api/auth/email/send`, {
@@ -82,19 +83,21 @@ const register = async (username) => {
     }),
   });
   assert.equal(response.status, 201, `register ${username}`);
-  return response.headers.get('set-cookie').split(';')[0];
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+  userIds.set(cookie, (await response.json()).user.id);
+  return cookie;
 };
 const post = (body, cookie) =>
   fetch(`${base}/api/reactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', origin: base, cookie },
-    body: JSON.stringify({ id: randomUUID(), promptId: '002', mid: 'inkwell', ...body }),
+    body: JSON.stringify({ id: randomUUID(), promptId: '002', rid: '002-a', userId: userIds.get(cookie), ...body }),
   });
-const mineOf = (data) => data.mine?.inkwell ?? null;
+const mineOf = (data) => data.mine?.['002-a'] ?? null;
 const countsOf = (data) => ({
-  up: data.counts?.inkwell?.up ?? 0,
-  down: data.counts?.inkwell?.down ?? 0,
-  laugh: data.counts?.inkwell?.laugh ?? 0,
+  up: data.counts?.['002-a']?.up ?? 0,
+  down: data.counts?.['002-a']?.down ?? 0,
+  laugh: data.counts?.['002-a']?.laugh ?? 0,
 });
 
 for (let i = 0; ; i++) {
@@ -151,12 +154,12 @@ try {
       (await fetch(`${base}/api/reactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', origin: base, cookie },
-        body: JSON.stringify({ id: randomUUID(), promptId: '002', mid: 'inkwell' }),
+        body: JSON.stringify({ id: randomUUID(), promptId: '002', rid: '002-a', userId: userIds.get(cookie) }),
       })).status,
       400,
       '缺 kind 字段不得当成取消',
     );
-    assert.equal((await post({ kind: 'up', mid: 'nosuch-model' }, cookie)).status, 400);
+    assert.equal((await post({ kind: 'up', rid: 'nosuch-work' }, cookie)).status, 400);
     assert.equal((await post({ kind: 'up', promptId: '999' }, cookie)).status, 400);
   });
 } finally {

@@ -22,6 +22,7 @@ import { createRoot } from 'react-dom/client';
 import { AdminDashboard } from '@/app/admin/dashboard';
 import { AdminGuess } from '@/app/admin/guess';
 import { AdminInbox } from '@/app/admin/inbox';
+import { AdminSubmissions } from '@/app/admin/submissions';
 import { AdminLog } from '@/app/admin/log';
 import { AdminPlaceholder } from '@/app/admin/placeholder';
 import { AdminPrompts } from '@/app/admin/prompts';
@@ -70,6 +71,7 @@ const SECTIONS = [
     ready: true,
   },
   { icon: Users, group: '内容管理', key: 'users', label: '用户管理', ready: true },
+  { icon: Inbox, group: '内容管理', key: 'submissions', label: '用户投稿', ready: true },
   { icon: Gamepad2, group: '玩法', key: 'guess', label: '模一把', ready: true },
   {
     icon: CalendarDays,
@@ -239,6 +241,7 @@ function AdminShell({
           {section === 'log' && <AdminLog />}
           {section === 'works' && <AdminWorks />}
           {section === 'inbox' && <AdminInbox />}
+          {section === 'submissions' && <AdminSubmissions />}
           {section === 'users' && <AdminUsers />}
           {section === 'prompts' && <AdminPrompts />}
           {section === 'guess' && <AdminGuess />}

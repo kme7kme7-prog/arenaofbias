@@ -6,9 +6,12 @@ import './work-capture.css';
 
 // A separate, read-only entry: identical framing math and iframe component to the arena.
 const readyFrames = new WeakSet<MessageEventSource>();
+const captureFrames = new WeakSet<MessageEventSource>();
 window.addEventListener('message', (event) => {
   if (event.data === 'aob:work-ready' && event.source)
     readyFrames.add(event.source);
+  if (event.data === 'aob:capture-ready' && event.source)
+    captureFrames.add(event.source);
 });
 async function start() {
   const id = new URLSearchParams(location.search).get('id');
@@ -47,12 +50,15 @@ async function start() {
     return;
   }
   if (!('src' in content)) throw new Error('内联作品暂不生成快照');
+  const captureSource = new URL(content.src, location.origin);
+  captureSource.searchParams.set('aob', 'capture');
+  const captureContent = { ...content, src: captureSource.href };
   const canvas = workCanvas(result);
   createRoot(document.getElementById('root')!).render(
     <main id="capture-stage">
       {canvas ? (
         <FixedHtmlWork
-          content={content}
+          content={captureContent}
           canvas={canvas}
           title={result.title}
           interactive={false}
@@ -60,14 +66,20 @@ async function start() {
       ) : (
         <iframe
           title={result.title}
-          src={`${content.src}${content.src.includes('?') ? '&' : '?'}aob=prev`}
-          sandbox="allow-scripts allow-same-origin"
+          src={captureContent.src}
+          sandbox={content.sandboxed ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
         />
       )}
     </main>,
   );
   const timer = window.setInterval(() => {
     const frame = document.querySelector('iframe');
+    if (frame?.contentWindow && captureFrames.has(frame.contentWindow)) {
+      clearInterval(timer);
+      document.documentElement.dataset.captureReady = 'true';
+      return;
+    }
+    if (content.sandboxed) return; // 隔离投稿只认就绪握手，不读父站权限下的文档。
     const doc = frame?.contentDocument;
     if (
       !frame?.contentWindow ||

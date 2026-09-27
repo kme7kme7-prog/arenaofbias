@@ -24,16 +24,30 @@ const VIRTUAL = '/works/__aob__';
 // 竞技场的探针等待逻辑（page.tsx）与「下一题」纸幕门（works-gate，决策 096）
 // 原本就认这个握手，注入后纸幕才真正钉到「作品加载完才结束过渡」。
 const PROBE_JS = `(function(){
-var posted=false;
+var posted=false,rendered=false;
 function post(){if(posted)return;posted=true;try{parent.postMessage('aob:work-ready','*');}catch(e){}}
 function arm(){
   var frames=0;
-  function tick(){frames+=1;if(frames>=3)setTimeout(post,600);else requestAnimationFrame(tick);}
+  function tick(){frames+=1;if(frames>=3)setTimeout(function(){rendered=true;post();},600);else requestAnimationFrame(tick);}
   requestAnimationFrame(tick);
 }
 if(document.readyState==='complete')arm();
 else window.addEventListener('load',arm);
 setTimeout(post,8000);
+// 快照单独握手：隔离 iframe 无法被父页读取；不把 8 秒兜底当截图就绪。
+if(new URLSearchParams(location.search).get('aob')==='capture'){
+  var captureTimer=setInterval(function(){
+    if(!rendered||document.readyState!=='complete'||document.fonts.status!=='loaded')return;
+    var pending=Array.from(document.images).some(function(img){
+      var rect=img.getBoundingClientRect();
+      return !img.complete&&rect.width>0&&rect.height>0&&rect.bottom>0&&rect.right>0&&rect.top<innerHeight&&rect.left<innerWidth;
+    });
+    if(pending)return;
+    if(window.__AOB_SAVED__&&!(window.__AOB__&&window.__AOB__.controls.length))return;
+    clearInterval(captureTimer);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){parent.postMessage('aob:capture-ready','*');});});
+  },100);
+}
 })();`;
 
 /** 注入就绪探针（classic script，进 <head> 顶部；幂等：已有探针不重复加） */

@@ -631,7 +631,9 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
                 {localize(
                   placeholder
                     ? '占位符模式已开启：到竞技场亲手投一票，或到开发者面板生成占位投票。'
-                    : '投票需要登录；到各竞技场看一组作品，选出你更喜欢的一边。',
+                    : scope === 'formal'
+                      ? '正式测评由管理员参与，评审结果只计入正式榜。'
+                      : '无需登录，选出你更喜欢的一边，选择就会计入娱乐榜。',
                 )}
               </small>
             </div>

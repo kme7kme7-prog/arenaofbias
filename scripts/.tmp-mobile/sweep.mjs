@@ -39,7 +39,8 @@ function makeRpc(ws) {
     if (msg.id && pending.has(msg.id)) {
       const p = pending.get(msg.id);
       pending.delete(msg.id);
-      msg.error ? p.rej(new Error(JSON.stringify(msg.error))) : p.res(msg.result);
+      if (msg.error) p.rej(new Error(JSON.stringify(msg.error)));
+      else p.res(msg.result);
     } else if (msg.method) events.push(msg);
   };
   const send = (method, params, timeout = 30000, sessionId) => {

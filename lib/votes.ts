@@ -155,7 +155,7 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
       code?: string;
     };
     if (response.status === 401)
-      return { ok: false, issue: 'auth', error: '登录后，你的选择会计入偏好榜。' };
+      return { ok: false, issue: 'auth', error: '登录状态已失效，请重新登录。' };
     if (response.status === 409) {
       // 服务端 409 有两种：pair = 同对局已投过；id = 投票编号冲突（可重新提交）
       if (data.code === 'id')

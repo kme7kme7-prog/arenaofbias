@@ -101,9 +101,10 @@ try {
   await start();
   await check('迁移保留全部历史票面，自动拆分读取口径', async () => {
     const migrated = new Database(path.join(dataDir, 'comments.db'), { readonly: true });
-    assert.deepEqual(migrated.prepare('SELECT * FROM votes ORDER BY id').all(), originalRows);
-    assert.equal(migrated.pragma('user_version', { simple: true }), 11);
-    migrated.close();
+    try {
+      assert.deepEqual(migrated.prepare('SELECT * FROM votes ORDER BY id').all(), originalRows);
+      assert.equal(migrated.pragma('user_version', { simple: true }), 14);
+    } finally { migrated.close(); }
     assert.deepEqual((await get('votes')).votes.map(v => v.id), [casual.id]);
     assert.deepEqual((await get('votes?scope=formal')).votes.map(v => v.id), [oldFormal.id]);
     assert.deepEqual((await get('votes?scope=entertainment')).votes.map(v => v.id), [casual.id]);

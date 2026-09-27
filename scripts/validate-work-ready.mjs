@@ -24,12 +24,17 @@ let browser;
 const results = [];
 try {
   browser = await chromium.launch({ executablePath, headless: true });
-  async function scenario(name, { delay = 40, changeCanvas = false, count = 4, reducedMotion = 'no-preference' } = {}) {
+  async function scenario(name, { delay = 40, changeCanvas = false, count = 4, sandboxed = false, reducedMotion = 'no-preference' } = {}) {
     const context = await browser.newContext({ reducedMotion });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(() => {
+      if (window !== window.top) return;
+      window.__fixtureReady = [];
+      window.addEventListener('message', event => {
+        if (event.data?.type === 'fixture-ready') window.__fixtureReady.push(String(event.data.id));
+      });
       localStorage.setItem('arena-language', 'zh');
       localStorage.setItem('aob-test-pair', JSON.stringify({
         promptId: '005', a: '005-ready-0', b: '005-ready-1', at: Date.now(),
@@ -38,7 +43,7 @@ try {
     const works = Array.from({ length: count }, (_, i) => ({
       id: `005-ready-${i}`, promptId: '005', modelId: `ready-${i}`, modelName: `Ready ${i}`,
       title: `Ready fixture ${i}`, isDemo: 0,
-      content: JSON.stringify({ kind: 'html', src: `/ready-fixture/${i}.html`,
+      content: JSON.stringify({ kind: 'html', src: `/ready-fixture/${i}.html`, sandboxed,
         ...(changeCanvas && i < 2 ? { framing: { width: 1280, height: 720 } } : {}),
       }),
     }));
@@ -56,20 +61,20 @@ try {
       const wait = id < 2 ? 40 : delay;
       return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><body data-work="${id}">
         <h1>Ready fixture ${id}</h1><script data-aob-probe>
-        ${wait === null ? '' : `setTimeout(() => { document.body.dataset.sent = 'true'; parent.postMessage('aob:work-ready', '*'); }, ${wait});`}
+        ${wait === null ? '' : `setTimeout(() => { document.body.dataset.sent = 'true'; parent.postMessage({ type: 'fixture-ready', id: ${id} }, '*'); parent.postMessage('aob:work-ready', '*'); }, ${wait});`}
         </script></body></html>` });
     });
     await page.goto(`${base}/#arena/005`);
     await page.waitForSelector('.phase-voting');
-    const before = await page.locator('iframe').evaluateAll(frames => frames.map(frame => frame.contentDocument.body.dataset.work));
+    const before = await page.locator('iframe').evaluateAll(frames => frames.map(frame => new URL(frame.src).pathname.match(/(\d+)\.html$/)[1]));
     await page.getByRole('button', { name: '同一题库继续', exact: true }).click();
     if (count > 2) await page.waitForFunction(() => [...document.querySelectorAll('iframe')].every(frame =>
-      frame.contentDocument?.body?.dataset.work && Number(frame.contentDocument.body.dataset.work) >= 2));
+      Number(new URL(frame.src).pathname.match(/(\d+)\.html$/)?.[1]) >= 2));
     const state = () => page.evaluate(() => ({
       phase: document.querySelector('.arena-shell').className,
       frames: [...document.querySelectorAll('iframe')].map(frame => ({
-        work: frame.contentDocument?.body?.dataset.work,
-        sent: frame.contentDocument?.body?.dataset.sent === 'true',
+        work: new URL(frame.src).pathname.match(/(\d+)\.html$/)?.[1],
+        sent: window.__fixtureReady.includes(new URL(frame.src).pathname.match(/(\d+)\.html$/)?.[1]),
       })),
     }));
     if (process.argv.includes('--expect-bug')) {
@@ -110,6 +115,8 @@ try {
     await scenario('原对局重播不要求作品重发一次性通知', { count: 2 });
     await scenario('减少动态效果下同题换组', { changeCanvas: true, reducedMotion: 'reduce' });
     await scenario('未就绪作品超时仍保持遮挡并给跳过出口', { delay: null });
+    await scenario('隔离投稿按探针就绪，不能复用旧作品状态', { delay: 1600, sandboxed: true });
+    await scenario('隔离投稿未就绪时不强制揭幕', { delay: null, sandboxed: true });
   }
 } finally {
   await writeFile(path.join(out, process.argv.includes('--expect-bug') ? 'work-ready-before.json' : 'work-ready-after.json'), JSON.stringify(results, null, 2));

@@ -1,10 +1,10 @@
-// 模型反应（点赞/点踩/大笑，2026-09-13 用户拍板）：跟着题号走、一人一题一模型
-// 一槽（服务端 UNIQUE 覆盖）。娱乐模式揭晓后展示；正式测评匿名口径不表态。
+// 作品评价（2026-09-26）：一人一份作品一槽，旧模型级评价留在历史表。
+// （服务端 UNIQUE 覆盖）。娱乐模式揭晓后展示；正式测评匿名口径不表态。
 // 与 votes.ts 同构的小 store：拉不到静默空——反应是锦上添花，不能挡投票主流程。
 //
 // 本地优先、批量同步（2026-09-20 用户拍板，替代旧的实时逐击上报）：点击只改
 // 本地并记进 pending；换组/换题/离开竞技场（组件卸载）与关页（pagehide）时
-// 每个 mid 只把最终意图补发一次。反应是覆盖写的一槽，只发最后一个意图不丢
+// 每个 rid 只把最终意图补发一次。反应是覆盖写的一槽，只发最后一个意图不丢
 // 信息，乱按也不再烧 social 限流桶。发送失败保留待下次补发；未登录/非法
 // 直接丢弃（点了也白记）。
 
@@ -12,7 +12,7 @@ import { newId } from '@/lib/id';
 
 export type ReactionKind = 'up' | 'down' | 'laugh';
 export type ReactionCounts = Record<string, { up: number; down: number; laugh: number }>;
-// mid → 我的态度
+// rid → 我的态度
 export type MyReactions = Record<string, ReactionKind>;
 
 export type ReactionResponse = {
@@ -20,28 +20,30 @@ export type ReactionResponse = {
   mine: MyReactions;
 };
 
-type PendingEntry = { promptId: string; mid: string; kind: ReactionKind | null };
+type PendingEntry = { userId: string; promptId: string; rid: string; kind: ReactionKind | null };
 const pending = new Map<string, PendingEntry>();
-const keyOf = (promptId: string, mid: string) => `${promptId}/${mid}`;
+const inFlight = new Set<string>();
+const keyOf = (userId: string, rid: string) => `${userId}/${rid}`;
 
 /** 记一次本地意图：与最近同步态相同则撤销待发送项。known 为服务端已确认的态度。 */
 export function queueReaction(
+  userId: string,
   promptId: string,
-  mid: string,
+  rid: string,
   kind: ReactionKind | null,
   known: ReactionKind | null,
 ): void {
-  const key = keyOf(promptId, mid);
-  if (kind === known) pending.delete(key);
-  else pending.set(key, { promptId, mid, kind });
+  const key = keyOf(userId, rid);
+  if (kind === known && !inFlight.has(key)) pending.delete(key);
+  else pending.set(key, { userId, promptId, rid, kind });
 }
 
 /** 未发送的最终意图；undefined = 无待同步（服务端即真相），null = 待取消 */
 export function peekPending(
-  promptId: string,
-  mid: string,
+  userId: string,
+  rid: string,
 ): ReactionKind | null | undefined {
-  return pending.get(keyOf(promptId, mid))?.kind;
+  return pending.get(keyOf(userId, rid))?.kind;
 }
 
 async function postReaction(entry: PendingEntry): Promise<{
@@ -69,9 +71,12 @@ export function flushReactions(): Promise<number> {
   const run = flushChain.then(async () => {
     let failed = 0;
     for (const [key, entry] of pending) {
+      inFlight.add(key);
       const result = await postReaction(entry);
-      if (result.ok || result.status === 401 || result.status === 400)
-        pending.delete(key);
+      inFlight.delete(key);
+      if (result.ok || [400, 401, 409].includes(result.status)) {
+        if (pending.get(key) === entry) pending.delete(key);
+      }
       else failed++;
     }
     return failed;
