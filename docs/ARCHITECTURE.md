@@ -210,6 +210,7 @@ npm start          # 生产形态：http://localhost:3000
 
 - 当前生产站点为 `https://arenaofbias.icu`；PM2 进程 `arena`，目录 `/www/wwwroot/arenaofbias`，监听 `127.0.0.1:3000`。旧 systemd `arenaofbias` 已停用，不再使用旧整站 tar 命令。
 - `npm run deploy:vps -- --check` 只读核对远端文件，输出变更清单并保存本机 `.local/deploy-vps/plan.json`；审阅清单后运行 `npm run deploy:vps`。必须先提交本轮代码；脚本只打包当前 Git HEAD，排除本地数据、凭据、未跟踪作品与旧截图目录。不会清理远端额外文件。
+- 历史入库的 `output/`、`outputs/` 和 `gui-test-screenshots/` 报告/截图跳过打包；`.local`、`.env*`、`data/` 等敏感目录若误入 Git，仍立即中止部署。2026-09-27 修复历史 `output/playwright/work-ready-after.json` 阻断整个部署的问题。
 - 本机需要 Python 3 与 Paramiko（常规安装或既有 `.local/vps-python`）。默认读取 `.local/vps-credentials.txt`，也支持 `VPS_HOST` / `VPS_USER` / `VPS_PORT` 配合 SSH 密钥或 agent；主机公钥必须已在 `~/.ssh/known_hosts`。覆盖连接目标时不会把原保存的密码发给其他目标。凭据不打印、不进入上传包。
 - 远端先在独立暂存目录构建，复核计划中的文件哈希未变化，再备份将覆盖的源码、构建文件与 SQLite 在线一致性快照；保留旧哈希 assets，最后替换三个入口 HTML。后端或共享 lib 内容变化才重启 PM2；仅换行差异、前端及文档同步不重启。
 - 部署后逐文件核对源码哈希、三个入口及其引用资源响应，并检查 PM2。失败恢复本轮覆盖的代码与构建文件，绝不自动回退真库。备份在 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-时间-提交号/`。

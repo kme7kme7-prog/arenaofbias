@@ -59,9 +59,10 @@ def main():
             if not item.isfile():
                 continue
             name = item.name
-            if name.startswith('gui-test-screenshots/'):
+            # Historical tracked review artifacts must not block or enter a release.
+            if name.split('/')[0] in {'gui-test-screenshots', 'output', 'outputs'}:
                 continue
-            if name.split('/')[0] in {'.local', '.git', 'data', 'dist', 'output', 'outputs', 'node_modules', 'Temp'} or name.startswith('.env'):
+            if name.split('/')[0] in {'.local', '.git', 'data', 'dist', 'node_modules', 'Temp'} or name.startswith('.env'):
                 raise RuntimeError('Forbidden deployment path: ' + name)
             files[name] = source.extractfile(item).read()
     sys.path.insert(0, str(ROOT / '.local/vps-python'))

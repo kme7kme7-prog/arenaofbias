@@ -1,6 +1,6 @@
 # HANDOFF.md · 当前状态
 
-## 2026-09-27 公测修复与 UI 精简（本地验证通过，未部署）
+## 2026-09-27 公测修复与 UI 精简（已提交推送，VPS 同步进行中）
 
 - 用户授权先修重要 bug，再全面审改 UI；三项产品方案已确认实施：娱乐匿名计榜（浏览器匿名标识 + 账号/浏览器去重 + IP/浏览器限流）、登录投稿进入隔离待审区、赞踩笑改为作品级并保留旧历史。每日挑战按同一浏览器保存进度、完成后当天锁定；练习不限次。
 - GitHub main 已快进到 d899e47，但线上业务代码实际对应 origin/email-auth 的 1df778e；本轮修复分支 codex/public-beta-repair 从后者创建。只读核对 VPS：app/components/lib/server/src 与最新分支一致，远端额外待办已抄录在本文末部；原文快照在 .local/repair-20260926/。
@@ -10,14 +10,14 @@
 - 工程遗留：清掉基线 9 条 lint 错误；相机测试改用脚本生成的 fixture，不再依赖未入库的 007 文件；隔离投稿截图通过单独就绪握手等待首帧余量、字体、可见图片和已保存机位，不把超时当截图就绪。
 - 验证通过：typecheck、lint、build、check:motion、check:mobile、validate-locale、check-vote-split；email 27、admin 15、votes 12、formal 6、guess 38、reactions 6、comments 4、leaderboard 12、matchmaking 11、arena 13、share 10、placeholder 10、camera 8。新增 beta-api 9 组、每日存档与评价队列检查；浏览器 beta-ui 7 组（含投稿全流程、每日多标签/跨日/完成锁定、独立分享页）、work-ready 7、formal-ui 6、admin-access 3 均通过。运行日志 `.local/repair-20260926/`；截图 `output/playwright/beta-*.png`，不入库。
 - 边界如实保留：移动分享为 Edge 触屏视口和能力模拟，未做真实 iOS/Android/QQ 系统保存验收。VPS 当前两件缺缓存的 006 作品只读检查均 `captureReady=true`，无页面/网络错误；历史五件的具体身份没有记录，不能宣称已全部复测。未重生成线上缓存或巡检全部 264 件作品。
-- 用户于 2026-09-27 验收后明确授权“git一下，push”；本轮提交并推送当前修复分支 codex/public-beta-repair，署名 Atmeplz（224206292+Atmeplz@users.noreply.github.com）。生产部署尚未授权。既有未跟踪作品和旧 005 证据页保持原样。
+- 用户于 2026-09-27 验收后明确授权“git一下，push”；本轮已提交并推送当前修复分支 codex/public-beta-repair，署名 Atmeplz（224206292+Atmeplz@users.noreply.github.com）。随后用户要求“vps上也同步一下”，已授权生产同步。既有未跟踪作品和旧 005 证据页保持原样。
 - 业务与 UI 修复提交：`da27fc0`；整轮记录见 `docs/handoff/2026-09-27-公测修复与UI精简-Atmeplz.md`，本交接索引与归档另作收尾提交。
 - 提交前已 fetch：origin/main 与 origin/email-auth 已到 0119e22；相对本轮基底 1df778e 的变化仅为交接/决策文档整理和既有截图等附件，无业务代码差异。本轮修复分支保留 1df778e 基底，未合并这些额外附件。
 - 本地演示预览：`http://127.0.0.1:5319/#arena/002`（自建 `.local/repair-20260926/preview-data`，仅内置样例，不是线上完整作品库）；服务用本轮最新 dist 与 server 代码运行。
 - 预览批注复验：已删除整条 system-footer；题号/标题与提示词入口组/模式标签统一垂直居中，完整提示词展开改为独占下方整行。Playwright 在 959×830（用户批注视口）、1440/768/390/320px 两种语言共 10 组检查收起与展开：无横向溢出、无运行错误，行内居中偏差 < 0.01px；截图已目检。补跑 typecheck/lint/build/check:arena-scroll/diff --check 均通过。记录 `.local/repair-20260926/ui-feedback-*.txt`，截图 `output/playwright/briefing-*.png`。
 - 2026-09-27 首页降重：用户认可竞技场后要求继续精简首页。去掉重复题库/榜单入口、身份说明、VS 贴片、背景大字与页脚口号/步骤；保留品牌标题、一句比较说明、开始评测/随机入场与三种作品示例。页眉响应式收紧，修复 320px 字标/标题溢出，文字示例不再裁切，网页示例标题按卡片宽度缩放。主入口仍到玩法菜单，路由过场不变。
 - 首页验证：typecheck/lint/build/check:motion/validate-locale 通过；内置浏览器覆盖 1440/959/768/390/320px × 中英 × 三种示例，共 30 组无横向溢出或文字裁切。开始评测、随机入场、投稿、题库、榜单导航及首页分享弹窗已实测；控制台无错误。检查记录 `.local/repair-20260926/home-light-*.json`，最终截图 `output/playwright/home-light-final.png` / `home-light-mobile.png`。本地预览入口为 `http://127.0.0.1:5319/#home`；原预览进程退出后已用相同隔离数据目录恢复。
-- 下一步：如用户授权 VPS 部署，需迁移 013/014 并备份线上数据库；沿用下文既有部署脚本，无新增依赖。未新增自动反作弊指纹或模一把防剧透方案。
+- VPS 预检：PM2 arena 在线，数据库 quick_check=ok、版本 012，264 件作品、588 张票、16 条评论、56 条旧评价、24 个用户、20 条猜题结算。远端新增待办已保留在本地交接，快照在 `.local/deploy-20260927/`。部署脚本补齐历史 `output/outputs` 报告排除，敏感路径仍硬阻断；计划应用迁移 013/014 并先备份真库。无新增依赖、自动反作弊指纹或模一把防剧透方案。
 
 下文 2026-09-25 及以前记录、末尾“仅登记”反馈均为历史快照；涉及本轮七项反馈、lint 和相机测试的状态以上述最新结论为准。
 
