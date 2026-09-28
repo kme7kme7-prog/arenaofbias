@@ -2,18 +2,29 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <!-- 与 index.html 同一套视口策略：键盘压缩布局视口、刘海屏取安全区 -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="theme-color" content="#dfe3dd" />
-    <title>ARENA OF BIAS · 管理后台</title>
+    <title>ARENA OF BIAS · 管理后台迁移</title>
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" href="/favicon.svg" />
+    <!-- 应用内管理后台已下线，统一迁往外部管理站点 -->
+    <meta
+      http-equiv="refresh"
+      content="0; url=https://api.arenaofbias.icu/admin/"
+    />
+    <script>
+      location.replace('https://api.arenaofbias.icu/admin/');
+    </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/admin.tsx"></script>
+    <p>
+      管理后台已迁移：
+      <a href="https://api.arenaofbias.icu/admin/"
+        >https://api.arenaofbias.icu/admin/</a
+      >
+    </p>
   </body>
 </html>

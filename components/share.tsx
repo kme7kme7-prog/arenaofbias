@@ -12,6 +12,9 @@ import type { Matchup, Prompt, Side } from '@/lib/arena';
 import type { GuessSession } from '@/lib/guess';
 import { ATTRIBUTE_KEYS } from '@/lib/guess-logic';
 
+// 新后端尚未迁移分享卡（/api/share、/share/card.png 均回 501）：
+// 总开关关掉所有分享入口，模块保留，后续恢复只需改回 true
+const SHARE_ENABLED = false;
 type ShareMeta = {
   url: string;
   image: string;
@@ -252,6 +255,7 @@ export function ShareButton({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  if (!SHARE_ENABLED) return null;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className={`share-trigger ${className}`}>
@@ -298,6 +302,7 @@ export function PageShare() {
     () => (arenaPair ? `${arenaPair[0]}|${arenaPair[1]}` : ''),
     () => '',
   );
+  if (!SHARE_ENABLED) return null;
   if (hash.startsWith('#formal')) return null;
   const match = /^#arena\/(\d{3})$/.exec(hash);
   const [a, b] = pairKey ? pairKey.split('|') : [];
