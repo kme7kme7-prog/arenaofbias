@@ -447,16 +447,18 @@ export function judge(guess: GuessModel, answer: GuessModel): GuessFeedback {
     'ratio',
   );
 
-  // 模态（2026-09-17 用户拍板改为二元判定）：属性只有「纯文本 / 多模态」两个取值，
-  // 不细究图/音/视的差别——集合级差异会退化成背规格，同类即算接近。
-  // 同纯文本=绿；同多模态=黄（恒黄，即使两边模态集合完全相同）；一纯一多=灰。
-  // 旧的「集合全等=绿、有交集=黄」已废弃：它让两个多模态模型互给绿，与二元口径冲突。
+  // 模态（2026-09-29）：完整集合相同=绿，与模型身份及排列顺序无关。
+  // 集合不同仍沿用同多模态=黄、一纯一多=灰的反馈。
+  const guessModalities = new Set(guess.modalities);
+  const answerModalities = new Set(answer.modalities);
+  const sameModalities = guessModalities.size === answerModalities.size
+    && [...guessModalities].every((m) => answerModalities.has(m));
   const guessMulti = guess.modalities.some((m) => m !== 'text');
   const answerMulti = answer.modalities.some((m) => m !== 'text');
   attributes.modalities =
-    guessMulti !== answerMulti
-      ? { state: 'miss', arrow: null }
-      : { state: answerMulti ? 'near' : 'hit', arrow: null };
+    sameModalities
+      ? { state: 'hit', arrow: null }
+      : { state: guessMulti === answerMulti ? 'near' : 'miss', arrow: null };
 
   // 推理模型：二值
   attributes.reasoning =

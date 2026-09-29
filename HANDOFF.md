@@ -2,6 +2,16 @@
 
 > 只放当前状态、待办与红线。过程细节进 `docs/handoff/` 归档，产品/技术事实在 `docs/` 对应文档，已定决定在 `docs/DECISIONS.md`——本文不复述它们（决策 011）。
 
+## 2026-09-29 · 模态判色修复（已部署）
+
+- 用户确认“模态完全相同就变绿”，已同步修改 `lib/guess-logic.ts` 与共享后端 `server/show1/guess-logic.mjs`；不同模型同为「图」也为绿，其他属性与胜负判定不变。
+- 修复前已 fetch：原本地 `codex/public-beta-repair@e4c3980` 与 GitHub `main@d871c75` 不一致；本轮基于后者建立 `codex/guess-modality-match`，旧分支及他人未跟踪作品保留。共享后端克隆在 `.local/arenaofbias-server`，基底 `main@0b512bd`，VPS 98 份已跟踪文件与该版本逐份一致（忽略部署换行差异）。
+- **当前生产拓扑已变**：主站静态目录 `/www/wwwroot/show1-dist`；API 与后台使用 `/www/wwwroot/arenaofbias-server`，systemd `arenaofbias-server.service`，API 端口 5273、作品端口 5180。旧 `/www/wwwroot/arenaofbias` 与 PM2 `arena` 已停用，下方旧部署说明仅是历史，禁止据此覆盖新站。页面模态反馈直接来自 `/api/guess/check`。
+- 本地验证：前端 `validate:guess` 38 项、typecheck、build 通过；共享后端语法检查 49 文件、测试 105/105 通过。截图四模型的回归在旧逻辑上先失败、修复后通过，含同模态不同模型、完整集合顺序/重复、部分匹配与文本/多模态两向比较。
+- 定向 lint 与 diff 检查通过；全量 lint 仍有 main 基线的 9 条脚本错误，本轮不修改这些无关文件。用户本轮要求三端修复，包含必要提交、推送与当前服务发布。
+- VPS 已发布并经公网页面验收：四个截图模型同为「图」均为绿，图+视为黄，纯文本为灰，猜中目标也为绿。桌面与 390px 手机视口已目检，无页面错误。使用真实练习局/API 判定，仅在浏览器选定已有练习局，不伪造反馈、不写每日战绩。
+- 生产备份 `/www/wwwroot/arenaofbias-server-backups/modality-20260929T125932Z`；数据库仍 v14、quick_check=ok，26 用户/267 作品/599 票/16 评论/56 评价/4 猜题记录逐行无变化。静态站点无需重建；页面直接消费新接口颜色。完整记录见 `docs/handoff/2026-09-29-模态判色修复-Atmeplz.md`。
+
 ## 2026-09-25 提醒字居中真因 + 快门重构：盖满才换稿/进度条/退场落成品（已 commit e171d8d 并部署）
 
 - **「还是歪的」真因（像素级量证）**：不是旋转——全局 `.account-dialog h2 { max-width: 330px }`（为登录页长标题避印章设的）被成功页短标题继承，330px 盒靠左使「登录成功。」整体吊在卡片中轴左 73px。修法 `.account-success h2 { max-width: none; margin: 0 auto 8px }`（app/account.css）；残差 6px 是内容盒左右内边距差的一半，与 ✓/说明完全同轴。上一轮去 rotate 修的是真问题但不是用户指的这个。

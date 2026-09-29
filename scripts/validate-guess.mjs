@@ -320,18 +320,15 @@ try {
   });
 
   // ── 判定规则 ──
-  await check('judge：自己猜自己全 hit（未公开属性与模态除外）、won=true', () => {
+  await check('judge：自己猜自己全 hit（未公开属性除外）、won=true', () => {
     for (const m of GUESS_MODELS) {
       const fb = judge(m, m);
       assert.ok(fb.won, m.name);
-      const multi = m.modalities.some((x) => x !== 'text');
       for (const key of ATTRIBUTE_KEYS) {
-        // contextK/priceTier 未公开时，自己对自己也是 unknown（诚实口径，非 hit）；
-        // 模态是二元口径：多模态模型自己对自己恒为 near（见模态断言）
+        // contextK/priceTier 未公开时，自己对自己也是 unknown（诚实口径，非 hit）。
         const expect =
           key === 'contextK' ? (m.contextK !== null ? 'hit' : 'unknown')
           : key === 'priceTier' ? (m.priceTier !== null ? 'hit' : 'unknown')
-          : key === 'modalities' ? (multi ? 'near' : 'hit')
           : 'hit';
         assert.equal(fb.attributes[key].state, expect, `${m.name}.${key}`);
       }
@@ -379,25 +376,31 @@ try {
     }
   });
 
-  await check('judge：模态二元判定（同纯文本=绿 / 同多模态=黄 / 一纯一多=灰）', () => {
-    const textOnly = GUESS_MODELS.find(
-      (m) => m.modalities.length === 1 && m.modalities[0] === 'text',
-    );
-    const multi = GUESS_MODELS.find((m) => m.modalities.includes('image'));
-    const multi2 = GUESS_MODELS.find(
-      (m) => m.modalities.includes('image') && m.id !== multi?.id,
-    );
-    assert.ok(textOnly && multi && multi2);
-    // 一纯文本一多模态 → 灰（无箭头）
-    assert.equal(judge(textOnly, multi).attributes.modalities.state, 'miss');
-    assert.equal(judge(multi, textOnly).attributes.modalities.state, 'miss');
-    assert.equal(judge(textOnly, multi).attributes.modalities.arrow, null);
-    // 同纯文本 → 绿
-    assert.equal(judge(textOnly, textOnly).attributes.modalities.state, 'hit');
-    // 同多模态 → 黄：自己对自己也是黄（二元口径下细节不参与判定）
-    assert.equal(judge(multi, multi).attributes.modalities.state, 'near');
-    assert.equal(judge(multi, multi2).attributes.modalities.state, 'near');
-    assert.equal(judge(multi, multi2).attributes.modalities.arrow, null);
+  await check('judge：模态相同=绿 / 不同多模态=黄 / 一纯一多=灰', () => {
+    const answer = GUESS_MODELS.find((m) => m.name === 'Claude Opus 4.6');
+    assert.ok(answer);
+    // 用户截图：不同模型只要同为「图」，也应为绿；胜负仍按模型身份。
+    for (const name of ['GPT-4.1', 'Claude Opus 5', 'Claude Fable 5', 'Claude Opus 4.6']) {
+      const guess = GUESS_MODELS.find((m) => m.name === name);
+      assert.ok(guess, name);
+      const feedback = judge(guess, answer);
+      assert.deepEqual(feedback.attributes.modalities, { state: 'hit', arrow: null }, name);
+      assert.equal(feedback.won, guess.id === answer.id, name);
+    }
+    const cases = [
+      [['text'], ['text'], 'hit'],
+      [['text', 'image', 'audio', 'video'], ['video', 'audio', 'image', 'text'], 'hit'],
+      [['text', 'image'], ['image', 'text', 'image'], 'hit'],
+      [['text', 'image'], ['text', 'image', 'video'], 'near'],
+      [['text', 'image'], ['text', 'audio'], 'near'],
+      [['text'], ['text', 'image'], 'miss'],
+    ];
+    for (const [left, right, state] of cases) {
+      const a = { ...answer, id: 'guess', modalities: left };
+      const b = { ...answer, id: 'answer', modalities: right };
+      assert.deepEqual(judge(a, b).attributes.modalities, { state, arrow: null });
+      assert.deepEqual(judge(b, a).attributes.modalities, { state, arrow: null });
+    }
   });
 
   await check('judge：价格档相邻档=黄+箭头、差≥2档=灰+箭头、同档=绿、未公开=?', () => {
