@@ -1,5 +1,13 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-29 · email-auth-v2（待 PR 审阅，未部署）
+
+- 本分支从 `origin/main@d871c75` 建立；恢复账号页绑定/换绑邮箱、登录页忘记密码，以及注册和发码处的 Turnstile。注册仍只需账号和密码，邮箱在登录后选填。
+- Show1 账号流程已在本地浏览器通过 Vite 代理连接 `arenaofbias-server/email-auth-v2` 联调：无邮箱注册、假 SMTP 绑定、验证码重置、新密码登录成功。重置发码统一提示，不展示绑定邮箱，避免账号枚举。
+- 验证：`npm run typecheck` 通过；`npm run validate:email` 旧后端脚本 27/27 通过，但仍覆盖旧的必填邮箱契约，不代表共享后端测试；`npm run lint` 报 9 个旧脚本错误，本轮账号源文件未参与该全仓命令。共享后端测试见其归档。先部署 server PR，再部署本 PR；未部署、未合并。
+- Playwright CLI 生成的 `.playwright-cli/` 为本轮未跟踪文件；自动审查拒绝删除，未纳入提交，需人工清理。
+
+
 > 只放当前状态、待办与红线。过程细节进 `docs/handoff/` 归档，产品/技术事实在 `docs/` 对应文档，已定决定在 `docs/DECISIONS.md`——本文不复述它们（决策 011）。
 
 ## 2026-09-29 · 模态判色修复（已部署）

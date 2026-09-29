@@ -2,6 +2,8 @@
 
 本文描述技术架构、代码地图、后端 API 面与本地运行验证。产品行为规则（路由语义、抽组规则、场内状态、账号评论语义）见 `docs/PRODUCT.md`。各文件细节以其文件头注释为准，本表只放一句话职责。
 
+> 2026-09-29：线上动态 API 已由 `arenaofbias-server` 共享后端提供。本仓 `server/` 的 Express 邮箱实现与下文相关 API 表述是迁移前参考；当前邮箱契约、环境变量及部署顺序以共享后端的 `docs/api-contract.md` 和 `README.md` 为准。开发时可把 Vite 的 `/api` 代理指向本地共享后端。
+
 ## 技术栈
 
 - 前端：Vite 8 + React 19 + TypeScript，hash 路由由 `src/main.tsx` 分发；Tailwind 4（postcss）；页面样式为各页独立 CSS（`app/*.css`）。
