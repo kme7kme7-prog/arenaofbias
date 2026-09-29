@@ -29,6 +29,7 @@ export const messages: Record<string, string> = {
   '系统分享 / 存到手机': 'Share / save to phone',
   '手机可长按左侧或上方卡片保存。': 'On mobile, press and hold the card to save it.',
   '打开分享页': 'Open share page',
+  '进入试验场': 'Enter the arena',
   '分享链接': 'Share link',
   '链接已复制，发给朋友看看。': 'Link copied. Send it to a friend.',
   '请手动复制下面的链接。': 'Please copy the link below.',

@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" />
     <title>分享卡 · 品牌输出对照</title>
     <style>
       * {
@@ -81,8 +82,8 @@
     <header>
       <h1>分享卡 / 成品对照</h1>
       <select id="scene" aria-label="卡片场景"></select
-      ><a id="open" target="_blank">打开分享页 ↗</a
-      ><small>调用真实图片渲染器；仅使用演示选择，不写入投票或每日战绩。</small>
+      ><a id="open" target="_blank">打开分享链接 ↗</a
+      ><small>浏览器本地生成 PNG；仅使用演示选择，不写入投票或每日战绩。</small>
     </header>
     <main>
       <figure>
@@ -91,11 +92,13 @@
       </figure>
       <figure>
         <img id="landscape" width="1200" height="630" alt="社交链接预览" />
-        <figcaption>OG 社交封面 / 1200 × 630</figcaption>
+        <figcaption>通用 OG 社交封面 / 1200 × 630</figcaption>
       </figure>
     </main>
     <script type="module">
+      import { createShareCard } from '/lib/share-client.ts';
       const scene = document.getElementById('scene');
+      document.getElementById('landscape').src = '/share-preview.png';
       const day = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
       const cases = [
         ['全站邀请', { type: 'site' }],
@@ -113,6 +116,19 @@
           },
         ],
       ];
+      try {
+        const { models } = await (await fetch('/api/guess/today')).json();
+        const response = await fetch('/api/guess/check', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ guessId: models[0].id, final: true }),
+        });
+        const { answer } = await response.json();
+        if (answer?.name) {
+          cases[1][1].answer = answer.name;
+          cases[2][1].answer = answer.name;
+        }
+      } catch { /* Public answer unavailable in this preview. */ }
       try {
         const { works } = await (await fetch('/api/works')).json();
         const a =
@@ -141,14 +157,17 @@
         /* Site and guessing cards remain reviewable without works. */
       }
       cases.forEach(([label], i) => scene.add(new Option(label, String(i))));
-      function show() {
+      let imageUrl = '';
+      async function show() {
         const query = new URLSearchParams(cases[Number(scene.value)][1]);
-        document.getElementById('portrait').src = '/share/card.png?' + query;
-        document.getElementById('landscape').src = '/share/og.png?' + query;
-        document.getElementById('open').href = '/share?' + query;
+        const result = await createShareCard(query.toString());
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        imageUrl = result.imageUrl;
+        document.getElementById('portrait').src = imageUrl;
+        document.getElementById('open').href = result.url;
       }
-      scene.addEventListener('change', show);
-      show();
+      scene.addEventListener('change', () => void show());
+      void show();
     </script>
   </body>
 </html>

@@ -12,14 +12,14 @@ window.addEventListener('message', (event) => {
 });
 async function start() {
   const id = new URLSearchParams(location.search).get('id');
-  const response = await fetch(
-    `/api/share-work/${encodeURIComponent(id ?? '')}`,
-  );
+  const response = await fetch('/api/works');
   if (!response.ok) throw new Error('作品不可用');
-  const { work } = await response.json();
+  const { works } = await response.json();
+  const work = works.find((entry: { id: string }) => entry.id === id);
+  if (!work) throw new Error('作品不可用');
   const result = {
     id: work.id,
-    promptId: work.prompt_id,
+    promptId: work.promptId,
     title: work.title,
     content: JSON.parse(work.content),
   } as ModelResult;
