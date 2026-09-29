@@ -136,7 +136,7 @@ function Routes() {
     return (
       <>
         <Home />
-        <BetaNotice />
+        {!new URLSearchParams(window.location.search).has('share') && <BetaNotice />}
       </>
     );
   return <Home />;

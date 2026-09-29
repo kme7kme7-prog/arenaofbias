@@ -10,6 +10,15 @@
 
 > 只放当前状态、待办与红线。过程细节进 `docs/handoff/` 归档，产品/技术事实在 `docs/` 对应文档，已定决定在 `docs/DECISIONS.md`——本文不复述它们（决策 011）。
 
+## 2026-09-29 · share-v2（待 PR 审阅，未部署）
+
+- 第二轮 SH-02：弹窗关闭后生成才完成时，立即撤销新建的 object URL；`validate:share` 增加取消路径检查，typecheck 通过。未部署。
+
+- 从 `origin/main@d871c75` 建立。恢复对决、模一把和页面分享入口；浏览器从共享后端现有公开接口读取数据，沿用旧 SVG 版式与 `qrcode` 生成 PNG。链接只带公开字段；HTML/网页作品用旧版 A/B 占位框，图片作品能公开读取时嵌图。
+- OG 改用 `public/share-preview.png` 通用静态图，不再按局生成。共享后端配套 `share-v2` 分支删除 501 占位路由并修复找回密码发信时序；部署应先 Show1 后 server。本轮无新增 npm 包、无迁移、不合并、不部署。
+- 验证：`npm run typecheck`、`npm run validate:share`（5/5）、改动文件定向 oxlint、`npm run build` 通过；本地浏览器实际生成并保存页面、对决、竞猜三张完整截图到 `output/share-*-full.png`，下载与复制链接成功。主页面 JS gzip 93.49→109.85 kB。
+- 既存未跟踪 `.playwright-cli/` 保留；本轮 `output/share-*.png` 是未提交验收截图。
+
 ## 2026-09-29 · 模态判色修复（已部署）
 
 - 用户确认“模态完全相同就变绿”，已同步修改 `lib/guess-logic.ts` 与共享后端 `server/show1/guess-logic.mjs`；不同模型同为「图」也为绿，其他属性与胜负判定不变。

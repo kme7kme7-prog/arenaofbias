@@ -11,15 +11,13 @@ import { useI18n } from '@/lib/locale';
 import type { Matchup, Prompt, Side } from '@/lib/arena';
 import type { GuessSession } from '@/lib/guess';
 import { ATTRIBUTE_KEYS } from '@/lib/guess-logic';
+import { createShareCard } from '@/lib/share-client';
 
-// 新后端尚未迁移分享卡（/api/share、/share/card.png 均回 501）：
-// 总开关关掉所有分享入口，模块保留，后续恢复只需改回 true
-const SHARE_ENABLED = false;
+const SHARE_ENABLED = true;
 type ShareMeta = {
   url: string;
-  image: string;
   title: string;
-  description: string;
+  target: string;
 };
 export function duelShareQuery(
   prompt: Prompt,
@@ -45,11 +43,14 @@ export function guessShareQuery(
       ATTRIBUTE_KEYS.map((key) => states[row.attributes[key].state]).join(''),
     )
     .join('.');
+  const answer =
+    session.answer?.name ?? session.guesses.find((row) => row.won)?.guess.name;
   return new URLSearchParams({
     type: 'guess',
     day,
     won: won ? '1' : '0',
     grid,
+    ...(answer ? { answer } : {}),
   }).toString();
 }
 
@@ -63,51 +64,28 @@ function ShareSheet({ query }: { query: string }) {
   const [run, setRun] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
   useEffect(() => {
-    const controller = new AbortController();
     let objectUrl = '';
     let disposed = false;
-    const timer = setTimeout(() => controller.abort(), 110000);
     void (async () => {
       try {
-        const response = await fetch(`/api/share?${query}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok)
-          throw new Error('这场对决暂时无法分享，作品可能已下架。');
-        const result = (await response.json()) as ShareMeta;
-        if (controller.signal.aborted) return;
-        setMeta(result);
-        // Fetch same-origin even when APP_ORIGIN points to the deployed public domain.
-        const image = await fetch(`/share/card.png?${query}`, {
-          signal: controller.signal,
-        });
-        if (
-          !image.ok ||
-          !image.headers.get('content-type')?.includes('image/png')
-        )
-          throw new Error('图片生成失败，请重试。');
-        const blob = await image.blob();
-        if (controller.signal.aborted) return;
-        const png = new File([blob], 'arena-of-bias.png', {
-          type: 'image/png',
-        });
-        objectUrl = URL.createObjectURL(blob);
-        setFile(png);
+        const result = await createShareCard(query);
+        objectUrl = result.imageUrl;
+        if (disposed) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setMeta({ url: result.url, title: result.data.title, target: result.data.target });
+        setFile(result.file);
         setImageUrl(objectUrl);
       } catch (err) {
-        if (!controller.signal.aborted)
+        if (!disposed)
           setError(
             err instanceof Error ? err.message : '图片生成失败，请重试。',
           );
-        else if (!disposed) setError('图片生成超时，请重试。');
-      } finally {
-        clearTimeout(timer);
       }
     })();
     return () => {
       disposed = true;
-      clearTimeout(timer);
-      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [query, run]);
@@ -215,11 +193,11 @@ function ShareSheet({ query }: { query: string }) {
           {meta && (
             <a
               className="share-open"
-              href={meta.url}
+              href={meta.target}
               target="_blank"
               rel="noreferrer"
             >
-              {t('打开分享页')} ↗
+              {t('进入试验场')} ↗
             </a>
           )}
           {manual && (
@@ -248,13 +226,15 @@ export function ShareButton({
   query,
   label = '分享这一局',
   className = '',
+  initialOpen = false,
 }: {
   query: string;
   label?: string;
   className?: string;
+  initialOpen?: boolean;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   if (!SHARE_ENABLED) return null;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -306,6 +286,7 @@ export function PageShare() {
   if (hash.startsWith('#formal')) return null;
   const match = /^#arena\/(\d{3})$/.exec(hash);
   const [a, b] = pairKey ? pairKey.split('|') : [];
+  const sharedQuery = new URLSearchParams(window.location.search).get('share');
   const query = new URLSearchParams(
     match
       ? { type: 'prompt', prompt: match[1], ...(a ? { a, b } : {}) }
@@ -319,6 +300,13 @@ export function PageShare() {
         query={query}
         label={match ? '分享这道题' : '分享这个页面'}
       />
+      {sharedQuery && (
+        <ShareButton
+          query={sharedQuery}
+          initialOpen
+          className="share-received-trigger"
+        />
+      )}
     </aside>
   );
 }

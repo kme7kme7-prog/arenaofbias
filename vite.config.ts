@@ -2,7 +2,6 @@ import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/postcss';
 import { defineConfig } from 'vite';
-import { metaTags, resolveShare, shareMeta } from './server/share.js';
 
 // VPS 版本：前端两个入口——主站（index.html → src/main.tsx）与管理后台
 //（admin.html → src/admin.tsx）。同仓库双应用（决策 040）：独立入口独立构建，
@@ -14,15 +13,6 @@ export default defineConfig({
   css: { postcss: { plugins: [tailwindcss()] } },
   plugins: [
     react(),
-    {
-      name: 'development-social-meta',
-      transformIndexHtml(html, context) {
-        if (!context.server) return html;
-        const origin = process.env.APP_ORIGIN || `http://localhost:${context.server.config.server.port}`;
-        const data = resolveShare({}, null)!;
-        return html.replace('<!-- social-meta -->', metaTags({ ...shareMeta(data, origin), url: origin + '/' }));
-      },
-    },
     {
       name: 'admin-entry-alias',
       configureServer(server) {
@@ -54,7 +44,6 @@ export default defineConfig({
       // 作品文件由 Express 从 data/works 提供（决策 043），dev 下同样代理过去；
       // public/works 里的小文件 vite 自己直接返回，不冲突
       '/works': { target: apiTarget, changeOrigin: false },
-      '/share': { target: apiTarget, changeOrigin: false },
     },
   },
   build: {

@@ -15,6 +15,9 @@
     background 0.15s,
     border-color 0.15s;
 }
+.share-received-trigger {
+  display: none;
+}
 .share-trigger:hover {
   background: #dcfa48;
   border-color: #23362e;
