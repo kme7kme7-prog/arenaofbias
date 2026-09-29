@@ -11,6 +11,7 @@
 - 定向 lint 与 diff 检查通过；全量 lint 仍有 main 基线的 9 条脚本错误，本轮不修改这些无关文件。用户本轮要求三端修复，包含必要提交、推送与当前服务发布。
 - VPS 已发布并经公网页面验收：四个截图模型同为「图」均为绿，图+视为黄，纯文本为灰，猜中目标也为绿。桌面与 390px 手机视口已目检，无页面错误。使用真实练习局/API 判定，仅在浏览器选定已有练习局，不伪造反馈、不写每日战绩。
 - 生产备份 `/www/wwwroot/arenaofbias-server-backups/modality-20260929T125932Z`；数据库仍 v14、quick_check=ok，26 用户/267 作品/599 票/16 评论/56 评价/4 猜题记录逐行无变化。静态站点无需重建；页面直接消费新接口颜色。完整记录见 `docs/handoff/2026-09-29-模态判色修复-Atmeplz.md`。
+- GitHub：前端修复 `682a0f9` 已推送上游 main；共享后端修复 `5650315` 已推送 `Atmeplz/arenaofbias-server` 的 `codex/guess-modality-match`，并提交 [上游 PR #8](https://github.com/kme7kme7-prog/arenaofbias-server/pull/8)。Atmeplz 对共享后端只有读取权限，直接推送上游被 GitHub 403 拒绝；PR 待管理员合并。VPS 已包含修复，后续切勿用未合入 PR 的上游 main 覆盖。
 
 ## 2026-09-25 提醒字居中真因 + 快门重构：盖满才换稿/进度条/退场落成品（已 commit e171d8d 并部署）
 
