@@ -136,7 +136,7 @@ export function HomeDuel({
           <p className="duel-kicker">
             <span>01 {t('看作品')}</span>
             <span>02 {t('凭直觉')}</span>
-            <span>03 {t('聊两句')}</span>
+            <span>03 {t('看揭晓')}</span>
           </p>
           <h1>
             <span className="duel-line">

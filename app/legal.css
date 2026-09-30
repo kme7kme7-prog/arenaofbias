@@ -1,0 +1,238 @@
+/* 使用条款、隐私政策、页脚法律信息行与「AI 生成」标识（2026-09-30）。 */
+
+/* clip 不产生滚动容器，左侧目录才能随页面吸顶 */
+.lobby.legal-page {
+  overflow: clip;
+}
+.legal-main {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 760px);
+  gap: 56px;
+  width: 93%;
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+.legal-aside {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+.legal-page .legal-aside h1 {
+  margin: 0;
+  font-size: clamp(30px, 3.4vw, 42px);
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+.legal-aside > p {
+  margin: 14px 0 26px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.legal-toc {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+.legal-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+.legal-toc a:hover,
+.legal-toc a[aria-current] {
+  color: var(--text-main);
+}
+.legal-toc a[aria-current] {
+  background: color-mix(in srgb, var(--acid) 38%, transparent);
+}
+.legal-toc span,
+.legal-article h3 span {
+  font: 11px var(--mono);
+  letter-spacing: 1px;
+}
+.legal-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--text-main);
+}
+.legal-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.legal-heading span {
+  color: var(--muted-foreground);
+  font: 11px var(--mono);
+  letter-spacing: 1px;
+}
+.legal-language-note {
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--acid);
+  background: var(--surface-raised);
+  font-size: 13px;
+}
+.legal-article section {
+  padding: 26px 0 22px;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 24px;
+}
+.legal-article h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.legal-article h3 span {
+  color: var(--muted-foreground);
+}
+.legal-article p,
+.legal-article li {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.legal-article p {
+  margin: 0 0 8px;
+}
+.legal-article ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+.legal-article li::marker {
+  color: var(--muted-foreground);
+}
+.legal-article ul + p {
+  margin-top: 12px;
+}
+.legal-article a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--muted-foreground);
+  text-underline-offset: 3px;
+}
+.legal-article a:hover {
+  text-decoration-color: currentColor;
+}
+.legal-cite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--acid);
+  background: var(--surface-raised);
+}
+.legal-cite > span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.legal-cite code {
+  flex: 1;
+  min-width: 0;
+  font: 13px/1.6 var(--mono);
+  overflow-wrap: anywhere;
+}
+.legal-cite button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--control-line);
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+}
+.legal-cite button:hover {
+  background: var(--acid);
+  color: var(--on-accent);
+}
+.legal-related {
+  margin: 22px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+/* 页脚法律信息行 */
+.legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin: 0 3.5%;
+  padding: 16px 0 22px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.legal-footer p {
+  margin: 0;
+}
+.legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.legal-footer a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.legal-footer nav a {
+  text-decoration: none;
+}
+.legal-footer a:hover {
+  color: var(--text-main);
+}
+
+/* 作品的「AI 生成」标识 */
+.aigc-label {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
+@media (max-width: 760px) {
+  .legal-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 30px 0 44px;
+  }
+  .legal-aside {
+    position: static;
+  }
+  .legal-toc {
+    display: flex;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .legal-toc a {
+    flex: none;
+    border-bottom: 0;
+    padding: 9px 10px;
+    white-space: nowrap;
+  }
+}

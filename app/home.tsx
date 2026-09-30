@@ -1,3 +1,4 @@
+import { LegalFooter } from '@/components/legal-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { HomeNext } from './home-next';
@@ -369,13 +370,14 @@ export default function Home() {
           <p>
             <b>01</b> {t('看作品')}
             <i /> <b>02</b> {t('凭直觉')}
-            <i /> <b>03</b> {t('聊两句')}
+            <i /> <b>03</b> {t('看揭晓')}
           </p>
           <span>
-            {t('答案之外，还想听听你的理由。')}
+            {t('先凭直觉选，再揭晓是哪个模型。')}
             <ArrowUpRight size={15} />
           </span>
         </footer>
+        <LegalFooter />
       </div>
   );
 }

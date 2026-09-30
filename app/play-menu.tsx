@@ -7,6 +7,7 @@ import { currentRandomArenaHash } from '@/lib/placeholder';
 import { currentPrompts } from '@/lib/prompts';
 import { convoyNavigate, guessNavigate } from '@/lib/game-transitions';
 import { enterArena } from '@/lib/works-gate';
+import { LegalFooter } from '@/components/legal-footer';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
 // 正式测评为资格制：当前管理员身份拥有资格（决策 028、070）。
@@ -23,7 +24,7 @@ export const MODES = [
     code: 'PARTY',
     name: '娱乐测评',
     status: '随时可玩',
-    desc: '看作品，凭直觉选。做出选择之后才揭晓模型身份，赛后开放评论区。',
+    desc: '看作品，凭直觉选。做出选择之后才揭晓模型身份。',
   },
   {
     id: 'event',
@@ -164,6 +165,7 @@ export default function PlayMenu() {
           )}
         </p>
       </main>
+      <LegalFooter />
     </div>
   );
 }

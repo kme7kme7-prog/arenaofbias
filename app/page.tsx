@@ -95,8 +95,11 @@ import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
+import { AigcLabel } from '@/components/legal-footer';
 import './conversation-arena.css';
 
+// 评论区暂时隐藏（2026-09-30 用户决定）；恢复时改回 true，后端评论接口未改动。
+const COMMENTS_ENABLED = false;
 const ABORTED = 'sequence-cancelled';
 const motionQuery = '(prefers-reduced-motion: reduce)';
 const ARENA_TIMING = {
@@ -1434,6 +1437,7 @@ export default function Arena({
                     <span className="entry-number">
                       {localize(round.code)} / 0{index + 1}
                     </span>
+                    <AigcLabel />
                     {chosen && (
                       <span className="identity-pick">
                         <Check size={14} />{t('YOUR PICK')}
@@ -1767,7 +1771,7 @@ export default function Arena({
           </div>
         </div>
 
-        {state.phase === 'result' && state.choice && (
+        {COMMENTS_ENABLED && state.phase === 'result' && state.choice && (
           <div className="afterparty-reveal">
             {state.mode === 'formal' ? (
               <div className="placeholder-note">
@@ -1817,7 +1821,7 @@ export default function Arena({
               <DialogTitle>
                 {t('作品')}
                 {localize(expanded?.toUpperCase())}{' '}
-                <span>/ {localize(round.category)}</span>
+                <span>/ {localize(round.category)}</span> <AigcLabel />
               </DialogTitle>
               <DialogDescription>{round.prompt}</DialogDescription>
             </div>

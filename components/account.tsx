@@ -17,11 +17,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { AVATARS, AVATAR_NAMES, avatarSrc } from '@/lib/avatars';
 type User = {
   id: string;
   username: string;
   role: 'admin' | null;
   email: string | null;
+  avatar?: string;
 };
 type Mode = 'login' | 'register' | 'forgot' | 'bind';
 type Success = 'login' | 'register' | 'reset' | 'bind' | 'logout';
@@ -145,6 +147,24 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState('');
   const submitting = useRef(false);
   const [error, setError] = useState('');
+  // 头像库：会员视图里展开，点选即保存（PATCH /api/me，后端校验 id）
+  const [pickingAvatar, setPickingAvatar] = useState(false);
+  const pickAvatar = async (avatar: string) => {
+    setError('');
+    try {
+      const response = await fetch('/api/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '头像更换失败，请重试。');
+      setUser((current) => (current ? { ...current, avatar } : current));
+      setPickingAvatar(false);
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message !== 'Failed to fetch' ? cause.message : '暂时无法连接，请稍后重试。');
+    }
+  };
   // 人机验证：siteKey 空串=服务端未开启（发码不带 token）；token 发码时随
   // 请求交出、之后作废；epoch 换一换就重挂 widget 拿新 token
   const [gateSiteKey, setGateSiteKey] = useState('');
@@ -311,7 +331,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (!response.ok) throw new Error(data.error || '验证码发送失败，请重试。');
       setCountdown(60);
       setNotice(purpose === 'reset'
-        ? '如果该账号绑定了邮箱，验证码将发送到该邮箱。'
+        ? '如果该账号在账号绑定中添加了邮箱，验证码将发送到该邮箱。'
         : t('验证码已发送至 {email}。', { email: data.email || '' }));
     } catch (cause) {
       setError(
@@ -566,8 +586,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       description: '所有设备已退出，请用新密码登录。',
     },
     bind: {
-      title: '邮箱已绑定。',
-      description: '忘记密码时可凭它找回。',
+      title: '账号绑定成功。',
+      description: '忘记密码时，可通过绑定的邮箱找回。',
     },
     logout: { title: '已退出登录。', description: '随时回来。' },
   };
@@ -677,10 +697,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                               : t('当前登录：{user}', { user: user.username })
                             : mode === 'forgot'
                               ? step === 1
-                                ? '输入账号；如果已绑定邮箱，验证码将发到该邮箱。'
+                                ? '输入账号，验证码将发到绑定的邮箱。'
                                 : '验证通过，设置新密码（重置后所有设备需重新登录）。'
                               : mode === 'register'
-                                  ? '一个名字，一个暗号，就能落座。邮箱可在登录后绑定。'
+                                  ? '一个名字，一个暗号，就能落座。登录后可在账号绑定中添加找回方式。'
                                   : '登录后，用你的账号参与作品讨论。',
                         )}
                       </DialogDescription>
@@ -889,10 +909,46 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                         </div>
                       )}
                       {user && mode !== 'bind' && (
-                        <div className="account-email-row">
-                          <span className="account-label">{t('绑定邮箱')}</span>
+                        <div className="account-email-row account-avatar-row">
+                          <span className="account-label">{t('头像')}</span>
                           <span className="account-email-value">
-                            {user.email ? maskEmail(user.email) : t('未绑定')}
+                            {avatarSrc(user.avatar) && (
+                              <img className="account-avatar" src={avatarSrc(user.avatar)!} alt="" />
+                            )}
+                            {t(AVATAR_NAMES[user.avatar ?? ''] ?? '')}
+                          </span>
+                          <button
+                            type="button"
+                            className="account-email-action"
+                            aria-expanded={pickingAvatar}
+                            disabled={busy}
+                            onClick={() => setPickingAvatar((open) => !open)}
+                          >
+                            {pickingAvatar ? t('收起') : t('更换')}
+                          </button>
+                        </div>
+                      )}
+                      {user && mode !== 'bind' && pickingAvatar && (
+                        <div className="account-avatar-picks" role="group" aria-label={t('头像库')}>
+                          {AVATARS.map((id) => (
+                            <button
+                              key={id}
+                              type="button"
+                              aria-pressed={user.avatar === id}
+                              aria-label={t(AVATAR_NAMES[id])}
+                              title={t(AVATAR_NAMES[id])}
+                              onClick={() => void pickAvatar(id)}
+                            >
+                              <img src={`/avatars/${id}.svg`} alt="" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {user && mode !== 'bind' && (
+                        <div className="account-email-row">
+                          <span className="account-label">{t('账号绑定')}</span>
+                          <span className="account-email-value">
+                            {user.email ? `${t('邮箱')} ${maskEmail(user.email)}` : t('邮箱 · 未绑定')}
                           </span>
                           <button
                             type="button"
@@ -900,7 +956,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                             disabled={busy}
                             onClick={() => switchMode('bind')}
                           >
-                            {user.email ? t('换绑') : t('绑定')}
+                            {user.email ? t('更换') : t('绑定')}
                           </button>
                         </div>
                       )}
@@ -931,9 +987,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                     : '重置密码 ↗',
                         )}
                       </button>
+                      {!user && mode === 'register' && (
+                        <small className="account-legal">
+                          {t('注册即表示你已阅读并同意')}
+                          <a href="#terms" target="_blank" rel="noopener">《{t('使用条款')}》</a>
+                          {t('与')}
+                          <a href="#privacy" target="_blank" rel="noopener">《{t('隐私政策')}》</a>
+                        </small>
+                      )}
                       {!user && (
                         <small>
-                          {t('登录状态保留 7 天。公共设备使用后请退出。')}
+                          {t('登录状态保留 30 天。公共设备使用后请退出。')}
                         </small>
                       )}
                     </form>
@@ -966,7 +1030,11 @@ export function AccountButton() {
   const { user, loading, open } = useAccount();
   return (
     <button className="account-entry" onClick={open} disabled={loading}>
-      <UserRound size={16} />
+      {avatarSrc(user?.avatar) ? (
+        <img className="account-entry-avatar" src={avatarSrc(user?.avatar)!} alt="" />
+      ) : (
+        <UserRound size={16} />
+      )}
       <span>
         {loading
           ? localize('连接中…')

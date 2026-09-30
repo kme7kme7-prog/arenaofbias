@@ -1,3 +1,4 @@
+import { LegalFooter } from '@/components/legal-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useReducedMotion } from '@/lib/motion';
 import { useTheme } from '@/lib/theme';
@@ -798,6 +799,7 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
           {localize(placeholder ? 'PLACEHOLDER VOTES ONLY' : 'DEMO BUILD 0.1')}
         </span>
       </footer>
+      <LegalFooter />
     </div>
   );
 }

@@ -19,6 +19,60 @@
 .account-entry:hover {
   color: var(--text-728443);
 }
+/* 头像库（2026-09-30）：入口按钮与会员视图里的头像行、点选网格 */
+.account-entry-avatar {
+  width: 20px;
+  height: 20px;
+  margin: -3px 0;
+  border-radius: 50%;
+}
+.account-avatar-row .account-email-value {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+}
+.account-avatar-picks {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line-a3ad8c-50);
+}
+.account-avatar-picks button {
+  aspect-ratio: 1;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), border-color 0.15s;
+}
+.account-avatar-picks button:hover {
+  transform: translateY(-2px);
+}
+.account-avatar-picks button[aria-pressed='true'] {
+  border-color: var(--text-main);
+}
+.account-avatar-picks img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.account-legal a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .account-avatar-picks {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 
 /* The popup is the stack; only the front sheet scrolls. */
 .account-dialog[data-slot='dialog-content'] {

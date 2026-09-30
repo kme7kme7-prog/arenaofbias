@@ -1,3 +1,4 @@
+import { LegalFooter } from '@/components/legal-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
@@ -559,6 +560,7 @@ export default function PromptLibrary() {
         <span>{t('ONE PROMPT. DIFFERENT ANSWERS.')}</span>
         <span>{t('先看作品，再作判断。')}</span>
       </footer>
+      <LegalFooter />
     </div>
   );
 }

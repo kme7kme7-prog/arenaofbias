@@ -11,6 +11,7 @@ import Home from '@/app/home';
 import PromptLibrary from '@/app/prompt-library';
 import PromptPreview from '@/app/prompt-preview';
 import Ranking from '@/app/ranking';
+import LegalPage from '@/app/legal';
 import { DevPanel } from '@/components/dev-panel';
 import { BetaNotice } from '@/components/beta-notice';
 import { PageShare } from '@/components/share';
@@ -87,6 +88,10 @@ function Routes() {
     }
   }, [route, worksState.status]);
   if (route === '#arena' || route === '#random') return null;
+  if (route === '#terms' || route.startsWith('#terms/'))
+    return <LegalPage key="terms" kind="terms" section={route.slice(7) || undefined} />;
+  if (route === '#privacy' || route.startsWith('#privacy/'))
+    return <LegalPage key="privacy" kind="privacy" section={route.slice(9) || undefined} />;
   if (route === '#play') return <PlayMenu />;
   if (route === '#event') return <Event />;
   if (route === '#guess') return <GuessPage />;
