@@ -6,6 +6,19 @@
 
 本文描述项目的长期定位、核心玩法与产品原则，不是当前功能清单或开发任务。文中的长期方向不代表已经实现。
 
+## 仓库分工与开发入口
+
+| 仓库 | 维护范围 |
+| --- | --- |
+| `arenaofbias`（本仓库） | 主站前端、竞技场、题库、榜单、分享与纸 / 墨主题。 |
+| [ArenaGalleri](https://github.com/wsnxxxs/ArenaGalleri) | 独立 Gallery 前端及消费端构建工具。 |
+| [arenaofbias-server](https://github.com/kme7kme7-prog/arenaofbias-server) | 两站共用 API、账号、投票、社区投稿和管理后台；唯一写业务数据库的服务。 |
+| `arenaofbias-data` | 私有题目、作品和注册表，以及收录与不可变数据包发布。 |
+
+主站与 Gallery 分别维护前端，通过共享后端和数据包对接。本仓 `server/` 与 `/admin.html` 保留迁移前实现；当前管理入口为 `https://api.arenaofbias.icu/admin/`。接手状态见 [HANDOFF.md](HANDOFF.md)，当前行为见 [docs/PRODUCT.md](docs/PRODUCT.md)，本地联调与发布见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+开发环境需要 Node ≥ 22.12。安装依赖后运行 `npm run dev:web`；将共享后端启动在本机 3000 端口，或用 `PORT` 指定 Vite 代理的后端端口。运行 `npm run typecheck` 检查类型、`npm run build` 构建静态站点。`npm run dev` 启动的本仓旧服务仅用于旧实现验证，不具备当前共享后端的完整接口。
+
 ## 为什么做这个项目
 
 AI 生成的东西最终是给人使用、阅读和观看的。除了客观指标，人是否喜欢、是否愿意继续读、是否愿意使用，同样重要。

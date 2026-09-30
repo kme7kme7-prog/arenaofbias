@@ -4,10 +4,14 @@
 
 > 2026-09-29：线上动态 API 已由 `arenaofbias-server` 共享后端提供。本仓 `server/` 的 Express 邮箱实现与下文相关 API 表述是迁移前参考；当前邮箱契约、环境变量及部署顺序以共享后端的 `docs/api-contract.md` 和 `README.md` 为准。开发时可把 Vite 的 `/api` 代理指向本地共享后端。
 
+共享正式题目由独立数据仓库的 `tasks/<id>/task.json` 登记，`arenaId` 映射稳定三位编号，`kind` 区分文字与网页。共享后端 `/api/prompts` 合并正式题与兼容历史题，前端 `lib/prompts.ts` 解析后供题库与竞技场使用；本仓内置种子只作请求失败时的回退。此登记不写社区 questions 表。
+
+`promptVariants` 保存同一道题的长短原文，前端保留 `{id, label, prompt}` 并由 `components/prompt-variant-switch.tsx` 提供题库和待收录预览的切换按钮。没有可比较作品的题落提示词预览页。生产题库是否包含新增题，取决于后端实际消费的数据包版本，不能只据前端代码版本判断。
+
 ## 技术栈
 
 - 前端：Vite 8 + React 19 + TypeScript，hash 路由由 `src/main.tsx` 分发；Tailwind 4（postcss）；页面样式为各页独立 CSS（`app/*.css`）。
-- 后端：Express 4 + better-sqlite3（WAL），无外部数据库服务。
+- 当前后端：独立 `arenaofbias-server`，Node 内置模块与 SQLite（WAL）；本仓 Express 4 + better-sqlite3 是迁移前服务。
 - 运行时：Node >=22.12.0（`package.json` engines）。
 - 工具链：oxlint / oxfmt / tsc --noEmit。
 
@@ -77,7 +81,9 @@
 - 状态机：`Phase = loading | intro | voting | locking | result | transition`；`Mode = blind | party | formal`（formal 永不揭晓、无评论区）；`transition` 统一承载换组/重播/切模式。
 - `export const rounds = prompts`：legacy 别名，仅因旧代码引用保留。
 
-## 后端 API 面
+## 迁移前后端 API 面（历史参考）
+
+下表对应本仓 `server/`，供旧实现验证使用；当前接口、账号权限、限流和数据库迁移以共享后端 `docs/api-contract.md` 为准，不据此配置生产服务。
 
 | 接口 | 说明 |
 | --- | --- |
@@ -114,6 +120,10 @@
 
 ## 运行与验证
 
+当前前端联调使用独立共享后端：在 `arenaofbias-server` 按其 README 启动服务（默认 3000），本仓执行 `npm run dev:web`（默认 5173）。Vite 用 `PORT` 选择后端端口、`VITE_PORT` 选择前端端口，代理保留原 Host。共享后端负责数据包拉取和数据库迁移，本仓不用复制数据库。
+
+下面的 `npm run dev`、`npm start` 与旧服务专项验证用于迁移前实现；当前真实榜单需要共享后端的 `/api/show1/leaderboard`，不能把旧服务的启动成功当作当前 API 联调通过。
+
 ```powershell
 npm install
 npm run dev        # 开发：web 5173（HMR）+ api 3000（node --watch）
@@ -131,8 +141,8 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 扩充内容操作步骤
 
-1. 新增题目：后台「题目管理」新增（编号自动，默认草稿）→ 上架；题号白名单收口到 prompts 表，无需改代码。
-2. 新增作品：后台「收件箱」页直接拖拽上传 .html/.txt/.md，或手动丢 `data/inbox/` → 登记（默认草稿；文字作品一文件一作品、空行分段、纯库内存储）→ 「作品管理」发布；批量走 `npm run register:works`；多文件作品=整个文件夹（根目录 index.html）。模型名输入框自动补全现有模型，选中即复用其 modelId 与规范显示名，无匹配则登记时新建。注意：本机 Windows 上 `fs.rmSync` 对非 ASCII 路径会静默失败/崩进程（2026-09-25 实测），删收件箱条目统一走 server 里的 `removeEntry`（unlink/rmdir）。
+1. 新增两站共用的正式题目：在独立数据仓库登记 task 与稳定 arenaId，按其收录流程发布数据包，再更新共享后端和前端消费版本。长短版放在同一道题的 promptVariants 中。历史题与社区题的管理操作以共享后端当前 API 契约为准，不再把本仓旧后台流程当成正式题登记入口。
+2. 新增正式馆藏作品：按独立数据仓库 `docs/intake-workflow.md` 收录原作、截图、预览与来源，再发布数据包并更新消费版本；社区作品经共享后端投稿与审核。以下旧后台登记流程属于迁移前参考，不作为当前正式馆藏发布入口。
 3. 新增模一把模型：后台「模一把」页追加（写 `data/guess-models-extra.json` 末尾，sinceDay 强制，063/070）；只能追加不能改。
 4. `isDemo: true` 不计模型数、不配对，仅预览页可见。
 5. 某题补齐两个不同 modelId 的结果后，`#arena/{id}` 自动从预览页变为竞技场。
@@ -143,7 +153,7 @@ npm start          # 生产形态：http://localhost:3000
 
 - 竞技场页「本场收录 N 个模型的 M 份结果」未过滤 isDemo，与题库页口径不一致；当前可进竞技场的题都没有 demo，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
-- 数据单一来源：作品=works 表（roster JSON 是种子与前端兜底），题目=prompts 表（seed JSON 同理）；表结构演进走 `MIGRATIONS`（`PRAGMA user_version`），content 存 JSON 字符串、加字段不动表。
+- 迁移前数据关系为作品=works 表、题目=prompts 表，roster/seed JSON 作种子与前端兜底；相关 MIGRATIONS 是旧服务实现。当前正式题目来自独立数据包，社区业务数据由共享后端维护，具体 schema 与追加迁移以共享后端为准。
 - 真实榜单请求 `/api/show1/leaderboard`，由共享 `arenaofbias-server` 完整聚合并缓存；本仓旧 `server/` 未接入新接口。联调与上线须使用新共享后端；接口不可用时显示加载失败，不回退下载全量票。
 - vite dev 代理必须 `changeOrigin: false`（vite.config.ts 有注释）：否则同源校验在 dev 下全部 403。
 - `app/observatory.css` 含大量已无引用的历史规则，待清理。
@@ -207,7 +217,13 @@ npm start          # 生产形态：http://localhost:3000
 
 - 管理员入口回归：先 `npm run build`，再 `node scripts/validate-admin-access.mjs`。临时库与独立浏览器验证 kme7 面板→玩法→正式测评、面板打开时退出并原页重新登录后的开合、wujisuan 无面板仍可正式评审；全程不调用 dev 登录。`--expect-bug` 用旧构建复现旧按钮死路与悬空动画引用。
 
-## VPS 部署（2026-09-24）
+## 当前主站静态发布
+
+主站静态目录为 `/www/wwwroot/show1-dist`；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
+
+文档同步不要求重新部署。两个前端独立构建发布；不要运行下面已退役的 PM2 整站脚本，也不要用主站 checkout 覆盖共享后端或业务数据库。
+
+## 迁移前 VPS 部署（2026-09-24，已退役）
 
 - 当前生产站点为 `https://arenaofbias.icu`；PM2 进程 `arena`，目录 `/www/wwwroot/arenaofbias`，监听 `127.0.0.1:3000`。旧 systemd `arenaofbias` 已停用，不再使用旧整站 tar 命令。
 - `npm run deploy:vps -- --check` 只读核对远端文件，输出变更清单并保存本机 `.local/deploy-vps/plan.json`；审阅清单后运行 `npm run deploy:vps`。必须先提交本轮代码；脚本只打包当前 Git HEAD，排除本地数据、凭据、未跟踪作品与旧截图目录。不会清理远端额外文件。
