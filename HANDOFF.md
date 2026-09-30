@@ -8,12 +8,12 @@
 - 公网两范围×三分类、两组配对分、画廊榜单均为零；3 个入口及 10 个 JS/CSS 哈希与发布包一致，HTML no-cache，资源沿用 max-age=2592000。浏览器空榜/分类/正式范围、纸墨两主题、390px 无横向溢出、实际投票作品入口、画廊首页/空榜正常，无控制台 error。未创建生产测试票、投稿或付费审核；未做全部原作交互。
 - 旧站完整保留为 `/www/wwwroot/show1-dist.prev`，更早副本在 show1-dist-backups。停写库备份、旧后端和完整验证证据位于 `/root/arenaofbias-vote-release-20260930-c0ab6ac/`，本机证据在 server worktree 忽略的 `output/vote-release/`。既有 lock 可选依赖安装问题未改，本轮无依赖/数据包/Nginx/Gallery 前端改动。详细归档 `docs/handoff/2026-09-30-vote-release-wsnxxxs.md`。
 
-## 2026-09-30 · shared-question-intake（本地完成，未部署）
+## 2026-09-30 · shared-question-intake（代码已上线，新题库待更新数据包）
 
-- 共享后端提供新增正式题目，SupernovAI 与云山巨城各是一个题号并带长/短原文。题库与待收录预览页同步提供按钮切换，最终用户决定追加至 docs/DECISIONS.md。
+- 使用新版数据包时，共享后端提供新增正式题目，SupernovAI 与云山巨城各是一个题号并带长/短原文。题库与待收录预览页同步提供按钮切换，最终用户决定追加至 docs/DECISIONS.md。
 - typecheck/build 与本轮 5 个源码文件定向 lint 通过；全量 lint 存在 9 条既有 scripts 错误（grid-contrast-check、.tmp-mobile、.tmp-crosscheck、migrate-model-identity），未改这些文件。
 - 真实浏览器核对 25 题（20 正式 + 5 历史）、两组原文切换和无作品预览；桌面目视通过，390px override 未生效，因此未声称手机验收或全部原作交互通过。
-- 仅本地提交，无 push/部署，生产数据库/旧票/作品未改。归档见 docs/handoff/2026-09-30-shared-question-intake-wsnxxxs.md。
+- 实现 `9805416` 已推送 show1-vote-processing，随后随 vote-release 合入 main 并上线；本次不重新部署。生产后端仍使用旧数据包 `2cb2a5b`，新增 20 道正式题的包尚未切入生产。本次题库实现本身没有操作生产数据库；后续投票清零属于 vote-release，见顶部独立记录。归档见 docs/handoff/2026-09-30-shared-question-intake-wsnxxxs.md。
 
 ## 2026-09-30 · vote-branch-sync（已改名并同步最新远端，未推送）
 

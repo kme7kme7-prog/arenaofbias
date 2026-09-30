@@ -4,6 +4,10 @@
 
 > 2026-09-29：线上动态 API 已由 `arenaofbias-server` 共享后端提供。本仓 `server/` 的 Express 邮箱实现与下文相关 API 表述是迁移前参考；当前邮箱契约、环境变量及部署顺序以共享后端的 `docs/api-contract.md` 和 `README.md` 为准。开发时可把 Vite 的 `/api` 代理指向本地共享后端。
 
+共享正式题目由独立数据仓库的 `tasks/<id>/task.json` 登记，`arenaId` 映射稳定三位编号，`kind` 区分文字与网页。共享后端 `/api/prompts` 合并正式题与兼容历史题，前端 `lib/prompts.ts` 解析后供题库与竞技场使用；本仓内置种子只作请求失败时的回退。此登记不写社区 questions 表。
+
+`promptVariants` 保存同一道题的长短原文，前端保留 `{id, label, prompt}` 并由 `components/prompt-variant-switch.tsx` 提供题库和待收录预览的切换按钮。没有可比较作品的题落提示词预览页。生产题库是否包含新增题，取决于后端实际消费的数据包版本，不能只据前端代码版本判断。
+
 ## 技术栈
 
 - 前端：Vite 8 + React 19 + TypeScript，hash 路由由 `src/main.tsx` 分发；Tailwind 4（postcss）；页面样式为各页独立 CSS（`app/*.css`）。
@@ -131,7 +135,7 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 扩充内容操作步骤
 
-1. 新增题目：后台「题目管理」新增（编号自动，默认草稿）→ 上架；题号白名单收口到 prompts 表，无需改代码。
+1. 新增两站共用的正式题目：在独立数据仓库登记 task 与稳定 arenaId，按其收录流程发布数据包，再更新共享后端和前端消费版本。长短版放在同一道题的 promptVariants 中。历史题与社区题的管理操作以共享后端当前 API 契约为准，不再把本仓旧后台流程当成正式题登记入口。
 2. 新增作品：后台「收件箱」页直接拖拽上传 .html/.txt/.md，或手动丢 `data/inbox/` → 登记（默认草稿；文字作品一文件一作品、空行分段、纯库内存储）→ 「作品管理」发布；批量走 `npm run register:works`；多文件作品=整个文件夹（根目录 index.html）。模型名输入框自动补全现有模型，选中即复用其 modelId 与规范显示名，无匹配则登记时新建。注意：本机 Windows 上 `fs.rmSync` 对非 ASCII 路径会静默失败/崩进程（2026-09-25 实测），删收件箱条目统一走 server 里的 `removeEntry`（unlink/rmdir）。
 3. 新增模一把模型：后台「模一把」页追加（写 `data/guess-models-extra.json` 末尾，sinceDay 强制，063/070）；只能追加不能改。
 4. `isDemo: true` 不计模型数、不配对，仅预览页可见。
@@ -143,7 +147,7 @@ npm start          # 生产形态：http://localhost:3000
 
 - 竞技场页「本场收录 N 个模型的 M 份结果」未过滤 isDemo，与题库页口径不一致；当前可进竞技场的题都没有 demo，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
-- 数据单一来源：作品=works 表（roster JSON 是种子与前端兜底），题目=prompts 表（seed JSON 同理）；表结构演进走 `MIGRATIONS`（`PRAGMA user_version`），content 存 JSON 字符串、加字段不动表。
+- 迁移前数据关系为作品=works 表、题目=prompts 表，roster/seed JSON 作种子与前端兜底；相关 MIGRATIONS 是旧服务实现。当前正式题目来自独立数据包，社区业务数据由共享后端维护，具体 schema 与追加迁移以共享后端为准。
 - 真实榜单请求 `/api/show1/leaderboard`，由共享 `arenaofbias-server` 完整聚合并缓存；本仓旧 `server/` 未接入新接口。联调与上线须使用新共享后端；接口不可用时显示加载失败，不回退下载全量票。
 - vite dev 代理必须 `changeOrigin: false`（vite.config.ts 有注释）：否则同源校验在 dev 下全部 403。
 - `app/observatory.css` 含大量已无引用的历史规则，待清理。
