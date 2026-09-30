@@ -1,5 +1,13 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · vote-release（已推送、上线，两站旧票已清零）
+
+- 主站 `980541642706a3cd9141c3c90ab0da55bec93b87` 与共享后端 `c0ab6acf225ebcb4d99a7c3a5e145d011ee93d37` 已普通快进推送上游 main / `show1-vote-processing` 并发布 VPS。保留最新纸墨主题、共用题目长短原文切换与后端 Luna 审核/relay；收尾文档提交不重新部署，线上版本以这些源码 SHA 为准。
+- 主站真实榜单消费 server 聚合，正式/娱乐、综合/写作/网页、画像和配对分由后端处理。停写备份后两站全部 622 票/622 旧对局清零并留审计；27 用户、267 作品、16 评论、56 表情、6 猜题成绩和其余表逐行保留，数据包仍 `2cb2a5b`。历史快照票不回流，去重同步重置。
+- 当前源码 typecheck/build 与榜单 12/12 通过，合并主题后的 check:theme/check:motion/定向 lint 通过；本机与 VPS 后端 check 68 文件、测试 141/141，GitHub CI 成功。从 Git archive 新建独立源码目录复用经 npm ls 验证的现有依赖构建，786 文件完整 SHA256 校验通过；只替换 6 文件，暂存目录移除 4 旧资源后切换。
+- 公网两范围×三分类、两组配对分、画廊榜单均为零；3 个入口及 10 个 JS/CSS 哈希与发布包一致，HTML no-cache，资源沿用 max-age=2592000。浏览器空榜/分类/正式范围、纸墨两主题、390px 无横向溢出、实际投票作品入口、画廊首页/空榜正常，无控制台 error。未创建生产测试票、投稿或付费审核；未做全部原作交互。
+- 旧站完整保留为 `/www/wwwroot/show1-dist.prev`，更早副本在 show1-dist-backups。停写库备份、旧后端和完整验证证据位于 `/root/arenaofbias-vote-release-20260930-c0ab6ac/`，本机证据在 server worktree 忽略的 `output/vote-release/`。既有 lock 可选依赖安装问题未改，本轮无依赖/数据包/Nginx/Gallery 前端改动。详细归档 `docs/handoff/2026-09-30-vote-release-wsnxxxs.md`。
+
 ## 2026-09-30 · shared-question-intake（本地完成，未部署）
 
 - 共享后端提供新增正式题目，SupernovAI 与云山巨城各是一个题号并带长/短原文。题库与待收录预览页同步提供按钮切换，最终用户决定追加至 docs/DECISIONS.md。
