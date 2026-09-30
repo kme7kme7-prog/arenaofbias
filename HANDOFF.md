@@ -1,5 +1,14 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · 竞技场双主题已推送 main 并上线 VPS
+
+- 无冲突后已将实现提交 `613f912fd395f938274f1ef679b9efc3a63af407`（Atmeplz，增加纸墨双主题与主题过场）快进推送上游 `main`。生产前端由该提交的独立 Git 归档构建，于北京时间 13:41 完成发布；本条及归档补记是随后提交的上线记录，未改变发布代码。
+- `/www/wwwroot/show1-dist` 786 个文件与完整 SHA-256 manifest 逐份相符；上传 11 个变化文件，13 个过期哈希资源只在暂存目录移除后切换。旧站完整保留在 `/www/wwwroot/show1-dist.prev`；任务与 manifest 位于 `/root/static-deploy-show1-613f912fd395f938274f1ef679b9efc3a63af407/`。
+- 公网 `https://arenaofbias.icu` 三入口与 9 个新 JS/CSS 资源均 200 且哈希一致；HTML 为 no-cache，带哈希资源为 immutable。桌面 1440 / 手机 390 的 10 组主路由检查、主题切换 / 刷新持久化 / 选中态 / 登录弹窗通过，无页面异常或横向溢出，公网截图已目检。独立构建再次通过双主题作品就绪 10 项回归。
+- 共享后端仍为 `26da6d6a350bbb4464879206bdbeb0c7eb303087`，数据包 `2cb2a5b265e8bda8c8069a4b498f1046d825acee`；服务 active，展览馆入口哈希不变。本轮没有更改后端、数据库、Nginx 或作品。
+- 构建环境记录：Windows tar 解中文文件名失败，改为 Python UTF-8 校验解包；`npm ci` 暴露主线锁文件缺少可选 `@emnapi/core` / `@emnapi/runtime@1.11.3` 的问题。本轮未改锁文件或依赖，核对清单与基线一致、`npm ls --depth=0` 通过后，独立源码归档复用现有已验证依赖构建成功。该既有安装问题留待单独处理。
+- 完整归档：`docs/handoff/2026-09-30-竞技场双主题-Atmeplz.md`。本机发布包、计划、产物/公网验收证据在 `.local/theme-release-20260930-613f912/`；他人未跟踪作品保持原样。低端真机、高 DPR 与真实 Turnstile 端到端未补测，仍见交付说明的验证边界。
+
 ## 2026-09-30 · 双主题发布已获授权，远端无冲突
 
 - 用户明确要求“看看是否冲突，不冲突就 push 到 repo，然后落实到 VPS”，已授权本轮提交、推送与生产前端发布。重新 fetch 后 `HEAD = origin/main = 38dad57`，无远端新增或合并冲突；署名使用已登录 GitHub 用户 Atmeplz 及其 noreply 邮箱。

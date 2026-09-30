@@ -1,6 +1,6 @@
 # 竞技场纸 / 墨双主题 · 第二段交付
 
-2026-09-30 · 基于已合并的 `origin/main@38dad57` · 用户已授权在无冲突后推送和部署；发布状态以根目录 HANDOFF 与本轮归档为准。
+2026-09-30 · 基于已合并的 `origin/main@38dad57` · 实现 `613f912` 已推送上游 main 并部署到 [竞技场](https://arenaofbias.icu)，上线验收记录见根目录 HANDOFF 与本轮归档。
 
 用户确认继续实施，并要求严格遵守首次需求与人类直觉。第一段的令牌映射、73 个关键帧及全部过渡声明分类保留在 [THEME-PLAN.md](THEME-PLAN.md)。本次采用 A「过墨 / 揭纸」。
 
@@ -9,6 +9,7 @@
 ## 交付入口
 
 - **完整逐文件补丁**：[arena-paper-ink.patch](../outputs/theme/arena-paper-ink.patch)。已有文件为 unified diff；新文件从空文件起给出完整内容，包括全部新增 CSS。补丁以 `38dad57` 为基线，不包含作品、数据库、构建目录和验收截图。
+- **仓库中的完整改动**：[38dad57 → 613f912](https://github.com/kme7kme7-prog/arenaofbias/compare/38dad57...613f912)，不依赖本机忽略目录即可审阅全部源文件。
 - **新增 CSS 全量**：[主题令牌](../app/theme-tokens.css)、[主题控件与动效](../app/theme.css)、[对照页样式](../reference/theme-review.css)。这些链接指向实际源文件，不是节选。
 - **生产动效对照**：启动 Vite 后访问 `http://127.0.0.1:5173/reference/theme-review.html`。可切纸 / 墨，重播六种过场，钉住对战等待门后再释放。
 - **本机验收资料**：[截图目录](../outputs/theme/screenshots/)、[动画增删清单](../outputs/theme/animation-audit.json)、[双主题作品就绪结果](../outputs/theme/work-ready-after.json)、[降速测量](../outputs/theme/theme-performance.json)。生成资料在忽略目录 `outputs/theme/`，不入库。
@@ -70,6 +71,10 @@
 原有 73 个关键帧中，31 条旧轨道被移除：20 条不安全的文字容器入场直接移除，另 11 条改为材质或背景反馈。新增 8 条材质 / 状态关键帧，现有定义共 50 条。小进度条、图形插值、按钮反馈等中立效果保留；颜色全部消费令牌。CSS 最终层和原生 JS 都响应运行中的 `prefers-reduced-motion` 变化，减少动态不等于提前揭开未就绪作品。
 
 ## 验证记录与边界
+
+发布补验：从已推送的 `613f912` 归档构建后，双主题作品就绪 10 项回归再次通过；独立构建与公网分别检查 1440 / 390 宽的首页、玩法、模一把、排行、题库以及切换、刷新持久化、菜单选中色与登录弹窗，无页面异常 / 横向溢出。VPS 786 个产物文件与完整 manifest 一致，公网三个入口及九个变化 JS/CSS 的响应哈希也一致。旧站保留为 `show1-dist.prev`，没有更改共享后端或数据库。
+
+独立 `npm ci` 因主线锁文件缺少可选 `@emnapi/core` / `@emnapi/runtime@1.11.3` 而失败；本轮依赖及锁文件与基线一致，未擅自修订。确认 `npm ls --depth=0` 正常后，发布源码独立解包、复用已验证的本机依赖完成构建与上述验收。源码不含工作区未跟踪作品；不能将本次成功构建描述为全新安装成功。
 
 橙色纠正后已重新通过 `check:theme`、`validate:theme` 与 `build`，并逐项比对原纸面令牌保持不变。真实浏览器另对双向主题幕逐帧采样：过墨橙、揭纸绿在 prepare / cover / settle / reveal 全阶段一致；首页双主题与墨色模一把已截图目检，命中绿图例未被品牌橙替换。此次截图与采样为 `output/playwright/orange-*`；下表其他业务验证为本轮此前记录，颜色纠正后未重复运行。
 
