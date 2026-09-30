@@ -1,5 +1,12 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · vote-branch-sync（已改名并同步最新远端，未推送）
+
+- 用户要求删除分支名的 codex 字样；主站与 server 本轮分支均为 `show1-vote-processing`。已 fetch origin/fork；主站远端新增 `613f912`、`09387a9` 两条双主题提交，本分支已 rebase 到 `origin/main@09387a9`，投票功能提交由 `70f7009` 变为 `53b6351`。
+- 唯一冲突是 HANDOFF 顶部记录，保留双方全部内容；`app/ranking.tsx` 自动合并，ThemeToggle、纸/墨主题、减少动态效果和画像过场保留。最终合并预检无冲突。
+- 本轮验证：typecheck、build、榜单 12/12、check:theme、check:motion、四个改动源文件定向 lint 和 diff 检查均通过。未补做浏览器验收或全量 lint；上一轮投票浏览器验证与既有 lint 边界继续有效。详细归档见 `docs/handoff/2026-09-30-vote-branch-sync-wsnxxxs.md`。
+- server 远端仍为 `26da6d6`，本轮分支已包含其主线且无冲突，后端功能代码不变。未 push、部署或操作业务库；两站实际清零的执行环境仍待用户答复。
+
 ## 2026-09-30 · 竞技场双主题已推送 main 并上线 VPS
 
 - 无冲突后已将实现提交 `613f912fd395f938274f1ef679b9efc3a63af407`（Atmeplz，增加纸墨双主题与主题过场）快进推送上游 `main`。生产前端由该提交的独立 Git 归档构建，于北京时间 13:41 完成发布；本条及归档补记是随后提交的上线记录，未改变发布代码。
@@ -37,6 +44,7 @@
 - 静态盘点：主入口可达 18 份项目 CSS，73 个关键帧（纸面专用 13 / 中立保留 25 / 需删除旧轨道 20 / 重新设计 15），130 处 animation / animation-name、127 处 transition / transition-property 声明（含禁动画覆盖）；JS / 工具类 / 占位 iframe 动效另列。原始审计数据与脚本在忽略目录 `.local/theme-audit/`，完整清单已嵌入方案，不依赖该本机目录阅读。
 - 合并后验证：`typecheck`、`build`、`validate:share`（6 项）、`check:motion`（现有六组检查）通过。仅做基线与静态核查；新主题视觉、FOUC、键盘与低端帧率尚未验证，未重跑全量 lint。本轮业务代码只来自远端合并，未实施主题，未 commit / push / 部署，未连接 VPS。
 - 以当前代码为准：`app/page.tsx` 等待作品现为 `while (!poll())`，不能照下方旧交接恢复 8 秒提前放行；下文历史 PR / 部署描述不代表今天的现场状态。
+
 ## 2026-09-30 · show1-vote-processing（本地实现，未推送、未部署）
 
 - 从 `main@38dad57` 建立，当前分支名为 `show1-vote-processing`。真实榜单只请求共享后端 `/api/show1/leaderboard`，接收排名、比较统计、六维画像和题目覆盖；配色、文案与交互留在前端。范围/赛道切换取消旧请求，错误可重试；开发占位模式保留本地聚合。
