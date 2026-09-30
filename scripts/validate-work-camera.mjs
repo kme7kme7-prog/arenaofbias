@@ -1,6 +1,6 @@
-// 视角校准桥校验（决策 102）：临时 DATA_DIR 起真服务端，把真实 007 importmap
-// 作品复制进收件箱登记为 fixture，覆盖——
-//   ① 未校准作品响应零注入（与不装桥时一致）；
+// 视角校准桥校验（决策 102）：临时 DATA_DIR 起真服务端，用自包含 importmap
+// 作品登记为 fixture，覆盖——
+//   ① 未校准作品不装相机桥（通用就绪探针仍注入）；
 //   ② ?aob=bridge 注入桥且 importmap 改写到 /works/__aob__/ 虚拟路由；
 //   ③ 虚拟路由：three 转发、OrbitControls 包装、非法 URL/路径穿越拒绝；
 //   ④ PATCH camera 写读删 + 与 framing 同批序列化；
@@ -10,7 +10,7 @@
 //   ⑦ 转发模块同时转发命名导出与默认导出（lil-gui 只有默认导出）。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { cp, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -31,12 +31,12 @@ const dataDir = await mkdtemp(path.join(tmpdir(), 'aob-camera-'));
 const port = 20000 + Math.floor(Math.random() * 20000);
 const base = `http://127.0.0.1:${port}`;
 
-// fixture：真实 importmap 黑洞作品复制进收件箱（登记会把它搬进临时 works 库）
-await cp(
-  path.join(repo, 'data/works/007/007-muse-spark-1.3-18356-2'),
-  path.join(dataDir, 'inbox', 'muse-fixture'),
-  { recursive: true },
-);
+// 自包含 importmap fixture：不依赖未入库的大体积原作品，也不访问 CDN。
+const fixture = path.join(dataDir, 'inbox', 'muse-fixture');
+await mkdir(fixture, { recursive: true });
+await writeFile(path.join(fixture, 'index.html'), `<!doctype html><html><head>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><canvas></canvas></body></html>`);
 
 const child = spawn(process.execPath, ['server/index.js'], {
   cwd: repo,
@@ -221,9 +221,11 @@ try {
   workId = work.id;
   workSrc = work.content.src;
 
-  await check('未校准作品零注入（前台请求与不装桥时一致）', async () => {
+  await check('未校准作品不装相机桥、不改 importmap', async () => {
     const html = await (await robustFetch(`${base}${workSrc}`)).text();
-    assert.ok(!html.includes('__AOB__'), 'must not contain the bridge');
+    assert.ok(!html.includes('window.__AOB__='), 'must not install the bridge');
+    assert.ok(!html.includes('window.__AOB_SAVED__='), 'must not install a saved camera');
+    assert.equal(importedMap(html).three, 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
   });
 
   await check('?aob=bridge 注入桥并把 importmap 指向虚拟路由', async () => {
@@ -305,7 +307,8 @@ try {
     assert.equal(cleared.status, 200);
     assert.equal((await cleared.json()).work.content.camera, undefined);
     const plain = await (await robustFetch(`${base}${workSrc}`)).text();
-    assert.ok(!plain.includes('__AOB__'), 'back to zero injection');
+    assert.ok(!plain.includes('window.__AOB__='), 'camera bridge removed');
+    assert.ok(!plain.includes('window.__AOB_SAVED__='), 'saved camera removed');
   });
 
   await check('camera 校验口径：坏形状 400，与 framing 同批改不互相吞', async () => {

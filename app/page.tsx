@@ -24,11 +24,9 @@ import {
   AudioLines,
   Check,
   ChevronDown,
-  Crosshair,
   Expand,
   Eye,
   GalleryHorizontal,
-  Fingerprint,
   ImageIcon,
   Laugh,
   LockKeyhole,
@@ -325,14 +323,14 @@ function ReactionBar({
           laugh: row.laugh ?? 0,
         };
         // 补发失败仍在队列里的（下次再重试），显示时把本地意图叠加在服务端数上
-        const queued = peekPending(promptId, mid);
+        const queued = peekPending(user?.id ?? '', promptId, mid);
         if (queued !== undefined) {
           if (serverMine)
             merged[serverMine] = Math.max(0, merged[serverMine] - 1);
           if (queued) merged[queued] += 1;
         }
         setCounts(merged);
-        setMine(queued ?? serverMine);
+        setMine(queued !== undefined ? queued : serverMine);
       } catch {
         /* 拉不到就只显示零计数，不挡流程 */
       }
@@ -342,7 +340,7 @@ function ReactionBar({
       // 离开这件作品（换组/换题/路由切换）：补发该 mid 的最终意图
       void flushReactions();
     };
-  }, [promptId, mid]);
+  }, [promptId, mid, user?.id]);
   // 本地优先（2026-09-20 用户拍板）：点击只改本地并记 pending，同步在卸载/关页
   // 时按 mid 补发最终意图（lib/reactions.ts）——反应是一槽覆盖写，只发最后一个
   // 不丢信息，乱按不再烧 social 限流桶；未登录当场提示，不做无用记录
@@ -362,7 +360,7 @@ function ReactionBar({
     });
     setMine(next);
     if (next && next !== mine) setBurst(next);
-    queueReaction(promptId, mid, next, reactionKnown.current);
+    queueReaction(user.id, promptId, mid, next, reactionKnown.current);
   };
   const items: Array<{
     kind: ReactionKind;
@@ -465,7 +463,8 @@ export function Work({
         title={result.title}
         src={src}
         srcDoc={inline ? content.html : undefined}
-        sandbox={inline ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
+        sandbox={inline || content.sandboxed ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
+        data-ready-probe={!inline && content.sandboxed ? 'required' : undefined}
         inert={!interactive}
         style={{ pointerEvents: interactive ? 'auto' : 'none' }}
       />
@@ -606,11 +605,12 @@ export default function Arena({
       continueLock.current = false;
     }
   }, [state.phase]);
-  const resultCount = currentResultsForPrompt(prompt.id).length;
+  const resultCount = currentResultsForPrompt(prompt.id).filter(entry => !entry.isDemo).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
   const drawLabel = DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
   const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
+  const [expandedPrompt, setExpandedPrompt] = useState<string | null>(null);
   const [sound, setSound] = useState(false);
   // 「逐个巡览」开关（aob-arena-tour，决策 077/090）：桌面默认关闭、
   // 用户手动开过才记 'on'；移动端该功能整体下线（有严重 bug），
@@ -850,6 +850,8 @@ export default function Arena({
     const workReady = (card: HTMLElement | null): boolean => {
       const frame = card?.querySelector('iframe');
       if (!frame) return true;
+      if (frame.dataset.readyProbe === 'required')
+        return !!frame.contentWindow && readyWindows.current.has(frame.contentWindow);
       try {
         const doc = frame.contentDocument;
         if (!doc) return true;
@@ -1340,12 +1342,8 @@ export default function Arena({
         <div className="terminal-label">
           <span className="live-dot" />
           {localize(' ')}
-          <a href="#home" className="arena-home-link">
-            {t('返回首页')}
-          </a>
-          {localize(' ')}
           <a href="#prompts" className="arena-home-link">
-            {t('/ 提示词库')}
+            {t('提示词库')}
           </a>
         </div>
         <div className="header-right">
@@ -1373,120 +1371,30 @@ export default function Arena({
       </header>
 
       <main className="main-terminal" ref={terminalRef}>
-        <div className="spatial-session" aria-label={t('评审进度')}>
-          <span>
-            {t('OBSERVATION /')}
-            {localize(round.id)}
-          </span>
-          {['观看作品', '做出选择', formal ? '记录选择' : '身份揭晓'].map((label, index) => {
-            const active =
-              index ===
-              (state.phase === 'result'
-                ? 2
-                : state.phase === 'voting' || state.phase === 'locking'
-                  ? 1
-                  : 0);
-            return (
-              <span key={label} className={active ? 'active' : ''}>
-                <i />0{index + 1} / {localize(label)}
-              </span>
-            );
-          })}
-        </div>
-        <section className="command-row">
-          <div className="section-heading">
-            <h1>
-              {t('直觉，即是答案')}
-              <span>{t('。')}</span>
-            </h1>
-          </div>
-          <div className="mode-tabs mode-static" aria-label={t('评审模式')}>
-            <span className="mode-static-label">
-              <Fingerprint size={17} />
-              <span>
-                {localize(state.mode === 'formal' ? '正式测评' : '娱乐测评')}
-              </span>
-            </span>
-            <p>
-              {localize(
-                state.mode === 'formal'
-                  ? '全程匿名：任何环节都不揭示模型名称，也没有评论区。'
-                  : '隐藏名字，只看作品；做出选择后揭晓身份。',
-              )}
-            </p>
-          </div>
-        </section>
-
         <section
           className="briefing"
           ref={briefingRef}
           aria-label={t('本轮创作要求')}
         >
-          <div className="round-tag">
-            <Crosshair size={19} />
-            <span>
-              {t('Round Start')}
-              <b data-swap>{localize(round.id)}</b>
-            </span>
+          <div className="briefing-heading">
+            <div className="round-tag"><b data-swap>{round.id}</b></div>
+            <div className="briefing-copy">
+              <h1 data-swap>{round.name}</h1>
+              <button
+                className="prompt-toggle"
+                aria-expanded={expandedPrompt === round.id}
+                aria-controls={`arena-prompt-${round.id}`}
+                onClick={() => setExpandedPrompt(current => current === round.id ? null : round.id)}
+              >{t('查看完整提示词')}</button>
+            </div>
+            <span className="arena-mode-label">{t(formal ? '正式测评' : '娱乐测评')}</span>
           </div>
-          <div className="briefing-copy">
-            <span className="prompt-label">{t('本轮命题')}</span>
-            {round.prompt.length > 90 ? (
-              <details className="prompt-disclosure" key={round.id}>
-                <summary>
-                  <span data-swap>{round.name}</span>
-                  <span className="prompt-disclosure-label">
-                    {t('查看完整提示词')}
-                  </span>
-                </summary>
-                <p data-swap>{round.prompt}</p>
-              </details>
-            ) : (
-              <h2 key={round.id} data-swap>
-                {round.prompt}
-              </h2>
-            )}
-          </div>
-          <span className="briefing-detail" data-swap>
-            {round.detail}
-          </span>
-          <div className="briefing-corner" aria-hidden="true" />
+          <p className="briefing-prompt" id={`arena-prompt-${round.id}`} hidden={expandedPrompt !== round.id} data-swap>{round.prompt}</p>
         </section>
-
-        <aside
-          className="match-commentary"
-          key={`commentary-${round.id}`}
-          aria-label={t('本题旁白')}
-        >
-          <span className="commentary-badge">
-            <Mark small />
-            {t('评审附言')}
-          </span>
-          <p data-swap>“{round.commentary}”</p>
-        </aside>
         <div className="field-meta">
-          <span>
-            <i /> {t('LIVE COMPARISON')}
-            <span className="meta-slash">/</span>
-            {localize(' ')}
-            {localize(round.category)}
-          </span>
-          {testing && (
-            <span className="field-testing">{t('测试对局 · 投票不落库')}</span>
-          )}
-          <output className="field-status" aria-live="polite">
-            <i />
-            {localize(statusText)}
-          </output>
-          <span className="meta-right">
-            {state.mode === 'blind' ? (
-              <LockKeyhole size={12} />
-            ) : (
-              <Eye size={12} />
-            )}
-            {localize(' ')}
-            {localize(revealed ? 'IDENTITY OPEN' : 'IDENTITY ENCRYPTED')}
-          </span>
+          <span>{localize(round.category)}</span>
+          {testing && <span className="field-testing">{t('测试对局 · 投票不落库')}</span>}
+          <output className="field-status" aria-live="polite"><i />{localize(statusText)}</output>
         </div>
 
         <div className="arena-stage" ref={stageRef}>
@@ -1790,30 +1698,7 @@ export default function Arena({
                 </a>
               </div>
             </div>
-          ) : (
-            <div className="sequence-steps">
-              <span
-                className={
-                  state.phase === 'intro' || state.phase === 'loading'
-                    ? 'current'
-                    : 'complete'
-                }
-              >
-                <b>01</b>
-                {t('作品入场')}
-              </span>
-              <i />
-              <span className={state.phase === 'voting' ? 'current' : ''}>
-                <b>02</b>
-                {t('直觉投票')}
-              </span>
-              <i />
-              <span>
-                <b>03</b>
-                {t(formal ? '记录选择' : '身份揭晓')}
-              </span>
-            </div>
-          )}
+          ) : null}
           <div className="round-actions has-continue-options">
             {state.phase === 'result' && state.choice && state.mode !== 'formal' && !testing && !isPlaceholderMode() && (
               <ShareButton key={`${state.run}-${pair[0].id}-${pair[1].id}`} query={duelShareQuery(prompt, pair, state.choice)} />
@@ -1905,69 +1790,17 @@ export default function Arena({
           </div>
         )}
 
-        <section
-          className="round-selector prompt-context"
-          aria-label={t('当前提示词竞技场')}
-        >
-          <div className="selector-heading">
-            <span className="section-code">{t('ONE PROMPT / ONE ARENA')}</span>
-            <strong data-swap>{prompt.name}</strong>
-          </div>
-          <p data-swap>
-            {t(
-              '本场收录 {models} 个模型的 {works} 份结果，只在这个提示词内比较。',
-              {
-                models: new Set(
-                  currentResultsForPrompt(prompt.id).map(
-                    (entry) => entry.modelId,
-                  ),
-                ).size,
-                works: resultCount,
-              },
-            )}
-          </p>
-          <p data-swap>
-            {localize(
-              pairCount === 1
-                ? '当前仅有一组可比较作品，可重看本组，或前往其他提示词竞技场。'
-                : '换一组会优先抽取不同的作品组合。',
-            )}
-          </p>
-          <div className="prompt-context-links">
-            <a href="#prompts">
-              {t('返回提示词库')}
-              <ArrowUpRight size={16} />
-            </a>
-            <button onClick={gotoRandomArena} disabled={blocked}>
-              {t('随机换个竞技场')}
-              <ArrowRight size={16} />
-            </button>
-          </div>
-          {soloNotice && (
-            <p className="placeholder-note" aria-live="polite">
-              {t('现在只有这一个竞技场——先去提示词库看看别的题吧。')}
-            </p>
-          )}
-        </section>
+        <details className="arena-context">
+          <summary>{t('关于本题')}</summary>
+          <p>{t('本场收录 {models} 个模型的 {works} 份结果，只在这个提示词内比较。', {
+            models: new Set(currentResultsForPrompt(prompt.id).filter(entry => !entry.isDemo).map(entry => entry.modelId)).size,
+            works: resultCount,
+          })}</p>
+          <p data-swap>{round.commentary}</p>
+          <a href="#prompts">{t('返回提示词库')} ↗</a>
+        </details>
+        {soloNotice && <output>{t('现在只有这一个竞技场——先去提示词库看看别的题吧。')}</output>}
       </main>
-
-      <footer className="system-footer">
-        <span>
-          <span className="live-dot" /> {t('SYSTEM ONLINE')}
-          <i /> {t('NO RIGHT ANSWER.')}
-        </span>
-        <span className="footer-keyboard">
-          <kbd>{t('A')}</kbd> {t('左侧')}
-          <kbd>{t('D')}</kbd> {t('右侧')}
-          <kbd>{t('N')}</kbd> {t('同题换组')}
-        </span>
-        <span>
-          {t('仅供体验')}
-          <span className="footer-cross">＋</span> {t('ARENA OF')}
-          {localize(' ')}
-          <span className="brand-tag">{t('BIAS')}</span> / 2026
-        </span>
-      </footer>
 
       <Dialog
         open={expanded !== null}

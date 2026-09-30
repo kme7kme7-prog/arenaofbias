@@ -51,7 +51,8 @@ export function FixedHtmlWork({
           height={canvas.height}
           src={inline ? undefined : content.src}
           srcDoc={inline ? content.html : undefined}
-          sandbox={inline ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
+          sandbox={inline || content.sandboxed ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
+          data-ready-probe={!inline && content.sandboxed ? 'required' : undefined}
           inert={!interactive}
           style={{
             width: canvas.width,

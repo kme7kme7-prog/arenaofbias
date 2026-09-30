@@ -72,8 +72,12 @@ function gridContrast(img, { x0, x1, y0, y1, pitch, phase }) {
     }
     const onAvg = on / onN, offAvg = off / offN;
     const delta = offAvg - onAvg; // 网格线更暗 → 正值
-    if (delta > best.delta)
-      best.onLine = onAvg, best.offLine = offAvg, best.delta = delta, best.bestPhase = p;
+    if (delta > best.delta) {
+      best.onLine = onAvg;
+      best.offLine = offAvg;
+      best.delta = delta;
+      best.bestPhase = p;
+    }
   }
   return best;
 }

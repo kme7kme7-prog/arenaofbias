@@ -8,6 +8,8 @@
 
 `promptVariants` 保存同一道题的长短原文，前端保留 `{id, label, prompt}` 并由 `components/prompt-variant-switch.tsx` 提供题库和待收录预览的切换按钮。没有可比较作品的题落提示词预览页。生产题库是否包含新增题，取决于后端实际消费的数据包版本，不能只据前端代码版本判断。
 
+旧公测修复已按现行接口归并：主站首页 / 竞技场精简、每日挑战存档与跨标签同步、评价队列账号隔离、浏览器分享卡移动保存和脚本修复。共享后端仍需登录计票，兼容评价使用 `mid`；原 `/api/submissions` 和单体后端迁移没有合入当前源码。投稿入口指向 Gallery 的现行选题与提交流程，不调用旧接口。原始实现可从合并父提交 `e4c3980` 读取，完整取舍见本轮 beta-repair-merge 归档。
+
 ## 技术栈
 
 - 前端：Vite 8 + React 19 + TypeScript，hash 路由由 `src/main.tsx` 分发；Tailwind 4（postcss）；页面样式为各页独立 CSS（`app/*.css`）。

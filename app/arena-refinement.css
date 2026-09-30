@@ -872,3 +872,67 @@ html[lang='en'] .arena-shell .vote-copy strong {
 @media (prefers-reduced-motion: reduce) {
   .audience-verdict, .audience-verdict::before, .audience-verdict::after, .audience-verdict.is-leaving, .verdict-count, .verdict-bar:not(.is-empty), .verdict-loader i { animation: none; }
 }
+/* 公测精简：先看作品，说明按需展开；不改身份解密及入场时序。 */
+.arena-shell .topbar { position: sticky; top: 0; z-index: 70; height: 56px; gap: 24px; box-shadow: none; }
+.arena-shell .brand strong { font-size: 19px; }
+.arena-shell .brand .arena-mark { scale: .6; margin: -10px; }
+.arena-shell .main-terminal { width: calc(100% - 48px); max-width: 1640px; padding-top: 18px; }
+.arena-shell .briefing { display: block; min-height: 62px; padding: 10px 16px; scroll-margin-top: 72px; }
+.arena-shell .briefing-heading { display: flex; align-items: center; gap: 16px; min-height: 40px; }
+.arena-shell .round-tag { align-self: center; min-height: 36px; padding: 0; }
+.arena-shell .round-tag b { margin: 0; font: 650 25px/1.4 var(--mono); }
+.arena-shell .briefing-copy { min-width: 0; min-height: 36px; flex: 1; padding-left: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 7px 20px; }
+.arena-shell .briefing h1 { font-size: 20px; line-height: 1.5; font-weight: 750; margin: 0; }
+.arena-shell .prompt-toggle { min-width: 0; min-height: 36px; padding: 0; display: flex; align-items: center; text-align: left; cursor: pointer; color: var(--text-4f634b); font-size: 12px; line-height: 1.5; font-weight: 500; }
+.arena-shell .prompt-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.arena-shell .briefing-prompt { max-width: 1040px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.8; margin: 10px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line-a9b2a4-38); }
+.arena-mode-label { display: flex; align-items: center; align-self: center; min-height: 36px; margin-left: auto; padding: 0; white-space: nowrap; font-size: 12px; line-height: 1.5; color: var(--text-819079); }
+.arena-shell .field-meta { height: 30px; justify-content: space-between; font-size: 12px; }
+.arena-shell .field-status { position: static; transform: none; font-size: 12px; }
+.arena-shell .arena-stage { column-gap: 28px; row-gap: 12px; }
+.arena-shell .panel-heading { height: 40px; }
+.arena-shell .panel-bottom { height: 20px; }
+.arena-shell .work-viewport:not(.is-story):not(.is-fixed-canvas) { height: clamp(300px, 55svh, 620px); }
+.arena-shell .vote-button { height: 52px; margin-top: 10px; }
+.arena-shell .draw-row { gap: 16px; }
+.arena-shell .vote-draw { height: 46px; width: 264px; border: 1px solid var(--line-76836a); background: var(--surface-f3f4ec); box-shadow: 2px 3px 0 color-mix(in srgb, var(--surface-a2ad87) 44%, transparent); color: var(--text-main); }
+.arena-shell .vote-draw .vote-copy strong { font-size: 15px; letter-spacing: .03em; font-weight: 700; }
+.arena-shell .vote-draw:not(:disabled):hover { border-color: var(--ink); background: var(--surface-e4ebd8); box-shadow: 2px 4px 0 var(--surface-a2ad87); }
+.arena-shell .vote-draw:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+.arena-shell .round-console { min-height: 60px; margin-top: 16px; padding: 0; justify-content: flex-end; gap: 20px; }
+.arena-shell .round-actions { flex-wrap: wrap; gap: 16px; }
+.arena-shell .continue-buttons .continue-other { background: transparent; color: var(--text-main); border: 1px solid var(--line-89977d); box-shadow: none; }
+.arena-shell .continue-buttons .continue-other > svg { color: var(--text-4c6842); }
+.arena-shell .continue-buttons .continue-same { background: var(--surface-inset); color: var(--acid); box-shadow: inset 0 -2px 0 var(--surface-82964e); }
+.arena-shell .continue-buttons .continue-other:not(:disabled):hover { background: var(--surface-d4dec7); }
+.arena-shell .continue-buttons .continue-same:not(:disabled):hover { background: var(--surface-344537); color: var(--text-d8f36a); }
+.arena-shell .arena-context { padding: 12px 0; margin-top: 10px; border-top: 1px solid var(--line-9ba794-44); color: var(--text-56614d); font-size: 13px; }
+.arena-context summary { cursor: pointer; width: fit-content; padding: 4px 0; }
+.arena-context p { line-height: 1.8; margin: 10px 0; }
+.arena-context a { display: inline-block; padding: 8px 0; text-decoration: underline; }
+.arena-shell .reaction-chip { border-radius: 0; min-height: 34px; }
+@media (max-width: 720px) {
+  .arena-shell .topbar { height: auto; min-height: 72px; padding: 8px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+  .arena-shell .brand { grid-column: 1; grid-row: 1; }
+  .arena-shell .brand strong { font-size: 17px; }
+  .arena-shell .terminal-label { grid-column: 2; grid-row: 1; width: auto; order: 0; margin: 0; padding: 0; border: 0; }
+  .arena-shell .header-right { grid-column: 1 / -1; grid-row: 2; width: auto; justify-content: flex-end; margin: 0; gap: 8px; }
+  .arena-shell .header-right .account-entry { max-width: min(180px, 48vw); }
+  .arena-shell .main-terminal { width: calc(100% - 24px); padding-top: 12px; }
+  .arena-shell .briefing { padding: 10px; scroll-margin-top: 108px; }
+  .arena-shell .briefing-heading { gap: 10px; }
+  .arena-shell .briefing-copy { padding-left: 10px; gap: 4px 12px; }
+  .arena-shell .briefing h1 { font-size: 18px; }
+  .arena-shell .round-tag b { font-size: 21px; }
+  .arena-mode-label { font-size: 10px; }
+  .arena-shell .arena-stage { row-gap: 16px; }
+  .arena-shell .work-viewport:not(.is-story):not(.is-fixed-canvas) { height: clamp(280px, 52svh, 460px); }
+  .arena-shell .round-console, .arena-shell .round-console.show-result { flex-direction: column; align-items: stretch; gap: 12px; }
+  .arena-shell .round-actions { width: 100%; gap: 10px 16px; justify-content: flex-end; }
+  .arena-shell .continue-options { width: 100%; }
+  .arena-shell .continue-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .arena-shell .continue-buttons .next-button { min-width: 0; width: 100%; padding-inline: 12px; gap: 8px; font-size: 12px; }
+  .arena-shell .vote-draw { width: min(264px, 80%); }
+}
+
+.arena-shell .continue-buttons .continue-same > svg { color: var(--acid); }

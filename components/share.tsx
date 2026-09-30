@@ -63,6 +63,7 @@ function ShareSheet({ query }: { query: string }) {
   const [manual, setManual] = useState(false);
   const [run, setRun] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
+  const mobileSave = window.matchMedia('(pointer: coarse)').matches;
   useEffect(() => {
     let objectUrl = '';
     let disposed = false;
@@ -108,6 +109,17 @@ function ShareSheet({ query }: { query: string }) {
     } catch (err) {
       if (!(err instanceof Error && err.name === 'AbortError'))
         setStatus(t('系统分享暂不可用，请保存图片或复制链接。'));
+    }
+  }
+  async function saveOnPhone() {
+    if (!file || !meta) return;
+    try {
+      // File 已预取，点击后直接调用，保留移动浏览器要求的用户激活。
+      await navigator.share({ files: [file], title: meta.title });
+      setStatus(t('请在系统面板中选择保存图片或分享。'));
+    } catch (err) {
+      if (!(err instanceof Error && err.name === 'AbortError'))
+        setStatus(t('请点“打开原图保存”，长按图片保存；也可在系统浏览器中打开。'));
     }
   }
   return (
@@ -156,11 +168,16 @@ function ShareSheet({ query }: { query: string }) {
           <a
             className={`share-save ${file ? '' : 'is-disabled'}`}
             href={imageUrl || undefined}
-            download="arena-of-bias.png"
+            download={mobileSave ? undefined : 'arena-of-bias.png'}
+            target={mobileSave ? '_blank' : undefined}
+            rel="noreferrer"
             aria-disabled={!file}
             onClick={(event) => {
               if (!file) event.preventDefault();
-              else setStatus(t('已发起下载；手机也可长按卡片保存。'));
+              else if (mobileSave && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+                event.preventDefault();
+                void saveOnPhone();
+              } else setStatus(t(mobileSave ? '已打开原图，请长按图片保存。' : '已发起下载；手机也可长按卡片保存。'));
             }}
           >
             <Download size={18} />
@@ -190,6 +207,9 @@ function ShareSheet({ query }: { query: string }) {
             </button>
           )}
           <p className="share-help">{t('手机可长按左侧或上方卡片保存。')}</p>
+          {file && <a className="share-open" href={imageUrl} target="_blank" rel="noreferrer">
+            {t('打开原图保存')} ↗
+          </a>}
           {meta && (
             <a
               className="share-open"
@@ -294,7 +314,7 @@ export function PageShare() {
   ).toString();
   return (
     <aside className="site-share-footer">
-      <span>{t('好题，值得一起玩。')}</span>
+      {hash !== '#home' && hash !== '' && <span>{t('好题，值得一起玩。')}</span>}
       <ShareButton
         key={hash}
         query={query}

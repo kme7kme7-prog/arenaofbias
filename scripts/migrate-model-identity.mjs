@@ -131,13 +131,13 @@ const problems = [];
 const names = db
   .prepare('SELECT model_id AS id, COUNT(DISTINCT model_name) n FROM works GROUP BY model_id HAVING n > 1')
   .all();
-for (const n of names) problems.push(`model_id ${n.id} 仍有多个显示名`);
+for (const n of names) problems.push(`model_id ${String(n.id)} 仍有多个显示名`);
 const dupNames = db
   .prepare(
     'SELECT model_name AS name, COUNT(DISTINCT model_id) n FROM works WHERE is_demo = 0 GROUP BY model_name HAVING n > 1',
   )
   .all();
-for (const d of dupNames) problems.push(`显示名「${d.name}」挂在多个 model_id 上`);
+for (const d of dupNames) problems.push(`显示名「${String(d.name)}」挂在多个 model_id 上`);
 const orphan = db
   .prepare(
     `SELECT COUNT(*) n FROM votes v
@@ -145,7 +145,7 @@ const orphan = db
      WHERE w1.model_id != v.winner_mid OR w2.model_id != v.loser_mid OR v.winner_mid = v.loser_mid`,
   )
   .get();
-if (orphan.n > 0) problems.push(`有 ${orphan.n} 条票面 mid 与作品表不一致或仍是自票`);
+if (orphan.n > 0) problems.push(`有 ${String(orphan.n)} 条票面 mid 与作品表不一致或仍是自票`);
 
 const after = db
   .prepare(
@@ -157,7 +157,7 @@ console.log(
   `迁移完成：works 改写 ${workPlans.length} 行，删除自票 ${selfVotes.length} 条，` +
     `删除撞槽反应 ${droppedReactions.length} 条，合并后真实模型 ${new Set(after.map((a) => a.id)).size} 个`,
 );
-for (const a of after) console.log(`  ${a.id}  ${a.name}`);
+for (const a of after) console.log(`  ${String(a.id)}  ${String(a.name)}`);
 if (problems.length) {
   console.error('复核未通过：');
   for (const p of problems) console.error('  ' + p);

@@ -1,13 +1,6 @@
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
-import {
-  ArrowUpRight,
-  ArrowRight,
-  Crosshair,
-  Fingerprint,
-  PanelsTopLeft,
-  ChartNoAxesColumn,
-} from 'lucide-react';
+import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
@@ -43,9 +36,7 @@ export function HomeNext({
   };
   return (
     <div className="next-home">
-      <div className="next-backdrop" aria-hidden="true">
-        <span>BIAS</span>
-      </div>
+      <div className="next-backdrop" aria-hidden="true" />
       <header className="next-header">
         <a
           href="#home"
@@ -57,10 +48,10 @@ export function HomeNext({
           </span>
           <span>
             {t('ARENA OF')} <b className="brand-tag">{t('BIAS')}</b>
-            <small>{t('偏见试验场 / EST. 2026')}</small>
           </span>
         </a>
         <nav aria-label={t('主导航')}>
+          <a href="https://gallery.arenaofbias.icu/#/questions">{t('投稿作品')}</a>
           <a
             href="#prompts"
             onClick={(e) => {
@@ -69,7 +60,6 @@ export function HomeNext({
             }}
           >
             {t('提示词库')}
-            <ArrowUpRight size={14} />
           </a>
           <a
             href="#rank"
@@ -79,7 +69,6 @@ export function HomeNext({
             }}
           >
             {t('偏好榜')}
-            <ArrowUpRight size={14} />
           </a>
         </nav>
         <div className="next-utilities">
@@ -90,10 +79,6 @@ export function HomeNext({
       </header>
       <main className="next-main">
         <section className="next-copy">
-          <div className="next-kicker">
-            <span />
-            {t('HUMAN INSTINCT / AI EXPRESSION')}
-          </div>
           <h1>
             {t('好不好，')}
             <br />
@@ -103,15 +88,10 @@ export function HomeNext({
               <span className="next-period">{t('。')}</span>
             </span>
           </h1>
-          <p className="next-intro">
-            {t('同一个提示词，不同模型的答案。')}
-            <br />
-            <span>{t('先别看名字，把答案交给第一直觉。')}</span>
-          </p>
+          <p className="next-intro">{t('同一提示词，匿名比较模型作品。')}</p>
           <div className="next-actions">
             <button className="next-enter" disabled={leaving} onClick={enter}>
-              <Fingerprint size={29} />
-              <span>{t(leaving ? '正在进入' : '进入评测，凭直觉选')}</span>
+              <span>{t(leaving ? '正在进入' : '开始评测')}</span>
               <ArrowRight size={26} />
             </button>
             <button
@@ -123,66 +103,34 @@ export function HomeNext({
               <ArrowRight size={17} />
             </button>
           </div>
-          <nav className="next-discover" aria-label={t('继续探索')}>
-            <a
-              href="#prompts"
-              aria-label={t('提示词库')}
-              onClick={(e) => {
-                e.preventDefault();
-                convoyNavigate('#prompts', 'PROMPT LIBRARY');
-              }}
-            >
-              <PanelsTopLeft size={19} aria-hidden="true" />
-              <span>
-                <strong>{t('提示词库')}</strong>
-                <small>{t('找一个感兴趣的题目')}</small>
-              </span>
-              <ArrowUpRight size={17} aria-hidden="true" />
-            </a>
-            <a
-              href="#rank"
-              aria-label={t('偏好榜')}
-              onClick={(e) => {
-                e.preventDefault();
-                rank();
-              }}
-            >
-              <ChartNoAxesColumn size={19} aria-hidden="true" />
-              <span>
-                <strong>{t('偏好榜')}</strong>
-                <small>{t('看看大家怎么选')}</small>
-              </span>
-              <ArrowUpRight size={17} aria-hidden="true" />
-            </a>
-          </nav>
-          <div className="next-invitation">
-            <span className="next-invitation-mark" aria-hidden="true">
-              +
-            </span>
-            <span>{t('不必懂模型。懂自己的喜欢就够了。')}</span>
-          </div>
         </section>
-        <section className="next-gallery" aria-label={t('作品对比预览')}>
-          <div className="next-stage-rules" aria-hidden="true" />
+        <section className="next-gallery" aria-label={t('作品示例')}>
           <div className="next-gallery-heading">
-            <span>
-              <Crosshair size={15} />
-              {t('同一命题，不同答案。')}
-            </span>
-            <span>0{exhibit + 1} / 03</span>
+            <span>{t('作品示例')}</span>
+            <fieldset
+              className="next-gallery-types"
+              aria-label={t('预览作品类型')}
+            >
+              {['图像', '文字', '网页'].map((label, i) => (
+                <button
+                  aria-pressed={exhibit === i}
+                  key={label}
+                  onClick={() => setExhibit(i)}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </fieldset>
           </div>
-          <div className="next-artworks" key={exhibit}>
+          <div
+            className={`next-artworks next-artworks-${['image', 'text', 'web'][exhibit]}`}
+            key={exhibit}
+          >
             {['a', 'b'].map((side, i) => (
               <article
                 className={`next-artwork next-artwork-${side}`}
                 key={side}
               >
-                <header className="next-window-bar">
-                  <b>{side.toUpperCase()}</b>
-                  <span>{t('身份暂不公开')}</span>
-                  <i aria-hidden="true" />
-                  <ArrowUpRight size={14} />
-                </header>
                 <div className="next-artwork-image">
                   {exhibit === 0 ? (
                     <img
@@ -230,76 +178,18 @@ export function HomeNext({
                       <div className="next-planet" />
                     </div>
                   )}
-                  <span className="next-artwork-letter">
-                    {side.toUpperCase()}
-                  </span>
                 </div>
                 <footer>
-                  <span>
-                    <small>
-                      {t('匿名作品')} / 0{i + 1}
-                    </small>
-                    <strong>
-                      {t(
-                        exhibit === 0
-                          ? i === 0
-                            ? '潮汐之上'
-                            : '落日之后'
-                          : exhibit === 1
-                            ? '字里行间，各有回声。'
-                            : '同一块屏幕，不同答案。',
-                      )}
-                    </strong>
-                  </span>
-                  <ArrowUpRight size={22} />
+                  <b className="next-artwork-side">{side.toUpperCase()}</b>
+                  {exhibit === 0 && (
+                    <span>{t(i === 0 ? '潮汐之上' : '落日之后')}</span>
+                  )}
                 </footer>
               </article>
             ))}
           </div>
-          <div className="next-versus" aria-hidden="true">
-            <span>VS</span>
-            <small>{t('你的判断')}</small>
-          </div>
-          <div className="next-gallery-bottom">
-            <span>{t('演示展陈 · 模型身份暂不公开')}</span>
-            <fieldset aria-label={t('预览作品类型')}>
-              {['图像', '文字', '网页'].map((label, i) => (
-                <button
-                  aria-pressed={exhibit === i}
-                  key={label}
-                  onClick={() => setExhibit(i)}
-                >
-                  {t(label)}
-                </button>
-              ))}
-            </fieldset>
-          </div>
         </section>
       </main>
-      <footer className="next-footer">
-        <div className="next-footer-motto">
-          {t('没有标准答案，只有你的答案。')}
-        </div>
-        <ol>
-          <li>
-            <b>01</b>
-            {t('看作品')}
-          </li>
-          <li>
-            <b>02</b>
-            {t('凭直觉')}
-          </li>
-          <li>
-            <b>03</b>
-            {t('聊两句')}
-          </li>
-        </ol>
-        <span className="next-footer-sign">
-          HUMAN INSTINCT.
-          <br />
-          AI EXPRESSION.
-        </span>
-      </footer>
     </div>
   );
 }
