@@ -1,5 +1,13 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · shared-question-release（新题库已在生产读取）
+
+- 用户要求检查并继续完成新版题库与 Gallery 切换。共享后端及新包已经切入生产，正式主站现显示 25 题（20 共用 + 5 历史），SupernovAI（014）、云山巨城（016）各保持一个题号并支持长/短原文切换。主站静态仍为 `980541642706a3cd9141c3c90ab0da55bec93b87`，786 文件完整 manifest 与上线前相同；本仓本轮只补交接文档。
+- 配套 server 已上线 `f4685c9345fa26688ae337555e5a842aba08093c`，数据为 `4c926d5f8a3c240ff769de360a9168abbe4e9dfc`；Gallery 已独立合并并发布最终 `ccfd11d11e407af3c75c2e5482cc773a74996c2a`，没有合并不同前端。后台变体仅输出 id/label/prompt，原文保持，私有来源不公开。
+- 正式 API 25 题、两组变体与原始包逐字一致；公网浏览器主站题库 25 题、014/016 长短原文切换正常，console error 空。Gallery 20 题/83 件、提示词切换和当前短版复制通过；空题榜单请求减少后正常导航无 429。两题都没有实际结果，未伪造作品或声称生产结果配对验收。
+- 本机及 VPS 后端 check 68 文件、141/141、Gallery 14/14 和构建/intake 通过，功能 CI 成功。业务库 v19 与既有用户/作品/投票等七表逐行保持；Nginx、审核、截图和 relay 配置不变。没有生产测试票、投稿或付费审核。
+- 本仓仅文档，未重复 typecheck/build/lint，未重测手机或全部原作。实际回滚、停写库和完整证据在 server 本轮运维交接；当前无待部署项。详见 `docs/handoff/2026-09-30-shared-question-release-wsnxxxs.md`。
+
 ## 2026-09-30 · vote-release（已推送、上线，两站旧票已清零）
 
 - 主站 `980541642706a3cd9141c3c90ab0da55bec93b87` 与共享后端 `c0ab6acf225ebcb4d99a7c3a5e145d011ee93d37` 已普通快进推送上游 main / `show1-vote-processing` 并发布 VPS。保留最新纸墨主题、共用题目长短原文切换与后端 Luna 审核/relay；收尾文档提交不重新部署，线上版本以这些源码 SHA 为准。
