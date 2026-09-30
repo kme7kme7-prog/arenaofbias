@@ -5,9 +5,13 @@ import { AccountButton } from '@/components/account';
 import { ArrowUpRight } from 'lucide-react';
 import type { ModelResult, Prompt } from '@/lib/arena';
 import { currentResultsForPrompt } from '@/lib/placeholder';
+import { useState } from 'react';
+import { PromptVariantSwitch } from '@/components/prompt-variant-switch';
 
 export default function PromptPreview({ prompt }: { prompt: Prompt }) {
   const { t, localize } = useI18n();
+  const [variant, setVariant] = useState(prompt.promptVariants?.[0]?.id ?? '');
+  const promptText = prompt.promptVariants?.find((item) => item.id === variant)?.prompt ?? prompt.prompt;
   const example = currentResultsForPrompt(prompt.id).find(
     (
       result,
@@ -39,7 +43,8 @@ export default function PromptPreview({ prompt }: { prompt: Prompt }) {
           <span /> {localize(prompt.code)} / {localize(prompt.id)}
         </div>
         <h1>{prompt.name}</h1>
-        <p className="sample-prompt">{prompt.prompt}</p>
+        <PromptVariantSwitch prompt={prompt} selected={variant} onChange={setVariant} />
+        <p className="sample-prompt">{promptText}</p>
         <div className="sample-status">
           <b>{localize(example ? '演示样例' : '结果待接入')}</b>
           <span>

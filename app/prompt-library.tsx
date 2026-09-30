@@ -2,6 +2,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
+import { PromptVariantSwitch } from '@/components/prompt-variant-switch';
 import {
   useLayoutEffect,
   useRef,
@@ -96,8 +97,10 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
   );
   const panel = useRef<HTMLElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [variant, setVariant] = useState(prompt.promptVariants?.[0]?.id ?? '');
+  const promptText = prompt.promptVariants?.find((item) => item.id === variant)?.prompt ?? prompt.prompt;
   const stats = promptStats(prompt.id);
-  const long = prompt.prompt.length > 180;
+  const long = promptText.length > 180;
   useLayoutEffect(
     () => (panel.current ? revealLibrary(panel.current) : undefined),
     [],
@@ -167,14 +170,17 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
           <div className="archive-brief-heading">
             <span>{t('命题原文')}</span>
             <span>
-              {prompt.prompt.length} {t('字符')}
+              {promptText.length} {t('字符')}
             </span>
           </div>
+          <PromptVariantSwitch prompt={prompt} selected={variant} onChange={(id) => {
+            setVariant(id); setExpanded(false);
+          }} />
           <div
             id={`brief-${prompt.id}`}
             className={`archive-brief-text ${long && !expanded ? 'is-collapsed' : ''}`}
           >
-            {prompt.prompt}
+            {promptText}
           </div>
           {long && (
             <button

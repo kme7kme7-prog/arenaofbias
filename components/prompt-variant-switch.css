@@ -1,0 +1,3 @@
+.prompt-variant-switch { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; border: 0; margin: 12px 0; }
+.prompt-variant-switch button { padding: 7px 12px; border: 1px solid var(--border); background: transparent; color: var(--text-main); font: inherit; cursor: pointer; }
+.prompt-variant-switch button[aria-pressed='true'] { background: var(--accent); color: var(--on-accent); }

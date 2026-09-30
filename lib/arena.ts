@@ -99,6 +99,7 @@ export type Prompt = {
   code: string;
   name: string;
   prompt: string;
+  promptVariants?: { id: string; label: string; prompt: string }[];
   commentary: string;
   detail: string;
   /** 六维权重（决策 093，与 RADAR_DIMENSIONS 同序）：缺省 = 未配置 → 六维均分兜底 */

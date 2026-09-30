@@ -1,5 +1,12 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · shared-question-intake（本地完成，未部署）
+
+- 共享后端提供新增正式题目，SupernovAI 与云山巨城各是一个题号并带长/短原文。题库与待收录预览页同步提供按钮切换，最终用户决定追加至 docs/DECISIONS.md。
+- typecheck/build 与本轮 5 个源码文件定向 lint 通过；全量 lint 存在 9 条既有 scripts 错误（grid-contrast-check、.tmp-mobile、.tmp-crosscheck、migrate-model-identity），未改这些文件。
+- 真实浏览器核对 25 题（20 正式 + 5 历史）、两组原文切换和无作品预览；桌面目视通过，390px override 未生效，因此未声称手机验收或全部原作交互通过。
+- 仅本地提交，无 push/部署，生产数据库/旧票/作品未改。归档见 docs/handoff/2026-09-30-shared-question-intake-wsnxxxs.md。
+
 ## 2026-09-30 · vote-branch-sync（已改名并同步最新远端，未推送）
 
 - 用户要求删除分支名的 codex 字样；主站与 server 本轮分支均为 `show1-vote-processing`。已 fetch origin/fork；主站远端新增 `613f912`、`09387a9` 两条双主题提交，本分支已 rebase 到 `origin/main@09387a9`，投票功能提交由 `70f7009` 变为 `53b6351`。

@@ -33,6 +33,13 @@ function parsePromptRow(row: unknown): Prompt | null {
       typeof candidate.commentary === 'string' ? candidate.commentary : '',
     detail: typeof candidate.detail === 'string' ? candidate.detail : '',
   };
+  if (Array.isArray(candidate.promptVariants)) {
+    parsed.promptVariants = candidate.promptVariants.filter(
+      (variant): variant is { id: string; label: string; prompt: string } =>
+        variant && typeof variant.id === 'string' &&
+        typeof variant.label === 'string' && typeof variant.prompt === 'string',
+    );
+  }
   // 六维权重（决策 093）：非法/缺失按「未配置」处理——不丢整行，重放时走均分兜底
   const weights = candidate.weights;
   if (
