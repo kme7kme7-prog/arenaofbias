@@ -1,0 +1,14 @@
+.theme-review { max-width: 1100px; margin: auto; padding: 40px 24px; }
+.theme-review header { display: flex; justify-content: space-between; align-items: start; }
+.theme-review h1 { font-size: clamp(40px, 7vw, 76px); margin: 24px 0; }
+.theme-review p { line-height: 1.8; }
+.theme-review button, .theme-review input { border: 1px solid var(--control-line); background: var(--card); color: var(--text-main); padding: 12px 16px; }
+.review-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0; }
+.review-palette { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.review-palette article { padding: 24px; background: var(--card); border: 1px solid var(--border); }
+.review-muted { color: var(--muted-foreground); }
+.review-palette .review-media { background: var(--media-matte); }
+.review-media div { padding: 60px 16px; background: var(--artwork-original-paper); color: var(--artwork-original-ink); border: 1px solid var(--media-line); text-align: center; }
+#stage { position: relative; height: 360px; border: 1px solid var(--border); overflow: hidden; background: var(--card); }
+#stage > p { padding: 24px; }
+@media(max-width: 620px) { .review-palette { grid-template-columns: 1fr; } }

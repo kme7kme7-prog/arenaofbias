@@ -1,3 +1,4 @@
+import { useReducedMotion } from '@/lib/motion';
 import { useLayoutEffect, useRef } from 'react';
 import {
   createRollingText,
@@ -12,6 +13,7 @@ export function RollingLabel({
   text: string;
   reduced?: boolean;
 }) {
+  const systemReduced = useReducedMotion();
   const host = useRef<HTMLSpanElement>(null);
   const controller = useRef<RollingTextController | null>(null);
   useLayoutEffect(() => {
@@ -22,7 +24,7 @@ export function RollingLabel({
       stagger: 'none',
       duration: 460,
       direction: 'up',
-      motionBlur: true,
+      motionBlur: false,
       animated: false,
     });
     let live = true;
@@ -36,7 +38,7 @@ export function RollingLabel({
     };
   }, []);
   useLayoutEffect(() => {
-    controller.current?.update({ text, animated: !reduced });
-  }, [text, reduced]);
+    controller.current?.update({ text, animated: !reduced && !systemReduced });
+  }, [text, reduced, systemReduced]);
   return <span ref={host} />;
 }

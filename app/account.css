@@ -3,7 +3,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 15px;
-  border: 1px solid #89977d;
+  border: 1px solid var(--line-89977d);
   color: inherit;
   background: transparent;
   flex-shrink: 0;
@@ -17,7 +17,7 @@
   white-space: nowrap;
 }
 .account-entry:hover {
-  color: #728443;
+  color: var(--text-728443);
 }
 
 /* The popup is the stack; only the front sheet scrolls. */
@@ -29,21 +29,19 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #25302b;
+  color: var(--text-25302b);
   overflow: visible;
   box-shadow: none;
   --tw-ring-shadow: 0 0 transparent;
   animation: none;
   opacity: 1;
-  transform: translateX(0);
-  transition:
-    opacity 0.32s ease,
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: none;
+  transition: none;
 }
 .account-dialog[data-starting-style],
 .account-dialog[data-ending-style] {
-  opacity: 0;
-  transform: translateX(-65px);
+  opacity: 1;
+  transform: none;
 }
 .account-overlay[data-slot='dialog-overlay'] {
   animation: none;
@@ -58,10 +56,10 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border: 1px solid #a5ad96;
+  border: 1px solid var(--line-a5ad96);
   transform-origin: left center;
   transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
-  box-shadow: 0 8px 18px #17221920;
+  box-shadow: var(--shadow-1, 0 8px 18px var(--surface-172219-13));
 }
 .account-paper span {
   position: absolute;
@@ -69,14 +67,14 @@
   right: 25px;
   font-size: 9px;
   letter-spacing: 0.18em;
-  color: #68715a;
+  color: var(--text-68715a);
 }
 .account-paper-back {
-  background: #b8c2a4;
+  background: var(--surface-b8c2a4);
   transform: translate(-13px, 7px) rotate(-4deg);
 }
 .account-paper-middle {
-  background: #e0dfcc;
+  background: var(--surface-e0dfcc);
   transform: translate(12px, 10px) rotate(2.7deg);
   transition-delay: 0.06s;
 }
@@ -90,8 +88,8 @@
   max-height: calc(100dvh - 96px);
   overflow-y: auto;
   overflow-x: hidden;
-  border: 1px solid #abb09a;
-  background-color: #f0f0e4;
+  border: 1px solid var(--line-abb09a);
+  background-color: var(--surface-f0f0e4);
   transition:
     height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
     clip-path 0.6s cubic-bezier(0.22, 1, 0.36, 1);
@@ -100,27 +98,27 @@
     linear-gradient(
       90deg,
       transparent 27px,
-      #bc70562b 27px,
-      #bc70562b 28px,
+      var(--surface-bc7056-17) 27px,
+      var(--surface-bc7056-17) 28px,
       transparent 28px
     ),
     repeating-linear-gradient(
       0deg,
       transparent 0,
       transparent 27px,
-      #6e79510b 27px,
-      #6e79510b 28px
+      var(--surface-6e7951-4) 27px,
+      var(--surface-6e7951-4) 28px
     ),
-    radial-gradient(#50563517 0.55px, transparent 0.8px);
+    radial-gradient(var(--surface-505635-9) 0.55px, transparent 0.8px);
   background-size:
     auto,
     auto,
     4px 4px;
   box-shadow:
-    0 2px 3px #18211815,
-    0 24px 70px #101c2345;
+    var(--shadow-2, 0 2px 3px var(--surface-182118-8),
+    0 24px 70px var(--surface-101c23-27));
   scrollbar-width: thin;
-  scrollbar-color: #aab397 transparent;
+  scrollbar-color: var(--surface-aab397) transparent;
 }
 .account-sheet-content {
   padding: 24px 36px 18px 48px;
@@ -136,19 +134,19 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #7e89766b;
+  background: var(--surface-7e8976-42);
   box-shadow:
-    inset 1px 2px 3px #29342555,
-    0 156px #7e89766b,
-    0 312px #7e89766b;
+    var(--shadow-3, inset 1px 2px 3px var(--surface-293425-33),
+    0 156px var(--surface-7e8976-42),
+    0 312px var(--surface-7e8976-42));
 }
 .account-paper-meta {
   display: flex;
   justify-content: space-between;
   padding-bottom: 14px;
   margin-right: 15px;
-  border-bottom: 1px solid #939b7855;
-  color: #6d775d;
+  border-bottom: 1px solid var(--line-939b78-33);
+  color: var(--text-6d775d);
   font-size: 10px;
   letter-spacing: 0.12em;
 }
@@ -159,7 +157,7 @@
 .account-eyebrow {
   font-size: 9px;
   letter-spacing: 0.2em;
-  color: #738052;
+  color: var(--text-738052);
   margin-bottom: 13px;
 }
 .account-dialog h2 {
@@ -174,7 +172,7 @@
 .account-dialog [data-slot='dialog-description'] {
   position: relative;
   z-index: 1;
-  color: #697060;
+  color: var(--text-697060);
   font-size: 12px;
   margin-top: 10px;
   line-height: 1.7;
@@ -185,8 +183,8 @@
   top: 14px;
   width: 88px;
   height: 88px;
-  border: 2px solid #708153;
-  outline: 1px solid #708153;
+  border: 2px solid var(--line-708153);
+  outline: 1px solid var(--line-708153);
   outline-offset: -6px;
   border-radius: 50%;
   display: flex;
@@ -194,7 +192,7 @@
   justify-content: center;
   align-items: center;
   gap: 4px;
-  color: #708153;
+  color: var(--text-708153);
   opacity: 0.2;
   transform: rotate(14deg);
   pointer-events: none;
@@ -217,7 +215,7 @@
   display: flex;
   position: relative;
   margin: 0 0 12px;
-  border-bottom: 2px solid #25302b;
+  border-bottom: 2px solid var(--line-25302b);
   gap: 5px;
 }
 .account-modes button {
@@ -226,9 +224,9 @@
   gap: 9px;
   flex: 1;
   padding: 12px 13px;
-  background: #dfe2d1;
-  color: #78816d;
-  border: 1px solid #aab298;
+  background: var(--surface-dfe2d1);
+  color: var(--text-78816d);
+  border: 1px solid var(--line-aab298);
   border-bottom: 0;
   clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
   transition:
@@ -247,19 +245,19 @@
   color: inherit;
 }
 .account-modes button:hover {
-  background: #d3dac0;
+  background: var(--surface-d3dac0);
 }
 .account-modes button[aria-pressed='true'] {
-  background: #25302b;
-  color: #dcfa63;
+  background: var(--surface-25302b);
+  color: var(--text-dcfa63);
   translate: 0 -3px;
-  box-shadow: 0 3px #25302b;
+  box-shadow: var(--shadow-4, 0 3px var(--surface-25302b));
 }
 .account-fields {
-  animation: account-page 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: none;
 }
 .account-fields > * {
-  animation: account-ink 0.5s both;
+  animation: none;
 }
 .account-fields > :nth-child(n + 3) {
   animation-delay: 0.06s;
@@ -281,16 +279,16 @@
   font-size: 8px !important;
   letter-spacing: 0.15em;
   font-weight: 400;
-  color: #879079 !important;
+  color: var(--text-879079) !important;
 }
 .account-form input {
   display: block;
   width: 100%;
   padding: 12px 13px;
   margin-top: 7px;
-  background: #ffffff57;
-  border: 1px solid #a3ad8c80;
-  border-bottom: 2px solid #8e997a;
+  background: var(--surface-ffffff-34);
+  border: 1px solid var(--line-a3ad8c-50);
+  border-bottom: 2px solid var(--line-8e997a);
   font: inherit;
   font-size: 16px;
   border-radius: 0;
@@ -300,20 +298,20 @@
     box-shadow 0.2s;
 }
 .account-form input::placeholder {
-  color: #a1a691;
+  color: var(--text-a1a691);
   font-size: 12px;
   font-weight: 400;
 }
 .account-form input:focus {
   outline: none;
-  background: #fffef2;
-  border-color: #7b8b49;
+  background: var(--surface-fffef2);
+  border-color: var(--line-7b8b49);
   box-shadow:
-    inset 4px 0 #cfe95a,
-    0 3px 0 #81905214;
+    var(--shadow-5, inset 4px 0 var(--surface-cfe95a),
+    0 3px 0 var(--surface-819052-8));
 }
 .account-form small {
-  color: #798169;
+  color: var(--text-798169);
   font-size: 10px;
   line-height: 1.6;
 }
@@ -330,14 +328,14 @@
   right: 6px;
   top: 12px;
   padding: 8px;
-  color: #69755c;
+  color: var(--text-69755c);
   transition: color 0.2s;
 }
 .password-field button:hover {
-  color: #25302b;
+  color: var(--text-25302b);
 }
 .account-error {
-  color: #a23423;
+  color: var(--text-a23423);
   font-size: 12px;
   min-height: 12px;
 }
@@ -345,7 +343,7 @@
   min-height: 0;
 }
 .account-notice {
-  color: #55733f;
+  color: var(--text-55733f);
   font-size: 12px;
   line-height: 1.6;
   min-height: 12px;
@@ -359,7 +357,7 @@
   margin-top: -2px;
   background: none;
   border: none;
-  color: #69755c;
+  color: var(--text-69755c);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -369,7 +367,7 @@
   transition: color 0.2s;
 }
 .account-link:hover {
-  color: #25302b;
+  color: var(--text-25302b);
 }
 .code-field {
   display: flex;
@@ -384,10 +382,10 @@
   flex: none;
   margin-top: 7px;
   padding: 0 14px;
-  background: #dfe2d1;
-  color: #25302b;
-  border: 1px solid #a3ad8c;
-  border-bottom: 2px solid #8e997a;
+  background: var(--surface-dfe2d1);
+  color: var(--text-25302b);
+  border: 1px solid var(--line-a3ad8c);
+  border-bottom: 2px solid var(--line-8e997a);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -398,8 +396,8 @@
     color 0.2s;
 }
 .account-code-send:hover:not(:disabled) {
-  background: #25302b;
-  color: #dcfa63;
+  background: var(--surface-25302b);
+  color: var(--text-dcfa63);
 }
 .account-code-send:disabled {
   opacity: 0.55;
@@ -416,9 +414,9 @@
   align-items: center;
   gap: 10px;
   padding: 11px 13px;
-  background: #ffffff57;
-  border: 1px solid #a3ad8c80;
-  border-left: 4px solid #cfe95a;
+  background: var(--surface-ffffff-34);
+  border: 1px solid var(--line-a3ad8c-50);
+  border-left: 4px solid var(--line-cfe95a);
 }
 .account-email-row .account-label {
   flex: none;
@@ -430,15 +428,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-  color: #3c4636;
+  color: var(--text-3c4636);
 }
 .account-email-action {
   flex: none;
   padding: 7px 12px;
-  background: #dfe2d1;
-  color: #25302b;
-  border: 1px solid #a3ad8c;
-  border-bottom: 2px solid #8e997a;
+  background: var(--surface-dfe2d1);
+  color: var(--text-25302b);
+  border: 1px solid var(--line-a3ad8c);
+  border-bottom: 2px solid var(--line-8e997a);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -447,20 +445,20 @@
     color 0.2s;
 }
 .account-email-action:hover:not(:disabled) {
-  background: #25302b;
-  color: #dcfa63;
+  background: var(--surface-25302b);
+  color: var(--text-dcfa63);
 }
 .account-submit {
   position: relative;
   overflow: hidden;
   margin-top: 7px;
-  background: #25302b;
-  color: #d9fb51;
+  background: var(--surface-25302b);
+  color: var(--text-d9fb51);
   padding: 16px 20px;
   text-align: left;
   font-size: 15px;
   font-weight: 700;
-  box-shadow: 3px 3px 0 #a2ad87;
+  box-shadow: var(--shadow-6, 3px 3px 0 var(--surface-a2ad87));
   transition:
     transform 0.2s,
     box-shadow 0.2s,
@@ -476,22 +474,22 @@
   transform: translateY(-50%) skewX(-25deg);
   background: repeating-linear-gradient(
     90deg,
-    #d9fb51 0 5px,
+    var(--surface-d9fb51) 0 5px,
     transparent 5px 10px
   );
   transition: width 0.3s;
 }
 .account-submit:hover:not(:disabled) {
   transform: translate(-1px, -2px);
-  box-shadow: 5px 6px 0 #a2ad87;
-  background: #344332;
+  box-shadow: var(--shadow-7, 5px 6px 0 var(--surface-a2ad87));
+  background: var(--surface-344332);
 }
 .account-submit:hover::after {
   width: 54px;
 }
 .account-submit:active:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 #a2ad87;
+  box-shadow: var(--shadow-8, 0 0 var(--surface-a2ad87));
 }
 .account-submit:disabled {
   opacity: 0.6;
@@ -501,10 +499,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-top: 1px dashed #929e7c80;
+  border-top: 1px dashed var(--line-929e7c-50);
   margin-top: 22px;
   padding-top: 13px;
-  color: #7c856d;
+  color: var(--text-7c856d);
   font-size: 8px;
   letter-spacing: 0.12em;
 }
@@ -514,9 +512,9 @@
   opacity: 0.65;
   background: repeating-linear-gradient(
     90deg,
-    #69765a 0 2px,
+    var(--surface-69765a) 0 2px,
     transparent 2px 4px,
-    #69765a 4px 5px,
+    var(--surface-69765a) 4px 5px,
     transparent 5px 8px
   );
 }
@@ -525,22 +523,22 @@
   right: 14px;
   z-index: 2;
   border-radius: 0;
-  color: #59634d;
+  color: var(--text-59634d);
   transition:
     transform 0.25s,
     background 0.25s;
 }
 .account-dialog > [data-slot='dialog-close']:hover {
   transform: rotate(90deg);
-  background: #dde4ca;
+  background: var(--surface-dde4ca);
 }
 .account-dialog button:focus-visible {
-  outline: 2px solid #798c38;
+  outline: 2px solid var(--line-798c38);
   outline-offset: 3px;
 }
 .comment-login {
   padding: 10px 0;
-  color: #4c613c;
+  color: var(--text-4c613c);
   text-align: left;
   text-decoration: underline;
 }
@@ -548,18 +546,8 @@
    新页从上方拍落桌面；2026-09-25 用户反馈「提醒字是歪的」——去掉起始的歪斜，
    只保留拍落的位移与缩放，落定全程文字水平。底纸堆的姿态偏移由组件按翻页次数
    换目标值，走 .account-paper 已有的 0.65s transform 过渡 */
-@keyframes account-page-turn {
-  0% {
-    opacity: 0;
-    transform: translateY(-32px) scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
 .account-page {
-  animation: account-page-turn 0.5s cubic-bezier(0.2, 1.35, 0.3, 1) both;
+  animation: none;
 }
 .account-verified {
   display: flex;
@@ -568,7 +556,7 @@
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  color: #55733f;
+  color: var(--text-55733f);
 }
 .account-verified::before {
   content: '✓';
@@ -578,8 +566,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #cfe95a;
-  color: #25302b;
+  background: var(--surface-cfe95a);
+  color: var(--text-25302b);
   font-size: 11px;
 }
 .account-success {
@@ -593,13 +581,13 @@
   width: 46px;
   height: 46px;
   margin-bottom: 14px;
-  border: 2px solid #25302b;
+  border: 2px solid var(--line-25302b);
   border-radius: 50%;
-  background: #cfe95a;
-  color: #25302b;
+  background: var(--surface-cfe95a);
+  color: var(--text-25302b);
   font-size: 20px;
   font-weight: 700;
-  box-shadow: 3px 3px 0 #a2ad87;
+  box-shadow: var(--shadow-6, 3px 3px 0 var(--surface-a2ad87));
 }
 .account-success h2 {
   margin: 0 auto 8px;
@@ -611,28 +599,8 @@
 .account-success p {
   margin: 0;
   font-size: 12px;
-  color: #798169;
+  color: var(--text-798169);
   line-height: 1.7;
-}
-@keyframes account-page {
-  from {
-    opacity: 0;
-    transform: translateX(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes account-ink {
-  from {
-    opacity: 0;
-    transform: translateY(7px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 @keyframes account-stamp {
   from {

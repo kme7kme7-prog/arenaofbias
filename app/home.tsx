@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { HomeNext } from './home-next';
 import './home-next.css';
@@ -131,6 +132,7 @@ export default function Home() {
             <ArrowUpRight size={17} />
           </button>
           <LanguageSwitch />
+          <ThemeToggle />
           <AccountButton />
         </header>
         <main className="lobby-main">

@@ -1,5 +1,34 @@
 # HANDOFF.md · 当前状态
 
+## 2026-09-30 · 双主题发布已获授权，远端无冲突
+
+- 用户明确要求“看看是否冲突，不冲突就 push 到 repo，然后落实到 VPS”，已授权本轮提交、推送与生产前端发布。重新 fetch 后 `HEAD = origin/main = 38dad57`，无远端新增或合并冲突；署名使用已登录 GitHub 用户 Atmeplz 及其 noreply 邮箱。
+- 发布前 typecheck、check:motion、check:theme、validate:share 与 diff 检查通过；此前主题浏览器、生产构建和双主题作品就绪回归通过。归档为 `docs/handoff/2026-09-30-竞技场双主题-Atmeplz.md`；部署完成后追加线上结果。
+- 已实查公网 bootstrap 和 VPS `.server-version` 均为共享后端主线 `26da6d6a350bbb4464879206bdbeb0c7eb303087`（wsnxxxs 后续数据治理改动），不是上次部署的旧版本。前端按最新共享后端 `docs/deploy.md` 使用 `/www/wwwroot/show1-dist` 差异发布；从已推送主线提交归档构建，不带工作区未跟踪作品。仅替换前端静态目录，不运行退役 PM2 部署脚本，不更改共享后端或数据库。
+
+## 2026-09-30 · 墨色强调已纠正为橙色，未提交或部署
+
+- 用户重申既定要求：深色下浅绿风格必须改成橙色。已将墨色主强调设为 `#f2a365`，柔和强调 / 背景洗色为 `#dfad85` / `#34281f`；旧绿色品牌兼容令牌及其半透明色统一引用橙色角色，按钮、焦点、选中态、装饰与过场同步。原纸面颜色逐项比对未改动。
+- 模一把绿色命中仍为 `#a1c58e`，黄色接近、红蓝阵营与作品原色不改。主题幕从第一帧就使用目标主题刻度色：过墨橙、揭纸绿。此约定已追加到 `docs/DECISIONS.md`，旧方案中的墨色黄绿品牌映射作废。
+- 本次复验 `check:theme`、`validate:theme`、`build` 通过；橙色按钮字色对比度 8.04:1，真实浏览器逐帧检查双向切换的 prepare / cover / settle / reveal 均为正确目标色；首页纸 / 墨和墨色模一把截图已目检。截图与帧检查结果在 `output/playwright/orange-*`，完整交付补丁重新生成。未重跑与此次颜色修正无关的业务验证；未 commit / push / 部署。
+
+## 2026-09-30 · 纸 / 墨双主题已本地实现，未提交或部署
+
+- 用户随后明确“严格符合第一次提示词，并符合人类直觉……做吧”，已进入第二段实施；采用第一段推荐的 A「过墨 / 揭纸」。原第一段与基线记录保留在下方，不能再当作待授权状态。
+- 交付说明、逐文件索引与人工验收矩阵：`docs/THEME-DELIVERY.md`。完整补丁与截图 / 测量放在忽略目录 `outputs/theme/`。原方案与完整动画盘点为 `docs/THEME-PLAN.md`。
+- 已接入纸 / 墨令牌、无闪烁启动、导航切换与系统重置；完成入口可达 CSS 颜色迁移、六种双主题过场、同题快门、发牌、账户与结果动效。文字容器原位；作品不反色；就绪门闩不提前放行。原 73 条关键帧移除 31 条、新增 8 条，现 50 条。纸面的 68 个弱字令牌按批准方案修正对比度，其他静态构图与主要底色保留。
+- 验证：typecheck、build、check:theme、check:motion、validate:theme、validate:share（6 项）、validate:work-ready（两主题共 10 项）通过。1440 / 390 宽主路由双主题、三版首页、320 宽导航、账户五状态、分享、竞猜与过场平台已检查；新增代码定向 lint 通过，全量 lint 仍为 9 个旧脚本问题。
+- 6 倍 CPU 降速证明正文坐标 / opacity / transform 稳定，揭幕样本无超过 50ms 的主线程帧间隔；盖幕与全遮挡重算仍有长间隔，不声称低端真机恒定 60fps。发布前仍须 Android / iOS Safari、高 DPR 与真实 Turnstile / 生产作品联调，详见交付报告。
+- 本地预览为 Vite 5173 + 仅绑定 localhost 的旧后端种子数据（独立 `.local/theme-preview-legacy-data`）；账户会员态用只读浏览器 fixture，不代表共享后端业务联调。未 commit / push / 部署，未写归档；原有未跟踪作品未动。
+
+## 2026-09-30 · 远端已合并，双主题第一段方案（实施前记录）
+
+- 用户授权“先合并到本地，在最新进度的基础上再做要求”。当前分支 `codex/guess-modality-match` 已从 `ee98710` **快进至 `origin/main@38dad57`**，无本地独有提交；本会话两份需求文档已恢复，`HANDOFF.md` 新增段落冲突保留双方内容后解决。临时 stash 已清理，既有未跟踪作品原样保留。
+- 第一段完整方案在 `docs/THEME-PLAN.md`：实际来源与版本、全局 / `--pdk-*` / `--dk-*` / 局部令牌映射、全部动画四类清单、两种标志性切换候选、文件及行数计划。**等待用户确认第一段，再开始主题实现。** 推荐 A「过墨 / 揭纸」；需要一并确认纸面信息性弱字为达到 4.5:1 所需的最小颜色调整。
+- 静态盘点：主入口可达 18 份项目 CSS，73 个关键帧（纸面专用 13 / 中立保留 25 / 需删除旧轨道 20 / 重新设计 15），130 处 animation / animation-name、127 处 transition / transition-property 声明（含禁动画覆盖）；JS / 工具类 / 占位 iframe 动效另列。原始审计数据与脚本在忽略目录 `.local/theme-audit/`，完整清单已嵌入方案，不依赖该本机目录阅读。
+- 合并后验证：`typecheck`、`build`、`validate:share`（6 项）、`check:motion`（现有六组检查）通过。仅做基线与静态核查；新主题视觉、FOUC、键盘与低端帧率尚未验证，未重跑全量 lint。本轮业务代码只来自远端合并，未实施主题，未 commit / push / 部署，未连接 VPS。
+- 以当前代码为准：`app/page.tsx` 等待作品现为 `while (!poll())`，不能照下方旧交接恢复 8 秒提前放行；下文历史 PR / 部署描述不代表今天的现场状态。
+
 ## 2026-09-29 · email-auth-v2（待 PR 审阅，未部署）
 
 - 本分支从 `origin/main@d871c75` 建立；恢复账号页绑定/换绑邮箱、登录页忘记密码，以及注册和发码处的 Turnstile。注册仍只需账号和密码，邮箱在登录后选填。
@@ -18,6 +47,23 @@
 - OG 改用 `public/share-preview.png` 通用静态图，不再按局生成。共享后端配套 `share-v2` 分支删除 501 占位路由并修复找回密码发信时序；部署应先 Show1 后 server。本轮无新增 npm 包、无迁移、不合并、不部署。
 - 验证：`npm run typecheck`、`npm run validate:share`（5/5）、改动文件定向 oxlint、`npm run build` 通过；本地浏览器实际生成并保存页面、对决、竞猜三张完整截图到 `output/share-*-full.png`，下载与复制链接成功。主页面 JS gzip 93.49→109.85 kB。
 - 既存未跟踪 `.playwright-cli/` 保留；本轮 `output/share-*.png` 是未提交验收截图。
+
+## 2026-09-30 · 竞技场纸 / 墨双主题与主题感知过场（需求与前置检查记录）
+
+- 用户已给出下一项任务：竞技场增加 `data-theme="paper" | "ink"`，全部过场按主题适配；完整约束与两段式交付要求见 `docs/DECISIONS.md` 同日条目。
+- **用户明确说实施前还有很多检查工作；先完成前置检查，再交第一段方案，等用户确认后才进入第二段代码实施。** 随后指定核对远端结构，再授权本地合并并按最新进度准备方案；当前完成情况见本文顶部。
+- 用户描述的输入材料为 `inputs/`：`globals.css`、`design-kit.css`、`game-transitions.css`、`home.css` / `home-next.css`、`guess.css`、`arena-refinement.css`、`ranking.css`，以及 `gallery-exhibition.css`、`admin-dual-theme-reference.css`。**本地与已核对的远端主仓库均无 `inputs/`**；实际入口仍为 `src/main.tsx`，页面 CSS 在 `app/`。`--pdk-*` 在 `portable-design-system/design-kit.css`，`design-kit/design-kit.css` 使用 `--dk-*`，两者均未导入主站。原“约 16 个 CSS 文件 / 300+ 引用”是用户背景；精确统计与口径见方案。
+- 初次接手时分支为 `codex/guess-modality-match`，无已跟踪文件改动；本会话本地改动为 `HANDOFF.md`、`docs/DECISIONS.md` 和新增 `docs/THEME-PLAN.md`，既有未跟踪作品原样保留。不写归档、不 commit / push / 部署；验证结果见顶部。
+
+## 2026-09-30 · 首项前置检查：远端仓库结构（GitHub 已核对，线上未复核）
+
+- 首项检查当时仅 fetch 主仓库与 `.local/arenaofbias-server` 的 origin，未合并；当时竞技场本地 `ee98710`、远端 `main@38dad57`，本地独有 0、远端新增 4 个提交，20 文件变动（+1489 / -405）。**此后已按用户授权快进合并，见顶部。**
+- **当前是四仓分工**：`kme7kme7-prog/arenaofbias` = 竞技场前端（Show1）；`wsnxxxs/same-prompt-gallery` = 展览馆前端（Show2，`main@efaae9c`）；`kme7kme7-prog/arenaofbias-server` = 两站共享 API、运行数据库、作品沙盒与公共管理后台（`main@338bb3f`）；`kme7kme7-prog/arenaofbias-data` = 馆藏作品、题目、模型 / Harness / 服务商注册表及版本化数据包（`main@abcfda7`）。数据仓不是线上用户 / 投票数据库。
+- 主仓库前端仍采用 `src/main.tsx` + `app/` + `components/` + `lib/`，没有整体迁到新目录。9 月 28 日的 `d871c75` 已进行平台切换；`admin.html` 现直接跳到 `https://api.arenaofbias.icu/admin/`。本仓 `server/`、`src/admin.tsx`、`app/admin/` 等旧单体实现仍在，不能仅凭文件存在判定其仍参与当前生产链路。
+- **这次远端新增**：PR #3 `email-auth-v2` 恢复绑定 / 换绑邮箱、找回密码和 Turnstile，注册仍只需账号密码；PR #4 `share-v2` 恢复分享入口，改为浏览器生成 PNG，新增 `lib/share-client.ts` / `lib/share-card.js`，OG 使用 `public/share-preview.png` 静态图。账户与分享组件 / CSS、`index.html`、`src/main.tsx` 均有变化，主题方案应核对最新版本。
+- **参考样式的真实来源**：展览馆仓库的 `site/style.css`、`site/exhibition.css`；共享后端仓库的 `admin/admin.css`、`admin/admin.js`、`admin/index.html`（已确认包含 dark / light 主题机制）。这些可作为上游参考；与用户提到的 `inputs/` 快照是否完全一致，尚无材料可比。
+- **旧交接状态更正**：共享后端 PR #8 已于 2026-09-29 21:29（北京时间）合并为 `2ae065d`，不再是“待管理员合并”；下方同日历史记录保留。最新远端文档也有“待 PR / 未部署”旧文字，合并状态以 GitHub 和提交图为准。
+- 运行与发布应参考共享后端的 `docs/deploy.md`：两个独立静态目录、共享 systemd 后端；旧 PM2 / 旧 Show1 `deploy:vps` 已退役。本轮未连接 VPS、未核验公网运行版本，不能将上述 GitHub HEAD 当作已部署版本。检查结果为源代码 / 文档 / GitHub API 对照，未运行应用或功能测试。
 
 ## 2026-09-29 · 模态判色修复（已部署）
 

@@ -42,6 +42,10 @@ import '@/app/guess.css';
 import { getLocale, translate } from '@/lib/locale';
 import { setTransitionTranslator } from '@/lib/game-transitions';
 import { setWipeTranslator } from '@/lib/ui-transitions';
+import { initTheme } from '@/lib/theme';
+import '@/app/theme.css';
+const disposeTheme = initTheme();
+if (import.meta.hot) import.meta.hot.dispose(disposeTheme);
 setWipeTranslator((text) => translate(text, getLocale()));
 setTransitionTranslator((text) => translate(text, getLocale()));
 

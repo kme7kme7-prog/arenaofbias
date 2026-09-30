@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowUpRight, Lock } from 'lucide-react';
@@ -71,7 +72,8 @@ export default function PlayMenu() {
           </span>
         </a>
         <LanguageSwitch />
-        <AccountButton />
+        <ThemeToggle />
+          <AccountButton />
       </header>
       <main className="play-classic-main">
         <h1>

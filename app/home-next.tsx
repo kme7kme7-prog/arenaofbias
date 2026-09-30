@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
 import {
   ArrowUpRight,
@@ -83,6 +84,7 @@ export function HomeNext({
         </nav>
         <div className="next-utilities">
           <LanguageSwitch />
+          <ThemeToggle />
           <AccountButton />
         </div>
       </header>

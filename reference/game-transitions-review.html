@@ -10,8 +10,8 @@
       }
       body {
         margin: 0;
-        background: #e8ebe1;
-        color: #262c25;
+        background: var(--paper);
+        color: var(--text-main);
         font-family: Arial, 'Microsoft YaHei', sans-serif;
       }
       button,
@@ -61,7 +61,7 @@
       p {
         font-size: 13px;
         line-height: 1.8;
-        color: #5d6657;
+        color: var(--text-main);
         margin: 8px 0;
       }
       .tabs {
@@ -76,8 +76,8 @@
         background: transparent;
       }
       .tabs button[aria-selected='true'] {
-        background: #273024;
-        color: #deef7d;
+        background: var(--paper);
+        color: var(--text-main);
       }
       .workspace {
         display: grid;
@@ -88,7 +88,7 @@
         position: relative;
         aspect-ratio: 16/9;
         overflow: hidden;
-        background: #29342d;
+        background: var(--paper);
         border: 1px solid #273024;
       }
       .scene {
@@ -98,7 +98,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        color: #f4f6e8;
+        color: var(--text-main);
         background:
           radial-gradient(ellipse at 80% 30%, #8a9a7280, transparent 50%),
           linear-gradient(125deg, #1e302b, #52614b);
@@ -119,7 +119,7 @@
       .scene.destination {
         background:
           radial-gradient(ellipse at 80% 20%, #d7ed87, transparent 50%), #c3ceb2;
-        color: #283024;
+        color: var(--text-main);
       }
       .scene small {
         letter-spacing: 3px;
@@ -145,14 +145,14 @@
       }
       .transport button {
         padding: 10px 16px;
-        background: #283024;
-        color: #e7eecc;
+        background: var(--paper);
+        color: var(--text-main);
         border: 0;
       }
       .transport button.secondary {
         background: transparent;
         border: 1px solid #8b9680;
-        color: #283024;
+        color: var(--text-main);
       }
       .transport output {
         margin-left: auto;
@@ -160,14 +160,14 @@
       }
       .timeline {
         width: 100%;
-        accent-color: #333e2d;
+        accent-color: var(--text-main);
       }
       .stages {
         display: flex;
         justify-content: space-between;
         font: 10px monospace;
         margin: 7px 0 24px;
-        color: #68735d;
+        color: var(--text-main);
       }
       .panel {
         border-top: 3px solid #303a2a;
@@ -188,7 +188,7 @@
       }
       .panel input[type='range'] {
         width: 100%;
-        accent-color: #39482d;
+        accent-color: var(--text-main);
         margin-top: 10px;
       }
       .panel label:has(input:disabled) {
@@ -356,6 +356,7 @@
       </div>
     </main>
     <script type="module">
+      import './theme-controls.tsx';
       import {
         createGameTransition,
         gameTransitionTiming,
@@ -434,30 +435,12 @@
           `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : kind === 'deal' ? '抽出密牌' : kind === 'folio' ? '轻翻页' : kind === 'match' ? '双页合拢' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
       }
       const descriptions = {
-        match: [
-          '06 / 双页换场',
-          '竞技场专用：上下纸幕合拢，双侧对决标记与细线向中缝汇合，题号索引浮现；盖满后换题，再上下揭幕。场内版本跟随文档滚动并重新对齐新题区域。旧版 03 保留对照。420 / 760 / 1260ms。',
-        ],
-        folio: [
-          '05 / 轻翻页',
-          '模式选择与游戏之间的短切换，约半秒；返回时反向播放。',
-        ],
-        deal: [
-          '04 / 今日密牌',
-          '卡牌旋入展开至满屏 → 七条线索依次亮起 → 从中央分开揭出模一把。',
-        ],
-        frame: [
-          '01 / ARCHIVE LOCK',
-          '纸页快速上推盖住旧画面 → 方框锁定、字标从细线后滑入 → 整张档案继续向上抽离，清楚露出新画面。',
-        ],
-        bands: [
-          '02 / DIAGONAL INDEX',
-          '深墨底先盖住旧画面，酸黄品牌带、纸色判断语与灰绿中文索引从两侧错峰交错进入，再分别抽离。',
-        ],
-        convoy: [
-          '03 / INTEGRATED DIAGONAL CURTAIN',
-          '酸黄外缘、纸色夹层与深墨主体锁在同一条轨道上斜向推进；覆盖稳定后微移，再整体带出新画面。',
-        ],
+        match: ['06 / 双页换场', '纸面横向机械合页；墨色纵向展开留白。正文原位，仅盖满时出现；等待门控制揭幕。'],
+        folio: ['05 / 轻翻页', '纸面水平抽页，返回反向；墨色纵向揭幕。'],
+        deal: ['04 / 今日密牌', '纸面双片错位发牌；墨色双叶展开。七个小数字依次点亮，大标题保持静止。'],
+        frame: ['01 / 档案锁定', '空白材质层上行盖满，定位线展开，原位标题出现。墨色放慢收势。'],
+        bands: ['02 / 索引切片', '纸面横向机械切片；墨色纵向承底与细索引线。文字只在全遮挡平台显示。'],
+        convoy: ['03 / 一体材质幕', '纸面水平推进；墨色垂直揭幕，保留边线。大面积文字不参与位移。'],
       };
       function select(next) {
         kind = next;
@@ -467,12 +450,7 @@
         $('direction').disabled = kind !== 'folio';
         $('title').disabled = kind === 'deal' || kind === 'folio';
         $('gate').disabled = kind !== 'match';
-        $('study-note').textContent =
-          kind === 'match'
-            ? '竞技场下一题专用，真实模块同源。420ms 盖满才切路由，1260ms 清理后新题入场。纸色双页、实际题号、红蓝细线；保留 03 旧版供对照。掉帧对照：播放中按「掉帧 1.5s」模拟主线程饱和——过场应原地冻、恢复后从冻点续播；勾「钉幕等待门」后按「开门·掉帧 1.5s」复现释放帧撞掉帧——纸幕必须从钉位完整扫出，不许瞬移除。'
-            : kind === 'deal'
-            ? '模一把专属入场：抽牌、七条线索、中央揭幕。实际菜单入口同一份实现；标题随主站语言切换。'
-            : '纸灰绿、深墨与酸黄。方形档案锁定、三条斜向索引切片与一体斜幕，共用本站的过场语言。';
+        $('study-note').textContent = '本页使用生产模块；选择纸 / 墨后重播。仅空白材质移动，标题原位；减弱动态仍遵守作品等待门。';
         $('study-source').innerHTML =
           '检查：node scripts/check-game-transitions.mjs<br>模块：lib/game-transitions.ts';
         $('description-title').textContent = descriptions[kind][0];

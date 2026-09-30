@@ -9,8 +9,8 @@ export function revealLibrary(
   ).map((node, index) => {
     const animation = node.animate(
       [
-        { opacity: 0, transform: 'translateY(22px)' },
-        { opacity: 1, transform: 'translateY(0px)' },
+        { backgroundColor: 'var(--entry-wash)' },
+        { backgroundColor: 'transparent' },
       ],
       {
         duration: 620,

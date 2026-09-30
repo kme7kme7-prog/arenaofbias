@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--text-main);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -21,10 +21,10 @@
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(#71806a12 1px, transparent 1px),
-    linear-gradient(90deg, #71806a12 1px, transparent 1px);
+    linear-gradient(var(--surface-71806a-7) 1px, transparent 1px),
+    linear-gradient(90deg, var(--surface-71806a-7) 1px, transparent 1px);
   background-size: 64px 64px;
-  mask-image: linear-gradient(180deg, #000 0, transparent 62%);
+  mask-image: linear-gradient(180deg, var(--surface-000000) 0, transparent 62%);
 }
 
 /* header */
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   gap: 40px;
-  border-bottom: 1px solid #81907b66;
+  border-bottom: 1px solid var(--line-81907b-40);
   flex-shrink: 0;
 }
 .duel-brand {
@@ -50,7 +50,7 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--ink);
+  color: var(--text-main);
   text-decoration: none;
   padding: 6px 0;
 }
@@ -61,7 +61,7 @@
   right: 0;
   bottom: 0;
   height: 2px;
-  background: var(--ink);
+  background: var(--surface-inset);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s var(--ease-out);
@@ -90,7 +90,7 @@
   margin: 0 0 22px;
   font: 12px var(--mono);
   letter-spacing: 0.14em;
-  color: #5d6b52;
+  color: var(--text-5d6b52);
 }
 .duel-kicker span {
   display: flex;
@@ -101,7 +101,7 @@
   content: '';
   width: 18px;
   height: 1px;
-  background: #8b9a7b;
+  background: var(--surface-8b9a7b);
 }
 .duel-hero h1 {
   margin: 0;
@@ -119,27 +119,27 @@
 }
 .duel-line > span {
   display: inline-block;
-  animation: duel-lift 0.9s var(--ease-out) both;
+  animation: none;
 }
 .duel-line:nth-child(2) > span {
   animation-delay: 0.1s;
 }
 .duel-hero h1 em {
   font-style: normal;
-  color: #7f8f3e;
+  color: var(--text-7f8f3e);
 }
 .duel-hero-side {
   display: flex;
   flex-direction: column;
   gap: 26px;
   padding-bottom: 0.2em;
-  animation: duel-rise 0.9s 0.25s var(--ease-out) both;
+  animation: none;
 }
 .duel-intro {
   margin: 0;
   font-size: 17px;
   line-height: 1.85;
-  color: #3b463f;
+  color: var(--text-3b463f);
 }
 .duel-enter {
   display: flex;
@@ -148,14 +148,14 @@
   gap: 20px;
   width: 100%;
   padding: 26px 28px;
-  background: var(--ink);
+  background: var(--surface-inset);
   color: var(--acid);
   border: 0;
   border-radius: 0;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 5px 6px 0 #9aa77a;
+  box-shadow: var(--shadow-57, 5px 6px 0 var(--surface-9aa77a));
   transition:
     transform 0.25s var(--ease-out),
     box-shadow 0.25s var(--ease-out);
@@ -165,14 +165,14 @@
 }
 .duel-enter:hover:not(:disabled) {
   transform: translate(-2px, -3px);
-  box-shadow: 8px 10px 0 #9aa77a;
+  box-shadow: var(--shadow-58, 8px 10px 0 var(--surface-9aa77a));
 }
 .duel-enter:hover:not(:disabled) svg {
   transform: translateX(6px);
 }
 .duel-enter:active:not(:disabled) {
   transform: translate(2px, 3px);
-  box-shadow: 0 0 0 #9aa77a;
+  box-shadow: var(--shadow-59, 0 0 0 var(--surface-9aa77a));
 }
 .duel-secondary {
   display: flex;
@@ -187,18 +187,18 @@
   padding: 4px 0;
   font-size: 13px;
   font-weight: 600;
-  color: #4d5a47;
+  color: var(--text-4d5a47);
   text-decoration: none;
   background: none;
   border: 0;
   transition: color 0.2s;
 }
 .duel-secondary > *:hover {
-  color: var(--ink);
+  color: var(--text-main);
 }
 .duel-random {
-  color: var(--ink);
-  border-bottom: 1px solid var(--ink) !important;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--surface-inset) !important;
 }
 
 /* stage: two panels cut by a diagonal */
@@ -209,8 +209,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   height: clamp(360px, 48vh, 540px);
-  border: 1px solid var(--ink);
-  background: var(--ink);
+  border: 1px solid var(--surface-inset);
+  background: var(--surface-inset);
 }
 .duel-side {
   position: relative;
@@ -223,17 +223,17 @@
     filter 0.45s var(--ease-out);
 }
 .duel-side-a {
-  background: var(--ink);
-  color: #e6ebe0;
+  background: var(--surface-inset);
+  color: var(--text-e6ebe0);
   clip-path: polygon(0 0, 100% 0, calc(100% - var(--duel-cut)) 100%, 0 100%);
-  animation: duel-from-left 1s 0.35s var(--ease-out) both;
+  animation: material-settle 1s 0.35s var(--ease-out) both;
 }
 .duel-side-b {
-  background: #e9ede4;
-  color: var(--ink);
+  background: var(--surface-e9ede4);
+  color: var(--text-main);
   margin-left: calc(var(--duel-cut) * -1);
   clip-path: polygon(var(--duel-cut) 0, 100% 0, 100% 100%, 0 100%);
-  animation: duel-from-right 1s 0.35s var(--ease-out) both;
+  animation: material-settle 1s 0.35s var(--ease-out) both;
 }
 .duel-home[data-focus='a'] .duel-side-b,
 .duel-home[data-focus='b'] .duel-side-a {
@@ -255,7 +255,7 @@
 .duel-side-bar b {
   font: 800 18px/1 'MiSans', var(--mono);
   padding: 6px 9px;
-  color: var(--ink);
+  color: var(--text-main);
   background: var(--duel-red);
 }
 .duel-side-b .duel-side-bar b {
@@ -265,7 +265,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  animation: duel-fade 0.6s var(--ease-out) both;
+  animation: material-settle 0.6s var(--ease-out) both;
 }
 .duel-side-a .duel-side-work {
   padding-right: var(--duel-cut);
@@ -280,11 +280,11 @@
   bottom: -0.2em;
   font: 800 clamp(140px, 18vw, 280px)/1 'MiSans', sans-serif;
   letter-spacing: -0.06em;
-  color: #ffffff0a;
+  color: var(--text-ffffff-4);
   pointer-events: none;
 }
 .duel-side-b .duel-side-letter {
-  color: #1c24230d;
+  color: var(--text-1c2423-5);
   left: auto;
   right: 3%;
 }
@@ -341,10 +341,10 @@
   width: 62%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 26%, #dfe8b8, #7d9686 46%, #142627 80%);
+  background: radial-gradient(circle at 30% 26%, var(--surface-dfe8b8), var(--surface-7d9686) 46%, var(--surface-142627) 80%);
 }
 .duel-side-b .duel-planet {
-  background: radial-gradient(circle at 30% 26%, #f4f7ea, #b9c9a6 50%, #5c7360 82%);
+  background: radial-gradient(circle at 30% 26%, var(--surface-f4f7ea), var(--surface-b9c9a6) 50%, var(--surface-5c7360) 82%);
 }
 .duel-letter {
   height: 100%;
@@ -386,8 +386,8 @@
   display: grid;
   place-items: center;
   background: var(--acid);
-  color: var(--ink);
-  box-shadow: 5px 5px 0 var(--ink);
+  color: var(--text-main);
+  box-shadow: var(--shadow-60, 5px 5px 0 var(--surface-inset));
   transform: translate(-50%, -50%) rotate(-6deg);
   animation: duel-pop 0.6s 0.9s var(--ease-out) both;
   pointer-events: none;
@@ -411,7 +411,7 @@
 .duel-stage-foot > span {
   font: 11px var(--mono);
   letter-spacing: 0.08em;
-  color: #6c7a60;
+  color: var(--text-6c7a60);
 }
 .duel-stage-foot fieldset {
   display: flex;
@@ -426,22 +426,22 @@
   background: none;
   font-size: 12px;
   font-weight: 600;
-  color: #5c6a52;
+  color: var(--text-5c6a52);
   transition: background 0.2s;
 }
 .duel-stage-foot button[aria-pressed='true'] {
-  background: var(--ink);
+  background: var(--surface-inset);
   color: var(--acid);
 }
 .duel-stage-foot button:hover:not([aria-pressed='true']) {
-  background: #c9d3bf;
+  background: var(--surface-c9d3bf);
 }
 
 /* ticker */
 .duel-ticker {
   margin: 78px 0 0;
-  border-top: 1px solid #81907b66;
-  border-bottom: 1px solid #81907b66;
+  border-top: 1px solid var(--line-81907b-40);
+  border-bottom: 1px solid var(--line-81907b-40);
   padding: 14px 0;
   overflow: hidden;
   white-space: nowrap;
@@ -457,13 +457,13 @@
   padding-right: 28px;
   font: 12px var(--mono);
   letter-spacing: 0.18em;
-  color: #5d6b52;
+  color: var(--text-5d6b52);
 }
 .duel-ticker-track i {
   width: 6px;
   height: 6px;
   background: var(--acid);
-  outline: 1px solid var(--ink);
+  outline: 1px solid var(--surface-inset);
 }
 
 /* shared states */
@@ -472,47 +472,8 @@
   cursor: wait;
 }
 .duel-home :focus-visible {
-  outline: 2px solid #718522;
+  outline: 2px solid var(--line-718522);
   outline-offset: 4px;
-}
-
-@keyframes duel-lift {
-  from {
-    transform: translateY(110%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-@keyframes duel-rise {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes duel-from-left {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-@keyframes duel-from-right {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 @keyframes duel-pop {
   from {
@@ -522,14 +483,6 @@
   to {
     opacity: 1;
     transform: translate(-50%, -50%) rotate(-6deg) scale(1);
-  }
-}
-@keyframes duel-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 @keyframes duel-scroll {
@@ -693,7 +646,7 @@
   .duel-vs {
     width: 64px;
     height: 64px;
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--shadow-61, 3px 3px 0 var(--surface-inset));
   }
   .duel-vs span {
     font-size: 24px;

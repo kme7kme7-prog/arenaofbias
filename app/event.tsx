@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
@@ -28,7 +29,8 @@ export default function Event() {
           <a href="#rank">{t('03 / 偏好榜 ↗')}</a>
         </nav>
         <LanguageSwitch />
-        <AccountButton />
+        <ThemeToggle />
+          <AccountButton />
       </header>
       <div className="event-body">
         <span className="obs-kicker">

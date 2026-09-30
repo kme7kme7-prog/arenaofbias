@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 /* oxlint-disable jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/no-noninteractive-tabindex -- Custom combobox retains focus on its input; the labelled history region is keyboard-scrollable. */
 // 「模一把」（决策 057）—— Wordle 式猜 AI 模型的独立玩法页。
 //
@@ -628,6 +629,7 @@ export default function GuessPage() {
         </a>
         <div className="guess-header-actions">
           <LanguageSwitch />
+          <ThemeToggle />
           <AccountButton />
         </div>
       </header>

@@ -1,9 +1,9 @@
 /* 提示词库专用。层级：页面内容 0，封面幕片 1。 */
 .prompt-archive {
-  --archive-paper: #e8ece3;
-  --archive-muted: #626e5a;
-  --archive-line: #bac3b0;
-  background: #dfe3d9;
+  --archive-paper: var(--surface-e8ece3);
+  --archive-muted: var(--text-626e5a);
+  --archive-line: var(--line-bac3b0);
+  background: var(--surface-dfe3d9);
   min-height: 100dvh;
 }
 .prompt-archive::before {
@@ -30,7 +30,7 @@
   color: var(--archive-muted);
 }
 .archive-back:hover {
-  color: var(--ink);
+  color: var(--text-main);
 }
 .archive-main {
   width: 93%;
@@ -62,7 +62,7 @@
   animation: none;
 }
 .prompt-archive h1 span {
-  color: #73835b;
+  color: var(--text-73835b);
 }
 .archive-heading-copy > p:last-child {
   font-size: 13px;
@@ -115,7 +115,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--ink);
+  background: var(--surface-inset);
   transform: translateY(102%);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: -1;
@@ -127,8 +127,8 @@
   transform: translateY(0);
 }
 .archive-filters button:hover:not([aria-pressed='true']) {
-  background: #cbd3be;
-  color: var(--ink);
+  background: var(--surface-cbd3be);
+  color: var(--text-main);
 }
 .archive-filters button small {
   font: 11px var(--mono);
@@ -149,10 +149,10 @@
   outline: 0;
   background: transparent;
   font-size: 13px;
-  color: var(--ink);
+  color: var(--text-main);
 }
 .archive-search input::placeholder {
-  color: #66705e;
+  color: var(--text-66705e);
 }
 .archive-search button {
   display: grid;
@@ -161,8 +161,8 @@
   padding: 4px;
 }
 .archive-search:focus-within {
-  box-shadow: inset 0 -2px var(--ink);
-  background: #e8ece3;
+  box-shadow: var(--shadow-95, inset 0 -2px var(--surface-inset));
+  background: var(--surface-e8ece3);
 }
 .archive-workspace {
   display: grid;
@@ -212,19 +212,19 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--ink);
+  background: var(--surface-inset);
   z-index: -1;
   transform: translateX(-102%);
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .archive-option:hover {
-  background: #d1d9c7;
-  border-color: #b3bfa7;
+  background: var(--surface-d1d9c7);
+  border-color: var(--line-b3bfa7);
 }
 .archive-option[aria-pressed='true'] {
-  color: #f0f3e9;
-  border-color: var(--ink);
-  background: var(--ink);
+  color: var(--text-f0f3e9);
+  border-color: var(--surface-inset);
+  background: var(--surface-inset);
 }
 .archive-option[aria-pressed='true']::before {
   transform: translateX(0);
@@ -247,8 +247,8 @@
 .archive-thumb-live {
   display: grid;
   place-items: center;
-  color: #bb553d;
-  background: #f4eedc;
+  color: var(--text-bb553d);
+  background: var(--surface-f4eedc);
 }
 .archive-option:hover .archive-thumb,
 .archive-option[aria-pressed='true'] .archive-thumb {
@@ -278,10 +278,10 @@
   white-space: nowrap;
 }
 .archive-option-copy .is-ready {
-  color: #4b632b;
+  color: var(--text-4b632b);
 }
 .archive-option[aria-pressed='true'] small {
-  color: #bac5b1;
+  color: var(--text-bac5b1);
 }
 .archive-option[aria-pressed='true'] .is-ready {
   color: var(--acid);
@@ -317,7 +317,7 @@
 }
 .archive-stage-navigation b {
   font: 12px var(--mono);
-  color: var(--ink);
+  color: var(--text-main);
   margin-left: 10px;
 }
 .archive-stage-navigation > div {
@@ -333,9 +333,9 @@
   cursor: pointer;
 }
 .archive-stage-navigation button:hover:not(:disabled) {
-  background: var(--ink);
+  background: var(--surface-inset);
   color: var(--acid);
-  border-color: var(--ink);
+  border-color: var(--surface-inset);
 }
 .archive-stage-navigation button:disabled {
   opacity: 0.3;
@@ -343,8 +343,8 @@
 }
 .archive-dossier {
   background: var(--archive-paper);
-  border: 1px solid #aebba2;
-  box-shadow: 6px 6px 0 #c7d0bd;
+  border: 1px solid var(--line-aebba2);
+  box-shadow: var(--shadow-96, 6px 6px 0 var(--surface-c7d0bd));
 }
 .archive-cover {
   height: clamp(230px, 23vw, 330px);
@@ -383,15 +383,15 @@
   mask-image: linear-gradient(
     90deg,
     transparent,
-    #000 5%,
-    #000 95%,
+    var(--surface-000000) 5%,
+    var(--surface-000000) 95%,
     transparent
   );
 }
 .archive-cover-shutter {
   position: absolute;
   inset: 0;
-  background: var(--ink);
+  background: var(--surface-inset);
   border-left: 5px solid var(--acid);
   transform: translateX(102%);
   pointer-events: none;
@@ -402,9 +402,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 23px;
-  background: #d4ddc6;
+  background: var(--surface-d4ddc6);
   font: 10px var(--mono);
-  color: #4e5c42;
+  color: var(--text-4e5c42);
 }
 .archive-caption span:last-child {
   font-size: 10px;
@@ -435,7 +435,7 @@
 .archive-dossier-number {
   font: 400 clamp(43px, 5vw, 66px)/1 var(--mono);
   letter-spacing: -0.065em;
-  color: #bec9b0;
+  color: var(--text-bec9b0);
   flex-shrink: 0;
 }
 .archive-commentary {
@@ -445,7 +445,7 @@
   color: var(--archive-muted);
 }
 .archive-brief {
-  border-left: 2px solid #9fab8a;
+  border-left: 2px solid var(--line-9fab8a);
   padding: 0 0 0 15px;
   margin: 20px 0 22px;
 }
@@ -465,7 +465,7 @@
   overflow-wrap: anywhere;
   font-size: 13px;
   line-height: 1.85;
-  color: #3f4540;
+  color: var(--text-3f4540);
 }
 .archive-brief-text.is-collapsed {
   display: -webkit-box;
@@ -478,7 +478,7 @@
   align-items: center;
   gap: 9px;
   font-size: 11px;
-  color: #4c5e37;
+  color: var(--text-4c5e37);
   padding: 9px 0 0;
   cursor: pointer;
 }
@@ -508,7 +508,7 @@
   white-space: nowrap;
 }
 .archive-roster b {
-  color: var(--ink);
+  color: var(--text-main);
   font: 400 28px/1 var(--mono);
   margin-right: 4px;
   letter-spacing: -0.05em;
@@ -530,7 +530,7 @@
   gap: 35px;
   padding: 13px 18px;
   min-width: 210px;
-  background: var(--ink);
+  background: var(--surface-inset);
   color: var(--acid);
   font-size: 15px;
   font-weight: 700;
@@ -549,7 +549,7 @@
   margin-top: 5px;
   font-size: 10px;
   font-weight: 400;
-  color: #c1cfab;
+  color: var(--text-c1cfab);
 }
 .archive-enter svg {
   transition: transform 0.4s;
@@ -558,10 +558,10 @@
   transform: translateX(0) skew(0);
 }
 .archive-enter:hover {
-  color: var(--ink);
+  color: var(--text-main);
 }
 .archive-enter:hover small {
-  color: #475425;
+  color: var(--text-475425);
 }
 .archive-enter:hover svg {
   transform: translate(3px, -3px);
@@ -592,7 +592,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--ink);
+  background: var(--surface-inset);
   color: var(--acid);
   margin-top: 26px;
   padding: 12px 18px;
@@ -612,31 +612,21 @@
   color: var(--archive-muted);
 }
 .prompt-archive :is(button, a, input):focus-visible {
-  outline: 2px solid #667c3f;
+  outline: 2px solid var(--line-667c3f);
   outline-offset: 4px;
 }
 @media (prefers-reduced-motion: no-preference) {
   .archive-heading-copy {
-    animation: archive-heading-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: none;
   }
   .archive-summary {
-    animation: archive-heading-in 0.9s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: none;
   }
   .archive-cover-shutter {
     animation: archive-shutter 0.68s cubic-bezier(0.76, 0, 0.24, 1) both;
   }
   .archive-cover-drift {
     animation: archive-cover-in 1.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-}
-@keyframes archive-heading-in {
-  from {
-    transform: translateY(24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
   }
 }
 @keyframes archive-shutter {

@@ -82,6 +82,12 @@ export class DocumentDecryption {
       return;
     }
     const tick = (nowMs: number) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        this.progress = 1;
+        this.stop();
+        this.remove();
+        return;
+      }
       const now = nowMs / 1000;
       // Keep covered until the first frame, then run the full sweep.
       if (this.started === null) this.started = now;
@@ -116,7 +122,8 @@ export class DocumentDecryption {
       // Brief acceleration, decisive departure, long deceleration; no bounce.
       const eased =
         t < 0.2 ? 0.4 * (t / 0.2) ** 2 : 1 - 0.6 * ((1 - t) / 0.8) ** (16 / 3);
-      cover.ink.style.transform = `translateX(${eased * 101}%)`;
+      const axis = document.documentElement.dataset.theme === 'ink' ? 'Y' : 'X';
+      cover.ink.style.transform = `translate${axis}(${eased * 101}%)`;
     }
   }
 

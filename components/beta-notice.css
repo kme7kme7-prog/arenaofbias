@@ -3,16 +3,16 @@
  * 卡片 = beta-notice-card（popup 自带 fixed 居中，这里只管视觉） */
 
 .beta-notice-overlay {
-  background: rgba(28, 36, 35, 0.42);
+  background: var(--surface-1c2423-42);
 }
 
 .beta-notice-card {
   width: min(360px, calc(100vw - 48px));
   background: var(--paper);
-  color: var(--ink);
-  border: 2px solid var(--ink);
+  color: var(--text-main);
+  border: 2px solid var(--surface-inset);
   border-radius: 0;
-  box-shadow: 10px 10px 0 var(--ink);
+  box-shadow: var(--shadow-117, 10px 10px 0 var(--surface-inset));
   padding: 26px 30px 24px;
   font-size: 14px;
 }
@@ -49,15 +49,15 @@
   letter-spacing: 6px;
   text-indent: 6px;
   color: var(--acid);
-  background: var(--ink);
-  border: 2px solid var(--ink);
+  background: var(--surface-inset);
+  border: 2px solid var(--surface-inset);
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .beta-notice-enter:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 rgba(28, 36, 35, 0.4);
+  box-shadow: var(--shadow-118, 4px 4px 0 var(--surface-1c2423-40));
 }
 
 .beta-notice-enter:focus-visible {

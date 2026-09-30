@@ -10,6 +10,18 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <meta name="theme-color" content="#dfe3dd" />
+    <script id="theme-boot">
+      (() => {
+        let theme;
+        try { theme = localStorage.getItem('aob-theme'); } catch {}
+        if (theme !== 'paper' && theme !== 'ink') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'ink' : 'paper';
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme === 'ink' ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'ink' ? '#121211' : '#dfe3dd');
+      })();
+    </script>
+    <style id="theme-first-paint">html { background: #d9ddda; } html[data-theme="ink"] { background: #121211; }</style>
     <title>偏见试验场 ARENA OF BIAS — 相信你的第一直觉</title>
     <meta
       name="description"

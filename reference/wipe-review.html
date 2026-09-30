@@ -208,7 +208,6 @@
           <div class="actions">
             <button id="to-a">扫到 A 页</button>
             <button id="to-b">扫到 B 页</button>
-            <button id="old" class="ghost">复刻旧版（clip-path · 无退场）</button>
             <button id="reset" class="ghost">重置为线上参数</button>
           </div>
           <p class="note">
@@ -242,6 +241,7 @@
     </main>
 
     <script type="module">
+      import './theme-controls.tsx';
       import { wipeNavigate, defaultWipeTiming } from '/lib/ui-transitions.ts';
       import '/app/globals.css';
 
@@ -266,9 +266,16 @@
 
       // 模拟 prefers-reduced-motion：wipeNavigate 在调用时读取 matchMedia
       const realMatchMedia = window.matchMedia.bind(window);
+      const realReduction = realMatchMedia('(prefers-reduced-motion: reduce)');
+      const reviewReduction = {
+        get matches() { return $('reduce').checked || realReduction.matches; },
+        addEventListener: realReduction.addEventListener.bind(realReduction),
+        removeEventListener: realReduction.removeEventListener.bind(realReduction),
+      };
+      $('reduce').addEventListener('change', () => realReduction.dispatchEvent(new Event('change')));
       window.matchMedia = (query) =>
         query.includes('prefers-reduced-motion')
-          ? { matches: $('reduce').checked }
+          ? reviewReduction
           : realMatchMedia(query);
 
       const pages = { '#review-a': 'A', '#review-b': 'B' };
@@ -293,24 +300,6 @@
         syncOutputs();
       };
 
-      // 旧版复刻：clip-path 整屏重绘 + 盖满即卸载（无退场），仅作手感对照
-      $('old').onclick = () => {
-        const { cover } = read();
-        const layer = document.createElement('div');
-        layer.className = 'page-wipe';
-        layer.style.clipPath = 'inset(0 0 100% 0)';
-        layer.innerHTML = `<span>${copy().note}</span><b>${copy().title}</b>`;
-        document.body.append(layer);
-        const anim = layer.animate(
-          [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)' }],
-          { duration: cover, fill: 'forwards', easing: 'ease-in' },
-        );
-        anim.finished.then(() => {
-          layer.remove(); // 旧实现：路由一换组件卸载，色块瞬间消失
-          history.replaceState(null, '', location.hash === '#review-a' ? '#review-b' : '#review-a');
-          showPage();
-        });
-      };
     </script>
   </body>
 </html>

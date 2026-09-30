@@ -5,13 +5,13 @@
   /* 全站统一用 svh：裸 vh 单位在带动态工具栏的手机上是「工具栏收起后」的高度，
      会比可视区高出一个地址栏（check:mobile 卡这条） */
   min-height: 100svh;
-  background: #d9ddda;
-  color: #1c2423;
+  background: var(--surface-d9ddda);
+  color: var(--text-1c2423);
 }
 
 .rank-header {
   height: 78px;
-  border-bottom: 1px solid #c3cab7;
+  border-bottom: 1px solid var(--line-c3cab7);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -27,18 +27,18 @@
   gap: 9px;
   font-size: 11px;
   letter-spacing: 1px;
-  color: #768072;
+  color: var(--text-768072);
 }
 .rank-header-note::before {
   content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #7d982f;
+  background: var(--surface-7d982f);
 }
 .rank-note-arrow {
   font-size: 15px;
-  color: #8f9c7a;
+  color: var(--text-8f9c7a);
   font-weight: 500;
 }
 
@@ -58,7 +58,7 @@
 .rank-eyebrow {
   font-size: 10px;
   letter-spacing: 2px;
-  color: #768072;
+  color: var(--text-768072);
   margin-bottom: 14px;
 }
 .rank-eyebrow::before {
@@ -66,7 +66,7 @@
   display: inline-block;
   width: 14px;
   height: 5px;
-  background: #8da45b;
+  background: var(--surface-8da45b);
   margin-right: 10px;
   vertical-align: middle;
 }
@@ -78,12 +78,12 @@
   margin: 0 0 14px;
 }
 .rank-hero h1 span {
-  color: #8da45b;
+  color: var(--text-8da45b);
 }
 .rank-hero p {
   margin: 0;
   font-size: 14px;
-  color: #788171;
+  color: var(--text-788171);
   line-height: 1.9;
 }
 .rank-hero-note {
@@ -100,12 +100,12 @@
 .rank-hero-note small {
   font-size: 10px;
   letter-spacing: 1px;
-  color: #768072;
+  color: var(--text-768072);
 }
 .rank-hero-note p {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #788171;
+  color: var(--text-788171);
 }
 
 /* 赛道切换：墨底酸字滑块，硬投影 */
@@ -122,11 +122,11 @@
 .rank-tabs {
   display: flex;
   position: relative;
-  background: #dfe4d5;
+  background: var(--surface-dfe4d5);
   padding: 4px;
   gap: 2px;
-  border: 1px solid #b8c6a5;
-  box-shadow: 3px 3px 0 #b4c39e;
+  border: 1px solid var(--line-b8c6a5);
+  box-shadow: var(--shadow-97, 3px 3px 0 var(--surface-b4c39e));
 }
 .rank-tab {
   position: relative;
@@ -142,7 +142,7 @@
   font-size: 12px;
 }
 .rank-tab[aria-selected='true'] {
-  color: #d9fb51;
+  color: var(--text-d9fb51);
 }
 .rank-tab:active {
   transform: translateY(2px);
@@ -152,30 +152,30 @@
   left: 4px;
   top: 4px;
   bottom: 4px;
-  background: #1c2423;
+  background: var(--surface-1c2423);
   transition:
     transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
     width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   pointer-events: none;
 }
 .rank-replay {
-  border: 1px solid #aab99a;
+  border: 1px solid var(--line-aab99a);
   padding: 10px 13px;
-  background: #eef2e4;
-  box-shadow: 3px 3px 0 #b5c3a2;
+  background: var(--surface-eef2e4);
+  box-shadow: var(--shadow-98, 3px 3px 0 var(--surface-b5c3a2));
   transition:
     transform 0.2s,
     box-shadow 0.2s;
   cursor: pointer;
   font-size: 12px;
-  color: #5c6a54;
+  color: var(--text-5c6a54);
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
 .rank-replay:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #b5c3a2;
+  box-shadow: var(--shadow-99, 4px 4px 0 var(--surface-b5c3a2));
 }
 .rank-replay:active {
   transform: translate(2px, 2px);
@@ -184,10 +184,10 @@
 
 /* 只看正式（决策 026）：与重播同组的口径切换，i 为指示点 */
 .rank-scope {
-  border: 1px solid #aab99a;
+  border: 1px solid var(--line-aab99a);
   padding: 10px 13px;
-  background: #eef2e4;
-  box-shadow: 3px 3px 0 #b5c3a2;
+  background: var(--surface-eef2e4);
+  box-shadow: var(--shadow-98, 3px 3px 0 var(--surface-b5c3a2));
   transition:
     transform 0.2s,
     box-shadow 0.2s,
@@ -195,7 +195,7 @@
     color 0.2s;
   cursor: pointer;
   font-size: 12px;
-  color: #5c6a54;
+  color: var(--text-5c6a54);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -204,25 +204,25 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #b5c3a2;
-  box-shadow: inset 0 0 0 1px #8e9c7f;
+  background: var(--surface-b5c3a2);
+  box-shadow: var(--shadow-100, inset 0 0 0 1px var(--surface-8e9c7f));
 }
 .rank-scope:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #b5c3a2;
+  box-shadow: var(--shadow-99, 4px 4px 0 var(--surface-b5c3a2));
 }
 .rank-scope:active {
   transform: translate(2px, 2px);
   box-shadow: none;
 }
 .rank-scope.active {
-  background: #2a3323;
-  border-color: #2a3323;
-  color: #dfe7cf;
+  background: var(--surface-2a3323);
+  border-color: var(--line-2a3323);
+  color: var(--text-dfe7cf);
 }
 .rank-scope.active i {
-  background: #c8d67f;
-  box-shadow: inset 0 0 0 1px #8e9c3f;
+  background: var(--surface-c8d67f);
+  box-shadow: var(--shadow-101, inset 0 0 0 1px var(--surface-8e9c3f));
 }
 
 /* 榜单 */
@@ -242,20 +242,20 @@
 .rank-columns {
   font-size: 10px;
   letter-spacing: 0.5px;
-  color: #6f7c67;
+  color: var(--text-6f7c67);
   padding: 0 20px 13px;
 }
 .rank-columns .numeric {
   text-align: right;
 }
 .rank-board {
-  border-top: 3px solid #344a35;
-  box-shadow: 3px 4px 0 #c1ccb3;
+  border-top: 3px solid var(--line-344a35);
+  box-shadow: var(--shadow-102, 3px 4px 0 var(--surface-c1ccb3));
 }
 .rank-row {
   position: relative;
-  background: #f2f4ea;
-  border-bottom: 1px solid #cdd6c1;
+  background: var(--surface-f2f4ea);
+  border-bottom: 1px solid var(--line-cdd6c1);
   isolation: isolate;
   /* 选中/榜首的深底与投影缓慢过渡（行悬停、点选时不瞬变）；
      赛道切换自 2026-09-19 起无任何换位动画，行与计分直接落位 */
@@ -278,7 +278,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, #d9fb512c, transparent);
+  background: linear-gradient(90deg, transparent, var(--surface-d9fb51-17), transparent);
   transform: translateX(-100%);
   pointer-events: none;
   z-index: 2;
@@ -293,15 +293,15 @@
 }
 /* 每行评分数字的上浮淡入只在入场时由 WAAPI 播放，CSS 不挂动画 */
 .rank-row.first {
-  background: #26382f;
-  color: #edf1e4;
+  background: var(--surface-26382f);
+  color: var(--text-edf1e4);
 }
 .rank-row.selected:not(.first) {
-  background: #e2ebd4;
-  box-shadow: inset 3px 0 #829763;
+  background: var(--surface-e2ebd4);
+  box-shadow: var(--shadow-103, inset 3px 0 var(--surface-829763));
 }
 .rank-row.selected.first {
-  box-shadow: inset 3px 0 #d9fb51;
+  box-shadow: var(--shadow-104, inset 3px 0 var(--surface-d9fb51));
 }
 .rank-row-top {
   padding: 13px 20px;
@@ -328,7 +328,7 @@
   background: linear-gradient(
     110deg,
     transparent 20%,
-    #bbd28924 50%,
+    var(--surface-bbd289-14) 50%,
     transparent 80%
   );
   transform: translateX(-110%);
@@ -341,26 +341,26 @@
 .rank-row-top:hover {
   transform: translate(-1px, -2px);
   box-shadow:
-    inset 3px 0 #82985f,
-    5px 6px 0 #c9d2ba;
+    var(--shadow-105, inset 3px 0 var(--surface-82985f),
+    5px 6px 0 var(--surface-c9d2ba));
 }
 .rank-row-top:active {
   transform: translate(1px, 2px);
-  box-shadow: inset 3px 0 #82985f;
+  box-shadow: var(--shadow-106, inset 3px 0 var(--surface-82985f));
 }
 .rank-num {
   font-size: 23px;
   font-weight: 500;
   letter-spacing: -1px;
-  color: #89927e;
+  color: var(--text-89927e);
   font-variant-numeric: tabular-nums;
 }
 .first .rank-num {
-  color: #d9fb51;
+  color: var(--text-d9fb51);
 }
 .rank-row:nth-child(2) .rank-num,
 .rank-row:nth-child(3) .rank-num {
-  color: #4c6034;
+  color: var(--text-4c6034);
   font-weight: 800;
 }
 .rank-identity {
@@ -376,8 +376,8 @@
   flex-shrink: 0;
   font-size: 15px;
   font-weight: 700;
-  background: #e6eadc;
-  border: 1px solid #b9c8a550;
+  background: var(--surface-e6eadc);
+  border: 1px solid var(--line-b9c8a5-31);
   border-radius: 2px;
   transition:
     transform 0.4s,
@@ -387,12 +387,12 @@
 }
 .rank-row:nth-child(2) .rank-sigil,
 .rank-row:nth-child(3) .rank-sigil {
-  background: #e6edda;
-  border-color: #93a86b;
-  box-shadow: 2px 2px 0 #c0cbae;
+  background: var(--surface-e6edda);
+  border-color: var(--line-93a86b);
+  box-shadow: var(--shadow-107, 2px 2px 0 var(--surface-c0cbae));
 }
 .first .rank-sigil {
-  background: #ffffff0c;
+  background: var(--surface-ffffff-5);
 }
 .rank-row-top:hover .rank-sigil {
   transform: translateY(-2px);
@@ -407,20 +407,20 @@
   font-size: 9px;
   vertical-align: middle;
   font-weight: 400;
-  border: 1px solid #a3ae8a;
-  color: #839362;
+  border: 1px solid var(--line-a3ae8a);
+  color: var(--text-839362);
   padding: 2px 4px;
   margin-left: 7px;
 }
 .rank-sub {
   display: block;
   margin-top: 6px;
-  color: #84907b;
+  color: var(--text-84907b);
   font-size: 9px;
   letter-spacing: 1px;
 }
 .first .rank-sub {
-  color: #a7b49b;
+  color: var(--text-a7b49b);
 }
 .rank-score {
   text-align: right;
@@ -430,12 +430,12 @@
   font-variant-numeric: tabular-nums;
 }
 .first .rank-score {
-  color: #d9fb51;
+  color: var(--text-d9fb51);
 }
 .rank-count {
   text-align: right;
   font-size: 12px;
-  color: #7b8971;
+  color: var(--text-7b8971);
   font-variant-numeric: tabular-nums;
 }
 .rank-plus {
@@ -444,13 +444,13 @@
   height: 27px;
   display: grid;
   place-items: center;
-  border: 1px solid #b0c09e;
-  background: #e1e8d6;
-  box-shadow: 2px 2px 0 #aabc95;
+  border: 1px solid var(--line-b0c09e);
+  background: var(--surface-e1e8d6);
+  box-shadow: var(--shadow-45, 2px 2px 0 var(--surface-aabc95));
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  color: #5c6a54;
+  color: var(--text-5c6a54);
 }
 .rank-row-top:hover .rank-plus {
   transform: translate(-1px, -1px);
@@ -460,17 +460,17 @@
   box-shadow: none;
 }
 .first .rank-plus {
-  background: #344a36;
-  border-color: #617a4f;
-  color: #d6f193;
-  box-shadow: 2px 2px 0 #536747;
+  background: var(--surface-344a36);
+  border-color: var(--line-617a4f);
+  color: var(--text-d6f193);
+  box-shadow: var(--shadow-108, 2px 2px 0 var(--surface-536747));
 }
 .rank-board-foot {
   display: flex;
   justify-content: space-between;
   gap: 20px;
   padding: 18px 0;
-  color: #89907d;
+  color: var(--text-89907d);
   font-size: 10px;
   line-height: 1.8;
 }
@@ -483,7 +483,7 @@
   content: '';
   width: 5px;
   height: 5px;
-  background: #8ba247;
+  background: var(--surface-8ba247);
 }
 
 /* 档案卡：硬投影 + 切角，头部深色块染模型主题色（决策 017） */
@@ -492,11 +492,11 @@
   top: 24px;
 }
 .rank-panel-shell {
-  filter: drop-shadow(4px 5px 0 #b4c29f);
+  filter: drop-shadow(4px 5px 0 var(--surface-b4c29f));
 }
 .rank-panel {
   position: relative;
-  background: #f4f6eb;
+  background: var(--surface-f4f6eb);
   overflow: hidden;
   clip-path: polygon(
     0 0,
@@ -506,12 +506,12 @@
     18px 100%,
     0 calc(100% - 18px)
   );
-  border-bottom: 3px solid #aabb92;
+  border-bottom: 3px solid var(--line-aabb92);
 }
 .rank-panel-wipe {
   position: absolute;
   inset: 0;
-  background: #c8daaf;
+  background: var(--surface-c8daaf);
   z-index: 3;
   pointer-events: none;
   transform: translateX(-105%);
@@ -529,48 +529,20 @@
     transform: translateX(105%);
   }
 }
-@keyframes rank-panel-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(45px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes rank-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes rank-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 .rank-panel-header {
-  animation: rank-panel-slide-in 0.44s cubic-bezier(0.2, 0.75, 0.25, 1) backwards;
+  animation: none;
 }
 .rank-panel-name {
-  animation: rank-panel-slide-in 0.44s cubic-bezier(0.2, 0.75, 0.25, 1) backwards;
+  animation: none;
 }
 .rank-radar-wrap {
-  animation: rank-fade-in 0.3s 0.28s backwards;
+  animation: none;
 }
 .rank-radar-legend {
-  animation: rank-fade-up 0.65s 0.34s backwards;
+  animation: none;
 }
 .rank-panel-foot > div {
-  animation: rank-fade-up 0.6s 0.28s backwards;
+  animation: none;
 }
 .rank-panel-foot > div:nth-child(2) {
   animation-delay: 0.3s;
@@ -579,10 +551,10 @@
   animation-delay: 0.32s;
 }
 .rank-panel-note {
-  animation: rank-fade-in 0.65s 0.34s backwards;
+  animation: none;
 }
 .rank-panel-caption {
-  animation: rank-fade-in 0.65s 0.4s backwards;
+  animation: none;
 }
 /* 微呼吸：IN FOCUS 圆点脉动 + 主题色刻线撑长收回 */
 @keyframes rank-status-dot {
@@ -603,11 +575,11 @@
 }
 .rank-panel-header {
   background: linear-gradient(
-    #26382f 15%,
-    color-mix(in srgb, var(--model-accent, #d9fb51) 7%, #26382f)
+    var(--surface-26382f) 15%,
+    color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 7%, var(--surface-26382f))
   );
-  border-top: 3px solid var(--model-accent, #b3c986);
-  color: #a3b39b;
+  border-top: 3px solid var(--model-accent, var(--line-b3c986));
+  color: var(--text-a3b39b);
   padding: 22px 28px 17px;
   display: flex;
   justify-content: space-between;
@@ -617,9 +589,9 @@
   position: relative;
 }
 .rank-panel-live {
-  color: #d4ed99;
-  border: 1px solid #839a6144;
-  background: #d2eb9207;
+  color: var(--text-d4ed99);
+  border: 1px solid var(--line-839a61-27);
+  background: var(--surface-d2eb92-3);
   padding: 4px 7px;
   font-size: 9px;
   letter-spacing: 0.7px;
@@ -629,22 +601,22 @@
   display: inline-block;
   width: 4px;
   height: 4px;
-  background: #cce986;
+  background: var(--surface-cce986);
   margin-right: 6px;
 }
 .rank-panel-name {
   background:
     radial-gradient(
       circle at 96% -55%,
-      color-mix(in srgb, var(--model-accent, #d9fb51) 40%, transparent),
+      color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 40%, transparent),
       transparent 70%
     ),
     linear-gradient(
-      color-mix(in srgb, var(--model-accent, #d9fb51) 7%, #26382f),
-      #26382f 60%
+      color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 7%, var(--surface-26382f)),
+      var(--surface-26382f) 60%
     );
   padding: 10px 28px 24px;
-  color: #f0f3e8;
+  color: var(--text-f0f3e8);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -662,12 +634,12 @@
   background: repeating-linear-gradient(
     115deg,
     transparent 0 15px,
-    color-mix(in srgb, var(--model-accent, #d9fb51) 15%, transparent) 15px 16px
+    color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 15%, transparent) 15px 16px
   );
   transform: rotate(10deg);
   z-index: -1;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 55%);
-  mask-image: linear-gradient(to bottom, transparent, #000 55%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, var(--surface-000000) 55%);
+  mask-image: linear-gradient(to bottom, transparent, var(--surface-000000) 55%);
 }
 .rank-panel-name::after {
   content: '';
@@ -676,10 +648,10 @@
   left: 28px;
   width: 46px;
   height: 3px;
-  background: var(--model-accent, #d9fb51);
+  background: var(--model-accent, var(--surface-d9fb51));
   box-shadow:
-    52px 0 color-mix(in srgb, var(--model-accent, #d9fb51) 30%, transparent),
-    104px 0 color-mix(in srgb, var(--model-accent, #d9fb51) 12%, transparent);
+    var(--shadow-109, 52px 0 color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 30%, transparent),
+    104px 0 color-mix(in srgb, var(--model-accent, var(--surface-d9fb51)) 12%, transparent));
 }
 .rank-panel-name h2 {
   font-size: 40px;
@@ -691,7 +663,7 @@
 }
 .rank-panel-name small {
   display: block;
-  color: #a4b599;
+  color: var(--text-a4b599);
   font-size: 10px;
   letter-spacing: 1px;
   margin-top: 9px;
@@ -701,9 +673,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border-left: 1px solid #82977250;
+  border-left: 1px solid var(--line-829772-31);
   padding-left: 18px;
-  color: #afbea3;
+  color: var(--text-afbea3);
   position: relative;
   z-index: 1;
 }
@@ -713,7 +685,7 @@
 .rank-panel-rank b {
   font-size: 20px;
   font-weight: 550;
-  color: color-mix(in srgb, var(--model-accent, #d5e7b9) 62%, #f0f3e8);
+  color: color-mix(in srgb, var(--model-accent, var(--text-d5e7b9)) 62%, var(--text-f0f3e8));
 }
 
 /* 雷达：外侧静止，内侧图形随切换挪动 */
@@ -733,12 +705,12 @@
   top: 17%;
   background: radial-gradient(
     circle,
-    #dde7d352,
-    #eaf0df22 69%,
+    var(--surface-dde7d3-32),
+    var(--surface-eaf0df-13) 69%,
     transparent 70%
   );
   z-index: -1;
-  border: 1px solid #bbc9a421;
+  border: 1px solid var(--line-bbc9a4-13);
 }
 .rank-radar {
   display: block;
@@ -747,41 +719,41 @@
 }
 .rank-radar text {
   font-size: 12px;
-  fill: #687b67;
+  fill: var(--text-687b67);
 }
 .rank-radar .rank-radar-value {
   font-size: 16px;
   font-weight: 600;
-  fill: #2d4c3a;
+  fill: var(--text-2d4c3a);
   font-variant-numeric: tabular-nums;
 }
 .rank-radar-grid {
   fill: none;
-  stroke: #a2b295;
+  stroke: var(--text-a2b295);
   stroke-opacity: 0.36;
   stroke-width: 0.65;
 }
 .rank-radar-outer {
-  stroke: #94a688;
+  stroke: var(--text-94a688);
   stroke-opacity: 0.27;
   fill: none;
   stroke-dasharray: 2 13;
 }
 .rank-radar-shape {
-  fill: #659c7833;
-  stroke: #3e7b59;
+  fill: var(--text-659c78-20);
+  stroke: var(--text-3e7b59);
   stroke-width: 2;
 }
 .rank-radar-average {
   fill: none;
-  stroke: #aec71e;
+  stroke: var(--text-aec71e);
   stroke-opacity: 0.9;
   stroke-width: 1.2;
   stroke-dasharray: 2 4;
 }
 .rank-radar-vertex {
-  stroke: #3e7b59;
-  fill: #f4f6eb;
+  stroke: var(--text-3e7b59);
+  fill: var(--text-f4f6eb);
   stroke-width: 1.8;
 }
 .rank-radar-legend {
@@ -789,7 +761,7 @@
   justify-content: center;
   gap: 22px;
   font-size: 11px;
-  color: #819079;
+  color: var(--text-819079);
   margin-top: -5px;
   position: relative;
 }
@@ -797,31 +769,31 @@
   display: inline-block;
   width: 16px;
   height: 2px;
-  background: #3e7b59;
+  background: var(--surface-3e7b59);
   margin: 0 7px 3px 0;
 }
 .rank-radar-legend .muted {
-  background: #aec71e;
+  background: var(--surface-aec71e);
 }
 .rank-panel-foot {
   margin: 23px 26px 0;
   padding: 22px 17px 18px;
-  background: #e7eddc;
-  border-top: 2px solid #ccd6ba;
+  background: var(--surface-e7eddc);
+  border-top: 2px solid var(--line-ccd6ba);
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   position: relative;
 }
 .rank-panel-foot > div + div {
-  border-left: 1px solid #e0e6d4;
+  border-left: 1px solid var(--line-e0e6d4);
   padding-left: 18px;
 }
 .rank-panel-foot b {
   display: block;
   font-size: 25px;
   font-weight: 550;
-  color: #354a3c;
+  color: var(--text-354a3c);
   letter-spacing: -0.7px;
   margin-bottom: 7px;
   font-variant-numeric: tabular-nums;
@@ -829,33 +801,33 @@
 .rank-panel-foot b small {
   font-size: 12px;
   font-weight: 400;
-  color: #8d9b80;
+  color: var(--text-8d9b80);
 }
 .rank-panel-foot span {
   font-size: 11px;
-  color: #88967d;
+  color: var(--text-88967d);
 }
 .rank-panel-note {
   margin: 0;
   padding: 15px 28px 25px;
   font-size: 12px;
   line-height: 1.9;
-  color: #7c8b73;
+  color: var(--text-7c8b73);
   position: relative;
 }
 .rank-panel-caption {
   font-size: 9px;
-  color: #a5ad97;
+  color: var(--text-a5ad97);
   line-height: 1.9;
   padding: 17px 5px;
 }
 
 /* 空态 */
 .rank-empty {
-  border: 1px solid #b9c7a7;
-  border-top: 3px solid #344a35;
-  background: #f4f6eb;
-  box-shadow: 5px 5px 0 #becbac;
+  border: 1px solid var(--line-b9c7a7);
+  border-top: 3px solid var(--line-344a35);
+  background: var(--surface-f4f6eb);
+  box-shadow: var(--shadow-110, 5px 5px 0 var(--surface-becbac));
   min-height: 480px;
   position: relative;
   padding: 56px;
@@ -874,14 +846,14 @@
   height: 9px;
   background: repeating-linear-gradient(
     120deg,
-    #81976b 0 5px,
+    var(--surface-81976b) 0 5px,
     transparent 5px 11px
   );
 }
 .rank-empty-code {
   font-size: 10px;
   letter-spacing: 2px;
-  color: #8a9978;
+  color: var(--text-8a9978);
   margin-bottom: 25px;
 }
 .rank-empty h2 {
@@ -894,19 +866,19 @@
   max-width: 500px;
   font-size: 14px;
   line-height: 2;
-  color: #7c8c6f;
+  color: var(--text-7c8c6f);
   margin: 0 0 27px;
 }
 .rank-empty-action {
   display: inline-flex;
   align-items: center;
   gap: 35px;
-  background: #26382f;
-  color: #d9fb51;
+  background: var(--surface-26382f);
+  color: var(--text-d9fb51);
   border: 0;
   text-decoration: none;
   padding: 17px 23px;
-  box-shadow: 3px 3px 0 #a2ad87;
+  box-shadow: var(--shadow-6, 3px 3px 0 var(--surface-a2ad87));
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -920,7 +892,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: #d9fb5120;
+  background: var(--surface-d9fb51-13);
   transform: translateX(-110%) skew(-20deg);
   transition: transform 0.6s;
 }
@@ -929,7 +901,7 @@
 }
 .rank-empty-action:hover {
   transform: translate(-1px, -2px);
-  box-shadow: 5px 6px 0 #a2ad87;
+  box-shadow: var(--shadow-7, 5px 6px 0 var(--surface-a2ad87));
 }
 .rank-empty-action:active {
   transform: translate(2px, 2px);
@@ -938,7 +910,7 @@
 .rank-empty-hint {
   display: block;
   font-size: 10px;
-  color: #8c997c;
+  color: var(--text-8c997c);
   margin-top: 21px;
 }
 .rank-empty-art {
@@ -950,43 +922,43 @@
 .rank-ticket {
   width: 125px;
   height: 166px;
-  background: #e4ebd8;
-  border: 1px solid #aebf99;
-  box-shadow: 4px 4px 0 #bccaa7;
+  background: var(--surface-e4ebd8);
+  border: 1px solid var(--line-aebf99);
+  box-shadow: var(--shadow-111, 4px 4px 0 var(--surface-bccaa7));
   position: absolute;
   transform: rotate(-12deg) translateX(-28px);
   display: grid;
   place-items: center;
   font-size: 32px;
   font-weight: 600;
-  color: #8a9f73;
+  color: var(--text-8a9f73);
   clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
 }
 .rank-ticket.front {
   transform: rotate(9deg) translateX(30px);
-  background: #f1f5e7;
+  background: var(--surface-f1f5e7);
 }
 .rank-sticker {
   position: absolute;
-  background: #d9fb51;
+  background: var(--surface-d9fb51);
   padding: 13px 17px;
   transform: rotate(-5deg);
   font-size: 12px;
   font-weight: 650;
   bottom: 30px;
   right: 12px;
-  box-shadow: 3px 3px 0 #9eae83;
+  box-shadow: var(--shadow-112, 3px 3px 0 var(--surface-9eae83));
 }
 
 .rank-footer {
   max-width: 1480px;
   margin: 20px auto 0;
-  border-top: 1px solid #c3cab7;
+  border-top: 1px solid var(--line-c3cab7);
   padding: 20px 48px;
   display: flex;
   justify-content: space-between;
   font-size: 9px;
-  color: #8b947f;
+  color: var(--text-8b947f);
   letter-spacing: 1px;
 }
 
@@ -1127,13 +1099,13 @@
   font-family: var(--mono);
   font-size: 9px;
   letter-spacing: 1px;
-  color: #8b9789;
+  color: var(--text-8b9789);
   margin-right: 7px;
   vertical-align: 1px;
   transition: color 0.3s;
 }
 .rank-tab[aria-selected='true'] .rank-tab-idx {
-  color: #d9fb51;
+  color: var(--text-d9fb51);
 }
 .rank-board-ticks {
   margin-bottom: 6px;

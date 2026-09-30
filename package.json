@@ -36,6 +36,8 @@
     "check:mobile": "node scripts/check-mobile.mjs",
     "check:arena-scroll": "node scripts/check-arena-scroll.mjs",
     "check:library": "node scripts/check-library-motion.mjs",
+    "check:theme": "node scripts/check-theme.mjs && node scripts/check-theme-motion.mjs",
+    "validate:theme": "node scripts/validate-theme-ui.mjs",
     "check:motion": "node scripts/check-wipe.mjs && node scripts/check-surface.mjs && node scripts/check-game-transitions.mjs && node scripts/check-arena-scroll.mjs && node scripts/check-library-motion.mjs && node scripts/check-text-swap-mask.mjs",
     "register:works": "node scripts/register-works.mjs",
     "deploy:vps": "python scripts/deploy-vps.py",

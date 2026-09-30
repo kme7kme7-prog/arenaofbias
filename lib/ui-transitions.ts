@@ -1,6 +1,6 @@
 let translateWipe = (text: string) => text;
 export function setWipeTranslator(translator: (text: string) => string) { translateWipe = translator; }
-// 可打断的界面过渡：进入中途关闭会从当前透明度/位移接续反向，不跳变。
+// 可打断的表面颜色过渡；正文不使用 opacity / transform。
 // 另有页面级横扫过渡 wipeNavigate：色块扫入盖满整屏时换路由，再扫出露出新页面。
 
 const enterEase = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -10,13 +10,15 @@ const exitEase = "cubic-bezier(0.4, 0, 1, 1)";
 export class SurfaceTransition {
   private animations: Animation[] = [];
   private revision = 0;
+  private media = window.matchMedia('(prefers-reduced-motion: reduce)');
+  private onPreference = () => { if (this.media.matches) this.finish(); };
 
   constructor(
     private root: HTMLElement,
     private panel?: HTMLElement,
     private enterDuration = 300,
     private exitDuration = 200,
-  ) {}
+  ) { this.media.addEventListener?.('change', this.onPreference); }
 
   show(reduced: boolean) {
     this.run(true, reduced);
@@ -34,17 +36,15 @@ export class SurfaceTransition {
     this.revision++;
     this.animations.forEach((animation) => animation.cancel());
     this.animations = [];
+    this.media.removeEventListener?.('change', this.onPreference);
   }
 
   private run(show: boolean, reduced: boolean, finished?: () => void) {
+    this.media.addEventListener?.('change', this.onPreference);
     const revision = ++this.revision;
     const hidden = this.root.hidden;
-    const opacity = hidden ? "0" : getComputedStyle(this.root).opacity;
-    const transform = this.panel
-      ? hidden
-        ? "translateY(12px)"
-        : getComputedStyle(this.panel).transform
-      : undefined;
+    const backgroundColor = hidden ? 'transparent' : getComputedStyle(this.root).backgroundColor;
+    const panelColor = this.panel ? getComputedStyle(this.panel).backgroundColor : undefined;
     this.animations.forEach((animation) => animation.cancel());
     this.animations = [];
     this.root.hidden = false;
@@ -57,7 +57,7 @@ export class SurfaceTransition {
       this.animations = [];
       finished?.();
     };
-    if (reduced || (!show && hidden)) {
+    if (reduced || this.media.matches || (!show && hidden)) {
       complete();
       return;
     }
@@ -67,7 +67,7 @@ export class SurfaceTransition {
       fill: "both",
     };
     const fade = this.root.animate(
-      [{ opacity }, { opacity: show ? 1 : 0 }],
+      [{ backgroundColor }, { backgroundColor: show ? 'var(--overlay)' : 'transparent' }],
       options,
     );
     this.animations.push(fade);
@@ -75,8 +75,8 @@ export class SurfaceTransition {
       this.animations.push(
         this.panel.animate(
           [
-            { transform },
-            { transform: show ? "translateY(0)" : "translateY(8px)" },
+            { backgroundColor: show ? 'var(--entry-wash)' : panelColor },
+            { backgroundColor: panelColor },
           ],
           options,
         ),
@@ -123,47 +123,64 @@ export function wipeNavigate(
   copy: PageWipeCopy,
   timing: Partial<PageWipeTiming> = {},
 ) {
-  const { cover, hold, exit, ease } = { ...defaultWipeTiming, ...timing };
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.location.hash = hash;
-    return;
-  }
   if (wipeRunning) return;
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (media.matches) { window.location.hash = hash; return; }
+  const { cover, hold, exit, ease } = { ...defaultWipeTiming, ...timing };
   wipeRunning = true;
-  const layer = document.createElement("div");
-  layer.className = "page-wipe";
-  layer.setAttribute("aria-hidden", "true");
-  const note = document.createElement("span");
+  let committed = false;
+  let disposed = false;
+  let timer: number | undefined;
+  const layer = document.createElement('div');
+  layer.className = 'page-wipe';
+  layer.dataset.theme = document.documentElement?.dataset.theme || 'paper';
+  layer.setAttribute('aria-hidden', 'true');
+  const plate = document.createElement('div');
+  plate.className = 'page-wipe-plate';
+  const copyLayer = document.createElement('div');
+  copyLayer.className = 'page-wipe-copy';
+  copyLayer.hidden = true;
+  const note = document.createElement('span');
   note.textContent = translateWipe(copy.note);
-  const title = document.createElement("b");
+  const title = document.createElement('b');
   title.textContent = translateWipe(copy.title);
-  layer.append(note, title);
+  copyLayer.append(note, title);
+  layer.append(plate, copyLayer);
   document.body.append(layer);
-  const total = cover + hold + exit;
-  const sweep = layer.animate(
-    [
-      { transform: "translateX(-101%)", easing: ease },
-      { transform: "translateX(0)", offset: cover / total },
-      {
-        transform: "translateX(0)",
-        offset: (cover + hold) / total,
-        easing: ease,
-      },
-      { transform: "translateX(101%)" },
-    ],
-    { duration: total, fill: "forwards" },
-  );
-  // 盖满后才换路由：旧页面卸载、新页面挂载都发生在色块背后
-  window.setTimeout(() => {
-    window.location.hash = hash;
-  }, cover);
-  void sweep.finished
-    .then(() => {
-      layer.remove();
-      wipeRunning = false;
-    })
-    .catch(() => {
-      layer.remove();
-      wipeRunning = false;
-    });
+  const ink = layer.dataset.theme === 'ink';
+  const axis = ink ? 'Y' : 'X';
+  const commit = () => { if (!committed) { committed = true; window.location.hash = hash; } };
+  let animation = plate.animate([
+    { transform: `translate${axis}(-101%)` }, { transform: `translate${axis}(0)` },
+  ], { duration: cover, easing: ink ? 'cubic-bezier(.25,.6,.25,1)' : ease, fill: 'forwards' });
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
+    window.clearTimeout(timer);
+    animation.cancel();
+    layer.remove();
+    wipeRunning = false;
+    media.removeEventListener?.('change', onPreference);
+    document.removeEventListener?.('visibilitychange', onVisibility);
+  };
+  const finish = () => { commit(); cleanup(); };
+  const onPreference = () => { if (media.matches) finish(); };
+  const onVisibility = () => { if (document.hidden) finish(); };
+  media.addEventListener?.('change', onPreference);
+  document.addEventListener?.('visibilitychange', onVisibility);
+  void animation.finished.then(() => {
+    if (disposed) return;
+    copyLayer.hidden = false;
+    commit();
+    // Hold a fully painted cover through mounting, even after a long task.
+    timer = window.setTimeout(() => {
+      if (disposed) return;
+      copyLayer.hidden = true;
+      animation.cancel();
+      animation = plate.animate([
+        { transform: `translate${axis}(0)` }, { transform: `translate${axis}(101%)` },
+      ], { duration: exit, easing: ink ? 'cubic-bezier(.25,.6,.25,1)' : ease, fill: 'forwards' });
+      void animation.finished.then(cleanup).catch(cleanup);
+    }, hold);
+  }).catch(() => { if (!disposed) finish(); });
 }

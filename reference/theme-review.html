@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>纸 / 墨 · 材质与过场对照</title></head>
+<body>
+  <main class="theme-review">
+    <header><div><small>MATERIAL STUDY / 01</small><h1>纸上落墨。</h1><p>文字保持静止，材质完成过场。</p></div><div id="theme-control"></div></header>
+    <section class="review-controls"><button id="toggle">纸 / 墨</button><button id="system">跟随系统</button><label><input id="hold" type="checkbox"> 对战：持续等待作品就绪</label><button id="release">作品已就绪</button><output id="status"></output></section>
+    <section class="review-palette"><article><small>01 / READING</small><h2>相信你的第一直觉。</h2><p>同一个提示词，不同模型的答案。页面正文始终在同一坐标呈现。</p><p class="review-muted">次级信息依然清晰。Aa 0123456789</p><input aria-label="表单示例" placeholder="输入你的判断"><button>提交判断 ↗</button></article><article class="review-media"><div>作品原色 / ORIGINAL</div><p>深色衬底与边线承托浅色作品。</p></article></section>
+    <section><h2>关键过场</h2><div id="kinds" class="review-controls"></div><div id="stage"><p>过场期间点击另一个主题，检查排队与最终选择。</p></div></section>
+    <p>系统减弱动态效果：切换直接到位；对战就绪门依然有效。此页使用生产令牌与生产过场，不复制另一套效果。</p>
+  </main>
+  <script type="module" src="./theme-review.tsx"></script>
+</body></html>

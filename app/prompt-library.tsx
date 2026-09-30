@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
@@ -53,20 +54,20 @@ function coverStyle(id: string): CSSProperties {
     return {
       '--cover-x': '50%',
       '--cover-y': '50%',
-      '--cover-bg': '#121923',
+      '--cover-bg': 'var(--cover-0)',
       '--cover-image': "url('/art/prompt-cover-008.webp')",
       '--cover-size': 'cover',
     } as CSSProperties;
   const index = coverIds.includes(id) ? coverIds.indexOf(id) : 7;
   const backgrounds = [
-    '#f4eedc',
-    '#1b2029',
-    '#080b11',
-    '#383744',
-    '#8aabac',
-    '#353d46',
-    '#08090c',
-    '#282b30',
+    'var(--cover-1)',
+    'var(--cover-2)',
+    'var(--cover-3)',
+    'var(--cover-4)',
+    'var(--cover-5)',
+    'var(--cover-6)',
+    'var(--cover-7)',
+    'var(--cover-8)',
   ];
   return {
     '--cover-x': `${(index % 2) * 100}%`,
@@ -347,7 +348,8 @@ export default function PromptLibrary() {
           {t('随机入场')}
         </a>
         <LanguageSwitch />
-        <AccountButton />
+        <ThemeToggle />
+          <AccountButton />
       </header>
       <main className="archive-main">
         <section className="archive-heading" aria-labelledby="archive-heading">

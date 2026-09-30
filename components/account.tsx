@@ -1,4 +1,5 @@
 import { useI18n } from '@/lib/locale';
+import { useTheme } from '@/lib/theme';
 import {
   createContext,
   useCallback,
@@ -54,6 +55,7 @@ declare global {
         el: HTMLElement,
         options: {
           sitekey: string;
+          theme?: 'light' | 'dark';
           callback: (token: string) => void;
           'expired-callback'?: () => void;
           'error-callback'?: () => void;
@@ -89,6 +91,7 @@ function TurnstileGate({
   onToken: (token: string) => void;
   onUnavailable: () => void;
 }) {
+  const { theme } = useTheme();
   const host = useRef<HTMLDivElement>(null);
   const handlers = useRef({ onToken, onUnavailable });
   // 渲染期不碰 ref（react-compiler 红线）：每次渲染后同步最新回调
@@ -104,6 +107,7 @@ function TurnstileGate({
         // token 一次性：拿到就回调，过期/出错回空串让按钮重新要求验证
         widget = window.turnstile.render(host.current, {
           sitekey: siteKey,
+          theme: theme === 'ink' ? 'dark' : 'light',
           callback: (token) => handlers.current.onToken(token),
           'expired-callback': () => handlers.current.onToken(''),
           'error-callback': () => handlers.current.onToken(''),
@@ -115,8 +119,9 @@ function TurnstileGate({
     return () => {
       cancelled = true;
       if (widget && window.turnstile) window.turnstile.remove(widget);
+      handlers.current.onToken('');
     };
-  }, [siteKey]);
+  }, [siteKey, theme]);
   return <div className="account-turnstile" ref={host} />;
 }
 export function AccountProvider({ children }: { children: ReactNode }) {

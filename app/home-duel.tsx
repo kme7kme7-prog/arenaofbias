@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { useI18n } from '@/lib/locale';
@@ -125,6 +126,7 @@ export function HomeDuel({
         </nav>
         <div className="duel-utilities">
           <LanguageSwitch />
+          <ThemeToggle />
           <AccountButton />
         </div>
       </header>

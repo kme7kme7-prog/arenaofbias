@@ -82,6 +82,7 @@ export class TextSwapMask {
     // 时只剩静态文字——看起来就是「被跳过」。幕布层已离场（快路径/减少动态）
     // 或已进入 exit 才接错峰揭开；轮询与揭幕共用 this.frame，卸载即取消。
     const awaitExit = () => {
+      if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { this.clear(); return; }
       const layer = document.querySelector<HTMLElement>('.game-transition');
       if (layer && layer.dataset.gtPhase !== 'exit') {
         this.frame = requestAnimationFrame(awaitExit);
@@ -159,6 +160,7 @@ export class TextSwapMask {
     let last: number | null = null;
     let elapsed = -delayMs;
     const tick = (nowMs: number) => {
+      if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { this.clear(); return; }
       // 帧时累计：掉帧间隔被封顶截掉，纸条冻在原地等恢复，不追墙钟
       if (last !== null) elapsed += Math.min(nowMs - last, FRAME_STEP_CAP);
       last = nowMs;

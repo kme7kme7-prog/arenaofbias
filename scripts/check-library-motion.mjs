@@ -53,13 +53,12 @@ assert.equal(f.animations.length, 4);
 for (const a of f.animations) {
   assert.ok(
     a.frames.every((frame) =>
-      Object.keys(frame).every((key) => ['opacity', 'transform'].includes(key)),
+      Object.keys(frame).every((key) => key === 'backgroundColor'),
     ),
   );
-  assert.equal(a.frames.at(-1).opacity, 1);
-  assert.equal(a.frames.at(-1).transform, 'translateY(0px)');
+  assert.equal(a.frames.at(-1).backgroundColor, 'transparent');
 }
-console.log('✓ 入场只用合成属性，终态可见');
+console.log('✓ 入场只动背景色，大段正文不产生 opacity / transform 动画');
 f.animations[0].onfinish();
 assert.ok(f.animations[0].cancelled);
 console.log('✓ 完成后释放动画，不遗留填充效果');

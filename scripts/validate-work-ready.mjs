@@ -24,17 +24,18 @@ let browser;
 const results = [];
 try {
   browser = await chromium.launch({ executablePath, headless: true });
-  async function scenario(name, { delay = 40, changeCanvas = false, count = 4, reducedMotion = 'no-preference' } = {}) {
+  async function scenario(name, { delay = 40, changeCanvas = false, count = 4, reducedMotion = 'no-preference', theme = 'paper' } = {}) {
     const context = await browser.newContext({ reducedMotion });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.addInitScript(() => {
+    await page.addInitScript(theme => {
+      localStorage.setItem('aob-theme', theme);
       localStorage.setItem('arena-language', 'zh');
       localStorage.setItem('aob-test-pair', JSON.stringify({
         promptId: '005', a: '005-ready-0', b: '005-ready-1', at: Date.now(),
       }));
-    });
+    }, theme);
     const works = Array.from({ length: count }, (_, i) => ({
       id: `005-ready-${i}`, promptId: '005', modelId: `ready-${i}`, modelName: `Ready ${i}`,
       title: `Ready fixture ${i}`, isDemo: 0,
@@ -87,6 +88,13 @@ try {
         const waiting = await state();
         assert.match(waiting.phase, /phase-transition/, 'new slow work must not inherit old readiness');
         assert.ok(waiting.frames.every(frame => !frame.sent));
+        const cover = await page.locator('.transition-shutter').evaluate(el => {
+          const style = getComputedStyle(el, '::before');
+          return { transform: style.transform, background: style.backgroundColor, visible: getComputedStyle(el).visibility };
+        });
+        assert.ok(['none', 'matrix(1, 0, 0, 1, 0, 0)'].includes(cover.transform), `${theme}: waiting curtain must stay at full cover`);
+        assert.equal(cover.visible, 'visible');
+        assert.equal(cover.background, theme === 'ink' ? 'rgb(13, 13, 12)' : 'rgb(28, 36, 35)');
       }
       if (delay === null) {
         await page.getByRole('button', { name: '跳过此题', exact: true }).waitFor({ timeout: 12000 });
@@ -104,12 +112,14 @@ try {
     await context.close();
     console.log(`PASS ${name}`);
   }
-  await scenario('快作品在620ms切换期发出一次通知', { changeCanvas: true });
+  for (const theme of process.argv.includes('--expect-bug') ? ['paper'] : ['paper', 'ink']) {
+  await scenario(`${theme}: 快作品在620ms切换期发出一次通知`, { changeCanvas: true, theme });
   if (!process.argv.includes('--expect-bug')) {
-    await scenario('慢作品不能复用上一件的就绪状态', { delay: 1600 });
-    await scenario('原对局重播不要求作品重发一次性通知', { count: 2 });
-    await scenario('减少动态效果下同题换组', { changeCanvas: true, reducedMotion: 'reduce' });
-    await scenario('未就绪作品超时仍保持遮挡并给跳过出口', { delay: null });
+    await scenario(`${theme}: 慢作品不能复用上一件的就绪状态`, { delay: 1600, theme });
+    await scenario(`${theme}: 原对局重播不要求作品重发一次性通知`, { count: 2, theme });
+    await scenario(`${theme}: 减少动态效果下同题换组`, { changeCanvas: true, reducedMotion: 'reduce', theme });
+    await scenario(`${theme}: 未就绪作品超时仍保持遮挡并给跳过出口`, { delay: null, theme });
+  }
   }
 } finally {
   await writeFile(path.join(out, process.argv.includes('--expect-bug') ? 'work-ready-before.json' : 'work-ready-after.json'), JSON.stringify(results, null, 2));

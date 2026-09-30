@@ -265,6 +265,7 @@ h1{margin:0;font-size:clamp(28px,7vw,54px);line-height:1.05;color:${model.accent
 .ph-cell.on{background:${model.accent};animation:ph-blink steps(1) infinite}
 @keyframes ph-blink{0%{opacity:1}50%{opacity:.25}100%{opacity:1}}
 .ph-foot{padding:0 18px 12px;color:#788773;font-size:10px;text-align:right}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>

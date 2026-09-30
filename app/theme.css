@@ -1,0 +1,120 @@
+/* Theme controls and decoration. All colors live in theme-tokens.css. */
+.theme-toggle { position: relative; display: inline-flex; flex-shrink: 0; color: var(--text-main); border: 1px solid var(--control-line); background: var(--paper); font-size: 12px; isolation: isolate; z-index: 45; }
+.theme-toggle button { border: 0; border-radius: 0; background: transparent; color: inherit; min-height: 44px; padding: 0 10px; font: inherit; }
+.theme-toggle-main { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.theme-toggle .theme-toggle-options { min-width: 32px; padding: 0 6px; border-left: 1px solid var(--border); }
+.theme-toggle button:hover { background: var(--card); }
+.theme-toggle button:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.theme-gauge { position: relative; width: 17px; height: 17px; border: 1px solid currentColor; overflow: hidden; background: var(--paper); }
+.theme-gauge::after { content: ''; position: absolute; inset: 3px; border-top: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+.theme-gauge i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: currentColor; transition: transform 160ms ease; }
+.theme-gauge[data-ink='true'] i { transform: translateX(100%); }
+.theme-menu { position: absolute; right: -1px; top: calc(100% + 8px); min-width: 162px; background: var(--popover); border: 1px solid var(--control-line); box-shadow: 0 8px 20px var(--shadow-contact); padding: 4px; }
+.theme-menu button { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; text-align: left; }
+.theme-menu button[aria-checked='true'] { background: var(--accent); color: var(--on-accent); }
+.theme-curtain { --curtain-accent: var(--curtain-ink-accent); position: fixed; inset: 0; z-index: 20000; overflow: hidden; pointer-events: none; }
+.theme-curtain[data-destination='paper'] { --curtain-accent: var(--curtain-paper-accent); }
+.theme-curtain-plate { position: absolute; inset: -1px; background: var(--curtain-ink); will-change: transform; }
+.theme-curtain[data-destination='paper'] .theme-curtain-plate { background: var(--curtain-paper); }
+.theme-curtain-plate::before { content: ''; position: absolute; inset: 0 auto 0 -12px; width: 14px; background: inherit; clip-path: polygon(100% 0,100% 100%,30% 100%,58% 91%,12% 84%,43% 71%,9% 61%,35% 48%,4% 37%,38% 21%,16% 10%,50% 0); }
+.theme-curtain-plate::after { content: ''; position: absolute; top: 0; bottom: 0; left: 8px; width: 2px; background: var(--curtain-accent); box-shadow: 5px 0 0 var(--curtain-grain); }
+/* Change colors once, under the opaque plate. Suspending existing hover color
+   transitions prevents hundreds of offscreen intermediate repaints on slow CPUs. */
+html[data-theme-changing] *, html[data-theme-changing] *::before, html[data-theme-changing] *::after { transition: none !important; }
+html { scrollbar-color: var(--control-line) var(--paper); }
+body { background: var(--background); }
+::selection { color: var(--on-accent); background: var(--accent); }
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+input, textarea, select { accent-color: var(--accent); }
+.guess-header .lobby-brand small { color: var(--text-on-inset); }
+.play-classic-item.locked { opacity: 1; border-style: dashed; }
+.play-classic-item.locked .play-classic-desc { color: var(--muted-foreground); }
+.arena-shell .entry-number, .arena-shell .vote-button kbd, .arena-shell .vote-draw kbd { opacity: 1; }
+.rank-row.first .rank-count { color: var(--text-on-inset-muted); }
+.demo-label b { color: var(--text-main); }
+.account-modes button span, .lobby-format-switch button small, .duel-side-bar { opacity: 1; }
+.guess-row-number, .guess-attempts > span:not(.is-used):not(.is-win):not(.is-current) { color: var(--text-on-inset-muted); }
+[data-theme='ink'] .arena-shell .continue-buttons .continue-same,
+[data-theme='ink'] .arena-shell .continue-buttons .continue-same > svg { color: var(--on-accent); }
+[data-slot='dialog-overlay'] { background: var(--overlay); }
+/* The account sheet and all large copy remain in their final rasterization plane. */
+.account-dialog[data-slot='dialog-content'], .account-dialog[data-starting-style], .account-dialog[data-ending-style] { opacity: 1; transform: none; transition: none; }
+.account-sheet { transition: background-color 160ms; clip-path: none; }
+.account-dialog[data-starting-style] .account-sheet { clip-path: none; }
+.account-page, .account-fields, .account-fields > * { animation: none; }
+.page-wipe { background: transparent; will-change: auto; }
+.page-wipe-plate { position: absolute; inset: 0; background: var(--surface-inset); }
+.page-wipe-copy { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; color: var(--acid); }
+.page-wipe-copy span { font: 11px var(--mono); letter-spacing: 4px; }
+.page-wipe-copy b { font: 600 clamp(32px, 7vw, 90px) var(--mono); }
+.page-wipe-copy[hidden] { display: none; }
+.page-wipe[data-theme='ink'] .page-wipe-plate::after { content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 1px; background: var(--accent); }
+/* Initial work and round transitions: only the empty veil moves. */
+.arena-shell.works-hold .work-panel, .arena-shell.works-hold .briefing .round-tag { opacity: 1; visibility: hidden; }
+.arena-shell.works-reveal .work-panel, .arena-shell.works-reveal .briefing .round-tag { animation: none; }
+.work-arrival-veil { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+.work-arrival-veil::before { content: ''; position: absolute; inset: 0; background: var(--paper); transform: translateX(101%); }
+.arena-shell.works-reveal .work-arrival-veil::before { animation: paper-reveal 550ms var(--ease-in-out) both; }
+.arena-shell.phase-transition .work-panel, .arena-shell.phase-transition .vote-button { transform: none; opacity: 1; }
+.arena-shell :is(.contender-a, .contender-b) .work-panel { transition-property: border-color, background-color, box-shadow; }
+.arena-shell:is(.spotlight-a,.spotlight-b) .work-panel { opacity: 1; filter: none; }
+.arena-shell.phase-locking .not-chosen .work-panel { opacity: 1; }
+.transition-shutter { background: transparent; clip-path: none; visibility: hidden; animation: none; overflow: hidden; }
+.transition-shutter::before { content: ''; position: absolute; inset: 0; background: var(--surface-inset); z-index: -1; visibility: visible; transform: translateX(-101%); }
+.phase-transition .transition-shutter { visibility: visible; animation: shutter-copy 500ms step-end both; }
+.phase-transition .transition-shutter::before { animation: shutter-cover 450ms var(--ease-in-out) both; }
+.arena-shell.shutter-exit .transition-shutter { visibility: visible; animation: none; }
+.arena-shell.shutter-exit .transition-shutter > * { visibility: hidden; }
+.arena-shell.shutter-exit .transition-shutter::before { animation: shutter-exit 420ms var(--ease-in-out) both; }
+.phase-transition .transition-shutter > * { animation: shutter-copy 500ms step-end both; }
+.game-transition .gt-match-holdnote { animation: none; }
+.game-transition[data-gt-hold] .gt-match-holdnote::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 10px; background: var(--accent); animation: gt-hold-pulse 1.8s ease-in-out infinite; }
+@keyframes shutter-copy { from { visibility: hidden; } to { visibility: visible; } }
+@keyframes paper-reveal { from { transform: translateX(0); } to { transform: translateX(101%); } }
+@keyframes ink-reveal { from { transform: translateY(0); } to { transform: translateY(-101%); } }
+@keyframes ink-shutter-cover { from { transform: translateY(-101%); } to { transform: translateY(0); } }
+@keyframes ink-shutter-exit { from { transform: translateY(0); } to { transform: translateY(101%); } }
+@keyframes material-settle { from { background-color: var(--entry-wash); } }
+@keyframes ink-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ink-breathe { 50% { border-color: var(--accent); } }
+/* Ink is a different motion language: restrained lines, vertical uncovering, quiet surfaces. */
+[data-theme='ink'] :is(.account-stamp,.chosen-stamp,.duel-vs,.next-versus,.lobby-versus,.guess-card-stack,.guess-loading-symbol) { animation: ink-breathe 1400ms ease-out both; }
+[data-theme='ink'] :is(.lobby-word::before,.rank-row-flash,.rank-panel-wipe) { animation-name: ink-line; transform-origin: left; }
+[data-theme='ink'] .archive-cover-shutter { animation-name: ink-reveal; }
+[data-theme='ink'] .arena-shell.works-reveal .work-arrival-veil::before { animation: ink-reveal 650ms var(--motion-ease) both; }
+[data-theme='ink'] .phase-transition .transition-shutter::before { animation-name: ink-shutter-cover; }
+[data-theme='ink'] .arena-shell.shutter-exit .transition-shutter::before { animation-name: ink-shutter-exit; }
+[data-theme='ink'] .audience-verdict::after { animation: ink-breathe 1400ms ease-out both; transform: none; background: transparent; border-top: 1px solid var(--border); width: 100%; }
+[data-theme='ink'] .guess-row.is-new .gcell::after { animation-name: ink-reveal; animation-duration: 580ms; }
+[data-theme='ink'] .guess-row.is-new .gcell { animation: material-settle 600ms var(--motion-ease) both; }
+[data-theme='ink'] :is(.account-paper-back,.account-paper-middle) { border-color: var(--border); box-shadow: 0 4px 12px var(--shadow-contact); }
+[data-theme='ink'] .next-backdrop { opacity: .22; }
+[data-theme='ink'] :is(.work-panel,.fixed-html-work,.archive-cover,.next-artwork,.lobby-exhibit,.duel-side-work,.share-preview) { background-color: var(--media-matte); border-color: var(--media-line); box-shadow: 0 0 0 1px var(--media-line), 0 8px 24px var(--shadow-contact); }
+[data-theme='ink'] :is(.image-work,.html-work,.expanded-work,.share-preview img) { outline: 1px solid var(--media-line); outline-offset: -1px; }
+/* Own controls on acid, red, blue and feedback fills always use a dark foreground. */
+[data-theme='ink'] :is(.vote-button,.guess-key.is-hit,.guess-key.is-near,.gcell.hit,.gcell.near,.gcell.is-hit,.gcell.is-near,.next-versus,.lobby-versus,.duel-vs) { color: var(--on-accent); }
+[data-theme='ink'] .sheet-front { color: var(--on-accent); }
+[data-theme='ink'] :is(.lobby-exhibit footer,.duel-side-bar b,.share-trigger:hover,.share-copy:hover,.share-native:hover,.guess-result .share-trigger,.guess-primary,.guess-submit:hover,.guess-attempts .is-win,.lobby-small-entry:hover,.icon-button:hover,.icon-button.on,.expand-control:hover,.chosen-stamp,.verdict-lock svg,.account-success-mark,.account-verified::before,.dev-mode-badge,.dev-row button,.rank-sticker,.archive-enter:hover,.obs-primary:hover,.web-faux-button,.web-hero > button) { color: var(--on-accent); }
+[data-theme='ink'] .experience-new :is(.topbar .brand-tag,.lock-announcement,.chosen-stamp,.afterparty-symbol) { color: var(--on-accent); }
+[data-theme='ink'] .arena-shell :is(.next-button,.vote-draw):focus-visible { outline-color: var(--focus); }
+@media (max-width: 760px) {
+  .duel-stage-foot > span, .duel-stage-foot button:not([aria-pressed='true']) { color: var(--text-on-inset-muted); }
+  .duel-stage-foot button:hover:not([aria-pressed='true']) { color: var(--text-main); }
+}
+@media (max-width: 720px) {
+  .theme-toggle { margin-left: 0; }
+  .theme-toggle-main { padding-inline: 8px; }
+  .theme-toggle-main > span:last-child { display: none; }
+  .theme-toggle .theme-toggle-options { min-width: 28px; }
+  :is(.next-utilities,.duel-utilities,.guess-header-tools,.topbar-actions) { gap: 8px; flex-wrap: wrap; }
+}
+/* Last in the app cascade, including pseudo-elements and third-party UI utilities. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .work-arrival-veil { display: none; }
+  .archive-cover-shutter, .guess-row.is-new .gcell::after { transform: translateX(102%); }
+  .phase-transition .transition-shutter, .phase-transition .transition-shutter > * { visibility: visible; }
+  .phase-transition .transition-shutter::before { transform: none; }
+  .arena-shell.shutter-exit .transition-shutter { visibility: hidden; }
+  .loading-overlay.is-clearing { visibility: hidden; }
+}

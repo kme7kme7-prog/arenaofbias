@@ -1,3 +1,6 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { useReducedMotion } from '@/lib/motion';
+import { useTheme } from '@/lib/theme';
 import { LanguageSwitch } from '@/components/language-switch';
 import { useI18n } from '@/lib/locale';
 import {
@@ -40,7 +43,7 @@ const reduced = () =>
 // 库自身不读系统减少动态设置，每个使用处需显式传 animated。
 const ROLLING_MOTION = {
   duration: 460,
-  motionBlur: true,
+  motionBlur: false,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -113,6 +116,7 @@ function Radar({
   labels: string[];
 }) {
   const { t, localize } = useI18n();
+  const motionReduced = useReducedMotion();
   const [display, setDisplay] = useState(values);
   const previous = useRef(values);
   useEffect(() => {
@@ -135,7 +139,7 @@ function Radar({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [values]);
+  }, [values, motionReduced]);
 
   const points = toPoints(display);
   const vertices = display.map((v, i) => coord(i, v * 1.32));
@@ -228,18 +232,23 @@ function ProfilePanel({
   radar: RadarProfiles | null;
 }) {
   const { t, localize } = useI18n();
+  const motionReduced = useReducedMotion();
+  const { theme } = useTheme();
   const [shown, setShown] = useState(row);
   const [shownRank, setShownRank] = useState(rank);
   const [shownCategory, setShownCategory] = useState(category);
+  const shownRef = useRef({ row, category });
   const wipeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (row === shown && category === shownCategory) return;
+    if (row === shownRef.current.row && category === shownRef.current.category) return;
+    let animation: Animation | undefined;
     if (!reduced()) {
-      wipeRef.current?.animate(
+      const axis = theme === 'ink' ? 'Y' : 'X';
+      animation = wipeRef.current?.animate(
         [
-          { transform: 'translateX(-105%)' },
-          { transform: 'translateX(0)', offset: 0.38 },
-          { transform: 'translateX(105%)' },
+          { transform: `translate${axis}(-105%)` },
+          { transform: `translate${axis}(0)`, offset: 0.38 },
+          { transform: `translate${axis}(105%)` },
         ],
         { duration: 560, easing: 'cubic-bezier(.65,0,.25,1)' },
       );
@@ -247,14 +256,15 @@ function ProfilePanel({
     // 非减弱动效时，名字在抹片遮住面板的 240ms 处更换
     const timer = setTimeout(
       () => {
+        shownRef.current = { row, category };
         setShown(row);
         setShownRank(rank);
         setShownCategory(category);
       },
       reduced() ? 0 : 240,
     );
-    return () => clearTimeout(timer);
-  }, [row, rank, category, shown, shownCategory, wipeSeed]);
+    return () => { clearTimeout(timer); animation?.cancel(); };
+  }, [row, rank, category, wipeSeed, motionReduced, theme]);
 
   const radarValues = useMemo(
     () => radar?.profiles.get(shown.modelId) ?? Array(6).fill(RADAR_BASE),
@@ -353,6 +363,7 @@ function ProfilePanel({
 
 export default function Ranking({ initialScope = 'entertainment' }: { initialScope?: BoardScope }) {
   const { t, localize } = useI18n();
+  const motionReduced = useReducedMotion();
   const [category, setCategory] = useState<BoardCategory>('all');
   const [replaySeed, setReplaySeed] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -407,6 +418,10 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
   const boardRef = useRef<HTMLDivElement>(null);
   const rowMotions = useRef<Animation[]>([]);
   const entranceSeed = useRef(-1);
+  useEffect(() => {
+    if (motionReduced) rowMotions.current.forEach(motion => motion.cancel());
+    return () => { rowMotions.current.forEach(motion => motion.cancel()); };
+  }, [motionReduced]);
 
   // 入场/重播：榜单首次出现或 replaySeed 变化（整板重挂载）后播放一次。
   // 无依赖数组，每次提交都检查——榜单可能在 votes 异步到达后才挂载。
@@ -421,8 +436,8 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
       rowMotions.current.push(
         el.animate(
           [
-            { opacity: 0, transform: 'translateX(-35px)' },
-            { opacity: 1, transform: 'translateX(0)' },
+            { backgroundColor: 'var(--entry-wash)' },
+            { backgroundColor: 'transparent' },
           ],
           {
             duration: 950,
@@ -467,6 +482,7 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
           </span>
         </a>
         <LanguageSwitch />
+        <ThemeToggle />
         <span className="rank-header-note">
           <i /> {t('由每一次选择组成')}
         </span>

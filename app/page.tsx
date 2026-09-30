@@ -1,4 +1,5 @@
 'use client';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
@@ -983,25 +984,13 @@ export default function Arena({
         const element = side === 'a' ? cardA.current : cardB.current;
         const stage = stageRef.current;
         if (!element || !stage) return;
-        const bounds = element.getBoundingClientRect();
-        const stageBounds = stage.getBoundingClientRect();
-        const x =
-          stageBounds.left +
-          stageBounds.width / 2 -
-          bounds.left -
-          bounds.width / 2;
-        const mobile = window.innerWidth < 700;
-        const scale = mobile
-          ? Math.min(1.8, (window.innerHeight - 150) / bounds.height)
-          : Math.min(1.5, (window.innerHeight - 220) / bounds.height);
-        const focusTransform = `translate3d(${x}px,0,0) scale(${Math.max(scale, 1.03)})`;
         setSpotlight(side);
         play('move');
         await animate(
           element,
           [
-            { transform: 'translate3d(0,35px,0) scale(.94)', opacity: 0.45 },
-            { transform: focusTransform, opacity: 1 },
+            { borderColor: 'var(--accent)' },
+            { borderColor: 'var(--control-line)' },
           ],
           ARENA_TIMING.introFocus,
         );
@@ -1023,8 +1012,8 @@ export default function Arena({
         await animate(
           element,
           [
-            { transform: focusTransform },
-            { transform: 'translate3d(0,0,0) scale(1)' },
+            { borderColor: 'var(--control-line)' },
+            { borderColor: 'var(--border)' },
           ],
           ARENA_TIMING.introReturn,
         );
@@ -1361,6 +1350,7 @@ export default function Arena({
         </div>
         <div className="header-right">
           <LanguageSwitch />
+          <ThemeToggle />
           <AccountButton />
 
           <button
@@ -1523,6 +1513,7 @@ export default function Arena({
                 className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && state.choice !== 'draw' && !chosen ? 'not-chosen' : ''}`}
               >
                 <div className="work-panel" ref={index === 0 ? cardA : cardB}>
+                  <span className="work-arrival-veil" aria-hidden="true" />
                   <div className="panel-heading">
                     <div className="panel-identity">
                       <span className="side-letter">

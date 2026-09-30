@@ -5,8 +5,8 @@
   gap: 9px;
   min-height: 44px;
   padding: 10px 17px;
-  border: 1px solid #9cad96;
-  color: #23362e;
+  border: 1px solid var(--line-9cad96);
+  color: var(--text-23362e);
   background: transparent;
   font-size: 13px;
   font-weight: 650;
@@ -19,16 +19,16 @@
   display: none;
 }
 .share-trigger:hover {
-  background: #dcfa48;
-  border-color: #23362e;
+  background: var(--surface-dcfa48);
+  border-color: var(--line-23362e);
 }
 .share-trigger:focus-visible {
-  outline: 3px solid #819632;
+  outline: 3px solid var(--line-819632);
   outline-offset: 4px;
 }
 .share-backdrop {
   z-index: 1000;
-  background: #10261bc9;
+  background: var(--surface-10261b-79);
   backdrop-filter: blur(8px);
 }
 .share-sheet[data-slot='dialog-content'] {
@@ -38,18 +38,18 @@
   max-height: calc(100dvh - 40px);
   overflow: auto;
   border-radius: 0;
-  border: 1px solid #20352d;
-  background: #e9ece2;
-  color: #20352d;
+  border: 1px solid var(--line-20352d);
+  background: var(--surface-e9ece2);
+  color: var(--text-20352d);
   padding: 0;
   gap: 0;
-  box-shadow: 12px 12px 0 #12261b70;
+  box-shadow: var(--shadow-113, 12px 12px 0 var(--surface-12261b-44));
   font-family: inherit;
   animation: none;
 }
 .share-sheet-heading {
   padding: 30px 38px 23px;
-  border-bottom: 1px solid #c1cbb9;
+  border-bottom: 1px solid var(--line-c1cbb9);
 }
 .share-sheet > button {
   min-width: 44px;
@@ -62,7 +62,7 @@
   font-family: monospace;
   font-size: 10px;
   letter-spacing: 0.13em;
-  color: #6b7e69;
+  color: var(--text-6b7e69);
 }
 .share-sheet-heading [data-slot='dialog-title'] {
   font-size: 30px;
@@ -72,7 +72,7 @@
 }
 .share-sheet-heading [data-slot='dialog-description'] {
   font-size: 13px;
-  color: #6b7e69;
+  color: var(--text-6b7e69);
 }
 .share-sheet-body {
   display: grid;
@@ -83,8 +83,8 @@
 }
 .share-preview {
   min-width: 0;
-  box-shadow: 7px 7px 0 #20352d;
-  background: #f2f1e7;
+  box-shadow: var(--shadow-114, 7px 7px 0 var(--surface-20352d));
+  background: var(--surface-f2f1e7);
   min-height: 360px;
 }
 .share-preview img {
@@ -108,7 +108,7 @@
 .share-loading-mark {
   font-size: 80px;
   font-weight: 800;
-  color: #8c9d76;
+  color: var(--text-8c9d76);
 }
 .share-loading button {
   border-bottom: 1px solid;
@@ -126,7 +126,7 @@
 .share-controls > p {
   font-size: 13px;
   line-height: 1.9;
-  color: #657660;
+  color: var(--text-657660);
 }
 .share-save,
 .share-copy,
@@ -142,11 +142,11 @@
   cursor: pointer;
 }
 .share-save {
-  background: #20352d;
-  color: #dcfa48;
+  background: var(--surface-20352d);
+  color: var(--text-dcfa48);
   padding: 17px;
   margin: 28px 0 14px;
-  box-shadow: 4px 4px 0 #b4c393;
+  box-shadow: var(--shadow-115, 4px 4px 0 var(--surface-b4c393));
 }
 .share-save svg:last-child {
   margin-left: auto;
@@ -159,19 +159,19 @@
   cursor: wait;
 }
 .share-copy {
-  border: 1px solid #9cab96;
+  border: 1px solid var(--line-9cab96);
   background: transparent;
-  color: #20352d;
+  color: var(--text-20352d);
 }
 .share-native {
   margin-top: 10px;
   border: 0;
-  background: #dde3d3;
-  color: #20352d;
+  background: var(--surface-dde3d3);
+  color: var(--text-20352d);
 }
 .share-copy:hover,
 .share-native:hover {
-  background: #dcfa48;
+  background: var(--surface-dcfa48);
 }
 .share-controls button:disabled {
   opacity: 0.5;
@@ -183,14 +183,14 @@
 }
 .share-open {
   font-size: 12px;
-  border-bottom: 1px solid #a2b091;
+  border-bottom: 1px solid var(--line-a2b091);
 }
 .share-status {
   display: block;
   min-height: 24px;
   margin-top: 12px;
   font-size: 12px;
-  color: #657660;
+  color: var(--text-657660);
 }
 .share-manual {
   display: block;
@@ -203,16 +203,16 @@
   width: 100%;
   margin-top: 8px;
   padding: 10px;
-  background: #f2f1e7;
-  border: 1px solid #9cab96;
+  background: var(--surface-f2f1e7);
+  border: 1px solid var(--line-9cab96);
 }
 .share-sheet-foot {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   padding: 16px 38px;
-  background: #20352d;
-  color: #cbd5bb;
+  background: var(--surface-20352d);
+  color: var(--text-cbd5bb);
   font-size: 10px;
   letter-spacing: 0.06em;
 }
@@ -222,14 +222,14 @@
   justify-content: center;
   gap: 24px;
   padding: 28px 24px 40px;
-  background: #e7eae0;
-  color: #677c61;
+  background: var(--surface-e7eae0);
+  color: var(--text-677c61);
   font-size: 12px;
 }
 .guess-result .share-trigger {
-  background: #dafa48;
-  color: #20352d;
-  border-color: #dafa48;
+  background: var(--surface-dafa48);
+  color: var(--text-20352d);
+  border-color: var(--line-dafa48);
   font-weight: 700;
 }
 .round-actions .share-trigger {
@@ -239,7 +239,7 @@
   .share-sheet[data-slot='dialog-content'] {
     width: calc(100vw - 24px);
     max-height: calc(100dvh - 24px);
-    box-shadow: 5px 5px 0 #12261b70;
+    box-shadow: var(--shadow-116, 5px 5px 0 var(--surface-12261b-44));
   }
   .share-sheet-heading {
     padding: 22px 22px 17px;

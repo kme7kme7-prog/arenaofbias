@@ -73,7 +73,7 @@
         font-size: 12px;
         letter-spacing: 1px;
         border: 2px solid var(--ink);
-        background: var(--ink);
+        background: var(--surface-inset);
         color: var(--acid);
         padding: 10px 16px;
       }
@@ -93,7 +93,7 @@
         margin-bottom: 18px;
       }
       .readout b {
-        background: var(--ink);
+        background: var(--surface-inset);
         color: var(--acid);
         padding: 1px 8px;
       }
@@ -109,7 +109,7 @@
         letter-spacing: 3px;
       }
       .invariants code {
-        background: var(--ink);
+        background: var(--surface-inset);
         color: var(--acid);
         padding: 1px 6px;
       }
@@ -126,7 +126,7 @@
         position: fixed;
         inset: 0;
         z-index: 60;
-        background: #1c242399;
+        background: var(--overlay);
       }
       .demo-surface[hidden] {
         display: none; /* class 的 display 会盖掉 UA 的 hidden 规则，须显式恢复 */
@@ -135,7 +135,7 @@
         position: absolute;
         inset: 0 0 0 auto;
         width: min(420px, 88vw);
-        background: var(--ink);
+        background: var(--surface-inset);
         color: var(--acid);
         padding: 26px;
         display: flex;
@@ -205,7 +205,7 @@
 
       <div class="invariants">
         <h2>受保护的不变量 · check-surface</h2>
-        中途反向必须从当前透明度/位移接续（不跳变）、opening/open/closing/closed
+        中途反向必须从当前背景色接续（不跳变）、opening/open/closing/closed
         状态机与 hidden 托管、已隐藏时 hide 是空操作、reduced-motion 直达、
         dispose 取消动画且可复用。<br />
         改完跑 <code>npm run check:surface</code>；进出场时长定稿后回写调用处
@@ -217,7 +217,7 @@
       <div class="demo-panel" id="panel">
         <h2>SURFACE PANEL</h2>
         <p>
-          开到一半点「关闭」：面板应从当前透明度与位移接续反向，而不是闪回起点再退场。
+          开到一半点「关闭」：面板应从当前背景色接续反向，而不是闪回起点再退场。
           这就是 SurfaceTransition 存在的理由。
         </p>
         <div class="actions">
@@ -227,6 +227,7 @@
     </div>
 
     <script type="module">
+      import './theme-controls.tsx';
       import { SurfaceTransition } from '/lib/ui-transitions.ts';
       import '/app/globals.css';
 

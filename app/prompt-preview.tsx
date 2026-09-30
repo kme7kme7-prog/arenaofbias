@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
@@ -30,7 +31,8 @@ export default function PromptPreview({ prompt }: { prompt: Prompt }) {
           <ArrowUpRight size={16} />
         </a>
         <LanguageSwitch />
-        <AccountButton />
+        <ThemeToggle />
+          <AccountButton />
       </header>
       <main className="library-main sample-main">
         <div className="lobby-eyebrow">
