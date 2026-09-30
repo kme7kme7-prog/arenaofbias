@@ -1,8 +1,6 @@
 // 榜单数据层：把投票聚合成排行榜行。
-// 投票来源：占位模式读 localStorage（lib/placeholder.ts），真实模式由页面从
-// /api/votes 拉取后传入（lib/votes.ts），本层不再关心来源。
-// 评分是占位口径的简易 Elo（基准 1200、K=32，按时间序迭代），
-// 仅用于演示榜单形态，正式算法待定（README 排名要表达什么一节）。
+// 本地聚合只用于开发占位模式；真实榜单与画像由共享 server 计算。
+// 本模块还提供标签、类型和服务端榜单的展示装饰。
 
 import type { Mode } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
@@ -75,6 +73,22 @@ const NOTE_POOL = [
   '胜场积累扎实，长尾题目里也有持续出场。',
   '偏好来源集中，换个赛道可能会看到不同的名次。',
 ];
+
+export type ServerBoardRow = Omit<BoardRow, 'sub' | 'accent' | 'note'> & { retired: boolean };
+export type ServerBoardData = Omit<BoardData, 'rows'> & { rows: ServerBoardRow[] };
+
+/** 配色和文案留在前端；排名、统计、名称和画像以服务端结果为准。 */
+export function presentServerBoard(board: ServerBoardData): BoardData {
+  return {
+    ...board,
+    rows: board.rows.map(({ retired, ...row }) => ({
+      ...row,
+      sub: retired ? '历史阵容 / RETIRED' : '演示阵容 / DEMO',
+      accent: FALLBACK_PALETTE[hashSeed(row.modelId) % FALLBACK_PALETTE.length],
+      note: NOTE_POOL[hashSeed('note', row.modelId) % NOTE_POOL.length],
+    })),
+  };
+}
 
 // 家族条目的榜单显示名（2026-09-25 用户拍板）：对局揭晓/题库显示每件作品的
 // 具体型号（works.model_name，如 Claude Fable 5.1 / Gemini 3.7 Flash），榜单按

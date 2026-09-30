@@ -37,6 +37,13 @@
 - 静态盘点：主入口可达 18 份项目 CSS，73 个关键帧（纸面专用 13 / 中立保留 25 / 需删除旧轨道 20 / 重新设计 15），130 处 animation / animation-name、127 处 transition / transition-property 声明（含禁动画覆盖）；JS / 工具类 / 占位 iframe 动效另列。原始审计数据与脚本在忽略目录 `.local/theme-audit/`，完整清单已嵌入方案，不依赖该本机目录阅读。
 - 合并后验证：`typecheck`、`build`、`validate:share`（6 项）、`check:motion`（现有六组检查）通过。仅做基线与静态核查；新主题视觉、FOUC、键盘与低端帧率尚未验证，未重跑全量 lint。本轮业务代码只来自远端合并，未实施主题，未 commit / push / 部署，未连接 VPS。
 - 以当前代码为准：`app/page.tsx` 等待作品现为 `while (!poll())`，不能照下方旧交接恢复 8 秒提前放行；下文历史 PR / 部署描述不代表今天的现场状态。
+## 2026-09-30 · show1-vote-processing（本地实现，未推送、未部署）
+
+- 从 `main@38dad57` 建立，当前分支名为 `show1-vote-processing`。真实榜单只请求共享后端 `/api/show1/leaderboard`，接收排名、比较统计、六维画像和题目覆盖；配色、文案与交互留在前端。范围/赛道切换取消旧请求，错误可重试；开发占位模式保留本地聚合。
+- 配套 server 位于 `C:\Users\Ryan\.codex\worktrees\show1-vote-processing\arenaofbias-server` 的同名分支（基底已纳入 `2e879fb`）：聚合与配对评分同源、旧快照票不回流、身份更正参与计分，提供先备份再清 votes/matches 的维护命令。用户确认主站和画廊全部票归零；实际业务库执行环境的提问仍待回答。
+- 验证：typecheck、build、既有榜单验证 12/12、四个改动源文件定向 oxlint 通过；共享后端 check 64 文件 0 错、测试 133/133。实际浏览器核对胜/平、娱乐/正式、赛道、390px、失败重试；请求日志确认榜单不再 GET 全量票。新建隔离库清零并重启后主站空榜、画廊零票。
+- 未操作既有本地业务库或生产库，未 push/部署；全量前端 lint 未跑，已知 9 个旧脚本错误保留。先发布新共享后端并停机备份清零，再发布本前端；本仓旧 `server/` 未接入聚合接口，联调须代理共享后端。遵循用户英文简单句提交要求，不修改 `docs/DECISIONS.md`。
+- 详细归档见 `docs/handoff/2026-09-30-show1-vote-processing-wsnxxxs.md`；浏览器截图和隔离库在 server worktree 忽略的 `output/`，临时服务收工关闭。
 
 ## 2026-09-29 · email-auth-v2（待 PR 审阅，未部署）
 

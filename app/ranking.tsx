@@ -29,10 +29,10 @@ import type {
   BoardRow,
   BoardScope,
   RadarProfiles,
-  VoteRecord,
 } from '@/lib/leaderboard';
 import { isPlaceholderMode, readPlaceholderVotes } from '@/lib/placeholder';
-import { fetchVotes, voteToRecord } from '@/lib/votes';
+import { fetchShow1Board } from '@/lib/show1-board';
+import type { BoardSnapshot } from '@/lib/show1-board';
 import { getPromptsState, subscribePrompts } from '@/lib/prompts';
 import { getWorksState, subscribeWorks } from '@/lib/works';
 
@@ -47,47 +47,58 @@ const ROLLING_MOTION = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// 投票装载：占位模式读 localStorage；真实模式拉 /api/votes。
-// 返回 null 表示加载失败（与「无票」区分，空态给不同指引）
+// 真实模式读取服务端聚合；占位模式保持本地演示。
 // ---------------------------------------------------------------------------
 
-function loadVotes(scope: BoardScope): Promise<VoteRecord[] | null> {
-  if (isPlaceholderMode()) {
-    return Promise.resolve(scope === 'formal' ? [] : readPlaceholderVotes());
-  }
-  return fetchVotes(undefined, scope).then((votes) => (votes ? votes.map(voteToRecord) : null));
-}
-
-function useBoardVotes(replaySeed: number, scope: BoardScope): {
-  votes: VoteRecord[] | null;
+function useBoardSnapshot(replaySeed: number, scope: BoardScope, category: BoardCategory, placeholder: boolean): {
+  snapshot: BoardSnapshot | null;
   failed: boolean;
   loading: boolean;
 } {
-  // 数据源就绪状态参与依赖：冷加载时 /api/votes 可能先于 /api/works、
-  // /api/prompts 返回，榜单会按内置兜底名单聚合且此后不会重算——
-  // 任一数据源翻转（loading→ready）就重拉一次票并触发重算
-  const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
-  const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
+  // 占位数据跟随本地题库/作品变动；真实榜单不依赖这些请求的完成顺序。
+  const worksState = useSyncExternalStore(subscribeWorks, () => placeholder ? getWorksState() : null);
+  const promptsState = useSyncExternalStore(subscribePrompts, () => placeholder ? getPromptsState() : null);
   const [state, setState] = useState<{
     scope: BoardScope;
-    votes: VoteRecord[] | null;
+    category: BoardCategory;
+    placeholder: boolean;
+    replaySeed: number;
+    snapshot: BoardSnapshot | null;
     failed: boolean;
-  }>({ scope, votes: null, failed: false });
+  }>({ scope, category, placeholder, replaySeed, snapshot: null, failed: false });
   useEffect(() => {
     let live = true;
-    void loadVotes(scope).then((result) => {
-      if (!live) return;
-      setState({ scope, votes: result, failed: result === null });
-    });
+    const controller = new AbortController();
+    const load = async () => {
+      await Promise.resolve();
+      try {
+        let snapshot: BoardSnapshot;
+        if (placeholder) {
+          const votes = scope === 'formal' ? [] : readPlaceholderVotes();
+          snapshot = {
+            board: leaderboardData(category, votes, scope),
+            allBoard: leaderboardData('all', votes, scope),
+            radar: computeRadarProfiles(category, votes, scope),
+            scopedPromptCount: scopedPromptIds(category, votes, scope).size,
+          };
+        } else snapshot = await fetchShow1Board(scope, category, controller.signal);
+        if (live) setState({ scope, category, placeholder, replaySeed, snapshot, failed: false });
+      } catch {
+        if (live) setState({ scope, category, placeholder, replaySeed, snapshot: null, failed: true });
+      }
+    };
+    void load();
     return () => {
       live = false;
+      controller.abort();
     };
-  }, [replaySeed, scope, worksState, promptsState]);
-  if (state.scope !== scope) return { votes: null, failed: false, loading: true };
+  }, [replaySeed, scope, category, placeholder, worksState, promptsState]);
+  if (state.scope !== scope || state.category !== category || state.placeholder !== placeholder || state.replaySeed !== replaySeed)
+    return { snapshot: null, failed: false, loading: true };
   return {
-    votes: state.votes,
+    snapshot: state.snapshot,
     failed: state.failed,
-    loading: state.votes === null && !state.failed,
+    loading: state.snapshot === null && !state.failed,
   };
 }
 
@@ -377,25 +388,13 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
     return () =>
       window.removeEventListener('aob:placeholder-votes-changed', refresh);
   }, []);
-  const { votes, failed, loading } = useBoardVotes(replaySeed, scope);
-  const data = useMemo(
-    () => (votes ? leaderboardData(category, votes, scope) : null),
-    [category, scope, votes],
-  );
-  const allData = useMemo(
-    () => (votes ? leaderboardData('all', votes, scope) : null),
-    [scope, votes],
-  );
-  const radar = useMemo(
-    () => (votes ? computeRadarProfiles(category, votes, scope) : null),
-    [category, scope, votes],
-  );
+  const { snapshot, failed, loading } = useBoardSnapshot(replaySeed, scope, category, placeholder);
+  const data = snapshot?.board ?? null;
+  const allData = snapshot?.allBoard ?? null;
+  const radar = snapshot?.radar ?? null;
   // 「题目覆盖 X/N」的分母随口径走（2026-09-20 审查修复）：formal 口径下用
   // 题库总数会让分母恒含没打过正式赛的题；该口径无票时回落题库总数
-  const scopedTopicTotal = useMemo(
-    () => (votes ? scopedPromptIds(category, votes, scope).size : 0),
-    [category, scope, votes],
-  );
+  const scopedTopicTotal = snapshot?.scopedPromptCount ?? 0;
   const selected =
     data?.rows.find((row) => row.modelId === selectedId) ??
     data?.rows[0] ??

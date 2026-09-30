@@ -34,7 +34,8 @@
 | `lib/works.ts` / `works-roster.json` | 远端作品数据层（040）：启动拉 `/api/works`，失败回退内置 roster；roster 同时是 works 表种子 |
 | `lib/matchmaking.ts` | 轻量匹配（046）：声望分软性分档 + 熔断 + 冷门优先加权（109），参数集中 `MATCH_CONFIG`；`computeRatings` 全量重放 Elo 暗分 |
 | `lib/ratings.ts` | 声望分数据层：拉 `/api/ratings`（含 games 出场数），未就绪按基础分/全均匀兜底（=均匀随机） |
-| `lib/leaderboard.ts` | 榜单聚合：Elo 重放（平局各 0.5，048）、阵容=已发布∪流水历史模型（045）、口径 `BoardScope`（026）；六维画像 `computeRadarProfiles`，权重来源=流水快照→题库→均分（091/093） |
+| `lib/leaderboard.ts` | 榜单类型、标签与配色；本地 Elo/六维聚合仅供开发占位模式 |
+| `lib/show1-board.ts` | 读取共享 server 的主站聚合榜单，装饰配色与文案、将画像转为 Map；真实模式不读取逐票流水 |
 | `lib/votes.ts` | 投票数据层：`ArenaVote`/`validateVote`（与服务端镜像）/流水读取（永不过滤下架题）/`pairKeyOf` 对局去重 |
 | `lib/comments.ts` | 评论类型与校验（与后端一致） |
 | `lib/placeholder.ts` | 开发者占位符系统：播种伪随机占位模型/结果/投票；隔离方式见文件头 |
@@ -90,7 +91,8 @@
 | `GET /api/comments?round=` | 按题最新 100 条，公开 |
 | `POST /api/comments` | 登录 401/同源 403/JSON 415/校验 400/幂等 409 |
 | `GET /api/works` `/api/prompts` | 已发布作品/题目清单，公开（040/045） |
-| `GET /api/votes?scope=entertainment` / `scope=formal` | 对应范围的全量投票流水（含联表快照 promptKind/promptWeights/双方显示名），公开，**不按上架状态过滤**——下架题/作品的历史票保留在榜单、按原权重重放（045⑤/093） |
+| `GET /api/votes?scope=entertainment` / `scope=formal` | 共享后端返回库内 Show1 票，旧快照票不再合入；主站榜单已停止调用该逐票接口 |
+| `GET /api/show1/leaderboard?scope=entertainment&category=all` | 服务端聚合榜单、综合统计、六维画像和题目覆盖；scope 为 entertainment/formal，category 为 all/text/web |
 | `POST /api/votes` | 登录/同源/校验/票面与 works 表核对（039）；对局去重 409（code:pair）、同 UUID 幂等或 409（code:id）；formal 票非 admin 403（070） |
 | `POST /api/track` | 访客上报（042）：同源即可，204 静默 |
 | `POST /api/reactions`；`GET /api/reactions?prompt=` | 模型反应（054）：一人一题一模型一槽覆盖；登录写、公开读 |
@@ -142,7 +144,7 @@ npm start          # 生产形态：http://localhost:3000
 - 竞技场页「本场收录 N 个模型的 M 份结果」未过滤 isDemo，与题库页口径不一致；当前可进竞技场的题都没有 demo，用户不可见，未修。
 - 评论列表后端 `LIMIT 100`，前端条数显示 "100+"。
 - 数据单一来源：作品=works 表（roster JSON 是种子与前端兜底），题目=prompts 表（seed JSON 同理）；表结构演进走 `MIGRATIONS`（`PRAGMA user_version`），content 存 JSON 字符串、加字段不动表。
-- `GET /api/votes` 返回全量流水（演示规模够用）；数据量上来后需换聚合接口，勿静默截断（会让客户端 Elo 重放失真）。
+- 真实榜单请求 `/api/show1/leaderboard`，由共享 `arenaofbias-server` 完整聚合并缓存；本仓旧 `server/` 未接入新接口。联调与上线须使用新共享后端；接口不可用时显示加载失败，不回退下载全量票。
 - vite dev 代理必须 `changeOrigin: false`（vite.config.ts 有注释）：否则同源校验在 dev 下全部 403。
 - `app/observatory.css` 含大量已无引用的历史规则，待清理。
 
@@ -199,8 +201,8 @@ npm start          # 生产形态：http://localhost:3000
 ### 正式测评隔离（2026-09-23）
 
 - 作品、题库和账号共用；`votes.mode` 区分正式与娱乐。迁移 011 以 `(user_id,pair_key,(mode='formal'))` 唯一索引替代旧跨模式索引，不改历史行；服务启动不再重建旧索引。
-- `/api/votes`、`/api/ratings` 的 `scope` 默认 `entertainment`，另可选 `formal`，非法值 400；各范围完整重放历史，未提供混合统计入口。后台管理总览/流水仍可查看两类记录。
-- `lib/ratings.ts` 的缓存与请求代次按范围独立；`currentMatchup` 接收范围，正式页面首次抽取、换组及投票后刷新均使用正式快照。榜单 `#rank` 默认娱乐，`#rank/formal` 默认正式，切换范围重读流水。
+- 共享后端 `/api/votes`、`/api/ratings`、`/api/show1/leaderboard` 的 `scope` 必填 entertainment/formal，非法或缺失为 400，未提供混合统计入口。库内票按保存时间和 ID 聚合；旧快照票已停用。清零两站投票和对局须由共享后端维护命令备份后显式执行，账号、作品和评论保留。
+- `lib/ratings.ts` 的缓存与请求代次按范围独立；`currentMatchup` 接收范围，正式页面首次抽取、换组及投票后刷新均使用正式快照。榜单 `#rank` 默认娱乐，`#rank/formal` 默认正式，切换范围或赛道请求对应聚合结果；离开或切换时取消旧请求。
 - `npm run validate:formal`：临时库验证迁移、双范围去重/幂等/权限、统计隔离、重启及缓存竞态。`npm run build` 后 `npm run validate:formal-ui`：独立浏览器和临时服务，真实登录投票、匿名结果、双继续、分榜及 320/390px 布局；截图写 `output/playwright/formal-*.png`。
 
 - 管理员入口回归：先 `npm run build`，再 `node scripts/validate-admin-access.mjs`。临时库与独立浏览器验证 kme7 面板→玩法→正式测评、面板打开时退出并原页重新登录后的开合、wujisuan 无面板仍可正式评审；全程不调用 dev 登录。`--expect-bug` 用旧构建复现旧按钮死路与悬空动画引用。

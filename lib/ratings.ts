@@ -2,7 +2,7 @@
 // 由 votes 表全量重放简易 Elo 得出），供 lib/matchmaking.ts 的软性匹配使用。
 // 与 works/prompts 同构的小 store：拉不到时返回空对象——匹配层把未知模型按
 // 基础分处理，等于退回均匀随机（站点行为不劣化）。
-// 注意：这不是榜单分数。前台榜单照旧由页面重放 /api/votes 得出，两者解耦。
+// 榜单和画像也由共享 server 聚合；本接口保留配对所需的未取整分数与场次。
 
 import type { Ratings } from '@/lib/matchmaking';
 import type { EvaluationScope } from '@/lib/votes';
