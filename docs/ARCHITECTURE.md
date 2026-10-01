@@ -165,7 +165,7 @@ npm start          # 生产形态：http://localhost:3000
 - 过场分工（052/059/065/082/084/089）：首页→菜单走 `frame`；首页→题库、桌面菜单→测评走 `convoy`；首页→榜单走 `bands`（字带=声望分前二模型名）；菜单→模一把走 `deal`；模一把内部选择↔游戏走 `folio`；娱乐「下一题」与窄屏菜单→测评走 match 双页纸幕（层挂 body、absolute 文档坐标随滚动、每帧重取新题场内 rect），盖区外 `[data-swap]` 文本行走 `TextSwapMask` 纸条先遮后揭；页眉「随机入场」走 `wipeNavigate`。竞技场返回、特别赛页内未接入。
 - 调参：`reference/game-transitions-review.html`；节奏数值以 `gameTransitionTiming` 与对照页为准，不在文档复述。
 - 防重入：模块自身不设跨实例全局锁（对照页要多实例预览），接入侧用模块级锁补齐。
-- 首页三版（066-069/086）：`app/home.tsx`（经典）/ `home-next.tsx`（新版，定稿默认）/ `home-duel.tsx`（对决版），`aob-home-edition` 记忆；切换入口在开发者面板，不再出现在首页界面。
+- 首页三版（066-069/086）：`app/home.tsx`（经典）/ `home-next.tsx`（新版，定稿默认）/ `home-duel.tsx`（对决版），`aob-home-edition` 记忆；切换入口在开发者面板，不再出现在首页界面。新版采用已验收的档案 Hero，局部样式在 `app/home-hero.css`，对照原稿保留于 `reference/hero-review.*`；生产版复用真实账号与既有导航回调，不含预览工具条。卡片组平面层叠、每张卡片内部独立 preserve-3d，避免切题时相互穿插。
 
 ## 固定画布 HTML 适配（087）
 

@@ -74,7 +74,7 @@ try {
       }
     }
     await page.evaluate(() => { window.__routeFrames = []; });
-    await page.locator('.next-discover a[href="#rank"]').click();
+    await page.getByRole('link', { name: '偏好榜', exact: true }).click();
     await page.waitForURL('**/#rank');
     await page.waitForFunction(() => !document.querySelector('.game-transition'));
     if (loadedBoard) assert.equal(await page.locator('.rank-row').count(), 2);

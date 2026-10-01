@@ -835,7 +835,7 @@
 .play-classic-main {
   flex: 1;
   width: 100%;
-  max-width: 880px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 70px 24px 90px;
 }
@@ -859,8 +859,9 @@
 .play-classic-item {
   display: flex;
   align-items: baseline;
-  gap: 22px;
-  padding: 22px 6px;
+  gap: 26px;
+  min-height: 150px;
+  padding: 32px 18px;
   border-top: 1px solid var(--border);
   text-decoration: none;
   color: inherit;
@@ -887,32 +888,45 @@ a.play-classic-item:active {
 }
 .play-classic-idx {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 17.5px;
   letter-spacing: 1px;
   color: var(--text-7c887b);
 }
+.play-classic-name {
+  flex: 0 0 210px;
+  min-width: 0;
+}
 .play-classic-name b {
   display: block;
-  font-size: 19px;
+  font-size: 30px;
+  line-height: 1.4;
 }
 .play-classic-name small {
+  display: block;
+  margin-top: 8px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 16px;
+  line-height: 1.5;
   letter-spacing: 1px;
   color: var(--text-7c887b);
 }
 .play-classic-desc {
   flex: 1;
-  font-size: 12px;
-  line-height: 1.8;
+  font-size: 20px;
+  line-height: 1.7;
   color: var(--text-5b655f);
 }
 .play-classic-go {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 20px;
   white-space: nowrap;
+}
+.play-classic-go svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 .play-classic-note {
   margin-top: 18px;
@@ -926,7 +940,10 @@ a.play-classic-item:active {
   .play-classic-item {
     flex-wrap: wrap;
     gap: 10px 16px;
-    padding: 18px 4px;
+    padding: 28px 8px;
+  }
+  .play-classic-name {
+    flex: 1;
   }
   .play-classic-desc {
     order: 2;

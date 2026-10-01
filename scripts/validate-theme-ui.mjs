@@ -167,7 +167,7 @@ try {
   const cdp = await context.newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
   const measurements = await page.evaluate(async () => {
-    const target = document.querySelector('.next-copy');
+    const target = document.querySelector('.hr-copy');
     const original = target.getBoundingClientRect();
     const frames = [];
     let previous;

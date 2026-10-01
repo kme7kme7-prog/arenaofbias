@@ -6,6 +6,7 @@ import { HomeNext } from './home-next';
 import './home-next.css';
 import { HomeDuel } from './home-duel';
 import './home-duel.css';
+import './home-hero.css';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
 import { useEffect, useRef, useState } from 'react';
