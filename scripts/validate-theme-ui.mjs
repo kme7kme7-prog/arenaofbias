@@ -13,9 +13,6 @@ const setup = async (options) => {
     viewport: { width: 1440, height: 1000 },
     ...options,
   });
-  await context.addInitScript(() => {
-    if (window.top === window) localStorage.setItem('aob-beta-notice', 'v3');
-  });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
   return { context, page };
@@ -42,7 +39,7 @@ try {
   });
   await page.goto(base, { waitUntil: 'commit' });
   await page.waitForFunction(
-    () => document.documentElement.dataset.theme === 'ink',
+    () => document.documentElement.dataset.theme === 'paper',
   );
   assert.equal(
     await page.locator('#root').innerHTML(),
@@ -53,14 +50,15 @@ try {
     await page
       .locator('html')
       .evaluate((el) => getComputedStyle(el).backgroundColor),
-    'rgb(18, 18, 17)',
+    'rgb(217, 221, 218)',
   );
   release();
   await page.locator('.theme-toggle-main').waitFor();
   await page.unroute('**/src/main.tsx');
   console.log(
-    'PASS dark system first paint before the application module; no paper frame',
+    'PASS paper first paint on a dark system before the application module',
   );
+  assert.equal(await page.locator('.beta-notice-card').count(), 0, 'new visitors have no beta notice');
   await page.emulateMedia({ colorScheme: 'light' });
   await expectTheme(page, 'paper');
   await page.locator('.theme-toggle-main').click();
@@ -83,13 +81,15 @@ try {
   await expectTheme(page, 'paper');
   assert.equal(
     await page.evaluate(() => localStorage.getItem('aob-theme')),
-    null,
+    'system',
   );
   assert.equal(
     await options.evaluate((el) => el === document.activeElement),
     true,
   );
   await page.emulateMedia({ colorScheme: 'dark' });
+  await expectTheme(page, 'ink');
+  await page.reload();
   await expectTheme(page, 'ink');
   await options.click();
   await page.keyboard.press('Escape');
@@ -106,9 +106,11 @@ try {
   await other.evaluate(() => localStorage.setItem('aob-theme', 'paper'));
   await expectTheme(page, 'paper');
   await other.evaluate(() => localStorage.removeItem('aob-theme'));
+  await expectTheme(page, 'paper');
+  await other.evaluate(() => localStorage.setItem('aob-theme', 'system'));
   await expectTheme(page, 'ink');
   await other.close();
-  console.log('PASS cross-tab manual preference and return to system');
+  console.log('PASS cross-tab manual preference, clearing to paper and explicit system');
 
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.locator('.theme-toggle-main').click();
@@ -314,16 +316,16 @@ try {
   const restricted = await blocked.newPage();
   await restricted.goto(base + '/#play');
   await restricted.locator('.theme-toggle-main').waitFor();
-  await expectTheme(restricted, 'ink');
-  await restricted.locator('.theme-toggle-main').click();
   await expectTheme(restricted, 'paper');
+  await restricted.locator('.theme-toggle-main').click();
+  await expectTheme(restricted, 'ink');
   await restricted.emulateMedia({ colorScheme: 'light' });
   await restricted.emulateMedia({ colorScheme: 'dark' });
-  await expectTheme(restricted, 'paper');
+  await expectTheme(restricted, 'ink');
   await blocked.close();
   assert.deepEqual(errors, []);
   console.log(
-    'PASS denied storage uses system at boot and retains this tab’s manual override',
+    'PASS denied storage defaults to paper and retains this tab’s manual override',
   );
 } finally {
   await browser.close();

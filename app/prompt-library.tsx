@@ -44,6 +44,10 @@ const filters = [
 ] as const;
 // 封面是题目意象，与参赛作品无关；未配置的新题使用图集最后一格通用封面。
 const coverIds = ['001', '002', '003', '004', '005', '006', '007'];
+const individualCoverIds = new Set([
+  '008', '009', '010', '011', '012', '013', '014', '016', '018',
+  '019', '020', '021', '022', '023', '024', '025', '026', '027',
+]);
 const motionQuery = '(prefers-reduced-motion: reduce)';
 const PAGE_SIZE = 8;
 function subscribeMotion(callback: () => void) {
@@ -53,12 +57,12 @@ function subscribeMotion(callback: () => void) {
 }
 const reducedMotion = () => window.matchMedia(motionQuery).matches;
 function coverStyle(id: string): CSSProperties {
-  if (id === '008')
+  if (individualCoverIds.has(id))
     return {
       '--cover-x': '50%',
       '--cover-y': '50%',
       '--cover-bg': 'var(--cover-0)',
-      '--cover-image': "url('/art/prompt-cover-008.webp')",
+      '--cover-image': `url('/art/prompt-cover-${id}.webp')`,
       '--cover-size': 'cover',
     } as CSSProperties;
   const index = coverIds.includes(id) ? coverIds.indexOf(id) : 7;

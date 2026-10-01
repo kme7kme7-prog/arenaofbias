@@ -19,7 +19,8 @@
       (() => {
         let theme;
         try { theme = localStorage.getItem('aob-theme'); } catch {}
-        if (theme !== 'paper' && theme !== 'ink') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'ink' : 'paper';
+        if (theme === 'system') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'ink' : 'paper';
+        if (theme !== 'paper' && theme !== 'ink') theme = 'paper';
         const root = document.documentElement;
         root.dataset.theme = theme;
         root.style.colorScheme = theme === 'ink' ? 'dark' : 'light';

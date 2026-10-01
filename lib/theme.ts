@@ -12,9 +12,9 @@ const valid = (value: unknown): value is Theme =>
 const readPreference = (): ThemePreference => {
   try {
     const value = localStorage.getItem(key);
-    return valid(value) ? value : 'system';
+    return valid(value) || value === 'system' ? value : 'paper';
   } catch {
-    return 'system';
+    return 'paper';
   }
 };
 const resolve = (preference: ThemePreference): Theme =>
@@ -47,8 +47,7 @@ export function setThemePreference(value: ThemePreference) {
   if (value !== 'system' && !valid(value)) return;
   preference = value;
   try {
-    if (value === 'system') localStorage.removeItem(key);
-    else localStorage.setItem(key, value);
+    localStorage.setItem(key, value);
   } catch {
     /* Retain the manual choice in memory when storage is unavailable. */
   }

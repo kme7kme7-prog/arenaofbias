@@ -65,3 +65,10 @@ Color palette: restrained charcoal, slate blue, rain gray, a very small amount o
 Constraints: no readable text, no chat bubbles, no visible brands, no logos, no watermark, no people, no hands, no melodramatic props, no neon cyberpunk lighting, no excessive bokeh, no oversaturated colors
 Avoid: AI fantasy look, staged stock-photo polish, dramatic cinematic teal-orange grading, sentimental clichés
 ```
+
+## 009–014、016、018–027 封面（2026-10-01）
+
+- 内置 image_gen 每题独立生成，共 17 张；保留题材本色与原有 001–008 封面。新图仅作题目意象，不是参赛作品，也不写入作品数据包。
+- 交付：`public/art/prompt-cover-<题号>.webp`，2:1，合计 4,756,442 字节。FFmpeg 仅转 WebP（quality 88、compression_level 6），无调色、裁切或拼接。
+- 大封面和目录缩略图共用 `app/prompt-library.tsx` 的映射；未配置题号继续使用通用纸张兜底。17 图的 2:1 尺寸、浏览器解码、大小图一致性及纸/墨 × 1440/390 页面回归通过，图片总览与页面截图已目检。
+- [完整生成提示词及原图文件名](artwork/2026-10-01-prompt-covers.md)。原始 PNG 位于本机 `C:/Users/Atmeplz/.codex/generated_images/01a0f66f-cebd-7ed0-9f35-c6cf54bcb4b7/`；本地核对总览 `output/release-readiness-20261001/covers-all.png`。

@@ -8,7 +8,7 @@ const html = fs.readFileSync('index.html', 'utf8');
 const script = html.match(/<script id="theme-boot">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script, 'a synchronous theme boot must precede the application');
 assert.ok(html.indexOf('id="theme-boot"') < html.indexOf('type="module"'));
-for (const stored of [null, 'paper', 'ink', 'garbage']) {
+for (const stored of [null, 'paper', 'ink', 'system', 'garbage']) {
   for (const dark of [false, true]) {
     for (const blocked of [false, true]) {
       const root = { dataset: {}, style: {} };
@@ -30,7 +30,7 @@ for (const stored of [null, 'paper', 'ink', 'garbage']) {
       const expected =
         !blocked && ['paper', 'ink'].includes(stored)
           ? stored
-          : dark
+          : !blocked && stored === 'system' && dark
             ? 'ink'
             : 'paper';
       assert.equal(root.dataset.theme, expected);
@@ -43,7 +43,7 @@ for (const stored of [null, 'paper', 'ink', 'garbage']) {
   }
 }
 console.log(
-  'PASS prepaint: 16 combinations of stored preference, system, invalid value and denied storage',
+  'PASS prepaint: 20 combinations; paper default, explicit system, stored preference and denied storage',
 );
 
 const palette = postcss.parse(fs.readFileSync('app/theme-tokens.css', 'utf8'));
