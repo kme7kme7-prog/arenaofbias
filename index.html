@@ -2,6 +2,11 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      if (new URLSearchParams(location.search).get('entry') === 'portal') document.documentElement.dataset.entry = 'game';
+    </script>
+    <style>html[data-entry]::after { content:''; position:fixed; inset:0; z-index:2147483646; background:#d9ddda; }</style>
+    <script src="/entry-boot.js"></script>
     <!-- interactive-widget=resizes-content：Android Chrome 默认只缩视觉视口，键盘会
          盖住登录框的提交按钮且滚不到；让键盘压缩布局视口，dvh 才会跟着缩。
          viewport-fit=cover 让 env(safe-area-inset-*) 在刘海屏上取到非零值。 -->

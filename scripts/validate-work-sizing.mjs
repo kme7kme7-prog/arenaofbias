@@ -67,7 +67,7 @@ try {
             return { slotHeight: slot.clientHeight, contentHeight: web.clientHeight,
               unusedHeight: Math.max(web.clientHeight, web.scrollHeight) - nav.offsetHeight - hero.offsetHeight - footer.offsetHeight,
               minimumHeight: nav.offsetHeight + 360 + footer.offsetHeight,
-              footerBottom: footer.getBoundingClientRect().bottom - web.getBoundingClientRect().top,
+              footerBottom: (footer.getBoundingClientRect().bottom - web.getBoundingClientRect().top) / (web.getBoundingClientRect().height / web.offsetHeight),
               heroHeight: hero.offsetHeight };
           }
           const frame = slot.querySelector('iframe');
@@ -75,7 +75,7 @@ try {
           const fr = frame.getBoundingClientRect();
           return { slotWidth: slot.clientWidth, slotHeight: slot.clientHeight, frameWidth: frame.clientWidth,
             frameHeight: frame.clientHeight, bottomGap: rect.bottom - fr.bottom, topGap: fr.top - rect.top,
-            canvasHeight: frame.contentDocument.querySelector('canvas').height };
+            canvasHeight: frame.contentDocument.querySelector('canvas').height, canvasViewportHeight: frame.contentWindow.innerHeight };
         }));
         assert.equal(slots.length, 2);
         for (const slot of slots) {
@@ -99,7 +99,9 @@ try {
             assert.equal(slot.frameWidth, slot.slotWidth);
             assert.ok(Math.abs(slot.bottomGap) < 1);
             assert.ok(Math.abs(slot.topGap) < 1);
-            assert.equal(slot.canvasHeight, slot.frameHeight);
+            assert.equal(slot.canvasHeight, slot.canvasViewportHeight);
+            // CSS zoom may round iframe clientHeight and its inner viewport in opposite directions.
+            assert.ok(Math.abs(slot.canvasViewportHeight - slot.frameHeight) <= 1);
           }
         }
         results.push({ theme, mode, width, height, slots });

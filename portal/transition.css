@@ -1,0 +1,7 @@
+html.portal-leaving { overflow:hidden; }
+.portal-cover { position:fixed; z-index:10; pointer-events:auto; }
+.portal-cover.arena { background:#d9ddda; }
+.portal-cover.gallery { background:#121211; }
+.portal-leaving .top, .portal-leaving .foot { opacity:0; transition:opacity .18s; }
+.portal-leaving .half .go { pointer-events:none; }
+.portal-selected > * { opacity:0; transition:opacity .16s; }

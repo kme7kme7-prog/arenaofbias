@@ -44,7 +44,9 @@ import { getLocale, translate } from '@/lib/locale';
 import { setTransitionTranslator } from '@/lib/game-transitions';
 import { setWipeTranslator } from '@/lib/ui-transitions';
 import { initTheme } from '@/lib/theme';
+import { settlePortalHome } from '@/lib/portal-entry';
 import '@/app/theme.css';
+import '@/app/site-scale.css';
 const disposeTheme = initTheme();
 if (import.meta.hot) import.meta.hot.dispose(disposeTheme);
 setWipeTranslator((text) => translate(text, getLocale()));
@@ -62,6 +64,7 @@ function subscribeRoute(callback: () => void) {
 // 作品清单（服务端 works 表）就绪后重渲染，让 currentPairs 等
 // 数据消费方从内置花名册切到远端清单（决策 040）
 function Routes() {
+  useEffect(() => settlePortalHome(container!), []);
   const { t } = useI18n();
   const { user, loading: authLoading } = useAccount();
   const route = useSyncExternalStore(

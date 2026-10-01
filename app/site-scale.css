@@ -1,0 +1,7 @@
+/* Equivalent visual scale to 80% browser zoom, without changing browser settings.
+   Viewport units do not grow with CSS zoom, so full-page shells compensate. */
+html { zoom: .8; }
+body, #root { min-height: 125svh; }
+.lobby, .duel-home, .arena-shell, .rank-page, .guess-page { min-height: 125svh; }
+.prompt-archive { min-height: 125dvh; }
+.next-home { min-height: calc(125svh - 88px); }
