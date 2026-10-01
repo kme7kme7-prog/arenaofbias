@@ -1,10 +1,13 @@
 # HANDOFF.md · 当前状态
 
-## 2026-10-01 · 上线收口提交与 VPS 发布已获授权（进行中）
+## 2026-10-01 · 上线收口已提交、推送并发布 VPS
 
-- 用户明确要求「commit并且push，把这一部分更新到vps」。再次 fetch 后仍以 `f304d26` 为最新主线基线；推送目标为本仓 `origin` 的当前 `codex/paper-ink-theme` 分支，署名核实为 GitHub `Atmeplz` / `224206292+Atmeplz@users.noreply.github.com`。
-- 发布只覆盖竞技场 `/www/wwwroot/show1-dist`。已只读核对现行 Nginx：根域独立总入口、game 竞技场、Gallery 独立站；共享后端版本仍为 `2448803`。从提交源码隔离构建，排除他人未跟踪作品，完整哈希校验后保留原目录切换；不运行已退役的 PM2 整站脚本。
-- 本地功能验证见下节；本次干净发布包构建、远端清单和线上验收结果将在完成后归档。当前尚未切换生产目录。
+- 用户明确授权 commit、push 与 VPS 更新。源码提交 `0af99999d9aa9285882a155dfecd2a78a98c3047`（Atmeplz），已推送 `origin/codex/paper-ink-theme`；主线基线仍为 `f304d26`，本轮没有合并 main。包含 17 张新题封面、长短按钮深底强调色、移除内测弹窗、首次默认浅色，沿用已有整站 80% 与过场。
+- 2026-10-01T08:37:26Z 发布 `launch-polish-20261001T083657Z-0af99999`，只切换 `/www/wwwroot/show1-dist`。832 文件完整 SHA-256 与集合校验通过，24 文件更新、0 删除；18 个仅换行符差异的旧静态文件保留线上字节，旧哈希资源保留。备份 `/www/wwwroot/show1-dist.prev-launch-polish-20261001T083657Z-0af99999`，审计与 manifest 在 `/root/launch-polish-20261001T083657Z-0af99999`。
+- 从已提交源码隔离构建，复用既有 node_modules（未重新 npm ci）；build、typecheck、check:theme 通过。发布包排除他人未跟踪作品。首次 Windows tar 遇到历史中文文件名编码问题，改用校验路径的 Python UTF-8 提取后完成构建，未影响正式目录。
+- 公网 24 个更新文件均 200 且哈希一致；Edge 纸/墨 × 1440/390 验证默认浅色/记住墨色、无内测弹窗、现有入场门控和 80%、17 图映射解码、014/016 长短切换及选中颜色，无横向溢出或页面异常。密集整组重复访问触发既有 API 429 限流，门控按预期失败；单独手机墨色访问通过，不把这次密集访问记录为零 HTTP 错误。截图和分组结果在 `output/playwright/launch-polish-20261001/`。
+- 准备期间检测到 Gallery 及 API Nginx 有同期外部更新，竞技场未变；重新只读核对后才制定最终清单。发布后核对根入口、Gallery、Nginx 配置与后端版本 `2448803` 均与最终发布前快照一致。本轮没有部署后端或改业务数据；没有执行注册、投票、投稿等业务写操作。
+- 原有未跟踪 `public/works/005/`、`006/`、`007/` 和 ZIP 保留。完整归档见 [launch-polish-release](docs/handoff/2026-10-01-launch-polish-release-Atmeplz.md)；下面各节“未提交/部署”为此前阶段记录。
 
 ## 2026-10-01 · 上线收口已本地完成（未提交、未部署）
 
