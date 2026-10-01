@@ -50,6 +50,7 @@ export function peekPending(
 async function postReaction(entry: PendingEntry): Promise<{
   ok: boolean;
   status: number;
+  emailRequired?: boolean;
 }> {
   try {
     // keepalive：pagehide 补发时请求要能活过页面卸载
@@ -59,6 +60,12 @@ async function postReaction(entry: PendingEntry): Promise<{
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: newId(), ...entry }),
     });
+    if (response.status === 403) {
+      const data = await response.json().catch(() => ({}));
+      if (data.code === 'email_required' && typeof window !== 'undefined')
+        window.dispatchEvent(new CustomEvent('account-email-required', { detail: entry }));
+      return { ok: false, status: response.status, emailRequired: data.code === 'email_required' };
+    }
     return { ok: response.ok, status: response.status };
   } catch {
     return { ok: false, status: 0 };
@@ -88,7 +95,7 @@ export function flushReactions(): Promise<number> {
       inFlight.add(key);
       const result = await postReaction(entry);
       inFlight.delete(key);
-      if (result.ok || [400, 401, 409].includes(result.status)) {
+      if (result.ok || result.emailRequired || [400, 401, 409].includes(result.status)) {
         if (pending.get(key) === entry) pending.delete(key);
       }
       else failed++;

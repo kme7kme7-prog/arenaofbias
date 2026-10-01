@@ -234,6 +234,10 @@ export const messages: Record<string, string> = {
   '邮箱已验证，设置账号和密码。': 'Email verified. Now pick a username and password.',
   '注册需要一个常用邮箱：先收个验证码。':
     'A usual email is required — receive a verification code first.',
+  '绑定并验证邮箱后才能投票和表态。': 'Link and verify your email to vote and react.',
+  '绑定并验证邮箱后才能表态。': 'Link and verify your email to react.',
+  '绑定邮箱 ↗': 'Link email ↗',
+  '这一票未计入，绑定并验证邮箱后才能投票 ↗': 'This vote was not counted. Link and verify your email to vote ↗',
   '一个名字，一个暗号，就能落座。邮箱可在登录后绑定。':
     'A name and a passphrase are enough. You can bind an email after signing in.',
   '如果该账号绑定了邮箱，验证码将发送到该邮箱。':

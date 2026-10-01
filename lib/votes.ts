@@ -131,7 +131,7 @@ export function pairKeyOf(ridA: string, ridB: string): string {
   return [ridA, ridB].sort((a, b) => a.localeCompare(b)).join('+');
 }
 
-export type VoteIssue = 'auth' | 'dup' | 'offline';
+export type VoteIssue = 'auth' | 'unbound' | 'dup' | 'offline';
 
 export type SubmitResult =
   | { ok: true }
@@ -149,11 +149,15 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
       body: JSON.stringify(vote),
       signal: controller.signal,
     });
-    if (response.ok) return { ok: true };
     const data = (await response.json().catch(() => ({}))) as {
       error?: string;
       code?: string;
+      counted?: boolean;
+      reason?: string;
     };
+    if (response.ok && data.counted === false && data.reason === 'unbound')
+      return { ok: false, issue: 'unbound', error: '这一票未计入，绑定并验证邮箱后才能投票。' };
+    if (response.ok) return { ok: true };
     if (response.status === 401)
       return { ok: false, issue: 'auth', error: '登录后，你的选择会计入偏好榜。' };
     if (response.status === 409) {

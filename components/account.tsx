@@ -31,6 +31,7 @@ type Auth = {
   user: User | null;
   loading: boolean;
   open: () => void;
+  openBinding: () => void;
   refresh: () => Promise<void>;
 };
 const AccountContext = createContext<Auth | null>(null);
@@ -46,7 +47,7 @@ const maskEmail = (email: string) => {
   if (at <= 0) return email;
   return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
 };
-// Cloudflare Turnstile 人机验证：注册提交及绑定/找回发码。
+// Cloudflare Turnstile 人机验证：注册/绑定/找回发码。
 // 站点密钥由 /api/auth/turnstile 下发，null = 服务端未配密钥，不渲染、不发 token。
 // 脚本官方 api.js 懒加载一次，widget 显式渲染；发码后 token 一次性作废，
 // 靠换 key 重挂组件拿到新 token
@@ -296,6 +297,21 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setCode('');
     setSuccess(null);
   };
+  const openBinding = () => {
+    close(true);
+    switchMode(user ? 'bind' : 'login');
+  };
+  useEffect(() => {
+    const required = () => {
+      setOpened(true);
+      setMode(user ? 'bind' : 'login');
+      setError('');
+      setNotice('绑定并验证邮箱后才能投票和表态。');
+      void refresh();
+    };
+    window.addEventListener('account-email-required', required);
+    return () => window.removeEventListener('account-email-required', required);
+  }, [refresh, user]);
   // 成功反馈页：亮出结果约 1.4 秒再走后续动作（关弹窗/回登录/回会员视图）
   const flashSuccess = (kind: Success, after: () => void) => {
     turn();
@@ -317,7 +333,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setNotice('');
     setSending(true);
     try {
-      const purpose = user ? 'bind' : 'reset';
+      const purpose = user ? 'bind' : mode === 'register' ? 'register' : 'reset';
       const body =
         purpose === 'reset'
           ? { purpose, username: username.trim(), turnstileToken: gateToken }
@@ -361,10 +377,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
     if (!user && mode === 'register' && !USERNAME_PATTERN.test(username.trim())) {
       setError('账号需为 2–24 个字符：中英文、数字、下划线或连字符。');
-      return;
-    }
-    if (!user && mode === 'register' && gateSiteKey && !gateToken) {
-      setError('请先完成人机验证。');
       return;
     }
     submitting.current = true;
@@ -439,7 +451,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(
             mode === 'register'
-              ? { username, password, turnstileToken: gateToken }
+              ? { username, password, email: email.trim(), code }
               : { username: username.trim(), code, password },
           ),
         },
@@ -473,10 +485,6 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           : '暂时无法连接，请稍后重试。',
       );
     } finally {
-      if (!user && mode === 'register') {
-        setGateToken('');
-        setGateEpoch((epoch) => epoch + 1);
-      }
       setBusy(false);
       submitting.current = false;
     }
@@ -487,7 +495,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setError('');
     setNotice('');
   };
-  // 注册提交及发码后重挂组件，获取新的一次性 token。
+  // 发码后重挂组件，获取新的一次性 token。
   const gate = gateSiteKey ? (
     <TurnstileGate
       key={gateEpoch}
@@ -616,7 +624,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       : undefined;
   return (
     <AccountContext.Provider
-      value={{ user, loading, open: () => close(true), refresh }}
+      value={{ user, loading, open: () => close(true), openBinding, refresh }}
     >
       {localize(children)}
       <Dialog open={opened} onOpenChange={close}>
@@ -700,7 +708,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                 ? '输入账号，验证码将发到绑定的邮箱。'
                                 : '验证通过，设置新密码（重置后所有设备需重新登录）。'
                               : mode === 'register'
-                                  ? '一个名字，一个暗号，就能落座。登录后可在账号绑定中添加找回方式。'
+                                  ? '注册需要一个常用邮箱：先收个验证码。'
                                   : '登录后，用你的账号参与作品讨论。',
                         )}
                       </DialogDescription>
@@ -823,6 +831,27 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                 {t('8–128 个字符，可使用较长的词组。')}
                               </small>
                               {confirmField}
+                              <label htmlFor="account-register-email">
+                                <span className="account-label">{t('邮箱')}</span>
+                                <div className="code-field">
+                                  <input
+                                    id="account-register-email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    autoCapitalize="none"
+                                    spellCheck={false}
+                                    required
+                                    maxLength={254}
+                                    value={email}
+                                    onChange={(event) => setEmail(event.target.value.trim())}
+                                    disabled={busy}
+                                    placeholder={t('请输入常用邮箱')}
+                                  />
+                                  {codeSendButton(!email.trim())}
+                                </div>
+                              </label>
+                              {codeField}
                               {gate}
                             </>
                           )}

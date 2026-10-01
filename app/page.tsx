@@ -135,6 +135,7 @@ type VoteOutcome =
   | { state: 'saving' }
   | { state: 'saved' }
   | { state: 'auth' }
+  | { state: 'unbound' }
   | { state: 'dup' }
   | { state: 'failed'; message: string };
 function subscribeMotion(callback: () => void) {
@@ -293,14 +294,35 @@ function ReactionBar({
   modelLabel: string;
 }) {
   const { t, localize } = useI18n();
-  const { user } = useAccount();
+  const { user, openBinding } = useAccount();
   const [mine, setMine] = useState<ReactionKind | null>(null);
   const [counts, setCounts] = useState<Record<ReactionKind, number> | null>(
     null,
   );
   const [burst, setBurst] = useState<ReactionKind | null>(null);
   const [reactionError, setReactionError] = useState('');
+  const [reactionRevision, setReactionRevision] = useState(0);
   const reactionKnown = useRef<ReactionKind | null>(null);
+  useEffect(() => {
+    const rejected = (event: Event) => {
+      const entry = (event as CustomEvent).detail;
+      if (entry.promptId !== promptId || entry.mid !== mid) return;
+      setReactionError(t('绑定并验证邮箱后才能表态。'));
+      const known = reactionKnown.current;
+      setCounts((current) => {
+        if (!current) return current;
+        const restored = { ...current };
+        if (mine) restored[mine] = Math.max(0, restored[mine] - 1);
+        if (known) restored[known] += 1;
+        return restored;
+      });
+      setMine(known);
+      setBurst(null);
+      setReactionRevision((revision) => revision + 1);
+    };
+    window.addEventListener('account-email-required', rejected);
+    return () => window.removeEventListener('account-email-required', rejected);
+  }, [promptId, mid, mine, t]);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -343,13 +365,18 @@ function ReactionBar({
       // 离开这件作品（换组/换题/路由切换）：补发该 mid 的最终意图
       void flushReactions();
     };
-  }, [promptId, mid, user?.id]);
+  }, [promptId, mid, user?.id, user?.email, reactionRevision]);
   // 本地优先（2026-09-20 用户拍板）：点击只改本地并记 pending，同步在卸载/关页
   // 时按 mid 补发最终意图（lib/reactions.ts）——反应是一槽覆盖写，只发最后一个
   // 不丢信息，乱按不再烧 social 限流桶；未登录当场提示，不做无用记录
   const react = (kind: ReactionKind) => {
     if (!user) {
       setReactionError(t('登录后才能表态。'));
+      return;
+    }
+    if (!user.email) {
+      setReactionError(t('绑定并验证邮箱后才能表态。'));
+      openBinding();
       return;
     }
     setReactionError('');
@@ -402,6 +429,9 @@ function ReactionBar({
       ))}
       <output className="reaction-status" aria-live="polite">
         {reactionError}
+        {reactionError && user && !user.email && (
+          <button type="button" onClick={openBinding}>{t('绑定邮箱 ↗')}</button>
+        )}
       </output>
     </div>
   );
@@ -1163,7 +1193,7 @@ export default function Arena({
   }>({ run: state.run, outcome: { state: 'idle' } });
   const voteOutcome: VoteOutcome =
     voteRecord.run === state.run ? voteRecord.outcome : { state: 'idle' };
-  const { open: openAccount } = useAccount();
+  const { open: openAccount, openBinding } = useAccount();
 
   const recordVote = useCallback(
     (side: Side | 'draw') => {
@@ -1209,6 +1239,8 @@ export default function Arena({
             ? { state: 'saved' }
             : result.issue === 'auth'
               ? { state: 'auth' }
+              : result.issue === 'unbound'
+                ? { state: 'unbound' }
               : result.issue === 'dup'
                 ? { state: 'dup' }
                 : { state: 'failed', message: result.error },
@@ -1683,6 +1715,11 @@ export default function Arena({
                       onClick={openAccount}
                     >
                       {t('登录后，你的选择会计入偏好榜 ↗')}
+                    </button>
+                  )}
+                  {voteOutcome.state === 'unbound' && (
+                    <button type="button" className="vote-note-login" onClick={openBinding}>
+                      {t('这一票未计入，绑定并验证邮箱后才能投票 ↗')}
                     </button>
                   )}
                   {localize(
