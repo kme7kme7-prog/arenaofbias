@@ -184,6 +184,7 @@
 }
 .legal-footer p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .legal-footer nav {
   display: flex;

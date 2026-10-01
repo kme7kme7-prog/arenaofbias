@@ -1,5 +1,6 @@
 import { LegalFooter } from '@/components/legal-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { GALLERY_HOME } from '@/lib/gallery-links';
 import { useI18n } from '@/lib/locale';
 import { HomeNext } from './home-next';
 import './home-next.css';
@@ -133,6 +134,7 @@ export default function Home() {
             <ArrowUpRight size={17} />
           </button>
           <LanguageSwitch />
+          <a href={GALLERY_HOME} className="gallery-home-link" title={t('前往展览馆')}>{t('展览馆')} ↗</a>
           <ThemeToggle />
           <AccountButton />
         </header>

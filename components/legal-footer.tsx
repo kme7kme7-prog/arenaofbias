@@ -12,16 +12,13 @@ export function LegalFooter() {
       <p>
         © {new Date().getFullYear()} {SITE_NAME} · {t('站内作品由 AI 模型生成，仅供比较与学习参考')} ·{' '}
         {t('引用或转载请')}<a href="#terms/cite">{t('注明来源')}</a>
+        {' · '}<a href={`mailto:${CONTACT}`}>{CONTACT}</a>
+        {beian && <>{' · '}<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{beian}</a></>}
       </p>
       <nav aria-label={t('站点信息')}>
         <a href="#terms">{t('使用条款')}</a>
         <a href="#privacy">{t('隐私政策')}</a>
         <a href={`mailto:${CONTACT}`}>{t('联系我们')}</a>
-        {beian && (
-          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-            {beian}
-          </a>
-        )}
       </nav>
     </div>
   );

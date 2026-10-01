@@ -13,7 +13,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { ArrowUpRight, RotateCcw } from 'lucide-react';
-import { bandsNavigate } from '@/lib/game-transitions';
+import { homeNavigate } from '@/lib/game-transitions';
 import { RollingLabel } from '@/components/rolling-label';
 import { RollingNumber } from '@kitlangton/rolling-number/react';
 import '@kitlangton/rolling-number/styles.css';
@@ -469,8 +469,9 @@ export default function Ranking({ initialScope = 'entertainment' }: { initialSco
           href="#home"
           aria-label={t('回到首页')}
           onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             e.preventDefault();
-            bandsNavigate('#home');
+            homeNavigate();
           }}
         >
           <span className="lobby-mark" aria-hidden="true">

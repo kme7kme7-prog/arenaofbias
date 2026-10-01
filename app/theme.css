@@ -35,8 +35,18 @@ input, textarea, select { accent-color: var(--accent); }
 .account-modes button span, .lobby-format-switch button small, .duel-side-bar { opacity: 1; }
 .guess-row-number, .guess-attempts > span:not(.is-used):not(.is-win):not(.is-current) { color: var(--text-on-inset-muted); }
 [data-theme='ink'] .arena-shell .continue-buttons .continue-same,
-[data-theme='ink'] .arena-shell .continue-buttons .continue-same > svg { color: var(--on-accent); }
+[data-theme='ink'] .arena-shell .continue-buttons .continue-same > svg { color: var(--acid); }
+[data-theme='ink'] .arena-shell .continue-buttons .continue-same { background: var(--surface-raised); border: 1px solid var(--control-line); }
 [data-slot='dialog-overlay'] { background: var(--overlay); }
+/* Preserve the paper button's ink face, printed edge and offset hard shadow. */
+[data-theme='ink'] :is(.next-enter,.duel-enter,.lobby-entry,.account-submit,.rank-empty-action) { background: var(--surface-raised); background-image: linear-gradient(135deg, var(--shadow-edge), transparent 65%); color: var(--acid); border: 1px solid var(--control-line); box-shadow: 3px 4px 0 var(--action-edge), inset 0 1px var(--shadow-edge); }
+[data-theme='ink'] :is(.next-enter,.duel-enter,.lobby-entry,.account-submit,.rank-empty-action):hover:not(:disabled) { background-color: var(--surface-raised); box-shadow: 5px 7px 0 var(--action-edge), inset 0 1px var(--shadow-edge); }
+[data-theme='ink'] :is(.next-enter,.duel-enter,.lobby-entry,.account-submit,.rank-empty-action):active:not(:disabled) { box-shadow: 0 0 0 var(--action-edge), inset 0 1px var(--shadow-edge); }
+[data-theme='ink'] :is(.next-gallery-types,.lobby-format-switch,.account-modes) button[aria-pressed='true'],
+[data-theme='ink'] .duel-stage-foot button[aria-pressed='true'] { background: var(--surface-raised); color: var(--acid); border-color: var(--control-line); box-shadow: inset 0 -2px var(--accent); }
+[data-theme='ink'] .archive-option[aria-pressed='true'],
+[data-theme='ink'] .archive-filters button[aria-pressed='true'],
+[data-theme='ink'] .rank-tab[aria-selected='true'] { box-shadow: inset 0 -2px var(--accent); }
 /* The account sheet and all large copy remain in their final rasterization plane. */
 .account-dialog[data-slot='dialog-content'], .account-dialog[data-starting-style], .account-dialog[data-ending-style] { opacity: 1; transform: none; transition: none; }
 .account-sheet { transition: background-color 160ms; clip-path: none; }

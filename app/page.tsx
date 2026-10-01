@@ -87,12 +87,14 @@ import {
   reportWorkReady,
   worksGateOpen,
   worksGateSides,
+  updateWorksGateRecovery,
 } from '@/lib/works-gate';
 import { takeTestPair } from '@/lib/test-pair';
+import { animateArenaLayout } from '@/lib/arena-layout';
 import { ShareButton, duelShareQuery, setSharePair } from '@/components/share';
 import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
-import { createGameTransition } from '@/lib/game-transitions';
+import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
@@ -673,8 +675,8 @@ export default function Arena({
     if (!worksLoading) return;
     const timeout = setTimeout(() => {
       setWorksStalled(true);
-      // 卡死也放幕：纸幕不再死等，落回「正在接入试验场」+ 跳过出口（096）
-      releaseWorksGate();
+      // 有上级纸幕时保持盖满，退出入口由纸幕自身提供；深链保留原跳过出口。
+      if (!document.querySelector('.game-transition.gt-match')) releaseWorksGate();
     }, ARENA_TIMING.worksSkipAt);
     return () => clearTimeout(timeout);
   }, [worksLoading]);
@@ -730,6 +732,7 @@ export default function Arena({
       holdGate: worksGateOpen,
       onFrame: () => {
         alignArenaTransition(transition.layer);
+        updateWorksGateRecovery(transition.layer);
         // 新页上报的逐侧就绪写回牌面：duel 连线按侧填成队色报进度
         const sides = worksGateSides();
         transition.layer.toggleAttribute('data-gt-a', sides.a);
@@ -768,6 +771,7 @@ export default function Arena({
   // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
   const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
   const cardB = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => animateArenaLayout(stageRef.current, reducedMotion), [prompt.id, reducedMotion]);
   // 换组先装载新 iframe，620ms 后才进入 intro。监听必须覆盖整个组件生命期，
   // 否则快作品在 transition 中发出的一次性通知会丢失，入场就永久等待。
   // layout effect 在浏览器处理新 iframe 的消息前就注册；重播同一作品不清空就绪。
@@ -889,7 +893,7 @@ export default function Arena({
         const doc = frame.contentDocument;
         if (!doc) return true;
         if (doc.location.href === 'about:blank') return false;
-        if (doc.readyState === 'loading') return false;
+        if (doc.readyState !== 'complete') return false;
         // 换稿竞态：新 src 已写进属性但新文档未落地时，挂着的还是上一稿的
         // 旧文档（就绪、探针都齐）——地址对不上当前 src 就不算就绪，否则
         // 门控在换稿提交前放行，新稿在揭幕下裸加载（2026-09-25 采样抓到）
@@ -912,6 +916,7 @@ export default function Arena({
     // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
     // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
     const poll = (): boolean => {
+      if (stageRef.current?.dataset.layoutMoving === 'true') return false;
       const a = workReady(cardA.current);
       const b = workReady(cardB.current);
       if (a) reportWorkReady('a');
@@ -923,8 +928,7 @@ export default function Arena({
     };
     // 死等：未完全就绪不展开（用户拍板，取消原 8 秒超时放行）
     while (!poll()) await delay(60, abort);
-    // 双侧就绪：放「下一题」纸幕扫出，揭幕直接落在就绪作品上（096）
-    releaseWorksGate();
+    // Only report readiness here. Release the route curtain after the reveal commits.
   }, []);
 
   useEffect(() => {
@@ -968,13 +972,13 @@ export default function Arena({
       if (reducedMotion) {
         await Promise.all([delay(200, signal), waitWorksLoaded(signal)]);
         setWorksSettled(true);
+        await delay(60, signal);
+        releaseWorksGate();
         dispatch({ type: 'READY' });
         return;
       }
-      // 菜单→竞技场的过场层还挂在 body 上时等它扫出完毕：揭幕从过场结束才开始，
-      // 不与色块叠放。封顶等待兜底过场异常滞留。
-      // 例外（决策 089）：match 双页扫出尾段提前放行，让揭幕与色幕离场并行落点；
-      // 其余过场仍等整层离场。
+      // After preparing the finished scene under cover, wait for the route curtain
+      // before any optional tour. This wait must never block the readiness gate.
       const waitRouteLayer = async (abort: AbortSignal) => {
         for (let waited = 0; waited < 2600; waited += 40) {
           const layer = document.querySelector<HTMLElement>(
@@ -1000,16 +1004,17 @@ export default function Arena({
       const revealHold = Math.min(ARENA_TIMING.introRevealHold, lead);
       const leadStart = performance.now();
       await Promise.all([
-        waitRouteLayer(signal),
         waitWorksLoaded(signal),
         delay(lead - revealHold, signal),
       ]);
       setWorksSettled(true);
       // 揭幕淡入与加载过场收场必须播完才离开 intro，不被卸载切走
       await delay(
-        Math.max(revealHold, lead - (performance.now() - leadStart)),
+        Math.max(700, revealHold, lead - (performance.now() - leadStart)),
         signal,
       );
+      releaseWorksGate();
+      await waitRouteLayer(signal);
       // 移动端巡览整体下线（决策 090）：窄屏无论开关如何都跳过 A/B 聚焦
       if (!tour || window.innerWidth < 700) {
         dispatch({ type: 'READY' });
@@ -1365,7 +1370,11 @@ export default function Arena({
       <div className="ambient-grid" aria-hidden="true" />
 
       <header className="topbar">
-        <a className="brand" href="#home" aria-label={t('回到首页')}>
+        <a className="brand" href="#home" aria-label={t('回到首页')} onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          homeNavigate();
+        }}>
           <Mark />
           <div>
             <strong>
@@ -1634,7 +1643,7 @@ export default function Arena({
 
             <div className="spine-line" />
           </div>
-          {(state.phase === 'loading' || (state.phase === 'intro' && !gatePassed)) && (
+          {!worksSettled && (state.phase === 'loading' || (state.phase === 'intro' && !gatePassed)) && (
             <div
               className={`loading-overlay ${worksSettled ? 'is-clearing' : ''}`}
             >
@@ -1734,7 +1743,11 @@ export default function Arena({
                       '正在记录你的选择…',
                   )}
                 </span>
-                <a className="result-board-link" href={formal ? '#rank/formal' : '#rank'}>
+                <a className="result-board-link" href={formal ? '#rank/formal' : '#rank'} onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  bandsNavigate(formal ? '#rank/formal' : '#rank', { title: 'LEADERBOARD' });
+                }}>
                   {t('看看偏好榜 ↗')}
                 </a>
               </div>

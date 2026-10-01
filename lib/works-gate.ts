@@ -1,17 +1,19 @@
 // 「下一题」纸幕的作品就绪门（决策 096）：旧页进纸幕前 arm，纸幕盖满切路由后
 // 钉在盖满位不扫出——牌面本身就是加载屏；新竞技场逐侧上报就绪、双侧齐了
-// （或卡死超时/用户跳过/页面离开）才开门放幕，揭幕直接落在就绪作品上，
+// （或用户主动离开）才开门放幕，揭幕直接落在就绪作品上，
 // 「正在接入试验场」整拍被纸幕吸收。
 // 模块级状态跨路由存活：层挂在 body 上活过旧页卸载，新页在同一份 JS 上下文里放门。
 import { createGameTransition } from './game-transitions';
+import { captureArenaLayout } from './arena-layout';
 
-const FAILSAFE_MS = 15000;
+const RECOVERY_MS = 15000;
 let armed = false;
 let released = false;
 let armedAt = 0;
 const readySides = { a: false, b: false };
 
 export function armWorksGate() {
+  captureArenaLayout();
   armed = true;
   released = false;
   armedAt = performance.now();
@@ -27,11 +29,23 @@ export function releaseWorksGate() {
   released = true;
 }
 
-// 纸幕每帧问一句：开门 = 未布防 / 已放行 / 兜底超时（新页没 mount 上也不留死幕）
+// Slow loads never force the curtain away; recovery stays on the covered layer.
 export function worksGateOpen() {
-  return (
-    !armed || released || performance.now() - armedAt > FAILSAFE_MS
-  );
+  return !armed || released;
+}
+
+export function updateWorksGateRecovery(layer: HTMLElement) {
+  if (worksGateOpen() || performance.now() - armedAt < RECOVERY_MS || layer.querySelector('.gt-recovery')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'gt-recovery';
+  button.textContent = document.documentElement.lang === 'en' ? 'Loading is taking longer · Back to prompts' : '加载较慢 · 返回提示词库';
+  layer.removeAttribute('aria-hidden');
+  button.onclick = () => {
+    window.location.hash = '#prompts';
+    releaseWorksGate();
+  };
+  layer.append(button);
 }
 
 export function worksGateSides(): Readonly<{ a: boolean; b: boolean }> {
@@ -52,6 +66,7 @@ export function enterArena(hash: string, title?: string, index?: string) {
     index,
     holdGate: worksGateOpen,
     onFrame: () => {
+      updateWorksGateRecovery(transition.layer);
       const sides = worksGateSides();
       transition.layer.toggleAttribute('data-gt-a', sides.a);
       transition.layer.toggleAttribute('data-gt-b', sides.b);

@@ -1,5 +1,15 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  '暂未完成': 'Not ready yet',
+  '展览馆': 'Gallery',
+  '前往展览馆': 'Visit the gallery',
+  '浏览提示词与作品': 'Browse prompts and works',
+  '前往展览馆 · 盲测': 'Gallery · Blind evaluation',
+  '将跳转到展览馆的盲测页面，参与匿名作品比较。': 'Continue to the gallery for blind comparisons of anonymous works.',
+  '正式测评将前往展览馆；其他玩法在本站进行。': 'Formal evaluation opens the gallery; other modes stay on this site.',
+  '命题目录分页': 'Prompt directory pages',
+  '上一页': 'Previous page',
+  '下一页': 'Next page',
   '正式测评由管理员参与，评审结果只计入正式榜。': 'Formal evaluation is for admins. Its results count only toward the formal ranking.',
   "投稿作品": "Contribute",
   "匿名看作品，凭直觉选。": "Compare anonymous works. Trust your instinct.",

@@ -27,7 +27,7 @@ import {
 import { convoyNavigate } from '@/lib/game-transitions';
 import { revealLibrary } from '@/lib/library-motion';
 import { currentPrompts } from '@/lib/prompts';
-import { enterArena } from '@/lib/works-gate';
+import { GALLERY_QUESTIONS } from '@/lib/gallery-links';
 import type { Prompt } from '@/lib/arena';
 import {
   currentPairs,
@@ -45,6 +45,7 @@ const filters = [
 // 封面是题目意象，与参赛作品无关；未配置的新题使用图集最后一格通用封面。
 const coverIds = ['001', '002', '003', '004', '005', '006', '007'];
 const motionQuery = '(prefers-reduced-motion: reduce)';
+const PAGE_SIZE = 8;
 function subscribeMotion(callback: () => void) {
   const media = window.matchMedia(motionQuery);
   media.addEventListener('change', callback);
@@ -214,25 +215,12 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
           </div>
           <a
             className="archive-enter"
-            href={`#arena/${prompt.id}`}
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-              // 未就绪落预览页（无作品可等），不钉纸幕；就绪才走加载中间态
-              if (!stats.ready) return;
-              e.preventDefault();
-              enterArena(`#arena/${prompt.id}`, prompt.name, prompt.id);
-            }}
+            href={GALLERY_QUESTIONS}
           >
             <span>
-              {localize(
-                stats.ready
-                  ? '进入竞技场'
-                  : stats.samples
-                    ? '查看提示词与样例'
-                    : '查看提示词',
-              )}
+              {t('前往展览馆')}
               <small>
-                {localize(stats.ready ? '看作品，凭直觉选择' : '作品尚未齐备')}
+                {t('浏览提示词与作品')}
               </small>
             </span>
             <ArrowUpRight size={27} />
@@ -248,6 +236,7 @@ export default function PromptLibrary() {
   const [kind, setKind] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
+  const focusSelection = useRef(false);
   const prompts = currentPrompts();
   const visible = prompts.filter(
     (prompt) =>
@@ -261,10 +250,15 @@ export default function PromptLibrary() {
   const selectedIndex = selected
     ? visible.findIndex((prompt) => prompt.id === selected.id)
     : -1;
+  // Derive the page from selection so dossier navigation and the directory agree.
+  const page = Math.floor(Math.max(0, selectedIndex) / PAGE_SIZE);
+  const pageCount = Math.ceil(visible.length / PAGE_SIZE);
+  const pageStart = page * PAGE_SIZE;
+  const pagePrompts = visible.slice(pageStart, pageStart + PAGE_SIZE);
   const readyCount = prompts.filter(
     (prompt) => currentPairs(prompt.id).length > 0,
   ).length;
-  const visibleKey = visible.map((prompt) => prompt.id).join(',');
+  const visibleKey = pagePrompts.map((prompt) => prompt.id).join(',');
   useLayoutEffect(
     () => (list.current ? revealLibrary(list.current) : undefined),
     [visibleKey],
@@ -275,6 +269,10 @@ export default function PromptLibrary() {
       '[aria-pressed="true"]',
     );
     if (!container || !option) return;
+    if (focusSelection.current) {
+      option.focus({ preventScroll: true });
+      focusSelection.current = false;
+    }
     const alignSelection = () => {
       if (container.scrollWidth <= container.clientWidth) return;
       const left =
@@ -307,14 +305,13 @@ export default function PromptLibrary() {
               : -1;
     if (next < 0) return;
     event.preventDefault();
+    focusSelection.current = true;
     setSelectedId(visible[next].id);
-    list.current
-      ?.querySelectorAll<HTMLButtonElement>('.archive-option')
-      [next]?.focus({ preventScroll: true });
   }
   function reset() {
     setQuery('');
     setKind('all');
+    setSelectedId(null);
   }
   return (
     <div className="lobby prompt-library prompt-archive">
@@ -393,7 +390,7 @@ export default function PromptLibrary() {
               <button
                 key={value}
                 aria-pressed={kind === value}
-                onClick={() => setKind(value)}
+                onClick={() => { setKind(value); setSelectedId(null); }}
               >
                 <span>{localize(label)}</span>
                 <small>
@@ -410,14 +407,14 @@ export default function PromptLibrary() {
               aria-label={t('搜索提示词')}
               placeholder={t('搜索题目、关键词或编号')}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => { setQuery(event.target.value); setSelectedId(null); }}
             />
             {localize(
               query && (
                 <button
                   type="button"
                   aria-label={t('清空搜索')}
-                  onClick={() => setQuery('')}
+                  onClick={() => { setQuery(''); setSelectedId(null); }}
                 >
                   <X size={16} />
                 </button>
@@ -433,8 +430,8 @@ export default function PromptLibrary() {
                 {visible.length} / {prompts.length}
               </output>
             </div>
-            <div className="archive-options" ref={list}>
-              {visible.map((prompt, index) => {
+            <div className="archive-options" id="prompt-directory" ref={list}>
+              {pagePrompts.map((prompt, index) => {
                 const stats = promptStats(prompt.id);
                 return (
                   <div key={prompt.id} data-library-reveal>
@@ -443,7 +440,7 @@ export default function PromptLibrary() {
                       aria-pressed={selected?.id === prompt.id}
                       aria-controls="prompt-dossier"
                       onClick={() => setSelectedId(prompt.id)}
-                      onKeyDown={(event) => moveSelection(event, index)}
+                      onKeyDown={(event) => moveSelection(event, pageStart + index)}
                     >
                       <span className="archive-option-number">
                         {localize(prompt.id)}
@@ -486,6 +483,19 @@ export default function PromptLibrary() {
                 );
               })}
             </div>
+            {pageCount > 1 && (
+              <nav className="archive-pagination" aria-label={t('命题目录分页')}>
+                <button aria-label={t('上一页')} aria-controls="prompt-directory"
+                  disabled={page === 0} onClick={() => setSelectedId(visible[pageStart - PAGE_SIZE].id)}>
+                  <ChevronLeft size={16} />{t('上一页')}
+                </button>
+                <output aria-live="polite">{page + 1} / {pageCount}</output>
+                <button aria-label={t('下一页')} aria-controls="prompt-directory"
+                  disabled={page === pageCount - 1} onClick={() => setSelectedId(visible[pageStart + PAGE_SIZE].id)}>
+                  {t('下一页')}<ChevronRight size={16} />
+                </button>
+              </nav>
+            )}
             <div className="archive-index-foot">
               <span>
                 {localize(

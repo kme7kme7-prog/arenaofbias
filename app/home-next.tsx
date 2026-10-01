@@ -1,11 +1,13 @@
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useState } from 'react';
-import { ArrowUpRight, ArrowRight } from 'lucide-react';
+import { ArrowUpRight, ArrowRight, PanelsTopLeft, ChartNoAxesColumn } from 'lucide-react';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';
 import { bandsNavigate, convoyNavigate } from '@/lib/game-transitions';
 import { currentRatings } from '@/lib/ratings';
+import { GALLERY_HOME } from '@/lib/gallery-links';
+import { LegalFooter } from '@/components/legal-footer';
 
 export function HomeNext({
   enter,
@@ -51,25 +53,8 @@ export function HomeNext({
           </span>
         </a>
         <nav aria-label={t('主导航')}>
+          <a href={GALLERY_HOME} title={t('前往展览馆')}>{t('展览馆')} ↗</a>
           <a href="https://gallery.arenaofbias.icu/#/questions">{t('投稿作品')}</a>
-          <a
-            href="#prompts"
-            onClick={(e) => {
-              e.preventDefault();
-              convoyNavigate('#prompts', 'PROMPT LIBRARY');
-            }}
-          >
-            {t('提示词库')}
-          </a>
-          <a
-            href="#rank"
-            onClick={(e) => {
-              e.preventDefault();
-              rank();
-            }}
-          >
-            {t('偏好榜')}
-          </a>
         </nav>
         <div className="next-utilities">
           <LanguageSwitch />
@@ -103,6 +88,38 @@ export function HomeNext({
               <ArrowRight size={17} />
             </button>
           </div>
+          <nav className="next-discover" aria-label={t('继续探索')}>
+            <a
+              href="#prompts"
+              aria-label={t('提示词库')}
+              onClick={(e) => {
+                e.preventDefault();
+                convoyNavigate('#prompts', 'PROMPT LIBRARY');
+              }}
+            >
+              <PanelsTopLeft size={19} aria-hidden="true" />
+              <span>
+                <strong>{t('提示词库')}</strong>
+                <small>{t('找一个感兴趣的题目')}</small>
+              </span>
+              <ArrowUpRight size={17} aria-hidden="true" />
+            </a>
+            <a
+              href="#rank"
+              aria-label={t('偏好榜')}
+              onClick={(e) => {
+                e.preventDefault();
+                rank();
+              }}
+            >
+              <ChartNoAxesColumn size={19} aria-hidden="true" />
+              <span>
+                <strong>{t('偏好榜')}</strong>
+                <small>{t('看看大家怎么选')}</small>
+              </span>
+              <ArrowUpRight size={17} aria-hidden="true" />
+            </a>
+          </nav>
         </section>
         <section className="next-gallery" aria-label={t('作品示例')}>
           <div className="next-gallery-heading">
@@ -190,6 +207,7 @@ export function HomeNext({
           </div>
         </section>
       </main>
+      <LegalFooter />
     </div>
   );
 }

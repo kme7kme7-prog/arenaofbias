@@ -5,7 +5,7 @@
 export const CONTACT = 'arenagallari@outlook.com';
 export const OPERATOR = 'ArenaGalleri 运营团队';
 export const SITE_NAME = '偏见试验场';
-export const LEGAL_UPDATED = '2026-09-30';
+export const LEGAL_UPDATED = '2026-10-01';
 const mail = `<a href="mailto:${CONTACT}">${CONTACT}</a>`;
 
 // 备案号只属于一个注册域名；页脚只在对应域名（及其子域）上显示。

@@ -17,6 +17,19 @@
 .gt-contained {
   position: absolute;
 }
+.game-transition .gt-recovery {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: calc(var(--gt-match-center, 50%) + 120px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 12px 18px;
+  border: 1px solid var(--gt-ink);
+  background: var(--gt-paper);
+  color: var(--gt-ink);
+  cursor: pointer;
+}
 .game-transition * {
   box-sizing: border-box;
 }
@@ -809,7 +822,9 @@
 }
 
 /* Theme-aware material tracks. Moving nodes contain no copy. */
-.game-transition .gt-material-plate { position: absolute; inset: -1px; width: auto; height: auto; background: var(--gt-paper); border: 0; transform: none; }
+.game-transition .gt-material-plate { position: absolute; inset: -1px; width: auto; height: auto; background: var(--gt-paper); border: 0; transform: none; overflow: hidden; }
+.game-transition .gt-material-plate.gt-push-sheet { background: var(--foreground); border-right: 6px solid var(--accent); }
+.game-transition .gt-material-plate.gt-push-sheet::before { content: none; }
 .game-transition .gt-material-leaf { position: absolute; left: -1px; width: calc(100% + 2px); height: calc(50% + 1px); background: var(--gt-paper); border: 0; overflow: hidden; }
 .game-transition .gt-material-leaf:is(.gt-match-upper,.gt-deal-half-0) { top: -1px; bottom: auto; }
 .game-transition .gt-material-leaf:is(.gt-match-lower,.gt-deal-half-1) { top: auto; bottom: -1px; }
@@ -828,7 +843,7 @@
 .gt-static-caption { font-size: 12px; letter-spacing: .12em; }
 .gt-static-rule { height: 2px; width: clamp(100px, 24cqw, 280px); background: linear-gradient(90deg, var(--red) 0 48%, var(--acid) 48% 52%, var(--blue) 52%); }
 .gt-static-ranks { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; font: 12px var(--mono); }
-.game-transition.gt-bands .gt-static-copy { inset: 8% 7%; background: var(--gt-paper); border: 1px solid var(--border); }
+.game-transition.gt-bands .gt-static-copy { inset: 0; background: transparent; border: 0; }
 .gt-static-clues { display: flex; gap: 8px; }
 .gt-static-clues .gt-deal-clue { position: static; width: 28px; height: 28px; display: grid; place-content: center; background: var(--accent); color: var(--on-accent); font-size: 10px; }
 .gt-static-copy .gt-match-duel { position: static; width: min(70%, 420px); }

@@ -28,8 +28,70 @@
 - 隐私正文和 PRODUCT 同步；DECISIONS 追加用户本轮对旧自愿绑定决定的变更。依赖共享后端注册与资格门禁改动，不能独立视为现网已生效。
 - 验证：typecheck、lint、build 通过；`node scripts/validate-email-gating.mjs` 和既有 `validate-reaction-queue.mjs` 通过。真实 Chromium + 本地 API 桩的 390px 注册发码/提交通过，未携带注册 Turnstile token，无 pageerror/横向溢出；截图目检通过，位于忽略目录 output/playwright。未做真实 SMTP/Cloudflare、生产写操作或两站部署；共享后端真实联调由后端本轮记录说明。
 - 归档：[email-registration-gating](docs/handoff/2026-10-01-email-registration-gating-wsnxxxs.md)。
+## 本地待发布：深色模式可读性（2026-10-01）
+
+- 用户反馈深色首页「开始评测」几乎融入背景，其他元素也不够清楚。调整 `app/theme-tokens.css` 的深色文字与边框配色，以及 `app/theme.css` 的深色主按钮、示例/账号选中态和题库/榜单选中标记。用户随后否定暖橙整块填充，现改为墨色面、亮边线、压印与错位硬阴影，橙色用于文字与选中标记；浅色配色和既有动效时间轴保持原样。
+- 按用户要求，从历史提交 `613f912` 恢复新版首页左侧主操作下方的 `next-discover`（题库/榜单两项、图标、说明、响应式样式），移除页眉重复的两项链接，保留投稿入口。只恢复该区，不恢复其余旧首页装饰和说明。入口位置与深色材质决定已追加至 DECISIONS；PRODUCT 同步入口位置。
+- 本轮 `check:theme`（含主题动效约束）、typecheck、lint、build 通过。本地 Vite 5187：Tabbit 核对实际控件颜色；Tabbit 截图超时，改用无头 Edge 完成截图与目检。首页纸/墨 1440px、390px，深色登录弹窗、玩法菜单、题库、榜单失败态均已检查；首页窄屏及上述桌面页无横向溢出，最终验证无 pageerror，浅色 token 块与 HEAD 逐字一致。证据在忽略目录 `output/theme-readability/`。验收脚本首次因初始化脚本访问沙盒 iframe 的 localStorage 报错，补上顶层窗口限制后复验通过。
+- 本轮未启动共享后端，题库使用内置回退数据，榜单为 API 不可用状态；未验证真实榜单数据、真实对局、登录提交或生产页面。未 commit、push、部署；原有 `portable-design-system.zip` 改动保留未动。
+- 入口复原后重新通过主题检查、typecheck、lint、build；纸/墨桌面及 390px 首页已目检，断言两个链接位于主操作下面且页眉不重复，并实际点击验证题库/榜单跳转。最终截图更新于上述证据目录。
+
+## 本地待发布：过场装饰脱离遮罩修复（2026-10-01）
+
+- 用户指出首页主入口边框在遮罩进入前出现、离开后仍悬空，偏好榜过场也异常。实际逐帧确认 `gt-material-corners` 与 `gt-material-bands` 原为固定过场层的子元素，未归入移动纸面；现将两者挂到对应 plate 内，并为 plate 增加 overflow 裁切。文字仍独立静止，盖满换路由、退出前隐藏文案及帧时门控保持原样。
+- 修改前先补 `scripts/check-game-transitions.mjs` 的装饰归属断言，原实现明确失败；修正后纸/墨六种过场不变量通过。对照页 `reference/game-transitions-review.html` 同步逐帧检查说明。
+- 本地无头 Edge：纸/墨、1440px/390px 的 frame/bands 各检查 5 个时点（共 40 个），端点纸面与装饰均离开视口，文字仅在盖满段可见；16 张入/出截图在忽略目录 `output/motion-intake/`，纸色桌面入/出已目检。纸/墨真实点击主入口和榜单共 4 段完整播放记录，均经过盖满换页并完成过场清理，无 pageerror。未启动共享后端，不据此宣称真实对局或榜单数据验收。
+- 主题约束、typecheck、lint、build、git diff --check 通过；未 commit、push、部署。此前首页与主题改动、原有 ZIP 修改均保留。
+
+## 本地待发布：竞技场 HTML 窗口底部灰条修复（2026-10-01）
+
+- 用户反馈双方作品底部出现旧版没有的灰条。历史提交 `da27fc0` 将普通作品窗口改为响应高度（最高 620px），而 `app/library.css` 的普通 HTML iframe 仍固定 560px；浏览器 fixture 在 2048×1200 复现两侧底部各 60px 灰色底板。窄屏则会反向裁掉过高的 iframe。
+- `app/arena-refinement.css` 仅为竞技场 `work-inner` 直接子级的普通 HTML iframe 增加 block 与 height:100%，使作品视口随窗口同步；固定画布组件、题库预览与放大弹窗未改。
+- 新增 `scripts/validate-work-sizing.mjs`：构建前旧版用 --expect-bug 复现，修复构建后纸/墨、普通/固定画布、4 个连续 resize 尺寸共 16 组（每组两侧）通过。普通 iframe 与内置自适应 canvas 尺寸一致、底部间隙为零；固定画布保持 1280×720 原生尺寸与 16:9 展示。无 pageerror，纸色桌面前后截图已目检，证据在忽略目录 `output/work-sizing/`。
+- build、lint、typecheck、git diff --check 通过。验证使用隔离内存作品，不连接真实后端或验证全部正式原作；未 commit、push、部署。此前所有改动与原有 ZIP 保留。
 
 ## 当前工程与发布状态
+
+- 2026-10-01 主站页脚补全：按用户给定拼写将 CONTACT 改为 arenagallari@outlook.com，条款及隐私中联系方式随常量同步，更新日期为 2026-10-01。LegalFooter 版权说明后直接展示邮箱和既有「闽ICP备2026019671号-2」链接（备案仍按 arenaofbias.icu 正式域名显示），移出导航区重复备案链接，窄屏允许长邮箱换行。新版和对决版首页此前漏接共用页脚，本次补齐。
+- typecheck、lint、check:theme、最终 build 通过；隔离无头 Edge 将本地构建映射到正式 host，纸/墨×1440/390 共 4 组检查首页/菜单/题库/榜单邮箱与备案链接、条款/隐私邮箱、无横向溢出及零 pageerror。截图已目检；首次验收暴露新版首页缺页脚，补齐并重建后复验通过。没有请求生产页面或执行任何生产写入；未提交、推送、部署。
+
+- 2026-10-01 用户要求暂锁鹈鹕大乱斗：玩法菜单该行改为无链接、无点击处理、不可聚焦的禁用展示，状态与锁标记写「暂未完成」，补英文。其他玩法入口保持；#event 占位页保留。typecheck、lint、git diff --check 通过；本轮未跑构建和浏览器验证。未提交、推送、部署。
+
+- 2026-10-01 深色「同一题库继续」可读性：app/theme.css 曾将深底按钮及箭头覆盖为 on-accent 暗色，导致与背景融合。现仅深色此按钮改用 acid 亮字/箭头、surface-raised 底和 control-line 边框，保留底部强调线；浅色与按钮逻辑不改。
+- check:theme、build 通过；无头 Edge 隔离竞技场纸/墨×1440/390 共 4 组，正常/悬停的文字与箭头对比度均 ≥4.5:1，无 pageerror；深色截图已目检，证据 output/continue-contrast。未连接真实后端或进行投票；未提交、推送、部署。
+
+- 2026-10-01 展览馆跨站入口：lib/gallery-links.ts 集中正式 Gallery 首页、#/arena 盲测、#/questions 题库地址。首页三个版本加入小型「展览馆 ↗」入口；正式测评菜单改为普通外链、所有访客可点击，行内及菜单下方说明跳转展览馆。提示词档案右下按钮统一外链展览馆题库并改文案。既有正式测评深链和服务端权限未改，娱乐等其他菜单入口保持。
+- 从 Gallery 现行前端路由及公网 data.json 核对地址；web open 无法访问，PowerShell 公网 GET 可用。validate-library-pages 扩展三个实际外链点击、跳转提示及窄屏溢出，纸/墨×1440/390 四组通过；外站导航使用隔离页面拦截，未启动或投票真实盲测。typecheck、lint、build 通过；DECISIONS 与 PRODUCT 同步。未提交、推送、部署。
+
+- 2026-10-01 玩法菜单页脚与题库目录分页：截图为 #play，内容区缺 flex:1 导致法律页脚横线停在中部。app/home.css 仅给 play-classic-main 增加 flex 与宽度，使内容不足一屏时页脚位于底部，长内容自然滚动。
+- PromptLibrary 左侧每页 8 题，页码与前后页控件沿用档案纸面样式；页码由当前选择派生，右侧前后题及方向键跨页同步目录，键盘焦点在换页后保持到选中题。搜索/分类覆盖全部并从第一页开始，空结果与单页隐藏分页。新增中文/英文标签。
+- validate-library-pages 用 25 题隔离 fixture 验证纸/墨×1440/390 共 4 组：页脚到底、末页不足 8 条、搜索/分类重置、右侧跨页与键盘焦点、无横向溢出及零 pageerror；截图已目检。测试首次使用错误 #library 路由超时，修正为 #prompts 后全组通过。typecheck、lint、build、check:theme 通过，未连接正式后端；未提交、推送、部署。
+
+- 2026-10-01 恢复模一把历史入场：用户指出入场变了，定位到主题提交 613f912 把旧密牌改成通用双叶。仅取其父版本 lib/game-transitions.ts 的 deal 分支恢复叠牌飞入、问号密牌、七条线索和双半展开，720ms 盖满、650ms 停留、650ms 展开保持历史节奏；沿用当前主题 token 与防卡顿/减少动态效果引擎。榜单与返回首页 push 未改。
+- check:game 增加历史构图、七线索及盖满/展开时点约束；对照页描述同步。新增 validate-guess-entry：纸/墨×1440/390×常规/减少动态效果 8 组实际菜单点击，盖满切页、清理及零 pageerror 通过，桌面及窄屏截图目检。API 为隔离空题 fixture，未连接真实后端；首次 fixture 缺 models 字段导致页面异常，补齐契约后全组复验通过。check:game、check:theme、typecheck、lint、build 通过。未提交、推送、部署。
+
+- 2026-10-01 追加返回方向纠正：上一轮仅将榜单入场换为 push，榜单返回仍留 bands，菜单/竞技场返回仍为 frame。用户指出旧过场仍出现后，现 homeNavigate 统一反向 push（从右盖满、向左退出），榜单 header 直接使用 homeNavigate；历史 bandsNavigate('#home') 调用也转该入口，防止遗漏复用点。纸/墨均横轴，盖满换页、锁与减少动态效果保持。
+- check:game 的首页返回断言改为单一反向 push 轨道；validate-route-transitions 补实际「进入榜单→返回首页」往返，并断言菜单、竞技场、榜单三类返回全部没有旧切片/大字。对照页支持 push 正反向，DECISIONS 追加用户更正。未提交、推送、部署。
+- 本轮 check:game、typecheck、lint、build、git diff --check 通过；纸/墨×桌面/手机×常规/减少动态效果 8 组、完整榜单 fixture 4 组的入场及三类返回均通过。新页面首次出现时遮罩盖满，返回使用反向水平色块，零 pageerror；验证未连接正式后端。
+
+- 2026-10-01 用户随后否定榜单入口视觉，现改为经典 push 单色块横推：380ms 从左盖满、140ms 停留切页、460ms 向右退出，纸/墨都用水平轴。纸色深墨、墨色浅色，6px 强调色前沿；没有文案、彩条、装饰框。bandsNavigate 对 #rank/#rank/formal 路由选择 push，其余方向保持现有过场。新增类型不改变其他六种过场时间轴。
+- check:game 增加 push 双主题单一轨道、无文案、横轴、掉帧与减少动态效果断言；对照页添加「07 色块横推」。validate-route-transitions 更新横推逐帧约束并通过 8 组主题/尺寸/减少动态效果 + 4 组完整榜单 fixture 实际点击；无 pageerror，首次新路由出现时遮罩盖满。纸色中段截图已目检，证据在 output/motion-intake/push-inspect-*-after.png。typecheck、build、lint、check:game、check:theme、git diff --check 通过。未验证生产榜单，未提交、推送或部署。
+
+- 2026-10-01 追加返回首页与榜单过场：主菜单及竞技场 logo 返回首页接 `homeNavigate`，反向 frame 盖满才切首页，独立防重入锁并支持减少动态效果，修饰键保留链接原行为。赛后偏好榜链接也接现有 bands 导航。
+- 偏好榜仍有文案层自带 inset 大底板/边框：盖满时突现、退场前突隐，与移动纸幕脱节。已改该层为透明、无边框，由移动材质承遮挡与边线；保留文案静止、仅全遮挡时显示。纸色逐帧前后截图目检在忽略目录 output/motion-intake/bands-inspect-*，不以先前已修装饰归属代替此次修复。
+- check:game 增加返回首页反向轨道、盖满切路由、防重复、减少动态效果和榜单文案无独立大底板约束。新增 validate-route-transitions：纸/墨×1440/390×常规/减少动态效果共 8 组实际点击菜单返回、竞技场返回、首页进入榜单；另加 4 组有两行榜单数据的入场验证。无 pageerror，盖满点与退场落页均正确。接口使用隔离 fixture（含失败态与完整聚合榜单），没有连接正式后端。
+- typecheck、build、lint、check:game、check:theme、git diff --check 通过；首次 lint 的测试常量声明问题已修正并复验。未提交、推送、部署；此前改动及原有 ZIP 保留。
+
+- 2026-10-01 追加跨题高度伸缩：用户反馈不同题目切换时页面突然增高/降低。新 `lib/arena-layout.ts` 在布防作品门时保存旧两侧视口高度，新竞技场 layout effect 首帧继承并用 520ms height 动画过渡到各自自然高度；结束清除临时 height/transition，保留普通自适应与固定画布比例。门控等待伸缩结束，区域纸幕逐帧跟随实际边界。减少动态效果跳过伸缩，卸载/resize 清理动画。
+- `validate-arena-entry --layout` 增加真实点击跨题双向伸缩、多个中间尺寸、伸缩期禁止纸幕退出和完成后恢复自然 CSS 的断言；测试作品为隔离普通 iframe/固定画布，未据此宣称全量正式作品或生产验收。对照页与 check-arena-scroll 同步规则。未提交、推送、部署。
+- 本轮 typecheck、build、lint、check:game、check:arena-scroll 通过；跨题浏览器回归覆盖纸/墨、正常/减少动态效果、1440×1000/390×844，共 8 组双向换题。两种尺寸下均经过连续中间高度，动画期纸幕不退场，完成后临时样式清除，无 pageerror。git diff --check 通过。
+
+- 2026-10-01 追加上级纸幕门控：用户要求不露出独立「正在接入试验场」。根因为 waitWorksLoaded 提前放门，而 intro 又先等纸幕退出才 setWorksSettled。现先在幕后完成就绪/显示/加载提示收场，再放门，然后等待退出接后续巡览；普通同源 iframe 等 document complete。上级纸幕不再在 8/15 秒自动放行，15 秒后幕内提供返回题库按钮。深链无纸幕的既有跳过行为保留。
+- 新增 validate-arena-entry：旧构建逐帧复现退场期间 loader 与 works-hold 可见；纸/墨、常规/减少动态效果的慢探针作品实际点击入场均无泄漏；未就绪 15 秒仍盖满且返回题库出口可用。check:game 补入释放顺序断言，对照页说明与 DECISIONS 同步。验证用内存 fixture，不连接正式后端；未提交、推送或部署。
+- 最终 build、typecheck、lint、check:game、check:theme、git diff --check 通过；validate-work-ready 原有纸/墨 14 段同题换组、重播、超时与隔离作品回归通过。该脚本更新的已跟踪生成报告已还原，避免将本地验收产物纳入源码改动。
+
+- 2026-10-01 追加窗口适配：用户提供 003 luna/ORBITAL 截图，确认是内置 `WebWork`，并非普通 iframe。历史巡览样式把 `.web-work` 设为 height:auto/min-height:100%、hero 设为 flex:none/min-height:360px；外层窗口增高后，底部产生 196px 空白。`app/globals.css` 仅将该内置网页预览恢复为 height:100% 与 hero flex:1 0 auto，保留最小主画面高度及小窗口滚动。
+- `validate-work-sizing` 扩展内置双网页和 390×600 短屏：修改前 --expect-bug --web-only 复现空白；修复后纸/墨、普通 iframe/固定画布/内置网页、5 个连续尺寸共 30 组（每组两侧）验证无多余空白，短屏底部可滚动看到。两份内置网页实际组件与 lunar.webp 已截图目检。build、lint、typecheck 通过，未连接正式后端、未部署；上一轮仅测容器 fixture 的结论不能覆盖内置网页，本次补齐该缺口。
 
 - `main` 是当前维护基线。纸 / 墨主题、可选邮箱、浏览器分享卡、共享题库长短原文和服务端聚合榜单均已进入主线；本轮归并了 `show1-vote-processing` 上遗漏的题库文档跟进，以及旧公测修复中适用于当前接口的前端与工具改动。
 - 本仓维护主站前端；[ArenaGalleri](https://github.com/wsnxxxs/ArenaGalleri) 维护独立 Gallery 前端；[arenaofbias-server](https://github.com/kme7kme7-prog/arenaofbias-server) 独占动态 API 和业务数据库；私有 `arenaofbias-data` 维护正式题目、原作、注册表与数据包。

@@ -1791,11 +1791,11 @@ kbd {
   scrollbar-color: var(--surface-819276) var(--surface-1c2423);
 }
 .work-inner .web-work {
-  height: auto;
+  height: 100%;
   min-height: 100%;
 }
 .work-inner .web-hero {
-  flex: none;
+  flex: 1 0 auto;
   min-height: 360px;
 }
 [data-tour-scroll] {

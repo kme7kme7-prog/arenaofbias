@@ -6,13 +6,18 @@ const source = await readFile(
   new URL('../lib/game-transitions.ts', import.meta.url),
   'utf8',
 );
+const arenaSource = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
+assert.match(arenaSource, /setWorksSettled\(true\);[\s\S]*?releaseWorksGate\(\);\s*await waitRouteLayer\(signal\)/,
+  'route curtain must release after the reveal, before waiting for its exit');
+const workPoll = arenaSource.slice(arenaSource.indexOf('const waitWorksLoaded'), arenaSource.indexOf('const waitWorksLoaded') + 3000);
+assert.doesNotMatch(workPoll, /releaseWorksGate/, 'readiness polling must not release the route curtain ahead of the reveal');
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
   },
 }).outputText;
-const { createGameTransition, guessNavigate, convoyNavigate } = await import(
+const { createGameTransition, guessNavigate, convoyNavigate, homeNavigate } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
 );
 // 帧时不变量（2026-09-19 卡顿轮）：单帧推进封顶、门释放帧步长归零——
@@ -91,7 +96,7 @@ const step = (stamp) => {
   raf.clear();
   callbacks.forEach((fn) => fn(stamp));
 };
-for (const theme of ['paper', 'ink']) for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
+for (const theme of ['paper', 'ink']) for (const kind of ['push', 'frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
   document.documentElement.dataset.theme = theme;
   tracks = [];
   let covered = 0,
@@ -105,6 +110,21 @@ for (const theme of ['paper', 'ink']) for (const kind of ['frame', 'bands', 'con
   const copy = run.layer.children.find(n => n.className === 'gt-static-copy');
   assert.ok(copy, 'copy must be a sibling of moving material');
   assert.equal(copy.hidden, true);
+  const material = run.layer.children.find(n => n.className.includes('gt-material-plate'));
+  if (kind === 'push') {
+    assert.equal(copy.children.length, 0, 'classic push carries no copy or ornaments');
+    assert.match(tracks[0].frames[0].transform, /translateX\(-102%\)/);
+    assert.match(tracks[0].frames.at(-1).transform, /translateX\(102%\)/);
+    assert.equal(tracks.length, 1, 'classic push uses a single continuous material track');
+  }
+  if (kind === 'frame') {
+    assert.ok(material.children.some(n => n.className === 'gt-material-corners'),
+      'frame border must travel inside its sheet, never float over the page');
+  }
+  if (kind === 'bands') {
+    assert.ok(material.children.some(n => n.className === 'gt-material-bands'),
+      'bands must stay clipped inside the moving sheet');
+  }
   const copyDescendants = [];
   const walkCopy = node => { copyDescendants.push(node.className); node.children.forEach(walkCopy); };
   walkCopy(copy);
@@ -112,7 +132,24 @@ for (const theme of ['paper', 'ink']) for (const kind of ['frame', 'bands', 'con
     if (copyDescendants.includes(track.owner)) assert.ok(['gt-static-rule', 'gt-deal-clue'].includes(track.owner), 'only a small line / numeral can move');
   }
   const plates = tracks.filter(t => /gt-material-(plate|leaf)/.test(t.owner));
-  assert.equal(plates.length, kind === 'match' || kind === 'deal' ? 2 : 1);
+  assert.equal(plates.length, kind === 'deal' ? 0 : kind === 'match' ? 2 : 1);
+  if (kind === 'deal') {
+    const shell = run.layer.children.find(n => n.className === 'gt-deal-shell');
+    assert.ok(shell, 'historical entry must fly in as a complete mystery card');
+    assert.equal(copy.children.length, 0, 'deal must not duplicate the generic title');
+    assert.equal(run.layer.children.filter(n => n.className.startsWith('gt-deal-back')).length, 2);
+    const cardCopy = shell.children.find(n => n.className === 'gt-deal-copy');
+    const info = cardCopy.children.find(n => n.className === 'gt-deal-info');
+    assert.equal(info.children.find(n => n.className === 'gt-deal-clues').children.length, 7);
+    assert.ok(cardCopy.children.some(n => n.className === 'gt-deal-symbol'));
+    const shellTrack = tracks.find(t => t.owner === 'gt-deal-shell');
+    assert.equal(shellTrack.options.duration, run.timing.covered);
+    assert.equal(shellTrack.frames.at(-1).transform, 'translateY(0) rotate(0deg) scale(1)');
+    for (const half of tracks.filter(t => t.owner.startsWith('gt-deal-half'))) {
+      assert.equal(half.options.delay, run.timing.exitStart, 'card stays closed through route swap');
+      assert.equal(half.options.duration, 650);
+    }
+  }
   for (const plate of plates) {
     assert.equal(plate.frames[1].transform, 'translate(0, 0)');
     assert.equal(plate.frames[2].transform, 'translate(0, 0)');
@@ -239,7 +276,11 @@ document.documentElement.dataset.theme = 'paper';
     new URL('../app/game-transitions.css', import.meta.url),
     'utf8',
   );
-  for (const kind of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
+  assert.match(css, /\.game-transition \.gt-material-plate\s*\{[^}]*overflow:\s*hidden/,
+    'moving sheets must clip their attached borders and bands');
+  assert.match(css, /\.game-transition\.gt-bands \.gt-static-copy\s*\{[^}]*background:\s*transparent;[^}]*border:\s*0;/,
+    'bands copy must not pop an opaque bordered card over the moving curtain');
+  for (const kind of ['push', 'frame', 'bands', 'convoy', 'deal', 'folio', 'match']) {
     const bare = new RegExp(`(^|})\\s*\\.gt-${kind}\\s*[,{]`, 'm');
     assert.ok(
       !bare.test(css),
@@ -261,7 +302,7 @@ document.documentElement.dataset.theme = 'paper';
   console.log('PASS frame: narrow container overrides the locked composition');
 }
 console.log(
-  'Game transition invariant checks passed (frame, bands, convoy, deal, folio, match).',
+  'Game transition invariant checks passed (push, frame, bands, convoy, deal, folio, match).',
 );
 
 // 钉幕门控（096）：holdGate 关闭时 match 纸幕盖满后钉在 exitStart 不扫出、
@@ -394,6 +435,29 @@ assert.ok(
 console.log(
   'PASS menu navigation: duplicate/cross-entry lock, covered routing, normal and reduced cleanup',
 );
+
+window.matchMedia = () => ({ matches: false });
+window.location.hash = '#play';
+tracks = [];
+homeNavigate();
+homeNavigate();
+assert.equal(document.body.children.length, 1, 'home return must prevent duplicate curtains');
+assert.equal(window.location.hash, '#play', 'return must wait until full coverage');
+assert.equal(tracks[0].frames[0].transform, 'translateX(102%)', 'home return reverses the classic horizontal push');
+assert.equal(tracks[0].frames.at(-1).transform, 'translateX(-102%)');
+assert.equal(tracks.length, 1, 'home return carries only the simple color block');
+const homeLimit = browserStamp + 20000;
+while (window.location.hash !== '#home' && browserStamp < homeLimit) step(browserStamp + 16);
+assert.equal(window.location.hash, '#home');
+while (document.body.children.length && browserStamp < homeLimit) step(browserStamp + 16);
+assert.equal(document.body.children.length, 0);
+window.matchMedia = () => ({ matches: true });
+window.location.hash = '#arena/005';
+homeNavigate();
+assert.equal(window.location.hash, '#home');
+assert.equal(document.body.children.length, 0);
+window.matchMedia = () => ({ matches: false });
+console.log('PASS home return: reverse push, duplicate lock, covered routing, reduced cleanup');
 
 for (const theme of ['paper', 'ink']) {
   const run = createGameTransition('folio', { direction: 'back', theme });

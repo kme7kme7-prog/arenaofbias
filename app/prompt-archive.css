@@ -190,6 +190,35 @@
   display: grid;
   gap: 6px;
 }
+.archive-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--archive-line);
+  color: var(--archive-muted);
+  font-size: 12px;
+}
+.archive-pagination button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--archive-line);
+  cursor: pointer;
+}
+.archive-pagination button:hover:not(:disabled) {
+  background: var(--archive-paper);
+  color: var(--text-main);
+}
+.archive-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.archive-pagination output { font-family: var(--mono); }
 .archive-option {
   position: relative;
   isolation: isolate;

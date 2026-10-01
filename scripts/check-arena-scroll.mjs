@@ -32,6 +32,10 @@ assert.match(mainSource, /currentPairs\(arenaPromptId\)\.length === 0/);
 assert.match(mainSource, /if \(!arenaPromptId \|\|[\s\S]{0,80}window\.scrollTo\(0, 0\)/);
 // 娱乐「下一题」：双页纸幕只盖场内区域，层挂 body 活过卸载，盖满才切 hash
 const pageSource = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
+assert.match(pageSource, /useLayoutEffect\(\(\) => animateArenaLayout/,
+  'new arena must inherit and animate source heights before its first paint');
+assert.match(pageSource, /dataset.layoutMoving === 'true'\) return false/,
+  'work readiness must include completion of the route height change');
 assert.match(pageSource, /createGameTransition\('match'/);
 assert.match(pageSource, /onCovered:[\s\S]{0,120}window\.location\.hash = next/);
 assert.match(pageSource, /onFrame:[\s\S]{0,100}alignArenaTransition/);

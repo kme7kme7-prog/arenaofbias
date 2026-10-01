@@ -16,6 +16,13 @@
   display: flex;
   flex-direction: column;
 }
+.gallery-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
 .lobby-grid {
   position: absolute;
   inset: 0;
@@ -826,6 +833,8 @@
 
 /* 经典版玩法菜单（决策 023 备选形态：仪器档案风二维列表） */
 .play-classic-main {
+  flex: 1;
+  width: 100%;
   max-width: 880px;
   margin: 0 auto;
   padding: 70px 24px 90px;

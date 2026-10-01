@@ -265,7 +265,7 @@
         </div>
         <div class="tabs">
           <button id="frame" aria-selected="true">01 档案锁定</button
-          ><button id="bands" aria-selected="false">02 斜向切片</button
+          ><button id="bands" aria-selected="false">02 斜向切片</button><button id="push" aria-selected="false">07 色块横推</button>
           ><button id="convoy" aria-selected="false">03 一体斜幕</button
           ><button id="deal" aria-selected="false">04 今日密牌</button
           ><button id="folio" aria-selected="false">05 轻翻页</button
@@ -435,20 +435,21 @@
           `<span>0 / ${kind === 'frame' ? '方框锁定' : kind === 'bands' ? '深墨铺屏' : kind === 'deal' ? '抽出密牌' : kind === 'folio' ? '轻翻页' : kind === 'match' ? '双页合拢' : '一体斜幕'}</span><span>${timing.covered} / 完全遮挡</span><span>${timing.exitStart} / 退场</span><span>${timing.duration} / 新页面</span>`;
       }
       const descriptions = {
-        match: ['06 / 双页换场', '纸面横向机械合页；墨色纵向展开留白。正文原位，仅盖满时出现；等待门控制揭幕。'],
+        push: ['07 / 色块横推', '偏好榜入口从左盖满并向右退出；偏好榜、菜单和竞技场返回首页反向横推。380ms盖满、140ms停留、460ms退场。纸/墨都走水平轴，无大字、彩条和装饰框。'],
+        match: ['06 / 双页换场', '纸面横向机械合页；墨色纵向展开留白。正文原位，仅盖满时出现。实页换题时作品区继承旧高度，520ms平滑伸缩；高度稳定、作品就绪和加载提示收场后再放门退场。慢加载保持盖满，15秒后提供返回题库入口。'],
         folio: ['05 / 轻翻页', '纸面水平抽页，返回反向；墨色纵向揭幕。'],
-        deal: ['04 / 今日密牌', '纸面双片错位发牌；墨色双叶展开。七个小数字依次点亮，大标题保持静止。'],
-        frame: ['01 / 档案锁定', '空白材质层上行盖满，定位线展开，原位标题出现。墨色放慢收势。'],
-        bands: ['02 / 索引切片', '纸面横向机械切片；墨色纵向承底与细索引线。文字只在全遮挡平台显示。'],
+        deal: ['04 / 今日密牌', '恢复历史密牌：叠牌飞入、旋转放大盖满，再展示七条线索和问号卡牌；最后两半向左右展开。'],
+        frame: ['01 / 档案锁定', '空白材质层上行盖满，定位线随纸面进入和离开，盖满后展开，原位标题出现。首页开始入口仍用此过场，返回首页已改色块横推。拖动时间轴检查入场前与扫出后没有悬空边框。'],
+        bands: ['02 / 索引切片', '纸面横向机械切片；墨色纵向承底与细索引线。彩条裁切在移动纸面内，文字只在全遮挡平台显示；文案层透明无边框，避免盖满时突然弹出/消失大卡片。拖动时间轴检查彩条不越过纸面边缘。'],
         convoy: ['03 / 一体材质幕', '纸面水平推进；墨色垂直揭幕，保留边线。大面积文字不参与位移。'],
       };
       function select(next) {
         kind = next;
-        for (const name of ['frame', 'bands', 'convoy', 'deal', 'folio', 'match'])
+        for (const name of ['push', 'frame', 'bands', 'convoy', 'deal', 'folio', 'match'])
           $(name).setAttribute('aria-selected', String(kind === name));
-        $('hold').disabled = kind === 'folio' || kind === 'match';
-        $('direction').disabled = kind !== 'folio';
-        $('title').disabled = kind === 'deal' || kind === 'folio';
+        $('hold').disabled = kind === 'push' || kind === 'folio' || kind === 'match';
+        $('direction').disabled = kind !== 'folio' && kind !== 'push';
+        $('title').disabled = kind === 'push' || kind === 'deal' || kind === 'folio';
         $('gate').disabled = kind !== 'match';
         $('study-note').textContent = '本页使用生产模块；选择纸 / 墨后重播。仅空白材质移动，标题原位；减弱动态仍遵守作品等待门。';
         $('study-source').innerHTML =
@@ -459,6 +460,7 @@
       }
       $('frame').onclick = () => select('frame');
       $('bands').onclick = () => select('bands');
+      $('push').onclick = () => select('push');
       $('convoy').onclick = () => select('convoy');
       $('deal').onclick = () => select('deal');
       $('folio').onclick = () => select('folio');
@@ -511,7 +513,7 @@
       });
       const initial = new URLSearchParams(location.search).get('study');
       select(
-        ['frame', 'bands', 'convoy', 'deal', 'folio', 'match'].includes(initial)
+        ['push', 'frame', 'bands', 'convoy', 'deal', 'folio', 'match'].includes(initial)
           ? initial
           : 'convoy',
       );

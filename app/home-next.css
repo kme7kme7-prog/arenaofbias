@@ -136,6 +136,73 @@
   background: var(--acid);
 }
 
+.next-discover {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(100%, 430px);
+  margin-top: 21px;
+  border-top: 1px solid var(--line-8d9c79-36);
+  border-bottom: 1px solid var(--line-8d9c79-36);
+}
+.next-discover a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 19px 10px;
+  color: var(--text-main);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.next-discover a + a {
+  border-left: 1px solid var(--line-8d9c79-24);
+  padding-left: 19px;
+}
+.next-discover a > svg:first-child {
+  flex-shrink: 0;
+  color: var(--text-758360);
+}
+.next-discover a > svg:last-child {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-84936c);
+  transition: transform 0.2s;
+}
+.next-discover strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.next-discover small {
+  display: block;
+  font-size: 10px;
+  margin-top: 6px;
+  color: var(--text-728065);
+  line-height: 1.5;
+}
+.next-discover a:hover {
+  background: var(--surface-cfdbbd-44);
+}
+.next-discover a:hover > svg:last-child {
+  transform: translate(2px, -2px);
+}
+@media (max-width: 1100px) {
+  .next-discover a {
+    gap: 8px;
+    padding: 16px 7px;
+  }
+  .next-discover a + a {
+    padding-left: 12px;
+  }
+  .next-discover strong {
+    font-size: 12px;
+  }
+  .next-discover small {
+    font-size: 9px;
+  }
+  .next-discover a > svg:first-child {
+    width: 16px;
+  }
+}
 .next-intro {
   font-size: 16px;
   line-height: 1.9;

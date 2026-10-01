@@ -1,4 +1,6 @@
 import { ThemeToggle } from '@/components/theme-toggle';
+import { GALLERY_HOME } from '@/lib/gallery-links';
+import { LegalFooter } from '@/components/legal-footer';
 import { useState } from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { useI18n } from '@/lib/locale';
@@ -105,6 +107,7 @@ export function HomeDuel({
           </span>
         </a>
         <nav aria-label={t('主导航')}>
+          <a href={GALLERY_HOME} title={t('前往展览馆')}>{t('展览馆')} ↗</a>
           <a
             href="#prompts"
             onClick={(e) => {
@@ -231,6 +234,7 @@ export function HomeDuel({
         </div>
       </section>
 
+      <LegalFooter />
       <div className="duel-ticker" aria-hidden="true">
         <div className="duel-ticker-track">
           {Array.from({ length: 2 }, (_, k) => (
