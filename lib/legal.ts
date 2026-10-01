@@ -2,7 +2,7 @@
 // 正文与 Gallery（ArenaGalleri site/legal.js）逐字一致，只有站名、本站简介、
 // 站内链接与「你的权利」的入口说明按站点替换；改动时两边一起改。暂不提供英文版。
 
-export const CONTACT = 'alcanocto@outlook.com';
+export const CONTACT = 'arenagallari@outlook.com';
 export const OPERATOR = 'ArenaGalleri 运营团队';
 export const SITE_NAME = '偏见试验场';
 export const LEGAL_UPDATED = '2026-09-30';
