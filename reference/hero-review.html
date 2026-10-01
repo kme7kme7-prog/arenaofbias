@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#dfe3dd" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>Hero 设计预览 · 偏见试验场</title>
+    <base href="/" />
+    <script>
+      try {
+        const saved = localStorage.getItem('aob-theme');
+        document.documentElement.dataset.theme = saved === 'ink' || (saved === 'system' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'ink' : 'paper';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="hero-review-root"></div>
+    <script type="module" src="/reference/hero-review.tsx"></script>
+  </body>
+</html>
