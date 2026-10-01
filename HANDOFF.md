@@ -2,6 +2,12 @@
 
 更新于 2026-10-01。本文件只保留接手状态；每轮过程和当时的验证结论见 [docs/handoff/](docs/handoff/)。历史中的“未提交 / 待上线”不代表当前待办。
 
+## 验证码垃圾邮件提示（2026-10-01，仅提交与推送）
+
+- 用户授权提交两个前端的现有提示修改并推送。`components/account.tsx` 的 `sendCode` 为注册、账号绑定和找回密码追加「没收到请检查垃圾邮件箱。」；`lib/messages.ts` 补齐英文翻译，找回密码原提示也通过 `t` 翻译。
+- 本轮重跑 typecheck、lint、build 均通过；未做浏览器发码效果、真实 SMTP / Turnstile 或生产交互验证，本轮仅提交现有文案，未部署。
+- 本仓分别推送 origin/main 与 fork/main；Gallery 在独立仓库提交。归档：[email-spam-hint](docs/handoff/2026-10-01-email-spam-hint-wsnxxxs.md)。
+
 ## 联系邮箱修改（2026-10-01，仅提交与推送）
 
 - 用户授权提交现有修改并推送；`lib/legal.ts` 的 CONTACT 改为 `arenagallari@outlook.com`。

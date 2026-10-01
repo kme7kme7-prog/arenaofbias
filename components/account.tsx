@@ -346,9 +346,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '验证码发送失败，请重试。');
       setCountdown(60);
-      setNotice(purpose === 'reset'
-        ? '如果该账号在账号绑定中添加了邮箱，验证码将发送到该邮箱。'
-        : t('验证码已发送至 {email}。', { email: data.email || '' }));
+      setNotice(`${purpose === 'reset'
+        ? t('如果该账号在账号绑定中添加了邮箱，验证码将发送到该邮箱。')
+        : t('验证码已发送至 {email}。', { email: data.email || '' })}${t('没收到请检查垃圾邮件箱。')}`);
     } catch (cause) {
       setError(
         cause instanceof Error && cause.message !== 'Failed to fetch'

@@ -252,6 +252,7 @@ export const messages: Record<string, string> = {
   '邮箱 · 未绑定': 'Email · not linked',
   更换: 'Change',
   '验证码已发送至 {email}。': 'Code sent to {email}.',
+  '没收到请检查垃圾邮件箱。': ' Not received? Check your spam folder.',
   邮箱已验证: 'Email verified',
   验证码已通过验证: 'Code verified',
   '验证邮箱，继续 ↗': 'Verify email, continue ↗',
