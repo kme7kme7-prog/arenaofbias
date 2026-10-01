@@ -221,7 +221,7 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 当前主站静态发布
 
-主站静态目录为 `/www/wwwroot/show1-dist`；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
+总域名 `https://arenaofbias.icu` 的独立总入口在 `/www/wwwroot/arenaofbias-home`；`node scripts/build-portal.mjs` 将 `portal/` 的 CSS/JS 内联为 `output/portal-dist/index.html`，保持根站只提供 `/` 的现行跳转规则。竞技场 `https://game.arenaofbias.icu` 的静态目录为 `/www/wwwroot/show1-dist`，Gallery 独立发布；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
 
 文档同步不要求重新部署。两个前端独立构建发布；不要运行下面已退役的 PM2 整站脚本，也不要用主站 checkout 覆盖共享后端或业务数据库。
 

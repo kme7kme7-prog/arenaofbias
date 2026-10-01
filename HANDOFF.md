@@ -1,5 +1,14 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-01 · 四仓同步与统一部署已完成
+
+- 用户授权核查、合并、清理、提交推送与部署。本仓从 `f304d26` 快进 main 至 `72c7f103b0eba237a572c75ed7dd95e5d8681e06`，保留 Atmeplz 两条有效主题/封面提交及原作者；origin/main 与 fork/main 已常规推送同步。祖先证明后删除远端 `codex/paper-ink-theme`，两远端无开放 PR，无强推。初始工作区干净，仅 main worktree；他人文件与忽略产物未清理。
+- 2026-10-01T11:26:56.467257Z（Brisbane 21:26:56）统一切换 game 与 Gallery。Show1 功能基线 `72c7f10` 的规范 LF 产物 820 文件逐项 SHA-256 与精确集合线上通过；Gallery `e23d9a5` 的 2417 文件通过。总入口 `/www/wwwroot/arenaofbias-home/index.html` 已与本轮源码产物完全相同，1 文件核对通过，无需再次切换。最终文档提交是功能基线后继，不代表重建或再次部署。
+- 共享后端 Node 22、源码 `23574`、数据库 v25 已部署，capture/content/auto=true；正式数据包 `ba442b61` / source `997676d` 的规范 2366 文件通过，20 题/182 件。前后端 catalogDigest 同为 `ee927cc83ceb774170a86e33bfa6b66453a8c50957329eb4f01a0584b2311ae3`。本仓不固定数据包，运行时由共享 API 提供正式题目/作品。
+- 从已推送 SHA 的 `git -c core.autocrlf=false archive` 独立 LF export 构建，仅复用既有 node_modules。typecheck、lint、check:game、check:theme、build、portal build 通过；主会话以 Gallery 最终 LF export 完成跨仓 entry protocol 检查，通过。未重新 npm ci，未重复既有完整浏览器回归（本轮快进已验收实现）。
+- 三站公网 HTTPS 200，总入口两卡片目的地址正确；game 首屏纸面、登录/注册入口正常，Gallery 展示 182 份，console error 0。viewport override 未生效，实际 609px，不声明完成窄屏验收；没有创建生产测试账号、投稿或投票。后端切换前后计数与 integrity 校验通过，旧目录 `*.prev` 保留，备份与证据 `/root/aob-final-release-20261001/`。
+- 完整记录见 [latest-release](docs/handoff/2026-10-01-latest-release-wsnxxxs.md)，后端发布记录见 `arenaofbias-server/docs/archive/2026-10-01-latest-release-wsnxxxs.md`。下面旧轮次“未提交/未部署”和旧版本仅描述当时状态，以本节为准。
+
 ## 2026-10-01 · 上线收口已提交、推送并发布 VPS
 
 - 用户明确授权 commit、push 与 VPS 更新。源码提交 `0af99999d9aa9285882a155dfecd2a78a98c3047`（Atmeplz），已推送 `origin/codex/paper-ink-theme`；主线基线仍为 `f304d26`，本轮没有合并 main。包含 17 张新题封面、长短按钮深底强调色、移除内测弹窗、首次默认浅色，沿用已有整站 80% 与过场。
