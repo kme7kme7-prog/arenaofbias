@@ -16,6 +16,7 @@ export function LegalFooter() {
         {beian && <>{' · '}<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{beian}</a></>}
       </p>
       <nav aria-label={t('站点信息')}>
+        <a href="https://github.com/kme7kme7-prog/arenaofbias" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
         <a href="#terms">{t('使用条款')}</a>
         <a href="#privacy">{t('隐私政策')}</a>
         <a href={`mailto:${CONTACT}`}>{t('联系我们')}</a>

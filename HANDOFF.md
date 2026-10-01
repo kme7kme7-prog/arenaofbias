@@ -1,5 +1,33 @@
 # HANDOFF.md · 当前状态
 
+## 本轮补充：竞技场页脚 GitHub（2026-10-01，已上线，未 commit/push）
+
+- 用户要求线上竞技场底部增加仓库入口，共用 `components/legal-footer.tsx` 新增「GitHub ↗」，新标签前往 `https://github.com/kme7kme7-prog/arenaofbias`；沿用纸/墨配色与手机换行。
+- typecheck、lint、build 通过；本地 Edge 纸/墨×1440/390 的首页、菜单、题库、榜单链接与无溢出检查通过，首页实际点击验证新标签目的地址（GitHub 响应使用测试桩）。
+- 发布 `github-footer-preview-20261001T074422Z`，仅更新 game 静态目录；811 文件、5 变化、0 删除，保留历史哈希资源与入场协议。原目录为 `/www/wwwroot/show1-dist.prev-github-footer-preview-20261001T074422Z`，清单在 `/root/github-footer-preview-20261001T074422Z`；总入口、Gallery、后端和数据未改。
+- 公网 Edge 纸/墨×1440/390 验证真实页脚 href/新标签属性、80% 比例、入口就绪退场、无横向溢出与页面异常；截图在忽略目录 `output/github-footer-release`。沿用用户先上线检查授权，未 commit/push。
+
+## 本轮补充：过场先上线供用户检查（2026-10-01，未 commit/push）
+
+- 用户明确提供正式 Gallery 源码 `wsnxxxs/ArenaGalleri`，确认协作者权限，要求「先别 commit，先上线，我先检查」。此授权覆盖本轮三个入口的静态预览发布，不覆盖共享后端、业务数据或上游其他功能发布。
+- 核查线上 backend 2448803 与 API/.server-version 一致，已定位到上游 main 中完整 2448803e93104eb22f0eb2474dd04514f03f4c7e；根站已经改为 /www/wwwroot/arenaofbias-home，game 指向 show1-dist，Gallery 指向 gallery。未沿用旧文档的根站路由或重启服务。
+- 总入口 Nginx 只在 `/` 提供 HTML，其他路径重定向 game；新增 scripts/build-portal.mjs 将过场 CSS/JS 内联进单文件，再发布，保持现行跳转和 Nginx 配置。
+- Gallery checkout 确认来源为用户指定仓库；fetch 后上游 main=4e5ee04，含多项其他未上线功能，本轮不捎带发布。使用当前线上功能基线（本地 61587f6 的 site/build 工具与线上 4717910 一致）归档，加本轮 app.js/index.html/entry-boot.js 工作区补丁，在服务器独立目录消费已发布的固定作品包。预览 buildInfo.frontendCommit 标记为 portal-preview-20261001T073255Z，不伪装为已提交源码 SHA。
+- 暂存构建：Gallery syntax 42/0、test 14/14、assemble 121 件/56 个 site 文件、CI intake 0 错/4 个既有模型包大小提示。逐项确认 data.json 除 buildInfo 外与当前线上相同，未换作品包或写数据库。第一次暂存遇到 Python tar filter 兼容差异；调整受限路径提取后，Node cpSync 又不接受数据目录符号链接，改为独立暂存普通复制并重新验证，均发生在正式切换前。
+- 本轮线上发布 ID portal-preview-20261001T073255Z。三个目录完整 SHA-256/集合校验后先切 game/Gallery，再启用根站；game 808 文件（8 变化）、Gallery 1556（4 变化）、portal 1（1 变化），删除 0，保留旧哈希 assets。原目录分别保存在 `/www/wwwroot/show1-dist.prev-portal-preview-20261001T073255Z`、`gallery.prev-portal-preview-20261001T073255Z`、`arenaofbias-home.prev-portal-preview-20261001T073255Z`；审计/manifest/恢复脚本在 `/root/portal-preview-20261001T073255Z`，本地包和证据在忽略目录 output/portal-release-preview。
+- 内联入口再次通过隔离跨站 12 成功/10 失败检查与 lint。发布后真实无头 Edge：两目标×1440/390 共 4 组到达盖满→就绪→退场、无横向溢出/页面异常/HTTP 错误；桌面实际从总入口点击，手机直接访问入口标记。竞技场桌面刻意延迟真实首屏图请求 1.6s 验证保持遮罩。线上截图目检通过；这里只检查入场与首页，未执行注册、投稿、盲评或投票。
+- 公网根站内联动画、两个子站带版本门控响应正确，线上 zoom=0.8；API 仍为 2448803，数据包/121 件作品保持。本轮没有 commit 或 push；两仓工作区补丁与文档保留，供用户检查后决定。
+
+## 本轮：总入口跨站过场与 80% 默认比例（2026-10-01，本地，未提交/部署）
+
+- `portal/` 为本轮新增的总入口静态源码，以当日公网 HTML 为基线，保留文案与布局。两侧文字淡出，所选色块 650ms 铺满后才跳转子站 `?entry=portal`；浏览器返回恢复可点击状态，修饰键和无 JS 原生外链保留。该目录单独发布到总域名，不混入 game dist。
+- 两站 HTML 的 head 同色伪元素保护首帧；共用 classic `entry-boot.js` 门控（本仓 public 源与 Gallery site 镜像完全一致）等数据/渲染、字体、可见首屏图片解码与两帧布局后，650ms 横向揭幕。加载错误或 25s 超时显示重试/返回入口，失败锁定，迟到资源不揭幕；成功清理 query，不影响原 hash 和其他参数。HTML 完全不可达仍是浏览器网络错误页。
+- Show1 `lib/portal-entry.ts` 仅入口到达等待作品与题库真实读取完成，builtin 回退视为失败；Gallery 初次 `await route()` 后接入相同门控，数据 catch 同时转失败。未改 API、真实作品、登录或已有站内动效时间轴。
+- 按用户确认，`app/site-scale.css` 整个竞技场页面 CSS zoom=.8；满屏页面补偿 viewport 单位，菜单与首页页脚仍到底。并非浏览器 zoom 设置，用户若此前手动调过 80%，需调回浏览器 100% 避免双重缩放。
+- 本仓 typecheck、lint、build、check:game、check:theme、check-portal-entry 通过。隔离 Edge 三独立 origin 的真实源页面：两个目标×1440/390/2048×正常/减少动态效果共 12 组，慢首屏图片 hold→解码就绪→揭幕→返回通过；数据/图片/主模块/样式失败及加速超时共 10 组、失败锁定和重试通过，正常组零 pageerror、无遮罩空隙/横向溢出。直接访问墨色不加遮罩，80% 菜单页脚到底。截图在忽略目录 output/portal-entry，桌面/手机首页及失败态目检通过。最初测试误将 HTML 根路径响应为二进制下载，修正测试 MIME 后复验通过。
+- 现有 validate-route-transitions 的纸/墨×桌面/手机×正常/减少动态效果 8 组通过，验证了 80% 下站内过场盖满与清理。validate-work-sizing 的普通 HTML、固定画布、内置网页两侧共 30 个视口案例通过；原断言在 80% 下遇到 iframe clientHeight 与 innerHeight 相差 1 CSS 像素的取整，现严格校验 canvas 匹配内层 viewport、外层尺寸允许该 1px 取整，灰边几何断言保持，网页 footer 几何转回布局坐标比较。
+- Gallery 本轮 check（42 文件）与 14/14 test 通过；此 checkout 无 datapack.json 与 .datapack，npm build 和 CI intake 因缺少数据配置/three.module.js 无法完成。浏览器 Gallery 用 source + 合成档案/图片，不冒充正式作品包验收。本轮仅公网读取总入口 HTML 基线，不改线上站点；未 commit、push、部署。
+
 更新于 2026-10-01。本文件只保留接手状态；每轮过程和当时的验证结论见 [docs/handoff/](docs/handoff/)。历史中的“未提交 / 待上线”不代表当前待办。
 
 ## 验证码垃圾邮件提示（2026-10-01，仅提交与推送）
