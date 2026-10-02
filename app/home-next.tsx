@@ -1,4 +1,5 @@
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { prepareHeroArrival } from '@/lib/hero-arrival';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, ChartNoAxesColumn, PanelsTopLeft } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitch } from '@/components/language-switch';
@@ -56,6 +57,8 @@ export function HomeNext({ enter, enterRandom, leaving }: {
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const swiped = useRef(false);
   const active = dossiers[selected];
+  const hero = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => prepareHeroArrival(hero.current!), []);
   const pick = (index: number, focus = false) => {
     const next = (index + dossiers.length) % dossiers.length;
     setSelected(next);
@@ -120,7 +123,7 @@ export function HomeNext({ enter, enterRandom, leaving }: {
     );
   };
   return (
-    <div className="next-home hero-home">
+    <div className="next-home hero-home" ref={hero}>
       <div className="hr-shell">
         <header className="next-header hr-header">
           <a href="#home" className="lobby-brand next-brand" aria-label={t('回到首页')}>

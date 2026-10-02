@@ -80,6 +80,9 @@
 .hr-file[data-position='active']:hover { transform: translate3d(80px, -4px, 157px) rotateY(-21deg) rotateZ(-7deg); }
 .hr-file[data-position='next']:hover { transform: translate3d(387px, 31px, -110px) rotateY(-64deg) rotateZ(-7deg); }
 .hr-file[data-position='previous']:hover { transform: translate3d(-73px, 104px, -180px) rotateY(-66deg) rotateZ(-7deg); }
+/* Release animation ownership completely before normal browsing/hover resumes. */
+.hero-home[data-hero-arrival='waiting'] .hr-file,
+.hero-home[data-hero-arrival='running'] .hr-file { transition: none; }
 .hr-file-cover { position: absolute; inset: 0; transform: translateZ(9px); background: var(--hr-sheet); border: 1px solid var(--control-line); border-left: 6px solid var(--accent); display: flex; flex-direction: column; overflow: hidden; box-shadow: 12px 26px 26px -14px var(--shadow-contact); }
 .hr-file-back { position: absolute; inset: 0; background: var(--hr-sheet-edge); transform: translateZ(-6px); box-shadow: -15px 22px 27px -12px var(--shadow-contact); }
 .hr-file-edge { position: absolute; right: -7px; top: 0; width: 15px; height: 100%; background: repeating-linear-gradient(90deg, var(--hr-sheet-edge) 0 1px, var(--paper) 1px 3px); transform: rotateY(90deg); }

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>竞技场 · 档案展开入场</title>
+<style>
+  * { box-sizing: border-box; } body { margin: 0; background: #dfe3dd; color: #1c2423; font: 14px system-ui; }
+  header { position: fixed; z-index: 2; bottom: 12px; left: 50%; transform: translateX(-50%); padding: 10px 14px; display: flex; gap: 16px; align-items: center; background: #dfe3ddf2; border: 1px solid #aab5a5; box-shadow: 0 4px 18px #1c242320; white-space: nowrap; }
+  button, select { font: inherit; padding: 8px 14px; background: #1c2423; color: #d9fb51; border: 0; }
+  header span { color: #5b655f; } iframe { display: block; border: 0; zoom: var(--preview-scale, 1.25); width: 100%; height: calc(100dvh / var(--preview-scale, 1.25)); }
+  @media(max-width:900px) { header { gap: 8px; max-width: calc(100% - 16px); flex-wrap: wrap; justify-content: center; } header span { display: none; } }
+</style>
+<header><button id="baseline">原版静态对照</button><button id="replay">重播入场</button><label><input id="slow" type="checkbox" /> 慢放</label><select id="theme" aria-label="主题"><option value="paper">纸面</option><option value="ink">墨色</option></select><select id="scale" aria-label="预览倍率"><option value="1">100%</option><option value="1.25" selected>125% · 对照截图</option></select><span>同尺寸对照 · 遮罩退到25%即展开</span></header>
+<iframe title="竞技场入场预览"></iframe>
+<script type="module">
+  const frame = document.querySelector('iframe');
+  const slow = document.querySelector('#slow');
+  const theme = document.querySelector('#theme');
+  document.querySelector('#scale').onchange = event => {
+    document.documentElement.style.setProperty('--preview-scale', event.target.value);
+  };
+  function replay(animate = true) {
+    localStorage.setItem('aob-theme', theme.value);
+    frame.src = '/?' + (animate ? 'entry=portal&' : '') + 'review=' + Date.now() + '#home';
+  }
+  document.querySelector('#replay').onclick = () => replay();
+  document.querySelector('#baseline').onclick = () => replay(false);
+  theme.onchange = () => replay();
+  function tick() {
+    frame.contentDocument?.getAnimations().filter(a => a.id.startsWith('hero-arrival') || a.effect?.target?.id === 'site-entry-cover').forEach(a => { a.playbackRate = slow.checked ? .3 : 1; });
+    requestAnimationFrame(tick);
+  }
+  replay(); tick();
+</script>
+</html>

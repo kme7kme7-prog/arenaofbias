@@ -59,6 +59,38 @@
 - 用户请求红队防护，由GPT-6.1 Sol / high子代理配套后端统一验密前Turnstile。登录界面复用验证组件、提交一次性token，401/503后重置；配置/脚本不可用时提示并阻止请求，无siteKey本地兼容。仅components/account.tsx相关认证段落，不改玩法、题库或部署目录。
 - typecheck/lint/build通过；生产编译隔离浏览器三个入口×四种配置情况共12项通过，包含登录错误后旧token不能重用，与候选CSP无意外拒绝。Show1产物output/redteam-login-20261002/game/；共享后端output/playwright/redteam-login-results.json为联合证据，CLI/session与本地服务已关闭。
 - 仅mock API/挑战脚本，不调用生产SMTP/真实Turnstile挑战，不写真实业务库。未push/上线；需与Gallery/管理端/共享后端配套发布。见[归档](docs/handoff/2026-10-02-login-challenge-wsnxxxs.md)。
+## 2026-10-02 · Hero 提前展开与取消收尾收缩（本地完成，未提交/部署）
+
+- 用户将展开触发明确提前到遮罩实际移过25%，并要求卡片一步到位，取消结束前变大再缩回的违和调整。lib/hero-arrival.ts 阈值改为 .25，删除73%处越过最终姿态的 kick 帧；保留原稳定构图、资源等待、失败遮罩及站内返回行为。
+- 更新真实组件对照页的时机提示、PRODUCT 与 DECISIONS。浏览器检查增加卡片70%/85%/95%/接近100%时到最终矩阵的距离递减、动画释放前后四项边界坐标差小于0.05px，检查末尾不回拉及清理时不跳变。
+- paper/ink ×1440/2048/390六组检查通过，25%附近启动、稳定几何/opacity/mask/shadow与静态原版相同；减少动态效果、直访、提前退出/返回及图片加载失败通过。末段截图已目检；PNG逐字节不同，不宣称像素完全一致。typecheck/lint/build/diff check通过。
+- 预览继续在127.0.0.1:5436/reference/hero-arrival-review.html；未commit/push/上线，原admin.html遗留改动未动。
+
+## 2026-10-02 · Hero 入场反馈修正（本地完成，未提交/部署）
+
+- 用户指出两张截图稳定比例/背后卡片露出不同，以及展开启动过晚。实查当前浏览器：原站 dpr=1.875、viewport=1353×715，原预览 dpr=1.5、viewport=1691×894，iframe 又因顶部工具条仅高834；两个标签页存在25%浏览器放大差异，预览布局也减高60px。卡片 CSS 宽440/高447及旋转矩阵本来一致，不改正式稳定构图。
+- lib/hero-arrival.ts 改为观察首帧门控解除时机，并在原遮罩实际 eased progress >= .5 时启动。没有改公共 entry-boot.js 或 Gallery；portal-entry-done 仍作减少动态效果和完成时的备用信号。装饰元素动画终点继承原 opacity，避免收尾时标记亮度跳变。
+- 对照页工具条改为底部悬浮、iframe占完整视口；增加原版静态对照及100%/125%预览倍率，默认125%只匹配用户当前参考截图，正式站zoom仍.8。慢放同时作用于揭幕与Hero动画。当前服务127.0.0.1:5436继续运行，Tabbit预览已刷新。
+- 新检查 paper/ink ×1440/2048/390六组通过：资源未就绪时静止、揭幕50%附近启动、稳定后的卡片及背景几何/opacity/mask/shadow与同尺寸静态页完全一致、无残留动画、切换浏览可用。减少动态效果、播放中切换偏好、提前离开/返回、图片失败仍遮罩通过。1440纸面截图逐字节相同；其他五组PNG差异仅在前卡图像内部的重采样细节，不声明全像素一致。
+- 真实预览iframe的100%与125%两组稳定构图及视口对照通过，截图已目检。typecheck/lint/build/diff check通过。预览测试初次在第二次iframe导航期间读取旧上下文失败，等待目标文档后重跑两组通过。
+- 未 commit/push/部署；既有admin.html修改保留。之前本节以下记录的“遮罩全部退场后启动”被本次用户反馈替代。
+
+
+## 2026-10-02 · 竞技场 Hero 展开入场（本地完成，待用户看效果）
+
+- 用户要求总入口过渡结束后增加娱乐感更强的首页展开。lib/hero-arrival.ts 由 HomeNext 的 useLayoutEffect 准备，只在跨站门控等待期间挂起；收到 portal-entry-done 后开始约 1.35 秒档案侧立收拢→错峰甩开→回弹，标题/按钮分拍出现、背景档案条展开。保留平面兄弟层叠，完成释放所有 WAAPI 覆盖及档案交互锁。直接访问、站内返回不重复追加此跨站动效。
+- 先添加 reference/hero-arrival-review.html 重播/慢放/纸墨对照及 scripts/check-hero-arrival.mjs，再接入正式组件。node scripts/preview-hero-arrival.mjs 在 127.0.0.1:5436 提供实际组件预览，以本地 fixture 响应读取 API 并拒绝写入；没有连生产后端。预览服务本轮保留运行，浏览器已打开。
+- typecheck、lint、build、check:game、check-portal-entry 通过。入口源码一致检查只增加 CRLF→LF 标准化，两个站点 boot 源码未改。新浏览器检查纸/墨×1440/390：慢图时静止等待、遮罩移除后才展开、动画清理与卡片切换、无横向溢出/页面异常；减少动态效果、播放中切换该偏好、提前进入菜单/返回首页、图片失败仍被遮罩覆盖均通过。确定性 0/350/700/1050ms 截图已目检，证据 output/hero-arrival。
+- 旧 validate-portal-entry 完成竞技场 1440/390/2048×正常/减少动态效果 6 组后，在 Gallery 首组等待就绪超时；全套跨仓回归未通过，没有将 Gallery 超时归因或扩改到本轮竞技场动效。新脚本早期直访断言曾因 query 已清理后的同文档导航未重载而失败，改为新文档访问后通过。
+- 未 commit/push/部署，admin.html 他人本地对比改动保留。dist 是当前工作区测试构建，包含既有 admin.html，不可当作干净发布包直接上传。下一步供用户查看本地效果。
+
+
+## 2026-10-02 · 三仓拉取与主页只读核查
+
+- 按用户要求，三个 main 均以 pull --ff-only 无冲突同步：Show1 80e723d→97d1b8e，正式 Gallery e23d9a5→ef7b0a5，共享后端 343ed64→83e43fe。Show1 原有 admin.html 修改、Gallery 原有 live-patch/ 和 patch-live.mjs 保留；后端工作区干净。没有 commit、push、部署或数据库操作。
+- 对照竞技场主页源码与已上线页面：HomeNext 改为三题档案卡片（016/009/019），支持箭头、索引、键盘与滑动选题；原有菜单/随机入场、题库/榜单导航保留，玩法菜单入口尺寸扩大。Tabbit 在当前用户浏览器实际点击“下一个题目”后确认标题为“桌面微缩铁路小镇”，再恢复原选项，截图目检；本轮没有重复手机/全主题/过场完整回归。
+- 拉取后 npm run typecheck 通过；本轮只读核查，不调整设计。线上状态与此前发布详情以最新归档为准。
+
 
 ## 2026-10-02 · 四仓整理、联调与固定版本发布完成
 
