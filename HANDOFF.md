@@ -1,5 +1,16 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-02 · 四仓整理、联调与固定版本发布完成
+
+- 用户授权整理既有改动、提交、合并、推送与部署，并指定三名 GPT-6.1 Sol / medium 子代理。主站将上游完成的两条 Hero/玩法菜单提交快进至 `9b7357a`，同步 origin/main 与 fork/main；Gallery `ef7b0a5`、后端 `83e43fe`、数据源 `0291105` 均已推送。其他可见分支已在 main，无待合并 PR，未强推或删除工作树。
+- 固定包 `53ab3e7caae664a520a231ef4fb715c493f1baa0` 的 CI 36960742936 成功，20 题 / 182 件；Gallery/API catalogDigest 一致为 `95f4979445a2528dccd866a1f2e1ca72d2b431943d295fea53ceb0e8ddbdec4a`。后端与 Gallery 使用同一 pin，实际源码与字节从已推送提交的 LF git archive 构建。
+- 正式 VPS 后端从已审计的 `343ed64` 升至 `83e43fe072a0280d86c76379d9964bd4a32eb4bd`，Node 22 check 82/0、test 230/230；数据库停服备份后 v27→v31，integrity ok，users31/works288/votes328/questions7/comments16/reactions60/matches368 前后均一致。服务与审核 tunnel active，Nginx 配置未改。
+- Gallery `ef7b0a5bb240a518033a1ce78bb29a36d5205cdc` 的 2419 文件、数据包 2369 文件（含安装来源标记）完整 SHA-256 与精确集合通过。竞技场已有新 Hero；其820目标文件与干净构建全相同，保留额外两份旧哈希 assets，未重复替换。总入口未变。旧 Gallery `/www/wwwroot/gallery.prev-20261002`，后端/数据库备份 `/root/aob-release-20261002/backup/`。
+- 本仓 typecheck/lint/check:game/check:theme/build/portal build 通过；Gallery check45/test18 与不可变包真实跨仓 smoke、数据 check30/test16/intake 通过。联调修复作者未公开作品误跳公开页面，现打开后端私有预览；隔离浏览器批量核验、作品与题目编辑/作者筛选零 console error。公网页面1440/390无横向溢出、三站与 API 200、领域过滤可见；没有生产投稿、注册、投票或人工审核写操作，不宣称全部作品/设备/外部审核服务已验。
+- 直接访问服务器 IP 被机房网关导向提示页，正式域名 `arenaofbias.icu`、`game.arenaofbias.icu`、`gallery.arenaofbias.icu` 正常。部署证据在四仓忽略的 output 与 `/root/aob-release-20261002/`。
+- 数据仓发布冻结后，聊天「修复小模型与地面适配」继续产生独立用户授权的截图/裁切/地面改动，仍在运行；保留其工作区，不混入本次固定包。不要把该并行改动误当作本轮漏提交或回退。
+- [完整记录](docs/handoff/2026-10-02-four-repository-release-wsnxxxs.md)。本仓后续文档提交不改变已核对的主站功能产物。
+
 ## 2026-10-02 · Hero 与玩法菜单联合发布
 
 - 用户已验收玩法菜单，并明确授权 commit、push、部署，随后确认「Hero 和玩法菜单一起上线」。正式 `HomeNext` 已接入验收后的档案 Hero，主题/语言/真实账号位于页面导航，菜单沿用已验收的大入口尺寸。`reference/hero-review.*` 保留为对照；之前各节的「仅预览、未授权部署」属于当时状态。
