@@ -1,4 +1,4 @@
-// npm run build && node scripts/validate-arena-entry.mjs
+// npm run build:check && node scripts/validate-arena-entry.mjs
 // In-memory API/work fixtures; no production votes or model calls.
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';

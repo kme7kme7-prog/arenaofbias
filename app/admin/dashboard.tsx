@@ -1,5 +1,6 @@
 // 仪表盘：今日/昨日浏览与访客、累计数据、近 14 日趋势（纯 SVG 柱状图）、
 // 服务器体检卡片。数据来自 GET /api/admin/stats。
+import { apiFetch } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
@@ -117,7 +118,7 @@ export function AdminDashboard() {
   const [updated, setUpdated] = useState('');
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/admin/stats?days=14', { signal: controller.signal })
+    apiFetch('/api/admin/stats?days=14', { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('统计数据加载失败，请重试。');
         return response.json() as Promise<Stats>;

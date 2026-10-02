@@ -1,4 +1,4 @@
-// Build first; isolated API fixtures exercise the menu entry without a live game.
+// npm run build:check first; isolated API fixtures exercise the menu entry without a live game.
 import assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

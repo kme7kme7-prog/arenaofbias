@@ -1,4 +1,5 @@
 import { useI18n } from '@/lib/locale';
+import { apiFetch } from '@/lib/api';
 import { useTheme } from '@/lib/theme';
 import {
   createContext,
@@ -155,7 +156,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const pickAvatar = async (avatar: string) => {
     setError('');
     try {
-      const response = await fetch('/api/me', {
+      const response = await apiFetch('/api/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar }),
@@ -199,7 +200,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch('/api/auth/me', { signal: controller.signal });
+      const response = await apiFetch('/api/auth/me', { signal: controller.signal });
       if (!response.ok) throw new Error();
       const data = await response.json();
       if (request === revision.current) setUser(data.user);
@@ -258,7 +259,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!opened) return;
     let cancelled = false;
     setGateConfig('loading');
-    fetch('/api/auth/turnstile')
+    apiFetch('/api/auth/turnstile')
       .then((response) => {
         if (!response.ok) throw new Error('turnstile config unavailable');
         return response.json();
@@ -362,7 +363,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         purpose === 'reset'
           ? { purpose, username: username.trim(), turnstileToken: gateToken }
           : { purpose, email: email.trim(), turnstileToken: gateToken };
-      const response = await fetch('/api/auth/email/send', {
+      const response = await apiFetch('/api/auth/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -418,7 +419,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     revision.current++;
     try {
       if (user && mode !== 'bind') {
-        const response = await fetch('/api/auth/logout', {
+        const response = await apiFetch('/api/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
@@ -431,7 +432,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (user && mode === 'bind') {
-        const response = await fetch('/api/auth/email/bind', {
+        const response = await apiFetch('/api/auth/email/bind', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email.trim(), code }),
@@ -449,7 +450,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (mode === 'login') {
-        const response = await fetch('/api/auth/login', {
+        const response = await apiFetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password, turnstileToken: gateToken }),
@@ -466,7 +467,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       // 找回密码第一步只预校验验证码，正式重置时才消耗。
       if (mode === 'forgot' && step === 1) {
         const body = { purpose: 'reset', username: username.trim(), code };
-        const response = await fetch('/api/auth/email/verify', {
+        const response = await apiFetch('/api/auth/email/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -478,7 +479,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         setStep(2);
         return;
       }
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/auth/${mode === 'register' ? 'register' : 'password/reset'}`,
         {
           method: 'POST',

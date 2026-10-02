@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import ts from 'typescript';
+import { withApiFixture } from './api-fixture.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dataDir = await mkdtemp(path.join(tmpdir(), 'aob-formal-'));
@@ -93,17 +94,21 @@ try {
   assert.equal((await post('votes', oldFormal, cookie)).status, 201);
   await stop();
   const db = new Database(path.join(dataDir, 'comments.db'));
-  const originalRows = db.prepare('SELECT * FROM votes ORDER BY id').all();
-  // 恢复上一版索引与迁移版本，模拟已有真实娱乐/正式票的老库。
-  db.exec(`DROP INDEX votes_user_pair_scope; DROP INDEX votes_scope_created;
-    CREATE UNIQUE INDEX votes_user_pair ON votes(user_id, pair_key); PRAGMA user_version = 10;`);
-  db.close();
+  let originalRows;
+  try {
+    originalRows = db.prepare('SELECT * FROM votes ORDER BY id').all();
+    // 恢复上一版索引与迁移版本，模拟已有真实娱乐/正式票的老库。
+    db.exec(`DROP INDEX votes_user_pair_scope; DROP INDEX votes_scope_created;
+      CREATE UNIQUE INDEX votes_user_pair ON votes(user_id, pair_key); PRAGMA user_version = 10;`);
+  } finally { db.close(); }
   await start();
   await check('迁移保留全部历史票面，自动拆分读取口径', async () => {
     const migrated = new Database(path.join(dataDir, 'comments.db'), { readonly: true });
-    assert.deepEqual(migrated.prepare('SELECT * FROM votes ORDER BY id').all(), originalRows);
-    assert.equal(migrated.pragma('user_version', { simple: true }), 11);
-    migrated.close();
+    try {
+      assert.deepEqual(migrated.prepare('SELECT * FROM votes ORDER BY id').all(), originalRows);
+      // 12 对应 012「模一把成绩记名」迁移。
+      assert.equal(migrated.pragma('user_version', { simple: true }), 12);
+    } finally { migrated.close(); }
     assert.deepEqual((await get('votes')).votes.map(v => v.id), [casual.id]);
     assert.deepEqual((await get('votes?scope=formal')).votes.map(v => v.id), [oldFormal.id]);
     assert.deepEqual((await get('votes?scope=entertainment')).votes.map(v => v.id), [casual.id]);
@@ -159,13 +164,14 @@ try {
     assert.equal((await get('votes?scope=formal')).votes.length, 2);
     assert.equal((await post('votes', formal, cookie)).status, 200);
     const reopened = new Database(path.join(dataDir, 'comments.db'), { readonly: true });
-    assert.equal(reopened.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='votes_user_pair'").get().n, 0);
-    reopened.close();
+    try {
+      assert.equal(reopened.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='votes_user_pair'").get().n, 0);
+    } finally { reopened.close(); }
   });
   await check('浏览器声望缓存按模式独立，晚到旧响应不覆盖新快照', async () => {
     const source = await readFile(path.join(root, 'lib/ratings.ts'), 'utf8');
     const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-    const ratings = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+    const ratings = await import(`data:text/javascript;base64,${Buffer.from(withApiFixture(code)).toString('base64')}`);
     const realFetch = globalThis.fetch;
     const pending = [];
     globalThis.fetch = url => new Promise(resolve => pending.push({ url, resolve }));

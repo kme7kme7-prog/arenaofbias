@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api';
 import type { ModelResult, Prompt } from './arena';
 import { shareSvg } from './share-card.js';
 
@@ -31,7 +32,7 @@ export type ShareData = {
 export type ShareResult = { data: ShareData; url: string; file: File; imageUrl: string };
 
 async function publicList<T>(path: string, field: string): Promise<T[]> {
-  const response = await fetch(path);
+  const response = await apiFetch(path);
   if (!response.ok) throw new Error('分享数据暂不可用，请稍后重试。');
   const body = await response.json() as Record<string, unknown>;
   if (!Array.isArray(body[field])) throw new Error('分享数据暂不可用，请稍后重试。');
@@ -52,6 +53,7 @@ async function imageData(work: ModelResult): Promise<string | null> {
   const source = new URL(work.content.src, location.origin);
   if (source.protocol !== 'http:' && source.protocol !== 'https:') return null;
   try {
+    // oxlint-disable-next-line no-restricted-globals -- Public share images intentionally omit credentials.
     const response = await fetch(source.href, { credentials: 'omit' });
     const mime = response.headers.get('content-type')?.split(';')[0] ?? '';
     if (!response.ok || !/^image\/(png|jpeg|webp|svg\+xml)$/.test(mime)) return null;

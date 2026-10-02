@@ -124,6 +124,8 @@
 
 当前前端联调使用独立共享后端：在 `arenaofbias-server` 按其 README 启动服务（默认 3000），本仓执行 `npm run dev:web`（默认 5173）。Vite 用 `PORT` 选择后端端口、`VITE_PORT` 选择前端端口，代理保留原 Host。共享后端负责数据包拉取和数据库迁移，本仓不用复制数据库。
 
+`lib/api.ts` 用构建时的 `VITE_API_BASE_URL` 拼接 API 地址，`apiFetch` 统一带 `credentials: 'include'`（含 keepalive 请求）。开发模式未设置基址时使用相对 `/api`，继续走现有 Vite 代理；`.env.production` 只在生产模式加载，默认基址为 `https://api.arenaofbias.icu`，与 Gallery 共用 API 主机上的登录会话。分享图片获取仍保持 `credentials: 'omit'`；作品域名与 game 静态资源地址保持原样。
+
 下面的 `npm run dev`、`npm start` 与旧服务专项验证用于迁移前实现；当前真实榜单需要共享后端的 `/api/show1/leaderboard`，不能把旧服务的启动成功当作当前 API 联调通过。
 
 ```powershell
@@ -222,6 +224,8 @@ npm start          # 生产形态：http://localhost:3000
 ## 当前主站静态发布
 
 总域名 `https://arenaofbias.icu` 的独立总入口在 `/www/wwwroot/arenaofbias-home`；`node scripts/build-portal.mjs` 将 `portal/` 的 CSS/JS 内联为 `output/portal-dist/index.html`，保持根站只提供 `/` 的现行跳转规则。竞技场 `https://game.arenaofbias.icu` 的静态目录为 `/www/wwwroot/show1-dist`，Gallery 独立发布；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
+
+game 的 `npm run build` 会自动读取仓库内的 `.env.production`；发布命令应显式使用 `VITE_API_BASE_URL=https://api.arenaofbias.icu npm run build`，并确认产物包含该基址。PowerShell 对应 `$env:VITE_API_BASE_URL='https://api.arenaofbias.icu'; npm run build`。变量在构建时写入静态产物，修改后需要重新构建。上线后原 game 主机的会话 Cookie 不再使用，现有用户需重新登录一次；旧 Cookie 自然过期即可。
 
 文档同步不要求重新部署。两个前端独立构建发布；不要运行下面已退役的 PM2 整站脚本，也不要用主站 checkout 覆盖共享后端或业务数据库。
 

@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api';
 import { createRoot } from 'react-dom/client';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
 import { workCanvas } from '@/lib/work-framing';
@@ -12,7 +13,7 @@ window.addEventListener('message', (event) => {
 });
 async function start() {
   const id = new URLSearchParams(location.search).get('id');
-  const response = await fetch('/api/works');
+  const response = await apiFetch('/api/works');
   if (!response.ok) throw new Error('作品不可用');
   const { works } = await response.json();
   const work = works.find((entry: { id: string }) => entry.id === id);

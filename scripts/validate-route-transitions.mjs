@@ -1,4 +1,4 @@
-// Build first. Real clicks with isolated fixtures, including no-motion navigation.
+// npm run build:check first. Real clicks with isolated fixtures, including no-motion navigation.
 import assert from 'node:assert/strict';
 import express from 'express';
 import { fileURLToPath } from 'node:url';

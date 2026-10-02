@@ -8,6 +8,7 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
+import { withApiFixture } from './api-fixture.mjs';
 
 // --- localStorage shim（votes 校验只读题库，不触存储；占位投票路径归 placeholder 脚本） ---
 const store = new Map();
@@ -68,7 +69,7 @@ const votesCode = transpile(
 ).replace(/^import\s*\{[^}]*\}\s*from\s*['"][^'"]*(arena|prompts)['"];?\s*$/gm, '');
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${votesCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(withApiFixture(`${arenaCode}\n${promptsCode}\n${votesCode}`)).toString('base64')}`
 );
 const { validateVote, pairKeyOf, voteToRecord } = module;
 

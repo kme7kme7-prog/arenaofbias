@@ -1,13 +1,14 @@
 // 浏览器每日进度契约：临时内存 storage，不读写用户数据。
 import assert from 'node:assert/strict';
 import { createJiti } from 'jiti';
+import { fileURLToPath } from 'node:url';
 const storage = new Map();
 globalThis.localStorage = {
   getItem: (key) => storage.get(key) ?? null,
   setItem: (key, value) => storage.set(key, value),
   removeItem: (key) => storage.delete(key),
 };
-const jiti = createJiti(import.meta.url);
+const jiti = createJiti(import.meta.url, { alias: { '@': fileURLToPath(new URL('..', import.meta.url)) } });
 const { GUESS_MODELS, judge } = await jiti.import('../lib/guess-logic.ts');
 const {
   loadDailySession,

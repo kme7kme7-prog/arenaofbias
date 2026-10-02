@@ -5,6 +5,7 @@
 // - 模型名：输入即过滤现有模型（GET /api/admin/models）；选中 = 复用该 modelId 与
 //   规范显示名；无匹配 = 登记时创建新模型（下拉第一行明示）。
 // - 题目选择记住上一次（aob-admin-inbox-prompt），连续登记同一题不用反复选。
+import { apiFetch, apiUrl } from '@/lib/api';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useAdminPromptOptions } from '@/app/admin/use-admin-prompts';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
@@ -51,9 +52,11 @@ const previewUrl = (name: string) =>
 const serveUrl = (name: string) =>
   `/api/admin/inbox/serve/${encodeURIComponent(name)}`;
 const workPreviewSrc = (entry: InboxEntry) =>
-  entry.type === 'dir'
-    ? `${serveUrl(entry.name)}/index.html`
-    : serveUrl(entry.name);
+  apiUrl(
+    entry.type === 'dir'
+      ? `${serveUrl(entry.name)}/index.html`
+      : serveUrl(entry.name),
+  );
 
 const readSavedPrompt = () => {
   try {
@@ -165,7 +168,7 @@ function TextPreview({ entry }: { entry: InboxEntry }) {
     const next = !open;
     setOpen(next);
     if (next && full === null) {
-      fetch(previewUrl(entry.name))
+      apiFetch(previewUrl(entry.name))
         .then((response) =>
           response.ok ? response.text() : Promise.reject(new Error()),
         )
@@ -212,12 +215,12 @@ export function AdminInbox() {
     const request = ++requestId.current;
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
     return Promise.all([
-      fetch('/api/admin/inbox').then((r) =>
+      apiFetch('/api/admin/inbox').then((r) =>
         r.ok
           ? (r.json() as Promise<{ dir: string; entries: InboxEntry[] }>)
           : Promise.reject(new Error()),
       ),
-      fetch('/api/admin/models').then((r) =>
+      apiFetch('/api/admin/models').then((r) =>
         r.ok
           ? (r.json() as Promise<{ models: ModelOption[] }>)
           : Promise.reject(new Error()),
@@ -283,7 +286,7 @@ export function AdminInbox() {
       try {
         const body = await file.arrayBuffer();
         const attempt = (overwrite: boolean) =>
-          fetch(
+          apiFetch(
             `/api/admin/inbox/upload?name=${encodeURIComponent(file.name)}${overwrite ? '&overwrite=1' : ''}`,
             {
               method: 'POST',
@@ -329,7 +332,7 @@ export function AdminInbox() {
     }
     if (busyName) return;
     setBusyName(entry.name);
-    fetch('/api/admin/inbox/register', {
+    apiFetch('/api/admin/inbox/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -380,7 +383,7 @@ export function AdminInbox() {
     if (busyName) return;
     if (!window.confirm(`从收件箱删除「${entry.name}」？（不会进作品库）`)) return;
     setBusyName(entry.name);
-    fetch(`/api/admin/inbox?name=${encodeURIComponent(entry.name)}`, {
+    apiFetch(`/api/admin/inbox?name=${encodeURIComponent(entry.name)}`, {
       method: 'DELETE',
     })
       .then(async (response) => {

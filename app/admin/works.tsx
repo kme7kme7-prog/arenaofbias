@@ -1,4 +1,5 @@
 // Work IDs and source files stay unchanged; calibration is display metadata.
+import { apiFetch } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useAdminPromptOptions } from './use-admin-prompts';
 import { WorkCalibration } from './work-calibration';
@@ -61,7 +62,7 @@ export function AdminWorks() {
           q: q.trim(),
         });
         if (prompt) params.set('prompt', prompt);
-        const response = await fetch(`/api/admin/works?${params}`, {
+        const response = await apiFetch(`/api/admin/works?${params}`, {
           signal: controller.signal,
         });
         if (!response.ok) throw new Error('作品加载失败，请重试');
@@ -124,7 +125,7 @@ export function AdminWorks() {
     setBusy(work.id);
     setError('');
     setNotice('');
-    fetch(`/api/admin/works/${encodeURIComponent(work.id)}`, {
+    apiFetch(`/api/admin/works/${encodeURIComponent(work.id)}`, {
       method: 'DELETE',
     })
       .then(async (response) => {

@@ -2,6 +2,7 @@
 // 与 lib/comments.ts 同构：前端校验镜像 + 提交/拉取；服务端规则见 server/index.js。
 // 占位模式的投票不经过本文件，走 lib/placeholder.ts 的本地占位投票。
 
+import { apiFetch } from '@/lib/api';
 import type { Mode } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
 
@@ -143,7 +144,7 @@ export async function submitVote(vote: ArenaVoteDraft): Promise<SubmitResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch('/api/votes', {
+    const response = await apiFetch('/api/votes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(vote),
@@ -198,7 +199,7 @@ export async function fetchVotes(
   scope: EvaluationScope = 'entertainment',
 ): Promise<VoteFlowRow[] | null> {
   try {
-    const response = await fetch(`/api/votes?scope=${scope}`, { signal });
+    const response = await apiFetch(`/api/votes?scope=${scope}`, { signal });
     if (!response.ok) return null;
     const data = (await response.json()) as { votes?: unknown };
     if (!Array.isArray(data.votes)) return null;

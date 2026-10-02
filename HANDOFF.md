@@ -1,5 +1,59 @@
 # HANDOFF.md · 当前状态
 
+## 四仓发布准备（2026-10-02，用户已授权提交、推送、部署）
+
+- 整理共用会话、API lint、测试维护及此前登录验证；认证 GitHub 用户为 wsnxxxs，提交用本人 noreply，不修改本机原有 Git 身份配置。上游 origin/main 新增 12a626a Hero 入场提交，将保留并合入，fork/main 亦同步。
+- 本轮 lint、typecheck、placeholder 10 项、formal 6 项通过。固定数据包、已推送源码构建、隔离联调与上线验收尚待执行；已知三项旧检查失败不顺手修复。见[准备归档](docs/handoff/2026-10-02-shared-session-release-preparation-wsnxxxs.md)。
+
+## 2026-10-02 · Show1 测试维护 5 / 6 / 7（本地完成，遗留检查失败已记录；未提交、未推送、未部署）
+
+- 本轮文件：`scripts/validate-placeholder.mjs`、`scripts/validate-formal.mjs`、`package.json`；仅更新构建说明的 `scripts/validate-{arena-entry,guess-entry,library-pages,portal-entry,route-transitions,work-ready,work-sizing,formal-ui}.mjs`；本节。保留前轮 `lib/api.ts`、`.env.production`、`.oxlintrc.api.json`、API 调用及 lint 改动，没有改 placeholder 业务代码、旧 server/、admin.html、后端代码、Cookie、Nginx 或生产数据，没有新增 npm 依赖。
+- 第 5 项原因：300 票抽样不能保证 ph-03 始终榜首，且生成器对阵由 `Date.now()` 播种，单独固定 Math.random 不够。只在这条检查中固定时间与使用既有 mulberry32 的随机盐，finally 恢复两者；关闭时断言相同对阵种子的胜场分布与榜首一致，开启时盐变化导致胜场格局变化，不再把有限样本的榜首当成必然。连续完整运行 **35 次，35/35 通过**，每次 `10 placeholder checks passed.`。
+- 第 6 项 EBUSY 根因：`stop()` 已等待服务子进程真正退出；占用 comments.db / WAL / SHM 的是测试进程自己打开的 SQLite 连接，迁移断言失败时绕过 close，finally 的 rm 再报 EBUSY 并覆盖原始错误。本轮给三个数据库连接加 try/finally 关闭，没有给 rm 增加重试或改变 stop。改动前实际复现 EBUSY；修复关闭后原始断言错误正常暴露，临时目录可删除。
+- 第 6 项另一个独立问题：期望版本 11 已过时，服务已有 012「模一把成绩记名」迁移（用户确认在 b10c4e3、2026-09-25 加入）。按用户明确授权，仅将该断言的期望由 11 改为 12，旁边加迁移说明，其他断言保持不变。之后连续完整运行 **3 次，3/3 通过**，每次 `6 formal checks passed.`；逐次对比 mkdtemp 目录清单，本轮新临时目录剩余数均为 0，没有删除其他轮次遗留目录。
+- 基线 EBUSY 复现遗留本轮目录 `C:/Users/Ryan/AppData/Local/Temp/aob-formal-I0Zhsj`。尝试清理该精确目录时自动审批拒绝命令，仅返回 blocked by policy，未给出具体原因；未绕过拦截，该目录保留。它不属于上述修复后的 3 次运行，也不是生产数据。
+- 第 7 项实际基线：先执行现有 `npm run build`，产物 JS 确含 api.arenaofbias.icu；生产产物下 arena-entry 4 个场景、library-pages 4 个场景均通过，这次没有复现假响应缺 CORS 导致的失败。配置风险仍存在，尤其 formal-ui / admin-access 没有 API 拦截，页面依赖自己启动的临时后端，生产产物会绕过它。其余七个正式浏览器检查均有 `**/api/**` 或全路由中的 `/api/` 拦截；既有 `.tmp-*` dist 调试片段也有 API 拦截，未修改这些遗留片段。
+- 第 7 项选择方案 A：新增 `npm run build:check` = `vite build --mode check`，不加载 `.env.production`，API 基址回退为空；原 `npm run build` 不变。实测 Vite 8.0.13 的检查构建 `NODE_ENV=production`、`PROD=true`、`isProduction=true`、`minify=oxc`，仍是生产优化构建。检查产物的所有 JS grep api.arenaofbias.icu 为零命中；整目录仍命中旧 `dist/admin.html` 的既有后台迁移链接，这与 API 请求基址无关，按范围要求保留。最终再次运行生产构建，JS 恢复该主机名（`fixed-html-work-C9cuPayb.js`），当前 dist 为生产产物。使用 build:check 时不要另行在 shell 设置生产 VITE_API_BASE_URL。
+- 检查构建下逐项结果（均真实浏览器，portal 显式使用 `GALLERY_SOURCE=C:/Users/Ryan/Desktop/ArenaGalleri`；日志在忽略目录 `output/test-maintenance-20261002/`）：
+
+  | 检查 | 结果 |
+  | --- | --- |
+  | validate-arena-entry | 通过，4 个主题 / 动效场景 |
+  | validate-guess-entry | 通过，8 个主题 / 视口 / 动效场景 |
+  | validate-library-pages | 通过，4 个主题 / 视口场景 |
+  | validate-portal-entry | 失败；game 的 6 个入口场景通过，Gallery 首个场景在第 75 行等待 ArenaEntry.done 超时 |
+  | validate-route-transitions | 通过，8 个主题 / 视口 / 动效场景 |
+  | validate-work-ready | 通过，14 个主题 / 就绪场景 |
+  | validate-work-sizing | 通过，30 个视口场景 |
+  | validate-formal-ui（额外排查） | 失败；第 42 行等待「需要资格」超时，当前 #formal 的访客分支直接返回 PlayMenu，没有该旧文案 |
+  | validate-admin-access（额外排查） | 失败；第 92 行等待 Show1 .phase-voting 超时，正式入口已跳转 Gallery |
+
+- 遗留失败没有顺手修复：portal 夹具返回空 runtime-config.js，当前 Gallery 启动读取 SAME_PROMPT_CONFIG.assetVersion 报 `Cannot read properties of undefined (reading 'assetVersion')`，入口 phase=failed；恢复生产产物后用相同夹具再次确认同一失败，排除本地检查 API 基址导致。其默认 Gallery 源码路径也已不存在，本轮运行显式指定了现有 Gallery 仓库；未改夹具、Gallery 源码或默认路径。
+- validate-admin-access 的「正式测评」检查自 3d0102d 起已过时，入口现为 `lib/gallery-links.ts` 的 GALLERY_BLIND（Gallery 盲评），检查仍等待 Show1 的 .phase-voting。按用户最新选择，脚本原文件保持不变，不新增导航拦截；用户确认这只会以匿名身份打开一次公开 Gallery 页面，没有线上会话凭据或业务写接口调用。后续需另行决定改为断言跳转目标，或删除这一项。formal-ui 同样保留旧断言，只更新检查构建说明；本轮未跑这些失败点之后的场景，原因是脚本已在该处终止。
+- 其他验证：`npm run lint`、`npm run typecheck`、检查构建、生产构建、两个仓库的 `git diff --check` 通过。测试生成的已跟踪 work-ready-after.json 已恢复到本轮前版本，本轮结果另存于忽略的证据目录。没有写归档、commit、push 或部署。生产两站互通及 Nginx 验收未执行，尚待发布和用户授权；移除 game /api 反代只完成后端仓库 docs/deploy.md 第 9 节文档与 HANDOFF。
+
+## 2026-10-02 · 共用会话收尾：前端 API lint（本地完成，未提交、未推送、未部署）
+
+- 本轮只新增 `.oxlintrc.api.json`、修改 package.json 的 lint 命令末尾、给 `lib/api.ts` 和 `lib/share-client.ts` 各一处原生 fetch 加带理由的 `oxlint-disable-next-line`，并追加本节。上一轮统一 API 基址、include、生产环境配置及所有未提交改动保留，没有重写。
+- oxlint 1.76.0 的安装包 schema 没有 no-restricted-syntax；临时配置实际运行报 `Rule 'no-restricted-syntax' not found in plugin 'eslint'`。no-restricted-globals 实测支持。全局禁止 fetch 会误伤 server/turnstile.js 和既有 Node 验证 / 缩略图脚本，已按用户要求列出并确认范围。
+- 最终采用用户指定的方案 B 变体：独立配置关闭全部 categories 与插件，仅启用 no-restricted-globals 限制全局 fetch，提示 `Use apiFetch / apiUrl from @/lib/api.`。原 `.oxlintrc.json` 和原 lint 调用保持不变；追加 `&& oxlint -c .oxlintrc.api.json app components lib src`，覆盖此前原 lint 未扫描的 account / afterparty 所在 components，仅检查 API 规则。server/、scripts/ 不在追加范围。两处豁免分别说明统一会话封装与分享公开图片刻意 omit；未新增依赖或额外检查脚本。
+- 验证：`npm run lint`、`npm run typecheck`、`npm run build`、`git diff --check` 通过。临时 components/api-lint-probe-20261002.ts 只含 `fetch('/api/x');`，实际 `npm run lint` 返回 1，定位该文件 1:1，报 no-restricted-globals 并显示指定提示；删除本轮临时文件后 lint 返回 0。构建仍自动注入 API 基址，产物哈希与上一轮相同。
+- Gallery 的返回事件会话检测和后端认证 / 发布文档同步在各自仓库记录。此前提示的后端 deploy.md 文档待同步事项已由本轮完成。未重跑无关旧业务专项测试或生产跨站验收，本轮为 lint 限制，线上验收仍需发布后执行。
+- 未 commit、push、部署或写归档；未修改本仓旧 server/、admin.html、nginx、Cookie 属性或生产数据。
+
+## 2026-10-02 · Show1 与 Gallery 共用 API 登录会话（本地完成，未提交、未推送、未部署）
+
+- 用户选定方案 A：Show1 与 Gallery 都向 `https://api.arenaofbias.icu` 请求 API，携带 API 主机上的会话。新增 `lib/api.ts` 的 `apiUrl` / `apiFetch`；后者统一 `credentials: 'include'`，保留 signal、keepalive、请求体和已有请求头。账号、竞技场、评论、全部公共数据层、旧 TSX 后台、捕获入口及分享对照页的 API 调用已统一。按用户要求由三名 GPT-6.1 Sol / medium 子 agent 拆分实施与审计。
+- `.env.production` 设置 `VITE_API_BASE_URL=https://api.arenaofbias.icu`，`.gitignore` 仅允许此公开生产配置入库；现有 `npm run build` 自动加载。未设置变量的 Vite dev 使用空基址和现有 `/api` 代理，未修改 `vite.config.ts`。`docs/ARCHITECTURE.md` 已说明环境变量与发布命令。**后端 deploy.md 的 game 构建命令需加 VITE_API_BASE_URL=https://api.arenaofbias.icu**（即 `VITE_API_BASE_URL=https://api.arenaofbias.icu npm run build`）；该文件只读核查，未直接修改后端仓库。
+- 全量搜索覆盖 `/api` 字面地址、动态 fetch、new URL、sendBeacon、EventSource、XHR 和 img/iframe/a 的 src/href。前端业务与对照页裸 fetch 只剩统一 helper 和分享图片的 `credentials: 'omit'`；没有额外自定义请求头，现有头只有 Content-Type。API URL 用于旧收件箱 iframe 时经过 `apiUrl`。
+- 非 API 资源保持原归属：`/works/pelican-cycle.html` 是 game 的 public 静态兜底；`/art`、`/avatars` 等同属 game。当前兼容作品 API 的动态 content.src 均为独立作品 origin（历史快照为 `https://*.w.arenaofbias.icu`），不套 API 基址；Show1 当前无 `/media` 调用。分享图片读取保留 omit。实际 game `/works` / `/media` vhost 代理规则未存入这两个仓库，不能凭 CSP 推断；本轮没有依赖这些未知规则的动态调用。
+- 既有 Node 验证器将 TypeScript 拼成 data URL，新增 API import 会破坏其解析，故只做最小导入适配：`scripts/api-fixture.mjs` 转译真实 helper，测试环境 `import.meta.env={}`；五个拼接验证器注入一次，guess-session 仅补 jiti 的 `@` 别名。没有新增业务测试框架或依赖，也没有更改原测试预期。
+- 验证通过：`npm run typecheck`、`npm run lint`、`npm run build`、`git diff --check`；votes 12 项、comments、reaction-queue、email-gating、guess-session、share 6 项。产物 grep 在公共 JS chunk 中确认 `https://api.arenaofbias.icu` 与 `credentials: include` 已注入；运行源码不再残留直达 game 的裸 `/api` 请求。`npm run test` 执行失败，原因是 package.json 无 test 脚本；已有专项验证未全绿：placeholder 第 10 项固定榜首断言 `ph-05 !== ph-03`，formal 在原临时 SQLite 清理时报 EBUSY，未据此宣称正式测评整体验证通过，未扩改无关逻辑。ratings 模块的导入及真实 helper 的 include/keepalive 单独验证通过。
+- 本地 dev 未设基址，用共享后端真实实现及独立临时 SQLite 完成浏览器联调：真实账号表单登录与登出、`/api/auth/me`、投票持久化、评论 POST/GET、评价队列和统计上报；捕获到的 15 个请求均走本地 Vite 代理并带 include，评价与统计 keepalive 保持。评论 UI 当前隐藏，评论写入通过真实 apiFetch 验证，未声称完成评论界面验收。临时夹具补齐作品表后复验通过。证据：忽略目录 `output/playwright/shared-session-20261002/local-browser-results.json`；本轮浏览器和两个临时服务已停止。未连接生产 API 执行业务写操作，未调用真实 SMTP 或 Turnstile。
+- 旧 TSX 收件箱预览未验收：其 serve/file API 契约未由当前共享后端实现，且 game 的 frame-src 不允许 API 主机。`admin.html` 现已跳转正式 API 后台，不加载这些 TSX 页面；正式后台使用同 API origin 的 `/admin/inbox/...`。此为迁移前入口的既有限制，不扩改 nginx 或后端。本仓 `server/`、`admin.html`、后端代码、Cookie 属性、数据及 nginx 均未修改，game 的 `/api` 反代保留。
+- **上线验收待执行**：在 game 登录 → 打开 `gallery.arenaofbias.icu` 应显示已登录 → 在 Gallery 登出 → 回到 game（恢复焦点刷新）应显示未登录；DevTools 确认新会话 Cookie 只种在 `api.arenaofbias.icu`。跨主机 Cookie/CORS/CSP 的生产行为不能由本地代理测试替代。
+- **用户提示**：上线后 game 主机上的旧登录 Cookie 不再使用，现有已登录用户需重新登录一次。旧 Cookie 自然过期，不需要清理；过渡期可能仍在 game 的 Cookie 列表中，但不参与新 API 会话。本轮未获得提交、推送或部署授权，不 commit、不 push、不部署，未创建本轮归档。
+
 ## 2026-10-02 · 登录人机验证（本地完成，未推送、未部署）
 
 - 用户请求红队防护，由GPT-6.1 Sol / high子代理配套后端统一验密前Turnstile。登录界面复用验证组件、提交一次性token，401/503后重置；配置/脚本不可用时提示并阻止请求，无siteKey本地兼容。仅components/account.tsx相关认证段落，不改玩法、题库或部署目录。

@@ -2,6 +2,7 @@
 // 布局与主站完全独立：朴素的后台工作台风格，不使用主站的酸黄视觉。
 // 会话复用主站登录（arena_session cookie 同域共享），
 // 非管理员访问一律呈现 404 视图——不泄露后台存在与否。
+import { apiFetch } from '@/lib/api';
 import { StrictMode, useEffect, useState } from 'react';
 import {
   LayoutDashboard,
@@ -87,7 +88,7 @@ function useSession() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
-    fetch('/api/auth/me')
+    apiFetch('/api/auth/me')
       .then((response) =>
         response.ok
           ? (response.json() as Promise<{ user: User | null }>)

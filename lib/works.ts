@@ -3,6 +3,7 @@
 // 拉不到时调用方回退到 lib/arena.ts 的内置花名册，站点行为与改造前一致。
 // 后台内容管理（登记/发布开关）落地后，这里就是「后台点了、前台即刻生效」的通道。
 
+import { apiFetch } from '@/lib/api';
 import { knownContentKinds, modelResults } from '@/lib/arena';
 import type { ModelResult } from '@/lib/arena';
 
@@ -56,7 +57,7 @@ function parseWorkRow(row: unknown): ModelResult | null {
  *（作品全部下架——发布开关语义），原样返回 []，不回退内置清单 */
 export async function fetchWorks(): Promise<ModelResult[] | null> {
   try {
-    const response = await fetch('/api/works');
+    const response = await apiFetch('/api/works');
     if (!response.ok) return null;
     const data = (await response.json()) as { works?: unknown };
     if (!Array.isArray(data.works)) return null;

@@ -1,6 +1,7 @@
 // 用户管理（2026-09-25）：清单（用户名/邮箱/身份/注册时间/票数评论数）+
 // 四个账号级操作：授权/撤权管理员、重置密码（一次性展示）、强制下线、删除账号。
 // 服务端硬性禁止对自己操作（防自锁）；删除账号后票/评论保留、作者变匿名。
+import { apiFetch } from '@/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, ShieldCheck } from 'lucide-react';
 
@@ -83,7 +84,7 @@ export function AdminUsers() {
   const requestId = useRef(0);
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    apiFetch('/api/auth/me')
       .then((response) =>
         response.ok
           ? (response.json() as Promise<{ user: { id: string } | null }>)
@@ -101,7 +102,7 @@ export function AdminUsers() {
     });
     if (query) params.set('q', query);
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
-    return fetch(`/api/admin/users?${params}`)
+    return apiFetch(`/api/admin/users?${params}`)
       .then((response) =>
         response.ok
           ? (response.json() as Promise<{ total: number; users: AdminUser[] }>)
@@ -166,7 +167,7 @@ export function AdminUsers() {
     act(
       user,
       () =>
-        fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
+        apiFetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: promoting ? 'admin' : null }),
@@ -190,7 +191,7 @@ export function AdminUsers() {
     act(
       user,
       () =>
-        fetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-password`, {
+        apiFetch(`/api/admin/users/${encodeURIComponent(user.id)}/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
@@ -213,7 +214,7 @@ export function AdminUsers() {
     act(
       user,
       () =>
-        fetch(`/api/admin/users/${encodeURIComponent(user.id)}/force-offline`, {
+        apiFetch(`/api/admin/users/${encodeURIComponent(user.id)}/force-offline`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}',
@@ -237,7 +238,7 @@ export function AdminUsers() {
     act(
       user,
       () =>
-        fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
+        apiFetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
           method: 'DELETE',
         }).then(async (response) => {
           if (!response.ok) {
@@ -265,7 +266,7 @@ export function AdminUsers() {
     setDetailLoading(true);
     setDetailError('');
     setDetail(null);
-    fetch(`/api/admin/users/${encodeURIComponent(user.id)}/activity`)
+    apiFetch(`/api/admin/users/${encodeURIComponent(user.id)}/activity`)
       .then((response) =>
         response.ok
           ? (response.json() as Promise<Activity>)

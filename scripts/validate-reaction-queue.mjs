@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { withApiFixture } from './api-fixture.mjs';
 const source = (
   await readFile(new URL('../lib/reactions.ts', import.meta.url), 'utf8')
 ).replace(
@@ -15,7 +16,7 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const { queueReaction, flushReactions, peekPending } = await import(
-  `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(withApiFixture(compiled)).toString('base64')}`
 );
 let finish;
 let started;

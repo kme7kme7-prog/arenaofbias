@@ -5,6 +5,7 @@
 // 六维权重（决策 093）也在此调整：权重是重放参数，保存后该题历史票
 // 即时按新口径重算六维画像，票面不动。
 // 数据来自 GET/POST/PATCH /api/admin/prompts。
+import { apiFetch } from '@/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RADAR_DIMENSIONS } from '@/lib/leaderboard';
 
@@ -82,7 +83,7 @@ export function AdminPrompts() {
   const load = useCallback(() => {
     const request = ++requestId.current;
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
-    return fetch('/api/admin/prompts')
+    return apiFetch('/api/admin/prompts')
       .then((response) =>
         response.ok
           ? (response.json() as Promise<{ prompts: AdminPrompt[] }>)
@@ -148,7 +149,7 @@ export function AdminPrompts() {
         row.id === prompt.id ? { ...row, published: !row.published } : row,
       ),
     );
-    fetch(`/api/admin/prompts/${encodeURIComponent(prompt.id)}`, {
+    apiFetch(`/api/admin/prompts/${encodeURIComponent(prompt.id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ published: !prompt.published }),
@@ -210,12 +211,12 @@ export function AdminPrompts() {
       weights: form.weights.map((w) => w / weightsSum),
     };
     const request = isNew
-      ? fetch('/api/admin/prompts', {
+      ? apiFetch('/api/admin/prompts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...body, published: form.publish }),
         })
-      : fetch(`/api/admin/prompts/${encodeURIComponent(editing ?? '')}`, {
+      : apiFetch(`/api/admin/prompts/${encodeURIComponent(editing ?? '')}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

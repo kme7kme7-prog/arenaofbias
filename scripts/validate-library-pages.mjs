@@ -1,4 +1,4 @@
-// Build first. Many-prompt fixtures validate pagination and the menu footer.
+// npm run build:check first. Many-prompt fixtures validate pagination and the menu footer.
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

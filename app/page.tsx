@@ -1,6 +1,7 @@
 'use client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
+import { apiFetch } from '@/lib/api';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
 import { workCanvas } from '@/lib/work-framing';
@@ -332,7 +333,7 @@ function ReactionBar({
       await flushReactions();
       if (cancelled) return;
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/reactions?prompt=${encodeURIComponent(promptId)}`,
         );
         if (!response.ok) return;

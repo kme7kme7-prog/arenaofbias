@@ -2,13 +2,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { withApiFixture } from './api-fixture.mjs';
 
 const compile = (source) => ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText;
 const load = async (path, replace) => {
   const source = replace(await readFile(new URL(path, import.meta.url), 'utf8'));
-  return import(`data:text/javascript;base64,${Buffer.from(compile(source)).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(withApiFixture(compile(source))).toString('base64')}`);
 };
 const { submitVote } = await load('../lib/votes.ts', (source) => source.replace(
   "import { currentPrompts } from '@/lib/prompts';", 'const currentPrompts = () => [];',

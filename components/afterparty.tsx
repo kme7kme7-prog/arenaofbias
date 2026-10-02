@@ -1,5 +1,6 @@
 'use client';
 import { useI18n } from '@/lib/locale';
+import { apiFetch } from '@/lib/api';
 import { newId } from '@/lib/id';
 
 import { useAccount } from '@/components/account';
@@ -50,7 +51,7 @@ export function Afterparty({
     async (signal?: AbortSignal) => {
       const currentRevision = revision.current;
       try {
-        const response = await fetch(`/api/comments?round=${roundId}`, {
+        const response = await apiFetch(`/api/comments?round=${roundId}`, {
           signal,
         });
         if (!response.ok) throw new Error('load failed');
@@ -100,7 +101,7 @@ export function Afterparty({
     if (pending.current?.body !== body)
       pending.current = { body, id: newId() };
     try {
-      const response = await fetch('/api/comments', {
+      const response = await apiFetch('/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: pending.current.id, roundId, side, body }),

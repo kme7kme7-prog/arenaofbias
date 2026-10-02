@@ -1,5 +1,5 @@
 // 真浏览器端到端：独立临时库与服务，真实登录/投票/分榜，不写任何真实用户数据。
-// 先 npm run build，再 npm run validate:formal-ui。
+// 先 npm run build:check，再 npm run validate:formal-ui。
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';

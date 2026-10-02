@@ -1,5 +1,5 @@
 // 真浏览器回归：只运行本地静态构建和内存 fixture，不连接真库或已有浏览器。
-// 先 npm run build，再 node scripts/validate-work-ready.mjs。
+// 先 npm run build:check，再 node scripts/validate-work-ready.mjs。
 // --expect-bug 用旧构建确认 transition 期间的一次性通知确实会丢失。
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';

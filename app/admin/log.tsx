@@ -1,5 +1,6 @@
 // 数据流水：投票 / 评论 / 注册 / 模一把四类记录，关键字搜索 + 倒序 + 每页 50 条翻页。
 // 数据来自 GET /api/admin/log（limit/offset/total）。
+import { apiFetch } from '@/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Kind = 'votes' | 'comments' | 'users' | 'guess';
@@ -72,7 +73,7 @@ export function AdminLog() {
     });
     if (query) params.set('q', query);
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
-    return fetch(`/api/admin/log?${params}`)
+    return apiFetch(`/api/admin/log?${params}`)
       .then((response) =>
         response.ok
           ? (response.json() as Promise<{ rows: typeof rows; total: number }>)

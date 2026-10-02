@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { withApiFixture } from './api-fixture.mjs';
 
 // --- localStorage shim（仅本脚本进程内生效） ---
 const store = new Map();
@@ -87,7 +88,7 @@ const matchmakingCode = transpile(
   .replace(/\bratings\b/g, 'mmRatings');
 
 const module = await import(
-  `data:text/javascript;base64,${Buffer.from(`${arenaCode}\n${promptsCode}\n${worksCode}\n${matchmakingCode}\n${placeholderCode}`).toString('base64')}`
+  `data:text/javascript;base64,${Buffer.from(withApiFixture(`${arenaCode}\n${promptsCode}\n${worksCode}\n${matchmakingCode}\n${placeholderCode}`)).toString('base64')}`
 );
 const {
   prompts,
@@ -237,44 +238,56 @@ check('切换模型数量后，旧阵容的占位投票被自动过滤', () => {
 });
 
 check('随机强弱：开启后每次生成的名次格局不同，关闭时榜首稳定', () => {
-  const winCounts = (votes) => {
-    const wins = new Map();
-    for (const vote of votes)
-      wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
-    return [...wins.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([id, n]) => `${id}:${n}`);
-  };
-  const topOf = (votes) => {
-    const wins = new Map();
-    for (const vote of votes)
-      wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
-    return [...wins.entries()].sort((a, b) => b[1] - a[1])[0][0];
-  };
-  localStorage.setItem(
-    'arenaofbias:dev',
-    JSON.stringify({
-      placeholderMode: true,
-      placeholderModelCount: 8,
-      randomStrength: true,
-    }),
-  );
-  // 开启后掺入随机盐：两次生成的胜场分布不应相同（同分布概率可忽略）
-  assert.notDeepEqual(
-    winCounts(generatePlaceholderVotes(300)),
-    winCounts(generatePlaceholderVotes(300)),
-  );
-  localStorage.setItem(
-    'arenaofbias:dev',
-    JSON.stringify({
-      placeholderMode: true,
-      placeholderModelCount: 8,
-      randomStrength: false,
-    }),
-  );
-  // 关闭时强弱固定：两次生成虽然对阵随机，但榜首都应是种子最强的 ph-03
-  assert.equal(topOf(generatePlaceholderVotes(300)), 'ph-03');
-  assert.equal(topOf(generatePlaceholderVotes(300)), 'ph-03');
+  // 对阵由时间播种；固定时间与随机盐，只检查强弱开关的差异。
+  const realNow = Date.now;
+  const realRandom = Math.random;
+  Date.now = () => 1767225600000; // 2026-01-01 UTC
+  Math.random = module.mulberry32(42);
+  try {
+    const winCounts = (votes) => {
+      const wins = new Map();
+      for (const vote of votes)
+        wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
+      return [...wins.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, n]) => `${id}:${n}`);
+    };
+    const topOf = (votes) => {
+      const wins = new Map();
+      for (const vote of votes)
+        wins.set(vote.winnerId, (wins.get(vote.winnerId) ?? 0) + 1);
+      return [...wins.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    };
+    localStorage.setItem(
+      'arenaofbias:dev',
+      JSON.stringify({
+        placeholderMode: true,
+        placeholderModelCount: 8,
+        randomStrength: true,
+      }),
+    );
+    // 开启后使用不同随机盐：即使对阵种子相同，两次胜场分布也应不同。
+    assert.notDeepEqual(
+      winCounts(generatePlaceholderVotes(300)),
+      winCounts(generatePlaceholderVotes(300)),
+    );
+    localStorage.setItem(
+      'arenaofbias:dev',
+      JSON.stringify({
+        placeholderMode: true,
+        placeholderModelCount: 8,
+        randomStrength: false,
+      }),
+    );
+    // 关闭时同一对阵种子的胜场与榜首一致，不把 300 票的抽样榜首当成必然。
+    const first = generatePlaceholderVotes(300);
+    const second = generatePlaceholderVotes(300);
+    assert.deepEqual(winCounts(first), winCounts(second));
+    assert.equal(topOf(first), topOf(second));
+  } finally {
+    Date.now = realNow;
+    Math.random = realRandom;
+  }
 });
 
 console.log(`${tests} placeholder checks passed.`);

@@ -5,6 +5,7 @@
 // 0 = 每日一题（064 起口径），1-3 = 三档难度时期（060）的历史记录。
 // 追加模型写 data/guess-models-extra.json 并即时生效：只能追加不能改，
 // 与数据集契约一致（改已有条目的难度/顺序会重排历史答案，不走这里）。
+import { apiFetch } from '@/lib/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Stats = {
@@ -116,10 +117,10 @@ export function AdminGuess() {
     const request = ++requestId.current;
     // setState 全部在 then/catch 回调里（项目 lint 规则：effect 体内不得同步 setState）
     return Promise.all([
-      fetch('/api/admin/guess/stats').then((r) =>
+      apiFetch('/api/admin/guess/stats').then((r) =>
         r.ok ? (r.json() as Promise<Stats>) : Promise.reject(new Error()),
       ),
-      fetch('/api/admin/guess/models').then((r) =>
+      apiFetch('/api/admin/guess/models').then((r) =>
         r.ok ? (r.json() as Promise<ModelsResponse>) : Promise.reject(new Error()),
       ),
     ])
@@ -176,7 +177,7 @@ export function AdminGuess() {
       return bad('新厂商需要登记两位地区码（如 CN/US/JP）');
     setBusy(true);
     setNotice('');
-    fetch('/api/admin/guess/models', {
+    apiFetch('/api/admin/guess/models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

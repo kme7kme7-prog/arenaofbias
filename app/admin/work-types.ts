@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api';
 import type { ResultContent } from '@/lib/arena';
 
 export type AdminWork = {
@@ -19,7 +20,7 @@ export async function patchWork(
   id: string,
   changes: object,
 ): Promise<AdminWork> {
-  const response = await fetch(`/api/admin/works/${encodeURIComponent(id)}`, {
+  const response = await apiFetch(`/api/admin/works/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(changes),

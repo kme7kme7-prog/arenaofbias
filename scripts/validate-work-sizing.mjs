@@ -1,5 +1,5 @@
 // Local fixture regression: iframe viewport must follow its responsive arena slot.
-// Run after npm run build; --expect-bug reproduces the old fixed-height iframe.
+// Run after npm run build:check; --expect-bug reproduces the old fixed-height iframe.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

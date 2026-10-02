@@ -1,0 +1,14 @@
+import { readFile } from 'node:fs/promises';
+import ts from 'typescript';
+
+const source = await readFile(new URL('../lib/api.ts', import.meta.url), 'utf8');
+const apiCode = ts.transpileModule(source.replace('import.meta.env', '({})'), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+}).outputText;
+
+export function withApiFixture(code) {
+  return apiCode + '\n' + code.replace(
+    /^import\s*\{\s*apiFetch\s*\}\s*from\s*['"]@\/lib\/api['"];?\s*$/gm,
+    '',
+  );
+}

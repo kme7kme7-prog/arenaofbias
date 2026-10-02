@@ -4,6 +4,7 @@
 // 基础分处理，等于退回均匀随机（站点行为不劣化）。
 // 榜单和画像也由共享 server 聚合；本接口保留配对所需的未取整分数与场次。
 
+import { apiFetch } from '@/lib/api';
 import type { Ratings } from '@/lib/matchmaking';
 import type { EvaluationScope } from '@/lib/votes';
 
@@ -15,7 +16,7 @@ export async function fetchRatings(scope: EvaluationScope = 'entertainment'): Pr
   games: Games;
 } | null> {
   try {
-    const response = await fetch(`/api/ratings?scope=${scope}`);
+    const response = await apiFetch(`/api/ratings?scope=${scope}`);
     if (!response.ok) return null;
     const data = (await response.json()) as {
       ratings?: unknown;

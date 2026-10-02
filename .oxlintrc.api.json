@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off",
+    "suspicious": "off",
+    "pedantic": "off",
+    "perf": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "env": { "browser": true },
+  "rules": {
+    "no-restricted-globals": [
+      "error",
+      { "name": "fetch", "message": "Use apiFetch / apiUrl from @/lib/api." }
+    ]
+  }
+}

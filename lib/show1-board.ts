@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api';
 import { presentServerBoard } from '@/lib/leaderboard';
 import type { BoardCategory, BoardData, BoardScope, RadarProfiles, ServerBoardData } from '@/lib/leaderboard';
 
@@ -15,7 +16,7 @@ export async function fetchShow1Board(
   signal: AbortSignal,
 ): Promise<BoardSnapshot> {
   const query = new URLSearchParams({ scope, category });
-  const response = await fetch(`/api/show1/leaderboard?${query}`, { signal });
+  const response = await apiFetch(`/api/show1/leaderboard?${query}`, { signal });
   if (!response.ok) throw new Error('榜单暂时无法载入');
   const data = await response.json() as {
     scope: BoardScope;

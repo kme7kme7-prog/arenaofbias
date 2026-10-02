@@ -14,6 +14,7 @@
 //
 // 没有账号体系绑定——未来联机/账号并入时按记录全量重算。
 
+import { apiFetch } from '@/lib/api';
 import { ATTRIBUTE_KEYS, type AttributeKey, type Feedback, type GuessDifficulty } from './guess-logic';
 
 export type GuessApiModel = {
@@ -239,7 +240,7 @@ export function resetGuessData() {
 
 export async function fetchToday(): Promise<TodayResponse | null> {
   try {
-    const response = await fetch('/api/guess/today');
+    const response = await apiFetch('/api/guess/today');
     if (!response.ok) return null;
     return (await response.json()) as TodayResponse;
   } catch {
@@ -275,7 +276,7 @@ export async function checkGuess(
   dayKey?: string,
 ): Promise<CheckResponse | null> {
   try {
-    const response = await fetch('/api/guess/check', {
+    const response = await apiFetch('/api/guess/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(gameId ? { guessId, final, gameId } : { guessId, final, dayKey }),
@@ -303,7 +304,7 @@ export async function startPractice(
   difficulty: GuessDifficulty,
 ): Promise<string | null> {
   try {
-    const response = await fetch('/api/guess/practice/start', {
+    const response = await apiFetch('/api/guess/practice/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ difficulty }),
@@ -320,7 +321,7 @@ export async function startPractice(
  *  （一局一次），失败静默——统计丢了不碍玩，绝不阻塞结算流程。 */
 export function reportResult(dayKey: string, won: boolean, attempts: number) {
   try {
-    void fetch('/api/guess/result', {
+    void apiFetch('/api/guess/result', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dayKey, won, attempts }),

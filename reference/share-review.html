@@ -96,6 +96,7 @@
       </figure>
     </main>
     <script type="module">
+      import { apiFetch } from '/lib/api.ts';
       import { createShareCard } from '/lib/share-client.ts';
       const scene = document.getElementById('scene');
       document.getElementById('landscape').src = '/share-preview.png';
@@ -117,8 +118,8 @@
         ],
       ];
       try {
-        const { models } = await (await fetch('/api/guess/today')).json();
-        const response = await fetch('/api/guess/check', {
+        const { models } = await (await apiFetch('/api/guess/today')).json();
+        const response = await apiFetch('/api/guess/check', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ guessId: models[0].id, final: true }),
@@ -130,7 +131,7 @@
         }
       } catch { /* Public answer unavailable in this preview. */ }
       try {
-        const { works } = await (await fetch('/api/works')).json();
+        const { works } = await (await apiFetch('/api/works')).json();
         const a =
           works.find((w) => w.promptId === '001' && !w.isDemo) || works[0];
         const b = works.find(

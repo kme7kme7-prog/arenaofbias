@@ -1,4 +1,4 @@
-// Synthetic APIs/images; actual portal + built game + Gallery source across three origins.
+// npm run build:check first. Synthetic APIs/images; actual portal + built game + Gallery source across three origins.
 import assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';

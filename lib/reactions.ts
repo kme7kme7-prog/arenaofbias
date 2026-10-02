@@ -8,6 +8,7 @@
 // 信息，乱按也不再烧 social 限流桶。发送失败保留待下次补发；未登录/非法
 // 直接丢弃（点了也白记）。
 
+import { apiFetch } from '@/lib/api';
 import { newId } from '@/lib/id';
 
 export type ReactionKind = 'up' | 'down' | 'laugh';
@@ -54,7 +55,7 @@ async function postReaction(entry: PendingEntry): Promise<{
 }> {
   try {
     // keepalive：pagehide 补发时请求要能活过页面卸载
-    const response = await fetch('/api/reactions', {
+    const response = await apiFetch('/api/reactions', {
       method: 'POST',
       keepalive: true,
       headers: { 'Content-Type': 'application/json' },
@@ -81,7 +82,7 @@ export function flushReactions(): Promise<number> {
     let userId: string | null;
     try {
       // 兼容接口不校验 body.userId，发送前按当前 cookie 账号核对旧队列。
-      const response = await fetch('/api/auth/me', { keepalive: true });
+      const response = await apiFetch('/api/auth/me', { keepalive: true });
       if (!response.ok) return pending.size;
       const data = await response.json();
       userId = data.user?.id ?? null;
