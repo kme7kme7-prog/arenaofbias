@@ -392,6 +392,8 @@ export const messages: Record<string, string> = {
   同一题库继续: 'Continue this prompt',
   '暂无其他可比较题目。': 'No other prompts are available to compare.',
   '本题只有一组作品，继续将重新比较本组。': 'Only one pair is available here. Continue to compare it again.',
+  '题库里的作品暂时配不出可比的一组，稍后再来看看。':
+    'No comparable pair is available in this prompt right now — please check back later.',
   '正式测评：全程匿名，本模式不开放评论区。':
     'Formal evaluation stays anonymous. Comments are disabled.',
   '占位符模式：评论区停用，占位数据不入库。':

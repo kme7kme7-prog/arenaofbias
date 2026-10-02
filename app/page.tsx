@@ -566,8 +566,10 @@ export default function Arena({
   // 测试对局（2026-09-19，后台作品管理直达）：挂载时消费一次测试对；testing
   // 从 pair 派生——换组/换题/清单重算把 pair 换掉后自动失效，不用到处补复位
   const [testPair] = useState(() => formal ? null : takeTestPair(prompt.id));
-  const [pair, setPair] = useState<Matchup>(
-    () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope)!,
+  // 2026-10-03：对局允许落空（题库作品被清空/下架时）——渲染层给出明确的
+  // 「未就绪」空态，绝不再沿用其他题的对局硬撑（024 帆船挂 787 对局的教训）
+  const [pair, setPair] = useState<Matchup | null>(
+    () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope) ?? null,
   );
   const [testIds, setTestIds] = useState<string[] | null>(() =>
     testPair ? [testPair[0].id, testPair[1].id] : null,
@@ -582,6 +584,7 @@ export default function Arena({
   // 题目分享卡嵌当前对局缩略图（决策 107）：页脚分享入口在全局布局里，
   // 对局 id 经 share 模块的小 store 递过去，卸载即清。
   useEffect(() => {
+    if (!pair) return;
     setSharePair([pair[0].id, pair[1].id]);
     return () => setSharePair(null);
   }, [pair]);
@@ -613,7 +616,9 @@ export default function Arena({
             )
           )
             return current;
-          return currentMatchup(prompt.id, undefined, scope) ?? current;
+          // 2026-10-03 收紧：新清单里抽不出对局（题被清空/作品下架）就落空
+          // 进空态，不再沿用旧对硬撑——沿用只会让票面与题面错位且投票必 400
+          return currentMatchup(prompt.id, undefined, scope);
         });
       }),
     [prompt.id, formal, scope],
@@ -793,8 +798,8 @@ export default function Arena({
   const animations = useRef<Animation[]>([]);
   const round = {
     ...prompt,
-    models: pair.map((entry) => entry.modelName),
-    labels: pair.map((entry) => entry.title),
+    models: pair?.map((entry) => entry.modelName) ?? [],
+    labels: pair?.map((entry) => entry.title) ?? [],
   };
   const revealed =
     state.mode === 'party' ||
@@ -1210,6 +1215,7 @@ export default function Arena({
         return;
       }
       // 平局（决策 048）：双方按出场左右顺序登记（a 入 winner、b 入 loser），无胜负语义
+      if (!pair) return;
       const winner = side === 'b' ? pair[1] : pair[0];
       const loser = side === 'b' ? pair[0] : pair[1];
       const outcome = side === 'draw' ? ('draw' as const) : ('win' as const);
@@ -1258,12 +1264,12 @@ export default function Arena({
 
   const vote = useCallback(
     (side: Side | 'draw') => {
-      if (state.phase !== 'voting') return;
+      if (state.phase !== 'voting' || !pair) return;
       play('vote');
       dispatch({ type: 'VOTE', side });
       recordVote(side);
     },
-    [state.phase, play, recordVote],
+    [state.phase, play, recordVote, pair],
   );
   const nextMatchup = useCallback(() => {
     if (
@@ -1276,9 +1282,15 @@ export default function Arena({
     play('move');
     // 新对先暂存不换稿（真正换稿在 transition 效应盖满那一刻）：快门进场
     // 扫的这 0.45s 里右侧还没盖住，提前 setPair 会让新作品的加载过程从
-    // 缝里漏出来。清单失效抽不出新对时退回当前对——null 会让渲染层
-    // pair[0] 崩
-    nextPairRef.current = currentMatchup(prompt.id, pair, scope) ?? pair;
+    // 缝里漏出来。清单失效抽不出新对时落空进空态（2026-10-03）：沿用旧对
+    // 只会让票面与题面错位且投票必 400，空态至少明示「本题暂不可比」
+    const nextUp = currentMatchup(prompt.id, pair ?? undefined, scope);
+    if (!nextUp) {
+      continueLock.current = false;
+      setPair(null);
+      return;
+    }
+    nextPairRef.current = nextUp;
     dispatch({ type: 'REPLAY' });
   }, [state.phase, state.run, prompt.id, play, worksLoading, worksStalled, scope, pair]);
 
@@ -1361,6 +1373,19 @@ export default function Arena({
           : state.phase === 'result'
             ? '本轮评审完成'
             : '正在切换对局';
+
+  // 空题态（2026-10-03）：对局落空时明确告诉访客本题暂时不可比，
+  // 而不是展示一个对不上题面的旧对局（024 帆船挂 787 对局的教训）。
+  // 此处已在全部 hooks 之后，提前返回不影响 hook 顺序。
+  if (!pair) {
+    return (
+      <output className="route-empty">
+        <h1>{t('这个竞技场还未就绪。')}</h1>
+        <p>{t('题库里的作品暂时配不出可比的一组，稍后再来看看。')}</p>
+        <a href="#prompts">{t('前往提示词库 ↗')}</a>
+      </output>
+    );
+  }
 
   return (
     <div
