@@ -1,5 +1,11 @@
 # HANDOFF.md · 当前状态
 
+## 四仓协调发布完成（2026-10-02）
+
+- 既有会话、独立 API lint 和测试维护已提交 fecfa6c，保留上游 Hero 12a626a 并合入 22bb6b3；origin/main 与 fork/main 都已推送。2026-10-02T10:04:51Z 固定源码生产构建上线，API 基址为 API 主机，旧目录和后端受限备份保留。见[发布归档](docs/handoff/2026-10-02-shared-session-release-wsnxxxs.md)。
+- lint / typecheck / build、placeholder 10/10、formal 6/6、Hero 关键场景、真实后端 8 项隔离浏览器联调与公网 13 项只读验收通过；桌面 / 手机截图已目检。生产真实账号 + Turnstile 的两站登录互通仍待用户浏览器配合，已询问。过时 portal-entry / formal-ui / admin-access 未修。
+- 原 game 用户需重登一次，旧 Cookie 自然过期；game /api 反代继续保留，观察期及移除需用户之后决定。后续归档提交不改变已发布功能版本。
+
 ## 四仓发布准备（2026-10-02，用户已授权提交、推送、部署）
 
 - 整理共用会话、API lint、测试维护及此前登录验证；认证 GitHub 用户为 wsnxxxs，提交用本人 noreply，不修改本机原有 Git 身份配置。上游 origin/main 新增 12a626a Hero 入场提交，将保留并合入，fork/main 亦同步。
