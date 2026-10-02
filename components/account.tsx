@@ -47,7 +47,7 @@ const maskEmail = (email: string) => {
   if (at <= 0) return email;
   return `${email.slice(0, Math.min(2, at))}***${email.slice(at)}`;
 };
-// Cloudflare Turnstile 人机验证：注册/绑定/找回发码。
+// Cloudflare Turnstile 人机验证：登录与注册/绑定/找回发码。
 // 站点密钥由 /api/auth/turnstile 下发，null = 服务端未配密钥，不渲染、不发 token。
 // 脚本官方 api.js 懒加载一次，widget 显式渲染；发码后 token 一次性作废，
 // 靠换 key 重挂组件拿到新 token
@@ -76,9 +76,10 @@ const loadTurnstile = () => {
       script.src =
         'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.async = true;
-      script.onload = () => resolve();
+      script.onload = () => window.turnstile ? resolve() : script.onerror?.(new Event('error'));
       script.onerror = () => {
         turnstileLoader = null; // 失败可重试：下次重挂组件再走一遍加载
+        script.remove();
         reject(new Error('turnstile script failed'));
       };
       document.head.appendChild(script);
@@ -106,7 +107,8 @@ function TurnstileGate({
     let cancelled = false;
     loadTurnstile()
       .then(() => {
-        if (cancelled || !host.current || !window.turnstile) return;
+        if (cancelled || !host.current) return;
+        if (!window.turnstile) throw new Error('turnstile unavailable');
         // token 一次性：拿到就回调，过期/出错回空串让按钮重新要求验证
         widget = window.turnstile.render(host.current, {
           sitekey: siteKey,
@@ -169,7 +171,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   // 人机验证：siteKey 空串=服务端未开启（发码不带 token）；token 发码时随
   // 请求交出、之后作废；epoch 换一换就重挂 widget 拿新 token
   const [gateSiteKey, setGateSiteKey] = useState('');
+  const [gateConfig, setGateConfig] = useState<'loading' | 'ready' | 'error'>('loading');
   const [gateToken, setGateToken] = useState('');
+  const [gateUnavailable, setGateUnavailable] = useState(false);
   const [gateEpoch, setGateEpoch] = useState(0);
   // 翻页计数：驱动底纸堆每次切换换一个略不同的静止姿态（走 CSS transform 过渡），
   // 关弹窗时清零，下次打开回到默认姿态、不抢开场动画
@@ -251,20 +255,31 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [countdown]);
   // 开弹窗时问一次服务端要不要人机验证；没配密钥就一直空串，后面零打扰
   useEffect(() => {
-    if (!opened || gateSiteKey) return;
+    if (!opened) return;
     let cancelled = false;
+    setGateConfig('loading');
     fetch('/api/auth/turnstile')
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error('turnstile config unavailable');
+        return response.json();
+      })
       .then((data) => {
-        if (!cancelled && typeof data.siteKey === 'string') setGateSiteKey(data.siteKey);
+        if (data.siteKey !== null && typeof data.siteKey !== 'string') throw new Error('invalid turnstile config');
+        if (!cancelled) {
+          setGateSiteKey(data.siteKey || '');
+          setGateConfig('ready');
+        }
       })
       .catch(() => {
-        /* 拿不到配置就当未开启，别拦着发码 */
+        if (!cancelled) {
+          setGateConfig('error');
+          setError('人机验证加载失败，请刷新页面重试。');
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [opened, gateSiteKey]);
+  }, [opened]);
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);
@@ -279,6 +294,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setCountdown(0);
     setVisible(false);
     setGateToken('');
+    setGateConfig('loading');
+    setGateUnavailable(false);
     turns.current = 0;
     if (successTimer.current) {
       clearTimeout(successTimer.current);
@@ -296,6 +313,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setEmail('');
     setCode('');
     setSuccess(null);
+    setGateToken('');
+    setGateEpoch((epoch) => epoch + 1);
+    setGateUnavailable(false);
   };
   const openBinding = () => {
     close(true);
@@ -325,6 +345,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   };
   const sendCode = async () => {
     if (busy || sending || countdown > 0) return;
+    if (gateConfig !== 'ready' || gateUnavailable) {
+      setError('人机验证加载失败，请刷新页面重试。');
+      return;
+    }
     if (gateSiteKey && !gateToken) {
       setError('请先完成人机验证。');
       return;
@@ -379,6 +403,16 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setError('账号需为 2–24 个字符：中英文、数字、下划线或连字符。');
       return;
     }
+    if (!user && mode === 'login') {
+      if (gateConfig !== 'ready' || gateUnavailable) {
+        setError('人机验证加载失败，请刷新页面重试。');
+        return;
+      }
+      if (gateSiteKey && !gateToken) {
+        setError('请先完成人机验证。');
+        return;
+      }
+    }
     submitting.current = true;
     setBusy(true);
     revision.current++;
@@ -418,7 +452,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password, turnstileToken: gateToken }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || '操作失败，请重试。');
@@ -485,6 +519,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           : '暂时无法连接，请稍后重试。',
       );
     } finally {
+      if (!user && mode === 'login') {
+        setGateToken('');
+        setGateEpoch((epoch) => epoch + 1);
+      }
       setBusy(false);
       submitting.current = false;
     }
@@ -500,8 +538,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     <TurnstileGate
       key={gateEpoch}
       siteKey={gateSiteKey}
-      onToken={setGateToken}
-      onUnavailable={() => setError('人机验证加载失败，请刷新页面重试。')}
+      onToken={(token) => {
+        setGateToken(token);
+        if (token) setGateUnavailable(false);
+      }}
+      onUnavailable={() => {
+        setGateToken('');
+        setGateUnavailable(true);
+        setError('人机验证加载失败，请刷新页面重试。');
+      }}
     />
   ) : null;
   const codeSendButton = (disabled: boolean) => (
@@ -883,6 +928,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                                 {t('2–24 个字符：中英文、数字、下划线或连字符。')}
                               </small>
                               {passwordField('current')}
+                              {gate}
                               <small id="account-password-help">
                                 {t('8–128 个字符，可使用较长的词组。')}
                               </small>

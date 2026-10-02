@@ -1,5 +1,11 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-02 · 登录人机验证（本地完成，未推送、未部署）
+
+- 用户请求红队防护，由GPT-6.1 Sol / high子代理配套后端统一验密前Turnstile。登录界面复用验证组件、提交一次性token，401/503后重置；配置/脚本不可用时提示并阻止请求，无siteKey本地兼容。仅components/account.tsx相关认证段落，不改玩法、题库或部署目录。
+- typecheck/lint/build通过；生产编译隔离浏览器三个入口×四种配置情况共12项通过，包含登录错误后旧token不能重用，与候选CSP无意外拒绝。Show1产物output/redteam-login-20261002/game/；共享后端output/playwright/redteam-login-results.json为联合证据，CLI/session与本地服务已关闭。
+- 仅mock API/挑战脚本，不调用生产SMTP/真实Turnstile挑战，不写真实业务库。未push/上线；需与Gallery/管理端/共享后端配套发布。见[归档](docs/handoff/2026-10-02-login-challenge-wsnxxxs.md)。
+
 ## 2026-10-02 · 四仓整理、联调与固定版本发布完成
 
 - 用户授权整理既有改动、提交、合并、推送与部署，并指定三名 GPT-6.1 Sol / medium 子代理。主站将上游完成的两条 Hero/玩法菜单提交快进至 `9b7357a`，同步 origin/main 与 fork/main；Gallery `ef7b0a5`、后端 `83e43fe`、数据源 `0291105` 均已推送。其他可见分支已在 main，无待合并 PR，未强推或删除工作树。
