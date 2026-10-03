@@ -1,5 +1,12 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 最新主线归并与协调发布准备（本地验证完成）
+
+- 用户授权提交已有未提交修改、联调、必要合并、推送与发布；本代理只负责游戏仓，主代理统一生产部署。fetch 两远端后 main 71213f7 快进到 origin/main 175ec33，保留移除巡览、慢作品就绪窗口、失败页导航与配置表单验证。paper-ink-theme 已在主线历史；fork 无独有提交，随后同步。
+- 本地原有发布完成记录与共池归档纳入本轮授权提交；HANDOFF 同时保留上游新功能、调查和本地旧发布记录，没有回滚他人代码。原文备份在忽略的 output/release-20261004-game/preexisting。
+- 已通过 lint、typecheck、build:check、arena 13、placeholder 10、formal 6、娱乐门槛浏览器 5、work-ready 14、work-retry 13、check:arena-scroll、纸幕覆盖 28 与文案排版 18 组；纸色遮挡截图已目检。formal 是旧 server 隔离库验证，不代替共享后端当前生产契约。真实飞机与键盘跨端预览、放大恢复、正式模式和配置/入口保护均完整通过；仅修复键盘验证脚本的旧后端路径。最终固定提交构建随后完成。
+- 共享后端最终源码在全新临时库运行于 5190/5191，游戏 Vite 5441 显式连接本地 API，使用只读 data/dist 实际作品；截图、审核、周期复查关闭，无生产账号、投票、数据修改。公开 /.version.json 返回 404，不能据此确认线上版本。
+- 静态目标 /www/wwwroot/show1-dist；固定提交 LF 导出以 VITE_API_BASE_URL=https://api.arenaofbias.icu 构建。后端 loading/ready 探针与娱乐折叠契约先发布，保留旧 works、ZIP、哈希 assets 和 game /api 反代。最终上线与公网验收由协调代理记录，未逐件验全部原作或生产登录/邮件/Turnstile。归档：docs/handoff/2026-10-04-coordinated-game-release-wsnxxxs.md。
 ## 2026-10-04 · 配置表单漏隐藏与后台取景一致性（本地）
 
 - 用户授权修改。后端 arena-fold.js 将配置表单与登录/普通表单区分：radio/range/select 配置且无凭据/textarea 可隔离，入口保护保留。共享后台 admin/admin.js 的竞技场取景附加 arena-fold，建模/3D/物理/体素类别附加 arena-scene，保留 bridge/face；展览馆不变。未修改任何作品文件或写入取景数据。
@@ -32,13 +39,17 @@
 - 报告 [娱乐评测巡检](docs/qa/2026-10-03-entertainment-tabbit.md)：确认三类问题——006 旧题全部 410 仍被随机抽中、失败空态缺导航且布局失衡、027/011 小窗控件与标签隐藏覆盖不足。011 曾落空但新检查页成功，保留待复现观察，不作全题故障结论。
 - 截图与本地操作脚本在 ignored `.local/tabbit-qa/`。未修业务代码、未 commit/push/deploy；未验已登录计票、全部作品、真手机和动画逐帧性能。浏览器临时检查页已关闭、Tabbit 任务已释放，原用户标签保留。
 
-## 2026-10-03 · 远端功能归并与游戏发布准备
+## 2026-10-03 · 远端功能归并与游戏协调发布（已部署，公网验收通过）
 
 - 已 fetch 两个远端；main 从 40fbc8e 快进到 origin/main 4e98dab，保留 8de0a06 单次作品恢复和 4e98dab 娱乐十件门槛；paper-ink-theme 已在主线历史，fork/main 落后且无独有功能，不重复合并。
 - 修复两份本轮浏览器夹具的初始化范围：只在主窗口写入本地偏好，避免 sandbox 预览 iframe 的 localStorage 异常。原 HANDOFF、协调发布追加和 pool-release 未跟踪归档原样保留，只有本轮交接增量进入本次提交。
-- 验证：lint、typecheck、build:check、diff --check；arena 13/13、placeholder 10/10、formal 6/6、public-pool 5/5、work-ready 14/14、work-retry 8/8 及修复后正常流程复验通过。已目检恢复后的对局截图。不存在 npm run check / npm test 聚合脚本；真实共享后端跨仓联调及部署由协调发布执行，隔离旧 server 测试不代表生产接口写入验收。
-- 发布从本次固定提交干净 LF 导出构建，API 主机仍为 https://api.arenaofbias.icu；静态目标 /www/wwwroot/show1-dist。后端必须先于游戏发布 aob=prev 探针和门槛契约；保留服务器旧 works/hash 资源及 game /api 反代，生产账号、Turnstile、邮件与全部作品交互没有本轮完整验收。
-- 本轮归档：[远端归并发布准备](docs/handoff/2026-10-03-remote-game-integration-wsnxxxs.md)。本节为发布准备，推送与实际上线结果以后续协调发布记录为准。
+- 验证：lint、typecheck、build:check、diff --check；arena 13/13、placeholder 10/10、formal 6/6、public-pool 5/5、work-ready 14/14、work-retry 8/8 及修复后正常流程复验通过。已目检恢复后的对局截图。不存在 npm run check / npm test 聚合脚本；真实共享后端跨仓联调及公网验收由协调发布记录，隔离旧 server 测试不代表生产接口写入验收。
+- 发布从本次固定提交干净 LF 导出构建，API 主机仍为 https://api.arenaofbias.icu；静态目标 /www/wwwroot/show1-dist。共享后端探针和门槛契约已随协调发布先行更新；服务器旧 works/hash 资源及 game /api 反代保留，生产账号、Turnstile、邮件与全部作品交互没有本轮完整验收。
+- 固定源码 b5499c9ee2f942149604dde4d982109e04d5daf7 已通过干净 LF 生产构建（820 文件），按协调发布授权重新 fetch 后以非 force 推送 origin/main 与 fork/main；两个远端 SHA 已只读核对一致。游戏仓无 GitHub Actions workflow，两端该提交均无 CI 运行或 check-run，不能称为 CI 通过。静态包与逐文件清单在 output/integration-20261003-game；本轮源码已部署至 /www/wwwroot/show1-dist。
+- 部署有效集合为固定源码 820 文件加 121 个内容不变的历史线上文件（101 个旧作品资源及根 ZIP、20 个旧哈希 assets），共 941 文件；本轮暂存逐文件完整集合及 SHA256 核对通过，16 个路径变化、0 删除，旧收藏入口保留。共享后端最终 9bf06d0 已运行 API2 / schema38，Gallery 0a6e3e2，正式数据包已同步；协调代理报告 Linux 后端 259 测试通过，数据库 19 张表的原有列内容保留。最终发布于 2026-10-03T11:21:38Z，服务 running；24 项 HTTP 公网检查通过，game 首页与固定 b5499c9 构建 hash 一致，4 个旧作品入口返回 200，game /api/works 与 API 均为 526 件。941 文件全量 hash 与 121 个保留文件 hash 均核对一致。
+- 公网发现提示词库 001 封面继承 frame-ancestors none 后，共享后端 9bf06d0 为精确 /art/pelican-cover.html 与 /works/ 增加同源嵌入 CSP 例外；Nginx 检查及 reload 通过，game 顶层 none 保留。实际浏览器 390px 手机与 1440px 桌面 #prompts 鹈鹕示例均已渲染、拒绝连接文案消失，无捕获 console error 或横向溢出。本轮未逐一测试全部作品，生产账号、Turnstile、邮件等完整写入验收仍未补全。
+- 本轮归档：[远端归并与发布](docs/handoff/2026-10-03-remote-game-integration-wsnxxxs.md)。本地追加实际部署结果，不再 commit / push，保持已部署 SHA。
+
 
 ## 2026-10-03 · 键盘娱乐小窗只展示场景（本地完成）
 
@@ -113,6 +124,13 @@
 - 浏览器全为隔离 fixture、不投真实票；恢复截图已目检，未声称真实作品/生产账号验收。证据 output/work-retry/results.json、work-ready-final.json 与截图；已跟踪生成的 work-ready-after.json 恢复本轮前版本。早期计时器被 t 身份变化重置、空清单路由转预览、遮罩下重复文案定位问题均已修正，最终整套重跑通过。
 - 后端 v37/c 实时门禁 check 84/0、test 248/248。未部署，所以公网新 c 200 验收未执行。发布前需备份生产 SQLite；后端探针先于前端发布，前端不可单独上线等待尚未注入的探针。
 
+## 共池分支已上线（2026-10-03）
+
+- 发布完成于 2026-10-03 04:32:51 UTC（Brisbane 14:32:51）。后端 5527c5e、Gallery 4c3a084；两端消费同一验证包，公开目录 177 件 / 20 题，catalogDigest 相同。用户明确授权统一开启当前数据包作品的正式盲评，实际经后端 batchSetFaceSettings 恢复 90 件，另 87 件已开启，当前 177 件全部 eligible；校准、其他门面开关和 5 条退役关闭记录保留。篝火营地正式池 11 件 / 11 配置，展示目录 12 件（含 4 件投稿，展示与正式资格规则不同）。
+- 私有数据 CI、后端两次主线 CI、Linux check / 247 tests、Gallery check / 19 tests / 固定提交构建 / intake 0 错 9 条既有提示 / 跨仓联调均通过。后端安装文件与固定 main 逐文件哈希一致；数据包及静态站完整集合和 SHA256 校验通过。线上重启后数据库 v36，votes=369、works=360、questions=14、users=31、matches=370、reactions=1 的行内容哈希与停服前一致；只有授权的 work_overrides 和逐件审计变化。公网版本、共享 digest、营地正式池、retired scene 404、fold.js 200、跨站 CORS、游戏入口及旧 game API 兼容路径通过。浏览器目录桌面正常，Gallery 与游戏无捕获的 console error；未逐一测试全部作品交互，未登录生产管理员或提交投票。服务 active；该机 journald 无可读取 journal，未据此宣称日志没有错误。
+- 旧静态站在 gallery.prev，现场代码 / SQLite / pin 和变更开关备份在服务器 /root/aob-pool-release-20261003；回退代码和包时保留投票、投稿等后续业务写入。发布证据位于后端忽略目录 output/pool-release-20261003。
+- 完成归档：[本轮归档](docs/handoff/2026-10-03-pool-release-wsnxxxs.md)。本轮功能提交已推送；本节与完成结果追加留本地交接，原有未提交材料原样保留。
+
 ## 四仓分支合并与逻辑核对（2026-10-03，本地验证完成）
 
 - 本仓没有漏合的功能分支；lib/works.ts 兼容后端 dp-轮次-id 清单，前端源码保持原样。lint/typecheck/build、placeholder 10/10、formal 6/6 通过；本轮仅记录四仓合并检查，未发布。
@@ -120,9 +138,12 @@
 - 历史的未合并/未完成记录以本节为准；上线仍须从合并后的提交出包、两端同步 pin，再发布后端与 Gallery。
 - [本轮归档](docs/handoff/2026-10-03-pool-branch-integration-wsnxxxs.md)。
 
-## 四仓协调发布（2026-10-03，源码就绪，联调部署进行中）
+## 四仓协调发布（2026-10-03，已提交、推送、部署）
 
-- 本轮整合主分支与本地功能并通过源码门禁；固定构建与上线验收尚待完成，实际结果随后追加到本轮归档。
+- 源码 48b0871 已推送 origin/main；Brisbane 05:00:25 与 Gallery、共享后端协调上线，保留无可比较作品的空竞技场改动。此前各节的「未推送 / 未部署」是历史状态，以本节为准。
+- lint / typecheck / build、placeholder 10/10、formal 6/6 通过；固定 LF 生产构建使用 API 主机。隔离真实后端双站会话联调 8 项及公网只读验收通过，桌面 / 手机页面已目检。真实生产账号 + Turnstile、邮件与外部审核没有写入验收。
+- 保留已部署的 113 个旧作品 / 哈希资源，逐文件哈希核对；game /api 反代继续保留。没有新产品决策或待拍板发布事项。
+- 服务器备份 /root/aob-coordinated-release-20261003/backup，证据在后端 output/coordinated-release-20261003。详见 [本轮归档](docs/handoff/2026-10-03-coordinated-release-wsnxxxs.md)。每仓本轮一条英文发布提交已推送；完成结果只追加本地交接 / 归档，不另建第二条提交。
 
 ## 四仓协调发布完成（2026-10-02）
 
