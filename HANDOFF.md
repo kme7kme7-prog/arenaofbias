@@ -1,5 +1,14 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-03 · 远端功能归并与游戏发布准备
+
+- 已 fetch 两个远端；main 从 40fbc8e 快进到 origin/main 4e98dab，保留 8de0a06 单次作品恢复和 4e98dab 娱乐十件门槛；paper-ink-theme 已在主线历史，fork/main 落后且无独有功能，不重复合并。
+- 修复两份本轮浏览器夹具的初始化范围：只在主窗口写入本地偏好，避免 sandbox 预览 iframe 的 localStorage 异常。原 HANDOFF、协调发布追加和 pool-release 未跟踪归档原样保留，只有本轮交接增量进入本次提交。
+- 验证：lint、typecheck、build:check、diff --check；arena 13/13、placeholder 10/10、formal 6/6、public-pool 5/5、work-ready 14/14、work-retry 8/8 及修复后正常流程复验通过。已目检恢复后的对局截图。不存在 npm run check / npm test 聚合脚本；真实共享后端跨仓联调及部署由协调发布执行，隔离旧 server 测试不代表生产接口写入验收。
+- 发布从本次固定提交干净 LF 导出构建，API 主机仍为 https://api.arenaofbias.icu；静态目标 /www/wwwroot/show1-dist。后端必须先于游戏发布 aob=prev 探针和门槛契约；保留服务器旧 works/hash 资源及 game /api 反代，生产账号、Turnstile、邮件与全部作品交互没有本轮完整验收。
+- 本轮归档：[远端归并发布准备](docs/handoff/2026-10-03-remote-game-integration-wsnxxxs.md)。本节为发布准备，推送与实际上线结果以后续协调发布记录为准。
+
+
 ## 2026-10-03 · 娱乐盲测十件作品门槛（本地完成，未提交、推送、部署）
 
 - 用户批准实施报告：只有当前至少 10 件不同 id 的公开娱乐非演示作品且有跨模型组合的题目才进入娱乐盲测。提示词及作品仍可浏览，未满足时展示收集进度；9→10 开放，10→9 关闭新对局，不删除历史票/榜单。

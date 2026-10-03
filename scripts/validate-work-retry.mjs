@@ -30,6 +30,7 @@ try {
     let refreshedAt = 0;
     const start = Date.now();
     await page.addInitScript(() => {
+      if (window !== window.top) return;
       localStorage.setItem('aob-theme', 'paper');
       localStorage.setItem('arena-language', 'zh');
       localStorage.setItem('aob-test-pair', JSON.stringify({ promptId: '005', a: '005-ready-0', b: '005-ready-1', at: Date.now() }));

@@ -18,7 +18,10 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   let count = 9;
-  await page.addInitScript(() => { localStorage.setItem('arena-language', 'zh'); });
+  await page.addInitScript(() => {
+    if (window !== window.top) return;
+    localStorage.setItem('arena-language', 'zh');
+  });
   await page.route('**/api/**', route => {
     const endpoint = new URL(route.request().url()).pathname;
     const works = Array.from({ length: count }, (_, i) => ({
