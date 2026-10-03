@@ -12,6 +12,7 @@
 
 import {
   eligiblePairs,
+  entertainmentPoolReady,
   pickMatchup,
   randomArenaHash,
   resultsForPrompt,
@@ -334,7 +335,9 @@ export function currentResultsForPrompt(promptId: string): ModelResult[] {
   return resultsForPrompt(promptId, currentResults());
 }
 
-export function currentPairs(promptId: string): Matchup[] {
+export function currentPairs(promptId: string, scope: EvaluationScope = 'entertainment'): Matchup[] {
+  if (scope === 'entertainment' && !isPlaceholderMode()
+    && !entertainmentPoolReady(promptId, currentResults())) return [];
   return eligiblePairs(promptId, currentResults());
 }
 
@@ -343,6 +346,8 @@ export function currentMatchup(
   previous?: Matchup,
   scope: EvaluationScope = 'entertainment',
 ): Matchup | null {
+  if (scope === 'entertainment' && !isPlaceholderMode()
+    && !entertainmentPoolReady(promptId, currentResults())) return null;
   // 占位模式维持纯随机（占位作品无真实票，声望分对它无意义）；
   // 真实模式走软性匹配（决策 046）：按声望分同档优先，避开处刑局，
   // 并按出场次数冷门优先加权（决策 109）
@@ -359,8 +364,8 @@ export function currentMatchup(
   );
 }
 
-export function currentRandomArenaHash(excludeId?: string): string {
-  return randomArenaHash(excludeId, Math.random, currentResults(), currentPrompts());
+export function currentRandomArenaHash(excludeId?: string, scope: EvaluationScope = 'entertainment'): string {
+  return randomArenaHash(excludeId, Math.random, currentResults(), currentPrompts(), isPlaceholderMode() || scope === 'formal' ? 0 : undefined);
 }
 
 // ---------------------------------------------------------------------------

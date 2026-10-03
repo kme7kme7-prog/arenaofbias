@@ -1,5 +1,15 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-03 · 娱乐盲测十件作品门槛（本地完成，未提交、推送、部署）
+
+- 用户批准实施报告：只有当前至少 10 件不同 id 的公开娱乐非演示作品且有跨模型组合的题目才进入娱乐盲测。提示词及作品仍可浏览，未满足时展示收集进度；9→10 开放，10→9 关闭新对局，不删除历史票/榜单。
+- 动工复核：上一轮死链修改已由外部形成 Show1 8de0a06 / server 873b5c8，本轮在其上继续；原 output/playwright/work-ready-after.json 修改及未跟踪 jianmo/ 保留，不回退、不提交。没有再次 pull 或改动 Gallery。
+- lib/arena.ts 统一按 id 去重计数；placeholder 的公共 currentPairs/currentMatchup/随机入口套门槛。src/main.tsx 的直接与分享入口检查门槛（分享不允许 demo）；Arena 继续/失败重建与清单变动同步检查。正式 scope 显式传递并不套娱乐门槛；开发者本地占位演示仍不计真票。
+- 提示词库统计按独立作品计数并显示“作品收集中（数量/10）”；低数量深链保留预览/既有真空清单空态。补充中英文文案、PRODUCT、DECISIONS。共享后端 show1compat 新娱乐票校验相同公开清单；不足 409 pool，已存票重放先处理，formal 原样。未修改 DB、审核、CSP、nginx、题定义或 Gallery 正式盲测。
+- 验证：typecheck、lint、build:check、production build、diff --check 通过；validate-arena 13/13、placeholder 10/10、formal 6/6；新增真实浏览器 public pool 5/5（9 件直接/分享拒绝、随机回题库、10 件继续、再次降到 9 件）；validate-work-retry 8/8，包含刷新后 9 件退出预览；validate-work-ready 14/14（纸/墨）。fixture 已改为真实十件门槛，原两件重播场景改为显式重播；新证据 work-ready-pool.json 避免覆盖原他人 output。
+- 后端 check 84/0、test 249/249；新增边界覆盖重复/演示不计数、未核验/争议作品不计数、第十件投稿加入/撤出、formal 不受限、历史票及幂等保留。全为隔离 fixture 与临时库，无生产投票或生产数据写入；线上门槛尚未部署验收。后续提交须英文简单句、禁止联合署名。
+
+
 ## 2026-10-03 · 作品死链的一次性恢复（本地完成，未提交、推送、部署）
 
 - 用户确认先交报告再实施。pull --ff-only：本仓 aca33ba→40fbc8e，共享后端 2915a49→5527c5e；原未跟踪 jianmo/ 保留。所有未来提交禁止联合署名/Generated with，英文简单句。本轮不 commit/push/deploy，不写归档。

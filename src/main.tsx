@@ -80,7 +80,7 @@ function Routes() {
       : route.startsWith('#formal/')
         ? route.slice(8)
         : '';
-    if (!arenaPromptId || currentPairs(arenaPromptId).length === 0)
+    if (!arenaPromptId || currentPairs(arenaPromptId, route.startsWith('#formal/') ? 'formal' : 'entertainment').length === 0)
       window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
       // 等作品清单就绪再随机抽题（2026-09-20 审查修复）：用内置兜底清单抽题
@@ -109,7 +109,7 @@ function Routes() {
     // 远端清单到达可能把页面换成预览页，入场序列被中途卸载
     if (worksState.status === 'loading')
       return <output className="route-empty">{t('正在接入试验场')}</output>;
-    if (prompt && currentPairs(prompt.id).length > 0)
+    if (prompt && currentPairs(prompt.id, 'formal').length > 0)
       return <Arena key={`formal-${prompt.id}`} prompt={prompt} formal />;
     if (prompt)
       return <PromptPreview key={`formal-${prompt.id}`} prompt={prompt} />;
@@ -126,7 +126,8 @@ function Routes() {
     if (sharedDuel && sharedDuel[0] === route.slice(7)) {
       if (worksState.status === 'loading' || getPromptsState().status === 'loading') return <output className="route-empty">{t('正在打开分享的对决…')}</output>;
       const pair = resolveSharedDuel(sharedDuel, currentResultsForPrompt(sharedDuel[0]));
-      if (prompt && pair && worksState.source === 'remote') return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
+      if (prompt && pair && !pair.some(work => work.isDemo) && worksState.source === 'remote' && currentPairs(prompt.id).length > 0) return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
+      if (prompt && currentPairs(prompt.id).length === 0) return <PromptPreview key={prompt.id} prompt={prompt} />;
       return <div className="route-empty"><h1>{t('这场对决暂时无法打开。')}</h1><p>{t('作品可能已下架，请从题库选择另一场。')}</p><a href="#prompts">{t('前往提示词库 ↗')}</a></div>;
     }
     if (worksState.status === 'loading')

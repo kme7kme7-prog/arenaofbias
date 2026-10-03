@@ -37,6 +37,8 @@ const {
   rounds,
   modelResults,
   eligiblePairs,
+  entertainmentPoolReady,
+  entertainmentWorkCount,
   pickMatchup,
   randomArenaHash,
 } = await import(
@@ -238,16 +240,21 @@ check(
     }
   },
 );
-check(
-  'Random navigation targets an eligible prompt and can avoid the current arena',
-  () => {
-    for (const prompt of rounds) {
-      const hash = randomArenaHash(prompt.id, () => 0);
-      assert.notEqual(hash, `#arena/${prompt.id}`);
-      assert.ok(eligiblePairs(hash.slice(7)).length > 0);
-    }
-  },
-);
+check('Entertainment admission counts unique non-demo works at the 9/10 boundary', () => {
+  const work = modelResults.find((entry) => !entry.isDemo);
+  const pool = Array.from({ length: 10 }, (_, i) => ({ ...work, id: `threshold-${i}`, promptId: '022', modelId: `model-${i % 2}` }));
+  assert.equal(entertainmentPoolReady('022', pool.slice(0, 9)), false);
+  assert.equal(entertainmentPoolReady('022', pool), true);
+  assert.equal(entertainmentPoolReady('022', pool.map(entry => ({ ...entry, modelId: 'one' }))), false);
+  const nine = [...pool.slice(0, 9), pool[0], { ...pool[9], isDemo: true }];
+  assert.equal(entertainmentWorkCount('022', nine), 9);
+  assert.equal(entertainmentPoolReady('022', nine), false);
+  const prompt = { ...rounds[0], id: '022' };
+  assert.equal(randomArenaHash(undefined, () => 0, nine, [prompt]), '#prompts');
+  assert.equal(randomArenaHash(undefined, () => 0, pool, [prompt]), '#arena/022');
+  const other = pool.map(entry => ({ ...entry, id: `other-${entry.id}`, promptId: '023' }));
+  assert.equal(randomArenaHash('022', () => 0, [...pool, ...other], [prompt, { ...prompt, id: '023' }]), '#arena/023');
+});
 for (const name of ['signal-a.webp', 'signal-b.webp', 'lunar.webp']) {
   const file = new URL(`../public/art/${name}`, import.meta.url);
   const details = await stat(file);

@@ -1,3 +1,4 @@
+import { entertainmentWorkCount, ENTERTAINMENT_MIN_WORKS } from '@/lib/arena';
 import { LegalFooter } from '@/components/legal-footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n } from '@/lib/locale';
@@ -89,7 +90,7 @@ function promptStats(id: string) {
   const entries = results.filter((result) => !result.isDemo);
   return {
     models: new Set(entries.map((result) => result.modelId)).size,
-    works: entries.length,
+    works: entertainmentWorkCount(id, results),
     samples: results.filter((result) => result.isDemo).length,
     ready: currentPairs(id).length > 0,
   };
@@ -210,6 +211,9 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
               <b>{localize(stats.works.toString().padStart(2, '0'))}</b>{' '}
               {t('份结果')}
             </span>
+            {!stats.ready && stats.works < ENTERTAINMENT_MIN_WORKS && (
+              <small>{t('作品收集中（{count}/{minimum}），暂未开放娱乐盲测', { count: stats.works, minimum: ENTERTAINMENT_MIN_WORKS })}</small>
+            )}
             {stats.samples > 0 && (
               <small>
                 {t('另有')}

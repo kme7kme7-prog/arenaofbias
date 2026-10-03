@@ -616,7 +616,7 @@ export default function Arena({
           const key = current && pairKeyOf(current[0].id, current[1].id);
           if (
             key &&
-            currentPairs(prompt.id).some(
+            currentPairs(prompt.id, scope).some(
               (candidate) =>
                 pairKeyOf(candidate[0].id, candidate[1].id) === key,
             )
@@ -633,9 +633,9 @@ export default function Arena({
   useEffect(() => {
     refreshRatings(scope);
   }, [scope]);
-  const pairCount = currentPairs(prompt.id).length;
+  const pairCount = currentPairs(prompt.id, scope).length;
   const hasOtherArena = currentPrompts().some(
-    (item) => item.id !== prompt.id && currentPairs(item.id).length > 0,
+    (item) => item.id !== prompt.id && currentPairs(item.id, scope).length > 0,
   );
   const continueLock = useRef(false);
   // 换对的新稿暂存：快门盖满前旧作还在场上，提前 setPair 会让新作品的加载
@@ -704,7 +704,7 @@ export default function Arena({
   const gotoRandomArena = () => {
     // 加载超时后仍允许既有「跳过此题」出口，普通继续按钮保持禁用。
     if (((continueLock.current || worksLoading) && !worksStalled) || state.phase === 'transition') return;
-    const candidate = currentRandomArenaHash(prompt.id);
+    const candidate = currentRandomArenaHash(prompt.id, scope);
     const next = formal ? candidate.replace('#arena/', '#formal/') : candidate;
     if (next === window.location.hash) {
       setSoloNotice(true);
@@ -838,7 +838,7 @@ export default function Arena({
       void refreshWorks(controller.signal).then((ok) => {
         if (!live) return;
         if (!ok) { stopAtEmpty(); return; }
-        const candidates = currentPairs(prompt.id);
+        const candidates = currentPairs(prompt.id, scope);
         const preferred = candidates.filter((candidate) => candidate.every((work) => !failed.includes(work.id)));
         const choices = preferred.length ? preferred : candidates;
         const next = choices[Math.floor(Math.random() * choices.length)] ?? null;
@@ -857,7 +857,7 @@ export default function Arena({
       });
     }, 60);
     return () => { live = false; clearInterval(timer); controller.abort(); };
-  }, [pair, prompt.id, state.run, workAttempt]);
+  }, [pair, prompt.id, scope, state.run, workAttempt]);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
   const animations = useRef<Animation[]>([]);

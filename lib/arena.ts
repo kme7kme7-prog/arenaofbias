@@ -199,6 +199,19 @@ export function resultsForPrompt(promptId: string, results = modelResults) {
   return results.filter((result) => result.promptId === promptId);
 }
 
+export const ENTERTAINMENT_MIN_WORKS = 10;
+
+export function entertainmentWorkCount(promptId: string, results = modelResults) {
+  return new Set(resultsForPrompt(promptId, results)
+    .filter((entry) => !entry.isDemo).map((entry) => entry.id)).size;
+}
+
+export function entertainmentPoolReady(promptId: string, results = modelResults) {
+  return entertainmentWorkCount(promptId, results) >= ENTERTAINMENT_MIN_WORKS
+    && new Set(resultsForPrompt(promptId, results).filter(entry => !entry.isDemo)
+      .map(entry => entry.modelId)).size >= 2;
+}
+
 export function eligiblePairs(
   promptId: string,
   results = modelResults,
@@ -299,9 +312,11 @@ export function randomArenaHash(
   results = modelResults,
   // 动态题库（决策 045）：调用方传当前生效题目，缺省用内置种子
   promptList: Prompt[] = prompts,
+  minimumWorks = ENTERTAINMENT_MIN_WORKS,
 ) {
   const available = promptList.filter(
-    (prompt) => eligiblePairs(prompt.id, results).length > 0,
+    (prompt) => entertainmentWorkCount(prompt.id, results) >= minimumWorks
+      && eligiblePairs(prompt.id, results).length > 0,
   );
   const other = available.filter((prompt) => prompt.id !== excludeId);
   const pool = other.length ? other : available;

@@ -1,22 +1,58 @@
 [
   {
-    "name": "快作品在620ms切换期发出一次通知",
+    "name": "paper: 快作品在620ms切换期发出一次通知",
     "passed": true
   },
   {
-    "name": "慢作品不能复用上一件的就绪状态",
+    "name": "paper: 慢作品不能复用上一件的就绪状态",
     "passed": true
   },
   {
-    "name": "原对局重播不要求作品重发一次性通知",
+    "name": "paper: 原对局重播不要求作品重发一次性通知",
     "passed": true
   },
   {
-    "name": "减少动态效果下同题换组",
+    "name": "paper: 减少动态效果下同题换组",
     "passed": true
   },
   {
-    "name": "未就绪作品超时仍保持遮挡并给跳过出口",
+    "name": "paper: 未就绪作品超时仍保持遮挡并给跳过出口",
+    "passed": true
+  },
+  {
+    "name": "paper: 隔离作品按探针就绪，不能复用旧作品状态",
+    "passed": true
+  },
+  {
+    "name": "paper: 隔离作品未就绪时刷新一次并避开失败作品",
+    "passed": true
+  },
+  {
+    "name": "ink: 快作品在620ms切换期发出一次通知",
+    "passed": true
+  },
+  {
+    "name": "ink: 慢作品不能复用上一件的就绪状态",
+    "passed": true
+  },
+  {
+    "name": "ink: 原对局重播不要求作品重发一次性通知",
+    "passed": true
+  },
+  {
+    "name": "ink: 减少动态效果下同题换组",
+    "passed": true
+  },
+  {
+    "name": "ink: 未就绪作品超时仍保持遮挡并给跳过出口",
+    "passed": true
+  },
+  {
+    "name": "ink: 隔离作品按探针就绪，不能复用旧作品状态",
+    "passed": true
+  },
+  {
+    "name": "ink: 隔离作品未就绪时刷新一次并避开失败作品",
     "passed": true
   }
 ]

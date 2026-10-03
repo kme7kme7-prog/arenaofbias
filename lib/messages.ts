@@ -1,5 +1,10 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  '作品收集中（{count}/{minimum}）': 'Collecting works ({count}/{minimum})',
+  '作品收集中（{count}/{minimum}），暂未开放娱乐盲测': 'Collecting works ({count}/{minimum}); entertainment matching is not open yet',
+  '暂未开放娱乐盲测，至少需要 10 件作品。': 'Entertainment matching requires at least 10 works.',
+  '需要至少两个不同模型的作品才能进行比较。': 'Comparison requires works from at least two different models.',
+
   '暂未完成': 'Not ready yet',
   '展览馆': 'Gallery',
   '前往展览馆': 'Visit the gallery',

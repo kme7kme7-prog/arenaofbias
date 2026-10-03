@@ -20,7 +20,7 @@ let browser;
 const results = [];
 try {
   browser = await chromium.launch({ executablePath: process.env.THUMB_BROWSER || (existsSync(edge) ? edge : undefined), headless: true });
-  async function scenario(name, { count = 4, permanent = false, empty = false, networkFail = false, normal = false, leave = false, curtain = false } = {}) {
+  async function scenario(name, { count = 10, permanent = false, empty = false, networkFail = false, normal = false, leave = false, curtain = false, underfilled = false } = {}) {
     if (process.env.RETRY_CASE && !name.includes(process.env.RETRY_CASE)) return;
     const context = await browser.newContext({ reducedMotion: normal ? 'no-preference' : 'reduce' });
     const page = await context.newPage();
@@ -49,7 +49,7 @@ try {
           if (networkFail) return route.fulfill({ status: 503, json: { error: 'fixture' } });
         }
         const list = works(requests > 1);
-        payload = { works: empty && requests > 1 ? [] : [...list, ...(normal ? list.slice(0, 2).map(row => ({ ...row, id: row.id.replace('005', '006'), promptId: '006' })) : [])] };
+        payload = { works: empty && requests > 1 ? [] : [...(underfilled && requests > 1 ? list.slice(0, 9) : list), ...(normal ? list.map(row => ({ ...row, id: row.id.replace('005', '006'), promptId: '006' })) : [])] };
       } else if (endpoint === '/api/prompts') payload = { prompts: ['005', ...(normal ? ['006'] : [])].map(id => ({ id, kind: 'web', name: '就绪回归', prompt: '比较', code: 'READY' })) };
       else if (endpoint === '/api/auth/me') payload = { user: null };
       else if (endpoint === '/api/ratings') payload = { ratings: [], games: {} };
@@ -86,10 +86,10 @@ try {
         await page.evaluate(() => { window.location.hash = '#prompts'; });
         await page.waitForTimeout(2200);
         assert.equal(await page.locator('.arena-shell').count(), 0);
-      } else if (permanent || empty || networkFail) {
+      } else if (permanent || empty || networkFail || underfilled) {
         try {
           // A truly empty roster routes to the existing prompt preview empty state.
-          await page.getByText(empty ? '结果待接入' : '这个竞技场还未就绪。', { exact: true }).waitFor({ timeout: 13000 });
+          await page.getByText(empty ? '结果待接入' : underfilled ? '作品收集中（9/10）' : '这个竞技场还未就绪。', { exact: true }).waitFor({ timeout: 13000 });
         } catch (error) {
           console.log(await page.locator('body').innerText());
           await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true });
@@ -116,9 +116,10 @@ try {
   }
   await scenario('normal voting, reveal, same-prompt and other-prompt continuation', { normal: true });
   await scenario('expired p keys refresh and avoid failed works');
-  await scenario('same ids use refreshed URLs and fresh iframe windows', { count: 2 });
+  // A two-work public pool is now closed by the ten-work admission rule.
   await scenario('second failure reaches empty state without looping', { permanent: true });
   await scenario('empty refreshed roster remains empty', { empty: true });
+  await scenario('refreshed pool below ten exits to collection preview', { underfilled: true });
   await scenario('refresh HTTP failure reaches manual empty flow', { networkFail: true });
   await scenario('leaving during refresh discards late results', { leave: true });
   await scenario('menu curtain stays closed through both failures then exits to empty', { curtain: true, permanent: true });
