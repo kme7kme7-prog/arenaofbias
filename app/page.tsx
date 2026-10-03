@@ -28,7 +28,6 @@ import {
   ChevronDown,
   Expand,
   Eye,
-  GalleryHorizontal,
   ImageIcon,
   Laugh,
   LockKeyhole,
@@ -94,13 +93,13 @@ import {
 import { takeTestPair } from '@/lib/test-pair';
 import { animateArenaLayout } from '@/lib/arena-layout';
 import { ShareButton, duelShareQuery, setSharePair } from '@/components/share';
-import { scrollWorkToBottom } from '@/lib/scroll-tour';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
 import './conversation-arena.css';
+import './arena-empty.css';
 
 // 评论区暂时隐藏（2026-09-30 用户决定）；恢复时改回 true，后端评论接口未改动。
 const COMMENTS_ENABLED = false;
@@ -112,13 +111,6 @@ const ARENA_TIMING = {
   introGateTail: 240,
   // 揭幕段：加载过场收场 + 作品淡入，从 introLead 余量里扣，故首入总时长不变
   introRevealHold: 320,
-  introFocus: 700,
-  introStaticHold: 950,
-  introScrollLead: 300,
-  introScrollSettle: 520,
-  introReturn: 500,
-  introGap: 200,
-  introSettle: 300,
   resultReveal: 1350,
   // 双方作品就绪前不展开（用户拍板：死等）。超过这个时长仍在等的，才在加载
   // 过场里给出「跳过此题」入口——不替用户强行揭幕，只给他离开的权利
@@ -480,7 +472,8 @@ export function Work({
     return <WebWork side={result.content.template} interactive={expanded} />;
   if (result.content.kind === 'html') {
     const content = 'src' in result.content
-      ? { ...result.content, src: withArenaControls(result.content.src, cleanPreview && !expanded, result.promptId === '010') }
+      ? { ...result.content, src: withArenaControls(result.content.src, cleanPreview && !expanded,
+        /^(建模|3D 场景|物理模拟|体素世界)$/.test(currentPrompts().find(item => item.id === result.promptId)?.category ?? '')) }
       : result.content;
     const canvas = workCanvas(result);
     if (canvas) return (
@@ -661,21 +654,9 @@ export default function Arena({
   const resultCount = currentResultsForPrompt(prompt.id).filter(entry => !entry.isDemo).length;
   // 平局按钮的中文主标：按 run 散列轮换成语（每轮对局换一个，纯推导不存状态）
   const drawLabel = DRAW_LABELS[(state.run * 37 + 11) % DRAW_LABELS.length];
-  const [spotlight, setSpotlight] = useState<Side | null>(null);
   const [expanded, setExpanded] = useState<Side | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState<string | null>(null);
   const [sound, setSound] = useState(false);
-  // 「逐个巡览」开关（aob-arena-tour，决策 077/090）：桌面默认关闭、
-  // 用户手动开过才记 'on'；移动端该功能整体下线（有严重 bug），
-  // 开关隐藏、入场序列也不跑巡览。关闭时入场只保留作品揭幕一拍，
-  // 不再依次放大 A/B 两份作品，直接开放投票。
-  const [tour, setTour] = useState(() => {
-    try {
-      return localStorage.getItem('aob-arena-tour') === 'on';
-    } catch {
-      return false;
-    }
-  });
   // 作品就绪门控的揭幕状态：完全就绪前不展开（加载过场压着、作品区 works-hold），
   // 就绪后统一淡入揭幕（works-reveal）——长加载不再出现「后半段直接没了」
   const [worksSettled, setWorksSettled] = useState(false);
@@ -779,23 +760,47 @@ export default function Arena({
   // 已通过探针（作品内渲染循环首帧 postMessage，见 data-aob-probe 注入约定）
   // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
   const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
+  const loadingWindows = useRef<WeakMap<Window, number>>(new WeakMap());
   const cardB = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => animateArenaLayout(stageRef.current, reducedMotion), [prompt.id, reducedMotion]);
   // 换组先装载新 iframe，620ms 后才进入 intro。监听必须覆盖整个组件生命期，
   // 否则快作品在 transition 中发出的一次性通知会丢失，入场就永久等待。
   // layout effect 在浏览器处理新 iframe 的消息前就注册；重播同一作品不清空就绪。
   useLayoutEffect(() => {
+    const currentFrame = (frame: HTMLIFrameElement) => [cardA, cardB].some(card =>
+      card.current?.querySelector('iframe') === frame,
+    );
+    const recordStart = (source: Window) => {
+      if (!loadingWindows.current.has(source)) loadingWindows.current.set(source, performance.now());
+    };
+    const onFrameLoad = (event: Event) => {
+      const frame = event.target;
+      if (!(frame instanceof HTMLIFrameElement) || !currentFrame(frame) || !frame.contentWindow) return;
+      // The initial blank document is not a completed content navigation.
+      try { if (frame.contentDocument?.location.href === 'about:blank') return; } catch { /* Cross-origin work. */ }
+      recordStart(frame.contentWindow);
+    };
     const onWorkReady = (event: MessageEvent) => {
-      if (
-        event.data === 'aob:work-ready' && event.source &&
-        [cardA, cardB].some((card) =>
-          card.current?.querySelector('iframe')?.contentWindow === event.source,
-        )
-      ) readyWindows.current.add(event.source as Window);
+      if (!event.source || ![cardA, cardB].some(card =>
+        card.current?.querySelector('iframe')?.contentWindow === event.source,
+      )) return;
+      const source = event.source as Window;
+      if (event.data === 'aob:work-ready') readyWindows.current.add(source);
+      // Start the rendering budget once the document arrives. Repeated signals
+      // cannot extend it; error pages use the iframe load event instead.
+      if (event.data === 'aob:work-loading') recordStart(source);
     };
     window.addEventListener('message', onWorkReady);
-    return () => window.removeEventListener('message', onWorkReady);
-  }, []);
+    const frames = [cardA, cardB].flatMap(card => {
+      const frame = card.current?.querySelector('iframe');
+      return frame ? [frame] : [];
+    });
+    frames.forEach(frame => frame.addEventListener('load', onFrameLoad));
+    return () => {
+      window.removeEventListener('message', onWorkReady);
+      frames.forEach(frame => frame.removeEventListener('load', onFrameLoad));
+    };
+  }, [pair, workAttempt]);
   const loadingPhase = useRef(state.phase);
   useLayoutEffect(() => { loadingPhase.current = state.phase; }, [state.phase]);
   useEffect(() => {
@@ -808,7 +813,11 @@ export default function Arena({
     let live = true;
     const pendingIds = () => [cardA, cardB].flatMap((card, index) => {
       const frame = card.current?.querySelector<HTMLIFrameElement>('iframe[data-ready-probe="required"]');
-      return frame && (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow)) ? [pair[index].id] : [];
+      const start = frame?.contentWindow && loadingWindows.current.get(frame.contentWindow);
+      return frame && (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow)) &&
+        // Navigation has a bounded 20s budget; rendering gets 10s from arrival.
+        // A stalled request without either signal still reaches recovery.
+        performance.now() - (start ?? started) >= (start === undefined || start === null ? 20000 : 10000) ? [pair[index].id] : [];
     });
     const stopAtEmpty = () => {
       setRecovering(false);
@@ -818,7 +827,7 @@ export default function Arena({
     const timer = setInterval(() => {
       if (!['loading', 'intro', 'transition'].includes(loadingPhase.current) || recoveryBusy.current) return;
       const failed = pendingIds();
-      if (!failed.length || performance.now() - started < 10000) return;
+      if (!failed.length) return;
       clearInterval(timer);
       if (recoveryBudget.current.used) { stopAtEmpty(); return; }
       recoveryBudget.current.used = true;
@@ -857,7 +866,6 @@ export default function Arena({
   }, [pair, prompt.id, scope, state.run, workAttempt]);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
-  const animations = useRef<Animation[]>([]);
   const round = {
     ...prompt,
     models: pair?.map((entry) => entry.modelName) ?? [],
@@ -1011,19 +1019,6 @@ export default function Arena({
           work.scrollTop = 0;
         });
     };
-    const animate = async (
-      element: HTMLElement,
-      frames: Keyframe[],
-      duration: number,
-    ) => {
-      const animation = element.animate(frames, {
-        duration,
-        easing: 'cubic-bezier(.22,1,.36,1)',
-        fill: 'both',
-      });
-      animations.current.push(animation);
-      await delay(duration, signal);
-    };
     const sequence = async () => {
       resetScroll();
       // 快门门控放行的 ARRIVE（重播/换对已验证双侧就绪）：整段加载过场跳过，
@@ -1048,7 +1043,7 @@ export default function Arena({
         return;
       }
       // After preparing the finished scene under cover, wait for the route curtain
-      // before any optional tour. This wait must never block the readiness gate.
+      // before unlocking voting. This wait must never block the readiness gate.
       const waitRouteLayer = async (abort: AbortSignal) => {
         for (let waited = 0; waited < 2600; waited += 40) {
           const layer = document.querySelector<HTMLElement>(
@@ -1085,53 +1080,6 @@ export default function Arena({
       );
       releaseWorksGate();
       await waitRouteLayer(signal);
-      // 移动端巡览整体下线（决策 090）：窄屏无论开关如何都跳过 A/B 聚焦
-      if (!tour || window.innerWidth < 700) {
-        dispatch({ type: 'READY' });
-        return;
-      }
-      for (const side of ['a', 'b'] as const) {
-        const element = side === 'a' ? cardA.current : cardB.current;
-        const stage = stageRef.current;
-        if (!element || !stage) return;
-        setSpotlight(side);
-        play('move');
-        await animate(
-          element,
-          [
-            { borderColor: 'var(--accent)' },
-            { borderColor: 'var(--control-line)' },
-          ],
-          ARENA_TIMING.introFocus,
-        );
-        const scrollable =
-          element.querySelector<HTMLElement>('[data-tour-scroll]');
-        const hasScrollTour =
-          !!scrollable && scrollable.scrollHeight - scrollable.clientHeight > 1;
-        if (scrollable && hasScrollTour) {
-          await delay(ARENA_TIMING.introScrollLead, signal);
-          await scrollWorkToBottom(
-            scrollable,
-            signal,
-            prompt.kind === 'text' ? 48 : 62,
-          );
-          await delay(ARENA_TIMING.introScrollSettle, signal);
-        } else {
-          await delay(ARENA_TIMING.introStaticHold, signal);
-        }
-        await animate(
-          element,
-          [
-            { borderColor: 'var(--control-line)' },
-            { borderColor: 'var(--border)' },
-          ],
-          ARENA_TIMING.introReturn,
-        );
-        if (scrollable) scrollable.scrollTop = 0;
-        setSpotlight(null);
-        await delay(ARENA_TIMING.introGap, signal);
-      }
-      await delay(ARENA_TIMING.introSettle, signal);
       play('reveal');
       dispatch({ type: 'READY' });
     };
@@ -1141,10 +1089,7 @@ export default function Arena({
     });
     return () => {
       controller.abort();
-      animations.current.forEach((animation) => animation.cancel());
-      animations.current = [];
       resetScroll();
-      setSpotlight(null);
       // A recovery restarts intro under the same curtain; cleanup must not reveal
       // the replacement before its probe. Navigation and explicit skip still release.
       queueMicrotask(() => {
@@ -1158,7 +1103,6 @@ export default function Arena({
     prompt.kind,
     reducedMotion,
     play,
-    tour,
     waitWorksLoaded,
     gatePassed,
     pair,
@@ -1420,16 +1364,6 @@ export default function Arena({
     if (enabled) play('move');
   };
 
-  const toggleTour = () => {
-    setTour((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem('aob-arena-tour', next ? 'on' : 'off');
-      } catch {}
-      return next;
-    });
-  };
-
   const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     else document.documentElement.requestFullscreen?.().catch(() => {});
@@ -1438,9 +1372,7 @@ export default function Arena({
   const statusText = worksLoading
     ? '画面载入中'
     : state.phase === 'intro'
-      ? spotlight
-        ? t('正在观测作品 {side}', { side: spotlight.toUpperCase() })
-        : '作品入场'
+      ? '作品入场'
       : state.phase === 'voting'
         ? '做出选择'
         : state.phase === 'locking'
@@ -1454,17 +1386,38 @@ export default function Arena({
   // 此处已在全部 hooks 之后，提前返回不影响 hook 顺序。
   if (!pair) {
     return (
-      <output className="route-empty">
-        <h1>{t('这个竞技场还未就绪。')}</h1>
-        <p>{t('题库里的作品暂时配不出可比的一组，稍后再来看看。')}</p>
-        <a href="#prompts">{t('前往提示词库 ↗')}</a>
-      </output>
+      <div className="arena-shell arena-unavailable">
+        <header className="topbar">
+          <a className="brand" href="#home" aria-label={t('回到首页')} onClick={event => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault(); homeNavigate();
+          }}><Mark /><strong>ARENA OF <span className="brand-tag">BIAS</span></strong></a>
+          <div className="header-right"><LanguageSwitch /><ThemeToggle /><AccountButton /></div>
+        </header>
+        <main className="arena-empty-content">
+          <span className="arena-empty-prompt">{prompt.id} / {localize(prompt.name)}</span>
+          <h1>{t('这个竞技场还未就绪。')}</h1>
+          <output>{t('题库里的作品暂时配不出可比的一组，稍后再来看看。')}</output>
+          <div className="arena-empty-actions">
+            {hasOtherArena && <button className="arena-empty-next" onClick={() => {
+              releaseWorksGate();
+              const hash = currentRandomArenaHash(prompt.id, scope);
+              bandsNavigate(formal ? hash.replace('#arena/', '#formal/') : hash);
+            }}>{t('换个题库继续')}<ArrowRight size={18} /></button>}
+            <a href="#home" onClick={event => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault(); homeNavigate();
+            }}>{t('回到首页')}</a>
+            <a href="#prompts">{t('前往提示词库 ↗')}</a>
+          </div>
+        </main>
+      </div>
     );
   }
 
   return (
     <div
-      className={`arena-shell ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${spotlight ? `spotlight-${spotlight}` : ''} ${reducedMotion ? 'reduced-motion' : ''} ${
+      className={`arena-shell ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       } ${state.phase === 'intro' && gatePassed ? 'shutter-exit' : ''}`}
     >
@@ -1555,7 +1508,7 @@ export default function Arena({
             />
           )}
           <div className="stage-watermark" aria-hidden="true">
-            {localize(spotlight ? spotlight.toUpperCase() : 'VS')}
+            {localize('VS')}
           </div>
           {(['a', 'b'] as const).map((side, index) => {
             const chosen = state.choice === side;
@@ -1859,18 +1812,6 @@ export default function Arena({
             {state.phase === 'result' && state.choice && state.mode !== 'formal' && !testing && !isPlaceholderMode() && (
               <ShareButton key={`${state.run}-${pair[0].id}-${pair[1].id}`} query={duelShareQuery(prompt, pair, state.choice)} />
             )}
-            <button
-              type="button"
-              className={`text-button tour-toggle ${tour ? 'on' : ''}`}
-              onClick={toggleTour}
-              aria-pressed={tour}
-              disabled={blocked}
-              title={t('入场时依次放大展示两份作品')}
-            >
-              <GalleryHorizontal size={14} />
-              {t('逐个巡览')}
-              <i className="tour-switch" aria-hidden="true" />
-            </button>
             {state.phase === 'intro' ? (
               <button
                 className="text-button"

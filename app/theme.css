@@ -67,7 +67,6 @@ input, textarea, select { accent-color: var(--accent); }
 .arena-shell.works-reveal .work-arrival-veil::before { animation: paper-reveal 550ms var(--ease-in-out) both; }
 .arena-shell.phase-transition .work-panel, .arena-shell.phase-transition .vote-button { transform: none; opacity: 1; }
 .arena-shell :is(.contender-a, .contender-b) .work-panel { transition-property: border-color, background-color, box-shadow; }
-.arena-shell:is(.spotlight-a,.spotlight-b) .work-panel { opacity: 1; filter: none; }
 .arena-shell.phase-locking .not-chosen .work-panel { opacity: 1; }
 .transition-shutter { background: transparent; clip-path: none; visibility: hidden; animation: none; overflow: hidden; }
 .transition-shutter::before { content: ''; position: absolute; inset: 0; background: var(--surface-inset); z-index: -1; visibility: visible; transform: translateX(-101%); }

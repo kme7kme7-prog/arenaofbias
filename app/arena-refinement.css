@@ -385,46 +385,6 @@ html[lang='zh-CN'] .brand strong {
 .arena-shell .text-button {
   font-size: 11px;
 }
-/* 「逐个巡览」开关：沿用 text-button 的次级文字形态，只多一枚细线小拨杆 */
-.arena-shell .tour-toggle {
-  gap: 7px;
-}
-.arena-shell .tour-toggle .tour-switch {
-  position: relative;
-  width: 24px;
-  height: 13px;
-  margin-left: 2px;
-  border: 1px solid var(--line-98a58c);
-}
-.arena-shell .tour-toggle .tour-switch::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 7px;
-  height: 7px;
-  background: var(--surface-98a58c);
-  transition:
-    transform 0.2s var(--ease-out),
-    background 0.2s;
-}
-.arena-shell .tour-toggle.on {
-  color: var(--text-main);
-}
-.arena-shell .tour-toggle.on .tour-switch {
-  border-color: var(--surface-inset);
-  background: var(--surface-inset);
-}
-.arena-shell .tour-toggle.on .tour-switch::after {
-  transform: translateX(11px);
-  background: var(--surface-e8ecdf);
-}
-/* 移动端巡览整体下线（决策 090）：窄屏隐藏开关，入场序列同样跳过 */
-@media (max-width: 699px) {
-  .arena-shell .tour-toggle {
-    display: none;
-  }
-}
 .arena-shell .next-button {
   font-size: 12px;
   min-height: 36px;
