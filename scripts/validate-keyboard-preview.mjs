@@ -86,5 +86,11 @@ try {
   await fixture.evaluate(() => { document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas>'; });
   await fixture.waitForSelector('canvas[data-aob-scene-path]');
   assert.ok(await fixture.locator('canvas').isVisible(), 'replacement canvas recovers');
+  await fixture.evaluate(() => {
+    document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas><form><input type="radio" name="shell"><input type="text" value="我的键盘"><button>保存配置</button></form>';
+  });
+  await fixture.waitForSelector('canvas[data-aob-scene-path]');
+  assert.equal(await fixture.locator('form').isVisible(), false, 'product configuration form is hidden');
+  assert.equal(await fixture.locator('input[type="text"]').inputValue(), '我的键盘', 'configuration is retained');
   console.log('PASS no-canvas, multi-canvas, form and entry protection; late and replaced scene recovery');
 } finally { await browser.close(); }

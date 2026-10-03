@@ -1,5 +1,10 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 配置表单漏隐藏与后台取景一致性（本地）
+
+- 用户授权修改。后端 arena-fold.js 将配置表单与登录/普通表单区分：radio/range/select 配置且无凭据/textarea 可隔离，入口保护保留。共享后台 admin/admin.js 的竞技场取景附加 arena-fold，建模/3D/物理/体素类别附加 arena-scene，保留 bridge/face；展览馆不变。未修改任何作品文件或写入取景数据。
+- 验证：后端 check 87/0、test 263/263，Show1 typecheck/lint；键盘完整脚本与替换为真实 FORM 68 的复验均通过（画布铺满、配置隐藏、放大/正式原作、关闭不重建、登录/入口/多画布保护、配置值保留）。已查看 FORM 68 小窗截图 .local/work-controls/keyboard-preview.png。未实点后台登录保存，后台取景需用户复查；无 commit/push/deploy。本地后端已重启加载修改，保留其他文件。
+
 ## 2026-10-04 · 移除逐个巡览（本地未提交/部署）
 
 - 用户明确要求去掉已失效的逐个巡览功能。移除 page.tsx 开关、偏好读取、spotlight 状态及 A/B 聚焦/自动滚动等待，删除相应 CSS；原 aob-arena-tour=on 不再影响入场。作品就绪与揭幕后直接开放投票，保留手动滚动、重播/跳过入场及单次失败恢复。决策已追加，覆盖旧桌面可开启约定。
