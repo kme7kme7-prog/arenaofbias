@@ -64,6 +64,18 @@ try {
   await fixture.addScriptTag({ content: adapter });
   assert.equal(await fixture.locator('[data-aob-scene]').count(), 0, 'no canvas remains untouched');
   await fixture.evaluate(() => {
+    document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas><form><input type="email"><button>提交</button></form>';
+  });
+  await fixture.waitForTimeout(700);
+  assert.equal(await fixture.locator('[data-aob-scene]').count(), 0, 'credential forms are not hidden by scene isolation');
+  assert.ok(await fixture.locator('form').isVisible());
+  await fixture.evaluate(() => {
+    document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas><button>开始体验</button>';
+  });
+  await fixture.waitForTimeout(700);
+  assert.equal(await fixture.locator('[data-aob-scene]').count(), 0, 'scene entry buttons remain usable');
+  assert.ok(await fixture.getByRole('button', { name: '开始体验' }).isVisible());
+  await fixture.evaluate(() => {
     document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas><canvas width="400" height="250"></canvas>';
   });
   await fixture.waitForTimeout(700);
@@ -74,5 +86,5 @@ try {
   await fixture.evaluate(() => { document.querySelector('main').innerHTML = '<canvas width="400" height="250"></canvas>'; });
   await fixture.waitForSelector('canvas[data-aob-scene-path]');
   assert.ok(await fixture.locator('canvas').isVisible(), 'replacement canvas recovers');
-  console.log('PASS no-canvas and multi-canvas protection; late and replaced scene recovery');
+  console.log('PASS no-canvas, multi-canvas, form and entry protection; late and replaced scene recovery');
 } finally { await browser.close(); }

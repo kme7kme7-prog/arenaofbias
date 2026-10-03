@@ -59,6 +59,14 @@ try {
   }
   console.log('PASS fixtures: full panel, restore identity/value, late controls, sender validation, five protected cases');
 
+  await fixture('<canvas></canvas><header id="hud" style="position:fixed;left:12px;top:12px;width:220px;height:70px"><h1>营地</h1><span>拖动旋转</span></header><button id="toggle" style="position:fixed;left:12px;bottom:12px">白天模式</button>');
+  assert.equal(await page.locator('#hud').isVisible(), false, 'small scene title/instruction overlay folded');
+  assert.equal(await page.locator('#toggle').isVisible(), false, 'standalone scene toggle folded');
+  await page.evaluate(() => postMessage({ source: 'sp-arena', fold: false }, '*'));
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-aob-fold'));
+  assert.ok(await page.locator('#hud').isVisible());
+  assert.ok(await page.locator('#toggle').isVisible());
+
   const labelLayer = '<div id="labels" style="position:fixed;inset:0;pointer-events:none">' +
     ['机头', '机翼', '尾翼', '起落架'].map((label, index) => `<div class="tag" style="position:absolute;left:${index * 80}px;top:40px;pointer-events:none">${label}</div>`).join('') + '</div>';
   await fixture(`<canvas></canvas>${labelLayer}`);
@@ -93,10 +101,24 @@ try {
   console.log('REAL SAMPLES', JSON.stringify(samples));
 
   await page.setViewportSize({ width: 1800, height: 1050 });
-  await page.addInitScript(({ origin, a, b }) => {
-    if (location.origin === origin) localStorage.setItem('aob-test-pair', JSON.stringify({ promptId: '011', a, b, at: Date.now() }));
-  }, { origin: base, a: tagWork.id, b: planes[8].id });
-  await page.goto(`${base}/#arena/011`);
+  const readyTrace = [];
+  page.on('response', response => {
+    if (response.request().isNavigationRequest() && response.url().includes('.localhost:5191')) readyTrace.push({ at: Date.now(), url: response.url(), status: response.status() });
+  });
+  await page.addInitScript(() => {
+    if (window !== top) return;
+    window.qaReady = [];
+    addEventListener('message', event => { if (event.data === 'aob:work-ready') window.qaReady.push({ at: performance.now(), origin: event.origin }); });
+  });
+  // Isolate presentation acceptance from cold roster arrival / random pairing.
+  const rosterReady = page.waitForResponse(response => new URL(response.url()).pathname === '/api/works');
+  await page.goto(`${base}/#home`);
+  await rosterReady;
+  await page.getByRole('button', { name: '开始评测', exact: true }).waitFor();
+  await page.evaluate(({ a, b }) => {
+    localStorage.setItem('aob-test-pair', JSON.stringify({ promptId: '011', a, b, at: Date.now() }));
+    location.hash = '#arena/011';
+  }, { a: tagWork.id, b: planes[8].id });
   await page.waitForSelector('.phase-voting', { timeout: 35000 });
   assert.equal(await page.locator('.work-controls-toggle').count(), 0, 'preview has no manual show toggle');
   const frames = page.frames().filter(frame => frame.url().includes('aob=arena-fold'));
@@ -104,9 +126,10 @@ try {
   for (const frame of frames) await frame.evaluate(() => { window.savedCanvas = document.querySelector('canvas'); window.savedTime = performance.timeOrigin; });
   const sources = await page.locator('.arena-stage iframe').evaluateAll(nodes => nodes.map(node => node.src));
   const tagged = frames.find(frame => new URL(frame.url()).origin === new URL(tagWork.content.src).origin);
-  assert.ok(tagged, `requested label work must remain in the pair: ${JSON.stringify({ target: tagWork.content.src, frames: frames.map(frame => frame.url()) })}`);
-  await tagged.waitForSelector('[data-aob-fold-labels]', { state: 'attached' });
+  assert.ok(tagged, `requested label work must remain in the pair: ${JSON.stringify({ target: tagWork.content.src, frames: frames.map(frame => frame.url()), readyTrace, messages: await page.evaluate(() => window.qaReady) })}`);
+  await tagged.waitForSelector('html[data-aob-scene]', { state: 'attached' });
   assert.equal(await tagged.locator('#labels').isVisible(), false);
+  for (const frame of frames) assert.equal((await frame.locator('body').innerText()).trim(), '', 'single-canvas model previews hide DOM HUD and text');
   await page.screenshot({ path: fileURLToPath(new URL('clean-preview.png', out)) });
   await page.getByRole('button', { name: /放大查看作品/ }).first().click();
   const expanded = page.locator('.expanded-work iframe');
