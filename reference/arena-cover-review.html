@@ -21,6 +21,8 @@
   <header>
     <b>换题遮罩坐标检查</b>
     <label>页面比例 <select id="scale"><option value=".8">80%</option><option value="1">100%</option><option value=".67">67%</option><option value="1.25">125%</option></select></label>
+    <label>题目 <input id="title" value="机械键盘 · 交互式产品配置器"></label>
+    <label>主题 <select id="theme"><option value="paper">纸面</option><option value="ink">墨色</option></select></label>
     <button id="cover">盖满并保持</button><button id="clear">撤去遮罩</button>
   </header>
   <main class="arena-shell">
@@ -30,6 +32,7 @@
   </main>
   <footer>可滚动页面或调整窗口，遮罩应始终贴住场内区域。</footer>
   <script type="module">
+    import '../app/theme-tokens.css';
     import '../app/theme.css';
     import '../app/game-transitions.css';
     import { createGameTransition } from '../lib/game-transitions.ts';
@@ -39,14 +42,17 @@
     const align = () => controller && alignArenaTransition(controller.layer);
     const cover = () => {
       clear();
-      controller = createGameTransition('match', { title: '下一场', holdGate: () => false });
+      controller = createGameTransition('match', { title: document.querySelector('#title').value, holdGate: () => false });
       align();
       controller.seek(controller.timing.covered);
+      controller.layer.dataset.gtHold = '1';
       return controller;
     };
     document.querySelector('#cover').onclick = cover;
     document.querySelector('#clear').onclick = clear;
     document.querySelector('#scale').onchange = event => { document.documentElement.style.zoom = event.target.value; align(); };
+    document.querySelector('#theme').onchange = event => { document.documentElement.dataset.theme = event.target.value; cover(); };
+    document.querySelector('#title').onchange = cover;
     window.addEventListener('resize', align);
     window.addEventListener('scroll', align);
     window.__coverReview = { cover, align, clear };
