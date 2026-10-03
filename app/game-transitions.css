@@ -856,4 +856,37 @@
 .game-transition[data-theme='ink'] .gt-material-leaf::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(var(--curtain-grain) .6px, transparent .6px); background-size: 6px 6px; pointer-events: none; }
 .game-transition[data-theme='ink'] .gt-material-corners { border-color: var(--border); }
 .game-transition[data-theme='ink'] .gt-static-title { font-weight: 650; letter-spacing: .02em; }
+/* The two leaves form one outer frame; their inner edges must not cross copy. */
+.game-transition.gt-match .gt-material-leaf.gt-match-upper::before {
+  inset: 7% 7% 0;
+  border-bottom: 0;
+}
+.game-transition.gt-match .gt-material-leaf.gt-match-lower::before {
+  inset: 0 7% 7%;
+  border-top: 0;
+}
+.game-transition.gt-match .gt-static-copy {
+  font-family: var(--font-sans, 'Bahnschrift', 'Microsoft YaHei', 'PingFang SC', sans-serif);
+  gap: clamp(12px, 2.4cqh, 18px);
+}
+.game-transition.gt-match .gt-static-title {
+  font-family: inherit;
+  font-size: clamp(26px, min(4.5cqw, 8cqh), 64px);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.game-transition.gt-match .gt-static-caption {
+  font: 400 13px/1.6 var(--font-sans, 'Bahnschrift', 'Microsoft YaHei', 'PingFang SC', sans-serif);
+  letter-spacing: .035em;
+}
+.game-transition.gt-match .gt-static-copy .gt-match-holdnote {
+  margin-top: 4px;
+  font: 500 12px/1.6 var(--font-sans, 'Bahnschrift', 'Microsoft YaHei', 'PingFang SC', sans-serif);
+  letter-spacing: .06em;
+}
+.game-transition.gt-match .gt-match-side {
+  font: 600 13px/1 var(--font-sans, 'Bahnschrift', 'Microsoft YaHei', 'PingFang SC', sans-serif);
+}
 @media (prefers-reduced-motion: reduce) { .game-transition *, .game-transition *::before, .game-transition *::after { animation: none !important; transition: none !important; } }
