@@ -101,7 +101,12 @@ try {
         assert.equal(cover.visible, 'visible');
         assert.equal(cover.background, theme === 'ink' ? 'rgb(13, 13, 12)' : 'rgb(28, 36, 35)');
       }
-      if (delay === null) {
+      if (delay === null && sandboxed) {
+        // Probe failures now refresh once and recover to the two earlier ready works.
+        await page.waitForSelector('.phase-voting', { timeout: 15000 });
+        const recovered = await state();
+        assert.ok(recovered.frames.every(frame => ['0', '1'].includes(frame.work)));
+      } else if (delay === null) {
         await page.getByRole('button', { name: '跳过此题', exact: true }).waitFor({ timeout: 12000 });
         assert.match((await state()).phase, /works-hold/, 'timeout must not force reveal');
       } else {
@@ -125,7 +130,7 @@ try {
     await scenario(`${theme}: 减少动态效果下同题换组`, { changeCanvas: true, reducedMotion: 'reduce', theme });
     await scenario(`${theme}: 未就绪作品超时仍保持遮挡并给跳过出口`, { delay: null, theme });
     await scenario(`${theme}: 隔离作品按探针就绪，不能复用旧作品状态`, { delay: 1600, sandboxed: true, theme });
-    await scenario(`${theme}: 隔离作品未就绪时不强制揭幕`, { delay: null, sandboxed: true, theme });
+    await scenario(`${theme}: 隔离作品未就绪时刷新一次并避开失败作品`, { delay: null, sandboxed: true, theme });
   }
   }
 } finally {

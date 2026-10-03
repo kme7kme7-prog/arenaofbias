@@ -1,6 +1,6 @@
 'use client';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useI18n } from '@/lib/locale';
+import { useI18n, getLocale, translate } from '@/lib/locale';
 import { apiFetch } from '@/lib/api';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
@@ -59,7 +59,7 @@ import {
   type Side,
 } from '@/lib/arena';
 import { currentPrompts } from '@/lib/prompts';
-import { subscribeWorks } from '@/lib/works';
+import { subscribeWorks, refreshWorks } from '@/lib/works';
 import {
   appendPlaceholderVote,
   currentMatchup,
@@ -500,7 +500,7 @@ export function Work({
         src={src}
         srcDoc={inline ? content.html : undefined}
         sandbox={inline || content.sandboxed ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
-        data-ready-probe={!inline && content.sandboxed ? 'required' : undefined}
+        data-ready-probe={!inline && (content.sandboxed || content.readyProbe) ? 'required' : undefined}
         inert={!interactive}
         style={{ pointerEvents: interactive ? 'auto' : 'none' }}
       />
@@ -571,6 +571,10 @@ export default function Arena({
   const [pair, setPair] = useState<Matchup | null>(
     () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope) ?? null,
   );
+  const recoveryBusy = useRef(false);
+  const recoveryBudget = useRef({ run: 0, used: false });
+  const [workAttempt, setWorkAttempt] = useState(0);
+  const [recovering, setRecovering] = useState(false);
   const [testIds, setTestIds] = useState<string[] | null>(() =>
     testPair ? [testPair[0].id, testPair[1].id] : null,
   );
@@ -598,6 +602,8 @@ export default function Arena({
   useEffect(
     () =>
       subscribeWorks(() => {
+        // The recovery owner replaces both content objects after refresh, even for identical ids.
+        if (recoveryBusy.current) return;
         // 挂载时远端清单还没到 → 测试对查不到作品；清单落地后补消费一次
         const test = formal ? null : takeTestPair(prompt.id);
         if (test) {
@@ -793,6 +799,65 @@ export default function Arena({
     window.addEventListener('message', onWorkReady);
     return () => window.removeEventListener('message', onWorkReady);
   }, []);
+  const loadingPhase = useRef(state.phase);
+  useLayoutEffect(() => { loadingPhase.current = state.phase; }, [state.phase]);
+  useEffect(() => {
+    if (!pair) { releaseWorksGate(); return; }
+    if (recoveryBudget.current.run !== state.run) {
+      recoveryBudget.current = { run: state.run, used: false };
+    }
+    const controller = new AbortController();
+    const started = performance.now();
+    let live = true;
+    const pendingIds = () => [cardA, cardB].flatMap((card, index) => {
+      const frame = card.current?.querySelector<HTMLIFrameElement>('iframe[data-ready-probe="required"]');
+      return frame && (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow)) ? [pair[index].id] : [];
+    });
+    const stopAtEmpty = () => {
+      setRecovering(false);
+      setPair(null);
+      releaseWorksGate();
+    };
+    const timer = setInterval(() => {
+      if (!['loading', 'intro', 'transition'].includes(loadingPhase.current) || recoveryBusy.current) return;
+      const failed = pendingIds();
+      if (!failed.length || performance.now() - started < 10000) return;
+      clearInterval(timer);
+      if (recoveryBudget.current.used) { stopAtEmpty(); return; }
+      recoveryBudget.current.used = true;
+      recoveryBusy.current = true;
+      setRecovering(true);
+      const notice = document.querySelector('.game-transition.gt-match');
+      if (notice) {
+        const status = document.createElement('output');
+        status.className = 'gt-recovery';
+        status.textContent = translate('作品接入失败，正在换一组…', getLocale());
+        notice.append(status);
+      }
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      void refreshWorks(controller.signal).then((ok) => {
+        if (!live) return;
+        if (!ok) { stopAtEmpty(); return; }
+        const candidates = currentPairs(prompt.id);
+        const preferred = candidates.filter((candidate) => candidate.every((work) => !failed.includes(work.id)));
+        const choices = preferred.length ? preferred : candidates;
+        const next = choices[Math.floor(Math.random() * choices.length)] ?? null;
+        setGatePassed(false);
+        setWorksSettled(false);
+        setWorksStalled(false);
+        setPair(next);
+        // Remount both windows even when the refreshed pair has the same ids.
+        setWorkAttempt((attempt) => attempt + 1);
+        setRecovering(false);
+        if (!next) releaseWorksGate();
+      }).finally(() => {
+        clearTimeout(timeout);
+        recoveryBusy.current = false;
+        notice?.querySelector('output.gt-recovery')?.remove();
+      });
+    }, 60);
+    return () => { live = false; clearInterval(timer); controller.abort(); };
+  }, [pair, prompt.id, state.run, workAttempt]);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
   const animations = useRef<Animation[]>([]);
@@ -938,7 +1003,8 @@ export default function Arena({
   }, []);
 
   useEffect(() => {
-    if (state.phase !== 'intro') return;
+    if (state.phase !== 'intro' || !pair) return;
+    const introStage = stageRef.current;
     const controller = new AbortController();
     const signal = controller.signal;
     const resetScroll = () => {
@@ -970,6 +1036,7 @@ export default function Arena({
         setWorksPendingBySide({ a: false, b: false });
         await delay(reducedMotion ? 60 : 440, signal);
         play('reveal');
+        releaseWorksGate();
         dispatch({ type: 'READY' });
         return;
       }
@@ -1081,8 +1148,11 @@ export default function Arena({
       animations.current = [];
       resetScroll();
       setSpotlight(null);
-      // 离开 intro 的一切路径都放门：空格跳过、卸载、重跑——不留死幕（096）
-      releaseWorksGate();
+      // A recovery restarts intro under the same curtain; cleanup must not reveal
+      // the replacement before its probe. Navigation and explicit skip still release.
+      queueMicrotask(() => {
+        if (!introStage?.isConnected || ['voting', 'result'].includes(loadingPhase.current)) releaseWorksGate();
+      });
     };
   }, [
     state.phase,
@@ -1094,6 +1164,8 @@ export default function Arena({
     tour,
     waitWorksLoaded,
     gatePassed,
+    pair,
+    workAttempt,
   ]);
 
   useEffect(() => {
@@ -1103,7 +1175,7 @@ export default function Arena({
     // 自带的 70%→100% 退场已拆掉：0.61s 一到快门自己扫走、露出裸加载，
     // 再被「正在接入试验场」盖住，正是用户截图里那一串。卡死超过
     // worksSkipAt 放行给 intro 的「跳过此题」出口，不死等。
-    if (state.phase === 'transition') {
+    if (state.phase === 'transition' && pair) {
       const controller = new AbortController();
       const signal = controller.signal;
       let live = true;
@@ -1137,9 +1209,15 @@ export default function Arena({
         }
         const winner = await Promise.race([
           waitWorksLoaded(signal).then(() => 'ready' as const),
-          delay(ARENA_TIMING.worksSkipAt, signal).then(
-            () => 'stalled' as const,
-          ),
+          delay(ARENA_TIMING.worksSkipAt, signal).then(async () => {
+            // Legacy local pages retain their manual timeout; platform probe frames
+            // remain covered while the one-shot recovery owner handles their failure.
+            if ([cardA, cardB].some(card => card.current?.querySelector('[data-ready-probe="required"]'))) {
+              await waitWorksLoaded(signal);
+              return 'ready' as const;
+            }
+            return 'stalled' as const;
+          }),
         ]);
         if (!live) return;
         setGatePassed(winner === 'ready');
@@ -1168,7 +1246,7 @@ export default function Arena({
     return () => {
       if (timeout) clearTimeout(timeout);
     };
-  }, [state.phase, reducedMotion, play, waitWorksLoaded]);
+  }, [state.phase, reducedMotion, play, waitWorksLoaded, pair, workAttempt]);
 
   // 盲测揭晓时的身份解密：真实身份一挂载就用遮黑条盖住（layout effect 保证
   // 用户看不到未遮盖的名字），再按行错峰退开。娱乐模式身份全程公开不解密。
@@ -1526,7 +1604,7 @@ export default function Arena({
                     >
                       <Work
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
-                        key={result.id}
+                        key={`${result.id}-${workAttempt}`}
                         result={result}
                         side={side}
                         // 投票阶段（及揭晓后）小预览也允许交互：点击画面、作品内按钮
@@ -1674,7 +1752,7 @@ export default function Arena({
               className={`loading-overlay ${worksSettled ? 'is-clearing' : ''}`}
             >
               <Mark />
-              <span>{t('正在接入试验场')}</span>
+              <output>{t(recovering ? '作品接入失败，正在换一组…' : '正在接入试验场')}</output>
               <div className="load-track" />
               {worksStalled && (
                 <button

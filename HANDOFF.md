@@ -1,5 +1,15 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-03 · 作品死链的一次性恢复（本地完成，未提交、推送、部署）
+
+- 用户确认先交报告再实施。pull --ff-only：本仓 aca33ba→40fbc8e，共享后端 2915a49→5527c5e；原未跟踪 jianmo/ 保留。所有未来提交禁止联合署名/Generated with，英文简单句。本轮不 commit/push/deploy，不写归档。
+- lib/works.ts 增加可等待、有 signal 的刷新，失败保留现有清单，合法空清单仍发布。平台 w/p/c URL 加 aob=prev 和 readyProbe 元数据；lib/arena.ts、Work 和 FixedHtmlWork 只据此等探针，不变 sandbox。实查后端原来仅 m 注入探针，跨域 iframe 还会直接放行，故仅加超时无法识别真实 410；后端已配套 opt-in 探针，普通投稿地址和私看口语义不动。
+- app/page.tsx 每组任一侧 10 秒未就绪，轻提示后仅刷新一次，在同题优先避开失败 id；候选不足允许刷新后的原 id。workAttempt 强制新 iframe 窗口，避免沿用同 id 旧 URL 或 Window 就绪记录。第二次失败/刷新失败 pair=null，保留 aca33ba 空态；清单真空由已有路由进入「结果待接入」预览。声音/巡览偏好不重置，离开后异步结果丢弃。
+- 探针作品 transition 中等恢复，不提前放走纸幕；原本无探针的本地页保留旧 8 秒手动跳过。intro 重跑不能释放遮罩，正常 READY、显式跳过和卸载仍释放。未改题定义、样式、Gallery、历史桥接、CSP、nginx 或部署配置。
+- 最终验证：typecheck、lint、build:check、生产 build、diff --check 通过；validate-work-retry 8/8（正常投票/揭晓/两种继续，过期键换组，同 id 新 URL，连续失败，空清单，503，途中离开，菜单遮罩）；validate-work-ready 14/14（纸/墨），仅调整其隔离永久失败场景为刷新后避开失败作品；validate-votes 12/12（该脚本使用旧 server 与临时库，不替代共享后端生产投票验收）。
+- 浏览器全为隔离 fixture、不投真实票；恢复截图已目检，未声称真实作品/生产账号验收。证据 output/work-retry/results.json、work-ready-final.json 与截图；已跟踪生成的 work-ready-after.json 恢复本轮前版本。早期计时器被 t 身份变化重置、空清单路由转预览、遮罩下重复文案定位问题均已修正，最终整套重跑通过。
+- 后端 v37/c 实时门禁 check 84/0、test 248/248。未部署，所以公网新 c 200 验收未执行。发布前需备份生产 SQLite；后端探针先于前端发布，前端不可单独上线等待尚未注入的探针。
+
 ## 四仓分支合并与逻辑核对（2026-10-03，本地验证完成）
 
 - 本仓没有漏合的功能分支；lib/works.ts 兼容后端 dp-轮次-id 清单，前端源码保持原样。lint/typecheck/build、placeholder 10/10、formal 6/6 通过；本轮仅记录四仓合并检查，未发布。

@@ -52,7 +52,7 @@ export function FixedHtmlWork({
           src={inline ? undefined : content.src}
           srcDoc={inline ? content.html : undefined}
           sandbox={inline || content.sandboxed ? 'allow-scripts' : 'allow-scripts allow-same-origin'}
-          data-ready-probe={!inline && content.sandboxed ? 'required' : undefined}
+          data-ready-probe={!inline && (content.sandboxed || content.readyProbe) ? 'required' : undefined}
           inert={!interactive}
           style={{
             width: canvas.width,

@@ -42,6 +42,19 @@ function parseWorkRow(row: unknown): ModelResult | null {
     !knownContentKinds.has((content as Record<string, unknown>).kind as string)
   )
     return null;
+  // Public work hosts are cross-origin: document inspection cannot detect their 410 pages.
+  // Ask only the platform content service for a probe; ordinary external/local HTML stays unchanged.
+  const resultContent = content as ModelResult['content'];
+  if (resultContent.kind === 'html' && 'src' in resultContent) {
+    try {
+      const url = new URL(resultContent.src);
+      if (/^[wpc][0-9a-f]{32}\.(?:w\.arenaofbias\.icu|localhost)$/.test(url.hostname)) {
+        url.searchParams.append('aob', 'prev');
+        resultContent.src = url.href;
+        resultContent.readyProbe = true;
+      }
+    } catch { /* Relative legacy pages use document inspection. */ }
+  }
   return {
     id: candidate.id as string,
     promptId: candidate.promptId as string,
@@ -49,15 +62,15 @@ function parseWorkRow(row: unknown): ModelResult | null {
     modelName: candidate.modelName as string,
     title: candidate.title as string,
     ...(candidate.isDemo ? { isDemo: true } : {}),
-    content: content as ModelResult['content'],
+    content: resultContent,
   };
 }
 
 /** 拉已发布作品清单；失败返回 null（调用方回退内置花名册）。空清单是合法结果
  *（作品全部下架——发布开关语义），原样返回 []，不回退内置清单 */
-export async function fetchWorks(): Promise<ModelResult[] | null> {
+export async function fetchWorks(signal?: AbortSignal): Promise<ModelResult[] | null> {
   try {
-    const response = await apiFetch('/api/works');
+    const response = await apiFetch('/api/works', { signal });
     if (!response.ok) return null;
     const data = (await response.json()) as { works?: unknown };
     if (!Array.isArray(data.works)) return null;
@@ -119,6 +132,15 @@ export function loadWorks(): void {
         : { status: 'ready', source: 'remote', works };
     emit();
   })();
+}
+
+/** Recovery refresh: retain the current roster on failure, publish a valid empty roster. */
+export async function refreshWorks(signal: AbortSignal): Promise<boolean> {
+  const works = await fetchWorks(signal);
+  if (signal.aborted || works === null) return false;
+  state = { status: 'ready', source: 'remote', works };
+  emit();
+  return true;
 }
 
 /** 测试/调试用：重置回未加载状态（生产代码不调用） */

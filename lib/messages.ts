@@ -364,6 +364,7 @@ export const messages: Record<string, string> = {
   半斤八两: 'On equal ground',
   '两种表达。一个选择。': 'Two expressions. One choice.',
   正在接入试验场: 'Entering the arena',
+  '作品接入失败，正在换一组…': 'A work failed to load — switching to another pair…',
   平局已锁定: 'Draw locked',
   直觉已锁定: 'Choice locked',
   '选不出来，也是一种答案。': 'A draw is an answer, too.',
