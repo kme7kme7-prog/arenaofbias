@@ -28,8 +28,8 @@ assert.equal(calls.length, 0, 'unmount cancels pending scroll');
 schedulePromptScroll({ ...target, isConnected: false }, false);
 flush();
 assert.equal(calls.length, 0, 'detached target cannot scroll a new route');
-assert.match(mainSource, /currentPairs\(arenaPromptId\)\.length === 0/);
-assert.match(mainSource, /if \(!arenaPromptId \|\|[\s\S]{0,80}window\.scrollTo\(0, 0\)/);
+assert.match(mainSource, /currentPairs\(arenaPromptId,[^\n]+\)\.length === 0/);
+assert.match(mainSource, /if \(!arenaPromptId \|\|[\s\S]{0,180}window\.scrollTo\(0, 0\)/);
 // 娱乐「下一题」：双页纸幕只盖场内区域，层挂 body 活过卸载，盖满才切 hash
 const pageSource = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
 assert.match(pageSource, /useLayoutEffect\(\(\) => animateArenaLayout/,
@@ -41,10 +41,12 @@ assert.match(pageSource, /onCovered:[\s\S]{0,120}window\.location\.hash = next/)
 assert.match(pageSource, /onFrame:[\s\S]{0,100}alignArenaTransition/);
 // Document coordinates follow native scrolling; fresh selectors survive route unmount.
 let bounds = [{ top: 200, bottom: 220, left: 40, right: 940 }, { top: 220, bottom: 900, left: 40, right: 940 }];
-globalThis.window = { scrollX: 0, scrollY: 100 };
+globalThis.window = { scrollX: 0, scrollY: 100, innerHeight: 1200 };
 const regionDocument = { querySelectorAll: () => bounds.map(rect => ({ getBoundingClientRect: () => rect })) };
 globalThis.document = regionDocument;
-const layer = { style: {} };
+let zoom = 1;
+globalThis.getComputedStyle = () => ({ width: '1000px' });
+const layer = { style: { setProperty(name, value) { this[name] = value; } }, getBoundingClientRect: () => ({ width: 1000 * zoom }) };
 alignArenaTransition(layer);
 assert.equal(layer.style.position, 'absolute');
 assert.equal(layer.style.top, '300px');
@@ -56,6 +58,16 @@ bounds = [{ top: 90, bottom: 890, left: 16, right: 376 }];
 alignArenaTransition(layer);
 assert.equal(layer.style.top, '490px', 'new route nodes replace old geometry');
 assert.equal(layer.style.width, '360px');
+// Screen-space DOMRects must be converted back into the layer's CSS pixels.
+for (const scale of [.8, .67, 1.25]) {
+  zoom = scale;
+  alignArenaTransition(layer);
+  for (const [property, expected] of [['top', 490], ['left', 16], ['width', 360], ['height', 800], ['--gt-match-center', 400]]) {
+    assert.ok(Math.abs(parseFloat(layer.style[property]) * scale - expected) < .001, `${property} must scale exactly once`);
+  }
+}
+zoom = 1;
+alignArenaTransition(layer);
 bounds = [];
 alignArenaTransition(layer);
 assert.equal(layer.style.top, '490px', 'missing route during commit retains last bounds');
@@ -65,7 +77,7 @@ assert.doesNotMatch(pageSource, /arenaTransition[\s\S]{0,80}dispose/, 'route-own
 // 清单落地先补消费测试对（决策 101：挂载时清单未到则在此接手），再走保留判定
 assert.match(
   pageSource,
-  /subscribeWorks\(\(\) => \{[\s\S]{0,240}takeTestPair\(prompt\.id\)[\s\S]{0,200}setPair\(\(current\) => \{[\s\S]{0,200}currentPairs\(prompt\.id\)\.some\(/,
+  /subscribeWorks\(\(\) => \{[\s\S]{0,360}takeTestPair\(prompt\.id\)[\s\S]{0,200}setPair\(\(current\) => \{[\s\S]{0,200}currentPairs\(prompt\.id, scope\)\.some\(/,
   'works emit must keep a still-valid pair instead of unconditional re-pair',
 );
 // 「随机换个竞技场」与「下一题」同样挂 blocked，重播过场中不得再叠 match 纸幕

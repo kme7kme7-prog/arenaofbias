@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>换题遮罩坐标检查</title>
+  <style>
+    html { zoom: .8; }
+    body { margin: 0; background: #dfe4de; color: #1c2423; font: 16px Arial, sans-serif; }
+    header { padding: 28px 4%; display: flex; gap: 16px; align-items: center; }
+    .arena-shell { margin: 0 4%; }
+    .field-meta { height: 32px; }
+    .arena-stage { height: 640px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .arena-stage > div { background: #ff796a; display: grid; place-items: center; font-size: 80px; }
+    .arena-stage > div + div { background: #8ecbdc; }
+    .round-console { height: 70px; background: #acb5ab; }
+    footer { height: 500px; padding: 32px 4%; }
+  </style>
+</head>
+<body>
+  <header>
+    <b>换题遮罩坐标检查</b>
+    <label>页面比例 <select id="scale"><option value=".8">80%</option><option value="1">100%</option><option value=".67">67%</option><option value="1.25">125%</option></select></label>
+    <button id="cover">盖满并保持</button><button id="clear">撤去遮罩</button>
+  </header>
+  <main class="arena-shell">
+    <div class="field-meta">盖区包含此行、双方作品和底部投票条</div>
+    <div class="arena-stage"><div>A</div><div>B</div></div>
+    <div class="round-console">投票区域</div>
+  </main>
+  <footer>可滚动页面或调整窗口，遮罩应始终贴住场内区域。</footer>
+  <script type="module">
+    import '../app/theme.css';
+    import '../app/game-transitions.css';
+    import { createGameTransition } from '../lib/game-transitions.ts';
+    import { alignArenaTransition } from '../lib/arena-scroll.ts';
+    let controller;
+    const clear = () => { controller?.dispose(); controller = undefined; };
+    const align = () => controller && alignArenaTransition(controller.layer);
+    const cover = () => {
+      clear();
+      controller = createGameTransition('match', { title: '下一场', holdGate: () => false });
+      align();
+      controller.seek(controller.timing.covered);
+      return controller;
+    };
+    document.querySelector('#cover').onclick = cover;
+    document.querySelector('#clear').onclick = clear;
+    document.querySelector('#scale').onchange = event => { document.documentElement.style.zoom = event.target.value; align(); };
+    window.addEventListener('resize', align);
+    window.addEventListener('scroll', align);
+    window.__coverReview = { cover, align, clear };
+  </script>
+</body>
+</html>

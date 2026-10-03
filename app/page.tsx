@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
 import { workCanvas } from '@/lib/work-framing';
+import { withArenaControls } from '@/lib/work-controls';
 import { newId } from '@/lib/id';
 
 import { AccountButton, useAccount } from '@/components/account';
@@ -446,6 +447,7 @@ export function Work({
   expanded = false,
   interactive = false,
   imageFailed = false,
+  cleanPreview = false,
 }: {
   result: ModelResult;
   side: Side;
@@ -453,6 +455,8 @@ export function Work({
   /** 小预览也允许交互（点击画面、作品内按钮）——投票阶段才开启 */
   interactive?: boolean;
   imageFailed?: boolean;
+  /** Entertainment previews hide detectable overlays; expanded works show the original UI. */
+  cleanPreview?: boolean;
 }) {
   const { t, localize } = useI18n();
   if (result.content.kind === 'image')
@@ -475,7 +479,9 @@ export function Work({
   if (result.content.kind === 'web')
     return <WebWork side={result.content.template} interactive={expanded} />;
   if (result.content.kind === 'html') {
-    const { content } = result;
+    const content = 'src' in result.content
+      ? { ...result.content, src: withArenaControls(result.content.src, cleanPreview && !expanded, result.promptId === '010') }
+      : result.content;
     const canvas = workCanvas(result);
     if (canvas) return (
       <FixedHtmlWork
@@ -731,9 +737,6 @@ export default function Arena({
       window.location.hash = next;
       return;
     }
-    const rects = parts.map((el) => el.getBoundingClientRect());
-    const top = Math.min(...rects.map((r) => r.top));
-    const bottom = Math.max(...rects.map((r) => r.bottom));
     const destination = currentPrompts().find((item) => `#arena/${item.id}` === candidate);
     // 布防作品就绪门（决策 096）：纸幕盖满切 hash 后钉在盖满位，新页双侧
     // 作品就绪（或超时/跳过）才扫出——「正在接入试验场」整拍被牌面吸收
@@ -762,13 +765,7 @@ export default function Arena({
     // 新页挂载后由 consumeTextSwap + reveal 接手错峰揭开
     armTextSwap();
     textSwapMask.cover(terminal, reducedMotion);
-    const layerStyle = transition.layer.style;
     alignArenaTransition(transition.layer);
-    // Long mobile stages extend beyond the viewport. Keep the interlude's
-    // title in the visible portion without changing the area being covered.
-    const visibleTop = Math.max(0, top);
-    const visibleBottom = Math.min(window.innerHeight, bottom);
-    layerStyle.setProperty('--gt-match-center', `${(visibleTop + visibleBottom) / 2 - top}px`);
     transition.play();
   };
   const stageRef = useRef<HTMLDivElement>(null);
@@ -1606,6 +1603,7 @@ export default function Arena({
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
                         key={`${result.id}-${workAttempt}`}
                         result={result}
+                        cleanPreview={!formal && state.mode === 'blind'}
                         side={side}
                         // 投票阶段（及揭晓后）小预览也允许交互：点击画面、作品内按钮
                         interactive={

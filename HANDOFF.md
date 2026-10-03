@@ -8,6 +8,58 @@
 - 发布从本次固定提交干净 LF 导出构建，API 主机仍为 https://api.arenaofbias.icu；静态目标 /www/wwwroot/show1-dist。后端必须先于游戏发布 aob=prev 探针和门槛契约；保留服务器旧 works/hash 资源及 game /api 反代，生产账号、Turnstile、邮件与全部作品交互没有本轮完整验收。
 - 本轮归档：[远端归并发布准备](docs/handoff/2026-10-03-remote-game-integration-wsnxxxs.md)。本节为发布准备，推送与实际上线结果以后续协调发布记录为准。
 
+## 2026-10-03 · 键盘娱乐小窗只展示场景（本地完成）
+
+- 010 娱乐 blind 小窗额外附加 aob=arena-scene；后端保留唯一大 Canvas 及祖先链，收起链外产品页内容、铺满容器并触发作品自身 resize。不改作品文件/相机，放大及正式原样；无/多 Canvas 保守不选。
+- scripts/validate-keyboard-preview.mjs：截图 PRISM-68 和 Sora Atelier 75 画布铺满、渲染比例、侧栏隐藏、拖拽后节点保持、放大完整原作、关闭小窗不重建、正式原样通过；无/多 Canvas、迟加载和替换保护通过。已查看 .local/work-controls/keyboard-preview.png，其他键盘未逐件验收。
+- typecheck/lint/build、后端 check 85/0、test 249/249 通过。本地服务已重启，未 commit/push/deploy，保留已有工作区改动。
+
+## 2026-10-03 · 娱乐小窗隐藏，放大/正式显示原作（本地完成）
+
+- 用户改变展示规则：娱乐盲测所有题目小窗默认收起可识别控件与标签，放大才显示，正式盲测保持原显示。app/page.tsx 的 Work 改为 cleanPreview opt-in，只由 !formal && state.mode === 'blind' 小窗传入；放大不传，Work 也用 expanded 守卫。lib/work-controls.ts 只保留 URL opt-in/移除逻辑，删除上一版前端消息开关；FixedHtmlWork、全局 CSS、文案恢复原接口。取消类别白名单。
+- 后端 arena-fold.js 增加独立的投影说明标签层识别：大幅 Canvas、非交互浮层、多个短文本绝对定位子节点全部匹配才收起；保留普通标签/混合标题内容。不改源作品、图库 fold.js 或正式接口。仍不保证 Canvas 内文字/复杂布局全覆盖。
+- scripts/validate-work-controls.mjs 更新：面板/恢复/迟加载/来源保护、标签层/普通标签保护、10 份真实飞机样本通过；截图中的 deepseek-v4.1-flash-xhigh 标签层命中。真实娱乐小窗隐藏、放大原控件/标签显示、关闭不重载底层文档/Canvas、010 也统一 opt-in、正式小窗保留标签/控件全部通过。正式验证用浏览器隔离的 mock admin/两份 roster，无真实登录或投票写库。
+- typecheck/lint/build、后端 check 85/0、npm test 249/249 通过。本地 5441/5190/5191 已加载新代码。截图 .local/work-controls/clean-preview.png、expanded-original.png、formal-original.png；放大窗口原作存在自己的乱码/布局问题，本轮未改作品。未 commit/push/deploy。决策已追加 docs/DECISIONS.md。
+
+## 2026-10-03 · 作品控件折叠本地试版（未提交、未部署）
+
+- 用户授权先实现并评估可行性。本轮新增 lib/work-controls.ts，Work/FixedHtmlWork 接入共享后端 aob=arena-fold opt-in 与父子消息；建模/3D 场景/物理模拟默认收起，键盘/配置器排除。识别到控件才显示「显示/隐藏作品控件」按钮，普通预览与放大窗口共用当前选择。切换只发消息，不改 src、不重建 iframe；作品源文件未修改。
+- 后端新增独立 arena-fold.js，只认大幅 Canvas 上方的浮动 DOM 容器，保留 Gallery 原 fold.js 策略。不能保证所有作品覆盖；布局内侧栏、Canvas 内 UI、未识别容器保持原样。没有针对作品 id 的补丁，没有改相机取景。
+- 浏览器脚本 scripts/validate-work-controls.mjs：溢出面板整块隐藏、恢复节点/输入、迟加载保留选择、非法消息、入口/表单/介绍/普通布局保护通过；真实 011 前 9 份样本中 8 份识别到控件（部分仅视角工具栏，并非 8 份全部侧栏均解决），包括用户截图两份飞机；正常双 iframe 切换保持 document/Canvas，放大继承选择，010 键盘排除通过。本地截图及样本报告 .local/work-controls/。
+- typecheck/lint/build 通过；共享后端 check 与 npm test 249/249 通过，新增 opt-in 与老 fold 互斥/字节一致断言。初次新 HTTP 测试失败是旧 helper 丢弃 query，补 pathname+search 后全量通过。仅本地 5441/5190/5191，未触及生产；后台已重启加载新脚本。
+- 保留此前遮罩修复和 jianmo/ 等工作区内容。后端检查时出现他人 scripts/archive-backup.sh、datapack-sync.sh、cleanup-retention.sh 改动，未触碰。
+
+## 2026-10-03 · 作品自带面板遮挡调查（仅分析，待确认实施）
+
+- 用户要求先理解流程并讨论隐藏方案。本轮核对作品投稿/馆藏 → shared compat /api/works → lib/works → Work/FixedHtmlWork → 独立源内容服务、就绪探针、换题和放大弹窗链路；没有修改业务源码或下载作品。
+- 共享后端已有 server/fold.js 与 aob=fold opt-in，m 盲评页默认启用，公开 w/c 页面需参数；Show1 当前只加 aob=prev，没有面板开关或 sp-fold 消息接线。另只读核对 Gallery 公网 app.js 引用 work-controls.js，确实使用同一折叠消息协议和同源馆藏临时注入。
+- 在用户本地 #arena/011 的两份真实 Boeing 作品、797×492 iframe 上开独立临时检查页：现有 fold 对 #controls 大面板零命中，另一份仅隐藏 panelbody/presets/views，aside 外壳仍在。35% 单块与 40%/6 块保护和祖先选择需整体评估，不能简单全局放宽以免误藏网页内容。
+- 临时精确隐藏完整 aside 后，浏览器 DOM 检查两侧 canvas 节点/尺寸、input 值均保留；撤销后面板恢复。未覆盖全部作品或完成视觉验收：Tabbit 截图显示旧绘制状态，与当前 DOM 不一致，因此不作为成功截图。临时页已关闭，用户原竞技场和展览馆标签保留。
+- 建议先在 3D/建模题接入可恢复控件开关、识别完整浮动容器并在揭幕前完成首轮处理；布局侧栏另做逐作品适配，自动识别不可靠时使用人工确认规则。放大弹窗另建 iframe，必须同步开关；共享 fold 改动需回归 Gallery，当前没有授权默认隐藏全部题型或持久改写原作。本轮仅记录调查，未 commit/push/deploy。
+
+## 2026-10-03 · 全部线上作品本地排查副本
+
+- 用户要求把作品全部拉到本地。独立目录 .local/db-snapshots/20261003T103735Z/full-local-20261003T104123Z，包含只读 SQLite 在线 backup、新测试库、生产 .data/works、.data/media 与 current 一次解析固定的 datapack 3c82309f65ec2a405741a53e581bd68aeb09460d；未覆盖之前数据库/现有本地数据，未停或改生产服务，未下载环境凭据。
+- 采集标记 2026-10-03T10:41:51Z；压缩包 488,760,265 字节（466.12 MiB），4,373 个原文件合计 761,170,235 字节（725.91 MiB）。归档和每个文件 SHA-256 均一致，SQLite v37 integrity_check=ok。manifest/metadata/原始 assets.tgz 与只读 snapshot.db 保留，VPS 仅删除本次新建临时归档目录内的两个文件并 rmdir。
+- 本地启动指南和 PowerShell 脚本使用 API 5190、作品 5191、前端 5441，明确 DATA_DIR/DIST_DIR 与本地 API，禁用截图/付费审核/SMTP；相对 works root 可直接适配，不改库中历史对局 Linux 数据包路径。历史 compat 清单写死生产 URL，额外 ignored local-server.mjs 仅重写本地 /api/works 响应到 token.localhost，仓库后端、原清单和下载基线均未修改。
+- 隔离本地 HTTP 验证：527 条清单，464 HTML（287 w/177 c）；382 入口 200/探针，82 个 410 全来自既有老题 001/002/006，无 404，177 c 全 200。验证明细 local-verification.json；没有测试生产账号、投票或浏览器交互。验证服务器已关闭，交付测试库恢复为原始快照。所有副本/脚本均 Git ignored，本轮未 commit/push/deploy，保留遮罩改动和 jianmo/。
+
+## 2026-10-03 · 线上数据库只读快照下载
+
+- 用户要求查看线上数据库大小并拉取作本地测试。通过现有 SSH 密钥/known_hosts 连接，在 /www/wwwroot/arenaofbias-server/.data/platform.db 只读连接执行 SQLite backup API；未停服务、未改线上库，临时快照下载后删除，仅删除本次创建的 /tmp/aob-localtest-*.db。
+- 2026-10-03 18:37:35 北京时间：主库 3,198,976 字节（3.05 MiB）；当时 WAL 2,344,312、SHM 32,768 字节。下载一致性快照包含已提交 WAL 内容，v37，服务端/本地 SHA-256 一致，quick_check 和 integrity_check 为 ok。统计仅记录数量，不打印账号或密钥内容。
+- 保留 .local/db-snapshots/20261003T103735Z/snapshot.db 为只读基线，test-data/platform.db 为可写测试副本，metadata.json/README.md 提供来源及 DATA_DIR 配置。两份库都确认 Git ignored；未覆盖现有本地库、未启动生产数据副本进行 API 验收。
+- 只下载 SQLite，未下载作品/媒体/数据包；线上各目录字节数为 172,209,703 / 59,108,210 / 535,250,850。完整作品本地测试需要匹配文件与数据包，并适配测试库中的 Linux 路径。现有遮罩修复不涉及数据库，前端回退不应回滚线上持续新增的数据。本轮不提交、推送或部署。
+
+## 2026-10-03 · 换题纸幕缩放坐标修正（本地完成，未提交、推送、部署）
+
+- 用户截图显示下一题过场向左上错位、右侧作品外露，怀疑 80% 缩放。接手核对本地 4e98dab，只有原未跟踪 jianmo/；此前十件门槛由外部提交，本轮不动。
+- 根因 lib/arena-scroll.ts 将 getBoundingClientRect 的屏幕像素原样写入 body 层 CSS 长度，再被 html zoom:.8 缩一次。Tabbit 对照实测区域宽 1541.9375、旧纸幕宽 1233.5417（80%），且 left/top 同样偏；修正后两者 x/y/width 完全对齐。默认 80% 页面比例不改。
+- alignArenaTransition 用该层实际 DOMRect/computed CSS width 比值转换位置、宽高及可视中心；每帧重选当前场区，滚动/新题/高度变化继续跟随。app/page.tsx 删除重复的屏幕坐标中心写入。只修场内 match 覆盖几何，不改变材质、时长、就绪/一次恢复门控或其他玩法。
+- 先新增 reference/arena-cover-review.html 生产模块对照工具与 check-arena-scroll 的缩放断言再修行为；顺带将这项检查因十件门槛 scope 参数而过时的正则对齐现实现。新增 scripts/validate-arena-cover.mjs：三种宽度 × 四种 CSS 比例 × 滚动，活动纸幕窗口/高度变化，实际纸/墨换题，28/28 全过；可见角点 elementFromPoint 必须命中纸幕、边界误差 <.6px。所有真实页面 API/作品均隔离 fixture，无生产写入。
+- check:arena-scroll、check:game、typecheck、lint、production build、diff --check 通过；output/arena-cover/results.json、paper-covered.png、ink-covered.png 证据（生成物不入库），paper 截图已目检。Tabbit 首次截图超时，后续只读几何成功，图片改用隔离 Edge fixture 获取并目检，未声称 Tabbit 截图成功。
+- 本轮不 commit/push/deploy，未验收公网版本；未动 server、Gallery 或部署配置。需从本轮构建发布后才会在公网生效。
+
 
 ## 2026-10-03 · 娱乐盲测十件作品门槛（本地完成，未提交、推送、部署）
 
