@@ -71,16 +71,26 @@ assert.deepEqual(
   summarizePairVotes([vote('w', 'luna', 'orbit')], '003', 'luna', 'orbit'),
   { left: 1, right: 0, draw: 0 },
 );
-assert.match(componentSource, /setLeaving\(true\), 1200/);
-assert.match(componentSource, /setDismissed\(true\), 1450/);
+assert.match(componentSource, /controller\.abort\(\);\s*setFailed\(true\);\s*}, 8000\)/);
+assert.match(componentSource, /if \(!complete\) return;\s*const leaveTimer/);
+assert.match(componentSource, /setLeaving\(true\), 2600/);
+assert.match(componentSource, /setDismissed\(true\), 2900/);
 assert.match(componentSource, /if \(dismissed\) return null/);
 assert.match(componentSource, /is-pending/);
 assert.match(componentSource, /is-leaving/);
 assert.match(
   pageSource,
-  /state\.phase === 'locking' \|\| state\.phase === 'result'[\s\S]{0,300}<AudienceVerdict/,
+  /state\.phase === 'locking' \|\| state\.phase === 'result'[\s\S]{0,300}voteOutcome\.state === 'saved'[\s\S]{0,150}<AudienceVerdict/,
 );
 assert.match(pageSource, /reducedMotion \? 80 : ARENA_TIMING\.resultReveal/);
+assert.match(pageSource, /window\.dispatchEvent\(new Event\('aob:votes-changed'\)\)/);
+const rankingSource = await readFile(new URL('../app/ranking.tsx', import.meta.url), 'utf8');
+assert.match(rankingSource, /window\.addEventListener\('aob:votes-changed', refresh\)/);
+assert.match(rankingSource, /worksState, promptsState, voteRevision\]/);
+if (process.argv.includes('--votes-only')) {
+  console.log('Vote aggregation, result states, timing and leaderboard refresh checks passed.');
+  process.exit(0);
+}
 assert.match(pageSource, /scrollable\.scrollHeight - scrollable\.clientHeight > 1/);
 assert.doesNotMatch(pageSource, /await animation\.finished/);
 assert.match(globalCssSource, /@keyframes vote-pending/);
@@ -268,7 +278,7 @@ assert.match(maskSource, /const FRAME_STEP_CAP = 100;/);
 assert.match(maskSource, /elapsed \+= Math\.min\(nowMs - last, FRAME_STEP_CAP\)/);
 assert.doesNotMatch(maskSource, /now - this\.started/);
 assert.match(maskSource, /layer\.dataset\.gtPhase !== 'exit'/);
-assert.ok(1200 < timing.resultReveal && timing.resultReveal < 1450);
+assert.ok(timing.resultReveal < 2600);
 const resultDelays = [
   /phase-result \.side-result \{ animation: text-enter \.4s ([\d.]+)s/.exec(cssSource),
   /phase-result \.reaction-bar \{ animation: text-enter \.45s ([\d.]+)s/.exec(cssSource),
