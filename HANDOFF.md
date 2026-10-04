@@ -556,3 +556,9 @@
 - [双主题上线](docs/handoff/2026-09-30-竞技场双主题-Atmeplz.md)、[主题交付](docs/THEME-DELIVERY.md)：纸 / 墨方案、构建与验收边界。
 - [可选邮箱](docs/handoff/2026-09-29-email-auth-v2-wsnxxxs.md)、[浏览器分享](docs/handoff/2026-09-29-share-v2-wsnxxxs.md)、[模态判色](docs/handoff/2026-09-29-模态判色修复-Atmeplz.md)：已合入的近期功能。
 - [内测收口历史](docs/handoff/2026-09-25-内测开闸前收口-kme7kme7-prog.md)、[更早交接](docs/handoff/2026-09-24-历史交接快照-Atmeplz.md)：迁移前邮箱、后台、模型治理与快门记录。
+
+## 2026-10-05 · 游戏脚本CSP加固（本地完成，未推送、未部署）
+
+- 用户要求核实漏洞并修复；竞猜明确要求先搁置，规则/算法/接口未改。当前线上已有CSP和HSTS，报告「完全无CSP」不成立。
+- Vite最终HTML入口加入内联启动脚本SHA-256哈希策略，保留自身脚本、Cloudflare和Blob Worker，限制object/base；与既有Nginx头同时生效。不改旧server、兼容代理或作品资源。
+- lint、typecheck、build:check、diff检查通过；隔离游戏首页/纸色主题正常，额外内联与onclick被阻止、Blob Worker正常。未重跑全部竞技场交互或生产竞猜写入，构建产物不入库。未推送部署。[本轮归档](docs/handoff/2026-10-05-security-csp-wsnxxxs.md)。
