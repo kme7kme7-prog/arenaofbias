@@ -1,5 +1,13 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 游戏仓同步复核（本地完成）
+
+- 用户授权四仓核对、联调、适用分支归并、提交、推送和统一发布；本代理仅检查游戏仓，协调代理统一推送和生产核验。初始工作区干净，fetch --all --prune 后 main、origin/main、fork/main 均为 2378bb55a7f431ef75025a01f3da49ddf8a730b0。
+- main 对两端 main 均 0/0，对 paper-ink-theme 为 21/0，对本地 integration-game 为 6/0；两个工作树干净，所有分支功能已在主线，没有待合独有提交。
+- 固定发布源码 920287583741f92ddda50fbd3282d5987e9eca8f 到本轮起点仅有交接归档变化，无业务源码变化，不因文档重复发布游戏。实际线上版本由协调代理核对。
+- lint、typecheck、build:check、git diff --check、arena 13/13、placeholder 10/10 通过；本仓无 npm run check/npm test 聚合脚本。未重跑真实作品、就绪/失败恢复浏览器全组或生产登录/计票/邮件/Turnstile，业务源码未变，沿用上轮已归档边界。
+- 本轮仅新增本节与 docs/handoff/2026-10-04-game-sync-audit-wsnxxxs.md，保留生成物与独立工作树。署名使用 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com；本代理未推送、SSH 或部署。
+
 ## 2026-10-04 · 游戏仓最终收工核对（本地完成）
 
 - 用户授权核对未提交修改、联调、适用分支归并、提交、推送和统一发布；本代理仅处理游戏仓，SSH 与生产核验由主代理执行。初始工作区干净，fetch --all --prune 后 main、origin/main、fork/main 均为 7eff18a。
