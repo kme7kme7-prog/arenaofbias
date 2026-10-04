@@ -126,6 +126,9 @@ const SMOOTH_FRAMES = 3;
 // 压在持续 100~250ms 的帧间隔，那是本页的常态不是阻塞；只有 >250ms 的真阻塞
 // 才重置计数。阈值过紧会把扫出永久冻在低帧率页面上。
 const SMOOTH_DELTA_MS = 250;
+// Heavy works can remain below four fps. Recovery may pause a sweep briefly,
+// but must never require a frame rate the device cannot sustain.
+const SMOOTH_WAIT_MS = 1800;
 
 export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
   if (kind === 'push') return { covered: 380, exitStart: 520, duration: 980 };
@@ -160,6 +163,7 @@ export function createGameTransition(
   let previous: number | undefined;
   let smooth = 0;
   let smoothPinned = false;
+  let slowSince: number | undefined;
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
   let reducedMode = !!options.reduced || motionPreference.matches;
   const el = (className: string, parent = layer, text?: string) => {
@@ -403,6 +407,7 @@ export function createGameTransition(
     running = false;
     previous = undefined;
     smoothPinned = false;
+    slowSince = undefined;
     cancelAnimationFrame(frame);
   };
   const dispose = () => {
@@ -451,12 +456,15 @@ export function createGameTransition(
     // 用户看到的就是半开纸幕凭空消失。
     // 释放撞掉帧：扫出还没起就继续钉幕（加载注记仍在），等连续正常帧再起扫；
     // 扫出已起则只冻不回弹——回弹到盖满位是另一种肉眼可见的跳变。
-    smoothPinned =
+    const waitingForFrames =
       kind === 'match' &&
       covered &&
       !heldGate &&
       time >= timing.exitStart &&
       smooth < SMOOTH_FRAMES;
+    if (!waitingForFrames) slowSince = undefined;
+    else slowSince ??= stamp;
+    smoothPinned = waitingForFrames && stamp - slowSince! < SMOOTH_WAIT_MS;
     const advanced = smoothPinned
       ? 0
       : Math.min(delta, FRAME_STEP_CAP) * Math.max(0.1, options.speed ?? 1);

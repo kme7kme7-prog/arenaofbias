@@ -4,7 +4,7 @@
 // 与 lib/works.ts 同构：后台题目管理（新增/编辑/上下架）落库后，
 // 这里就是「后台点了、前台刷新即生效」的通道。
 
-import { apiFetch } from '@/lib/api';
+import { apiReadJson } from '@/lib/api';
 import { prompts as seedPrompts } from '@/lib/arena';
 import type { Prompt } from '@/lib/arena';
 import { isPromptId } from './prompt-id';
@@ -59,9 +59,8 @@ function parsePromptRow(row: unknown): Prompt | null {
  *（题目全部下架——决策 045「完全隐藏」），原样返回 []，不回退内置题库 */
 export async function fetchPrompts(): Promise<Prompt[] | null> {
   try {
-    const response = await apiFetch('/api/prompts');
-    if (!response.ok) return null;
-    const data = (await response.json()) as { prompts?: unknown };
+    const data = (await apiReadJson('/api/prompts')) as { prompts?: unknown } | null;
+    if (!data) return null;
     if (!Array.isArray(data.prompts)) return null;
     const parsed = data.prompts.map(parsePromptRow);
     if (parsed.some((prompt) => prompt === null)) {

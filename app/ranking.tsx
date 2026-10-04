@@ -59,6 +59,13 @@ function useBoardSnapshot(replaySeed: number, scope: BoardScope, category: Board
   // 占位数据跟随本地题库/作品变动；真实榜单不依赖这些请求的完成顺序。
   const worksState = useSyncExternalStore(subscribeWorks, () => placeholder ? getWorksState() : null);
   const promptsState = useSyncExternalStore(subscribePrompts, () => placeholder ? getPromptsState() : null);
+  const [voteRevision, setVoteRevision] = useState(0);
+  useEffect(() => {
+    if (placeholder) return;
+    const refresh = () => setVoteRevision((revision) => revision + 1);
+    window.addEventListener('aob:votes-changed', refresh);
+    return () => window.removeEventListener('aob:votes-changed', refresh);
+  }, [placeholder]);
   const [state, setState] = useState<{
     scope: BoardScope;
     category: BoardCategory;
@@ -93,7 +100,7 @@ function useBoardSnapshot(replaySeed: number, scope: BoardScope, category: Board
       live = false;
       controller.abort();
     };
-  }, [replaySeed, scope, category, placeholder, worksState, promptsState]);
+  }, [replaySeed, scope, category, placeholder, worksState, promptsState, voteRevision]);
   if (state.scope !== scope || state.category !== category || state.placeholder !== placeholder || state.replaySeed !== replaySeed)
     return { snapshot: null, failed: false, loading: true };
   return {

@@ -1,5 +1,34 @@
 # HANDOFF.md · 当前状态
+## 2026-10-04 · 娱乐人数统计与计票榜单刷新（本地完成）
 
+- 用户要求排查选后0/0及投票到榜单链路。AudienceVerdict原人数请求1.2秒超时、从挂载起1.45秒消失，可能早于POST完成及GET返回；现改8秒请求预算，读取结束后展示2.6秒再退场、2.9秒移除。只在saving/saved/dup显示面板，未登录、未验证邮箱、失败保留结果栏原因；管理员试配对按演示处理，不显示真实人数。
+- 成功计票后发aob:votes-changed，已挂载的真实榜单重读聚合；请求清理阻止旧响应覆盖新结果，不重播整板入场。后台计票、作品、数据库不改；精确作品对的左右票与平局口径不变。
+- Tabbit隔离API真实界面验证：POST1.8秒+GET2秒后显示1/0，数据后至少1.8秒可见并随后退场；401/未绑定邮箱/500均不误显示人数。POST5秒期间进入榜单，聚合请求记录[0,1]且界面由有效比较更新为参与比较；0pageerror，未生产投票。共享后端show1compat专项27/27通过；只读线上8条娱乐票与榜单totalVotes8一致，既有9月30日授权清票不恢复。
+- typecheck/lint/build:check、check-vote-split --votes-only、diff check通过。完整check-vote-split仍有已删除巡览的旧断言；validate:votes因测试拼接重复声明apiReadJson失败，validate:leaderboard因已删除002种子题的历史样例缺少promptKind失败，未修改这些无关测试/业务。未commit/push/deploy，保留同期其他改动。
+
+## 2026-10-04 · 娱乐加载与过场稳定性（本地完成）
+
+- 用户要求仔细排查卡顿，先稳现有娱乐流程，不实现后续对话题型。本轮目录读取含响应正文限12秒；作品失败预算只累计前台时间；下一轮在transition就重置一次重试预算；同题换组去掉重复遮挡延迟/src轮询；图片只等待本轮两件并清理预加载；低帧率退场等待恢复最多1.8秒，仍保留作品就绪门及每帧推进上限。
+- typecheck/lint/build:check/diff check通过；loading时钟与取消、game-transition（含持续2fps）、arena-scroll检查通过；work-ready16/16、work-retry13/13、新增stability5/5。连续15次换组后只有两侧iframe/无旧过场，返回首页无iframe；覆盖上一轮恢复后下一轮再恢复、后台暂停、未参赛慢图、挂起目录。夹具未写真票或数据库。
+- Tabbit真实本地副本文字008继续约2.842秒、按钮可用；飞机011一组继续约21.085秒仍偏慢，但最终voting/两iframe/无过场/pageerror0。进一步采样两侧加载到ready约10.247/19.412秒，最后ready到voting约0.577秒；外部Three依赖1.7–2.5秒、一件DOMContentLoaded10.3秒、HTML52ms。重型作品初始化/持续渲染仍是限制，不宣称全部卡顿消除或全部作品审计完成。
+- 详见 docs/qa/2026-10-04-arena-stability.md；本地证据.local/stability-qa与output/stability。中途恢复既有5441/5190/5191本地服务；本轮不改后端/作品/数据库/77镜头/Gallery/正式探针，未commit/push/deploy。同期首页缓存及投票分布改动保留，不归为本轮产物。
+
+
+## 2026-10-04 · 首页封面长期缓存（本地完成，未发布）
+
+- 用户确认优先改善重复进入首页体验。home-next.tsx 三张封面改为 Vite 资源导入，构建自动生成 /assets/prompt-cover-编号-内容哈希.webp；原始 /art/ 文件保留，像素与题库链接不变。换图自动变更地址，不给可覆盖的旧地址强制长期缓存，不引入 Service Worker。
+- 只读 SSH 核对 game vhost 及 proxy include：线上 /assets/ 已有 expires 30d + public, immutable，/ 默认 no-cache。因此无需改 Nginx，发布新的前端构建即可生效。开发 Vite 仍按开发缓存策略返回，不能用开发模式判断生产缓存效果。
+- build:check、typecheck、lint 通过。新增 scripts/check-home-cache.mjs 在隔离真实浏览器、镜像现行线上缓存头且不使用请求拦截的环境验证：首次3张下载，普通刷新/玩法菜单返回首页/新标签页均0新增图片网络请求、transferSize=0；构建图与原图字节相同。入场测试资源匹配兼容 /art/ 和 /assets/ 两种路径。
+- check-hero-arrival 在构建预览通过纸/墨色 × 1440/2048/390 六组，以及减少动态、直达、提前离开/返回、封面失败场景；几何与稳定样式一致，截图字节不完全一致，不宣称逐像素相同。纸色1440稳定截图已目检；隔离预览服务已停止。
+- 本轮仅首页资源引用、缓存/入场验证与文档；同期其他代理的加载稳定性文件保留。未 commit、push、部署或改生产配置/数据；上线后需再核验实际新图片响应头与浏览器缓存。
+
+
+## 2026-10-04 · 首页封面缓存调查（只读）
+
+- 用户反馈每次进入首页像重新加载封面。home-next.tsx 三张图片固定 /art/prompt-cover-016/009/019.webp，无随机参数；合计1,116,574字节。线上和本地Vite响应均no-cache；线上三张有ETag/Last-Modified，curl条件HEAD确认016为304，缓存数据没有失效。
+- Tabbit独立临时页实测首次检查、普通reload、玩法菜单返回首页：三张均发送条件请求，ResourceTiming每张transferSize=300、encodedBodySize为完整原图大小，耗时约140–155ms，表明复用缓存正文但仍需网络校验。Playwright响应200是缓存合并后的视图，不将其判为完整重新下载。未关闭浏览器缓存，也未硬刷新或改用户原标签。
+- 旧Express静态服务art虽有七天immutable，现行生产由Nginx直接提供show1-dist，不使用这段旧部署配置。入场gate调用decode只等解码，不改图片URL；返首页重新挂载图片也会触发该no-cache校验。建议后续为静态封面配版本/内容哈希和长期缓存，HTML/API保持现有即时更新策略；不能直接给同名可覆盖图片一年immutable，否则换图后会陈旧。
+- 本轮不改业务、图片、Nginx或发布配置，未提交/推送/上线；不跑构建测试（仅调查）。检查页关闭、Tabbit任务已释放，保留其他未跟踪文件。
 
 ## 2026-10-04 · 删除三个占位题与补四张封面（本地完成）
 
