@@ -9,7 +9,7 @@ const source = await readFile(
 const arenaSource = await readFile(new URL('../app/page.tsx', import.meta.url), 'utf8');
 assert.match(arenaSource, /setWorksSettled\(true\);[\s\S]*?releaseWorksGate\(\);\s*await waitRouteLayer\(signal\)/,
   'route curtain must release after the reveal, before waiting for its exit');
-const workPoll = arenaSource.slice(arenaSource.indexOf('const waitWorksLoaded'), arenaSource.indexOf('const waitWorksLoaded') + 3000);
+const workPoll = arenaSource.slice(arenaSource.indexOf('const waitWorksLoaded'), arenaSource.indexOf('  useEffect(() => {', arenaSource.indexOf('const waitWorksLoaded')));
 assert.doesNotMatch(workPoll, /releaseWorksGate/, 'readiness polling must not release the route curtain ahead of the reveal');
 const compiled = ts.transpileModule(source, {
   compilerOptions: {
@@ -268,6 +268,21 @@ for (const theme of ['paper', 'ink']) for (const kind of ['push', 'frame', 'band
   );
 }
 document.documentElement.dataset.theme = 'paper';
+// A device that never produces three smooth frames must still leave the curtain.
+{
+  tracks = [];
+  let gateOpen = false, finished = 0;
+  const run = createGameTransition('match', { holdGate: () => gateOpen, onFinish: () => finished++ });
+  run.play();
+  step(0);
+  while (tracks[0].currentTime < run.timing.exitStart) step(browserStamp + 16);
+  gateOpen = true;
+  const releasedAt = browserStamp;
+  while (!finished && browserStamp - releasedAt < 6500) step(browserStamp + 500);
+  assert.equal(finished, 1, 'persistent low fps cannot deadlock a ready matchup');
+  assert.equal(document.body.children.length, 0);
+  console.log('PASS match: bounded slow-frame recovery at sustained 2fps');
+}
 // 层选择器隔离（2026-09-13 回归）：过场层本身 class 就带 gt-<kind>，
 // CSS 里任何不带 .game-transition 前缀的裸 .gt-<kind> 规则都会命中层自身——
 // 曾把层从 fixed 变成 absolute 并被撑到 2800px 宽，导致标题巨大、切页后页面从底部漏出。

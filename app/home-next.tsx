@@ -9,6 +9,11 @@ import { useI18n } from '@/lib/locale';
 import { bandsNavigate, convoyNavigate } from '@/lib/game-transitions';
 import { currentRatings } from '@/lib/ratings';
 import { GALLERY_HOME } from '@/lib/gallery-links';
+// Bundled URLs gain content hashes and use /assets/ long caching in production.
+// Keep the original /art/ files for the prompt library and existing links.
+import cover016 from '@/public/art/prompt-cover-016.webp?url';
+import cover009 from '@/public/art/prompt-cover-009.webp?url';
+import cover019 from '@/public/art/prompt-cover-019.webp?url';
 
 // Decorative prompt archive. Covers are task illustrations, not model outputs.
 // Titles and assets follow docs/artwork/2026-10-01-prompt-covers.md.
@@ -18,7 +23,7 @@ const dossiers = [
     title: ['云山巨城', 'City among the clouds'],
     caption: ['在群山之间，造一座属于想象的城。', 'Build an imagined city between mountains.'],
     type: ['体素世界', 'VOXEL WORLD'],
-    cover: '/art/prompt-cover-016.webp',
+    cover: cover016,
     alt: ['云雾与瀑布之间的中式体素建筑群', 'A Chinese voxel city among clouds and waterfalls'],
   },
   {
@@ -26,7 +31,7 @@ const dossiers = [
     title: ['桌面微缩铁路小镇', 'A miniature railway town'],
     caption: ['让一列小火车，串起一个完整的世界。', 'Let a little train bring a whole world together.'],
     type: ['微缩场景', 'MINIATURE WORLD'],
-    cover: '/art/prompt-cover-009.webp',
+    cover: cover009,
     alt: ['微缩小镇、铁路、河流与红色列车', 'A miniature town, railway, river and red train'],
   },
   {
@@ -34,7 +39,7 @@ const dossiers = [
     title: ['雨中荷塘', 'Lotus pond in the rain'],
     caption: ['一场雨，落进光影与水波的细节里。', 'A passing rain, a study in light and ripples.'],
     type: ['自然模拟', 'NATURE STUDY'],
-    cover: '/art/prompt-cover-019.webp',
+    cover: cover019,
     alt: ['细雨中的荷花、荷叶与水面涟漪', 'Lotus flowers, leaves and rippling water in the rain'],
   },
 ] as const;

@@ -5,3 +5,5 @@ body, #root { min-height: 125svh; }
 .lobby, .duel-home, .arena-shell, .rank-page, .guess-page { min-height: 125svh; }
 .prompt-archive { min-height: 125dvh; }
 .next-home { min-height: calc(125svh - 88px); }
+/* Entertainment lightboxes occupy 96% of the physical viewport at the .8 site scale. */
+.exhibit-dialog.is-entertainment-preview { --exhibit-width: 120vw; --exhibit-height: 120svh; }

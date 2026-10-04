@@ -1,4 +1,98 @@
+## 2026-10-05 · 游戏远端归并与统一发布准备（本地验证完成）
+
+- 用户授权四仓联调、适用分支归并、提交、推送及统一发布；游戏代理仅处理本仓，生产由协调代理执行。初始干净，main 8b0dd86 保留本地脚本 CSP 加固；fetch 后 origin/main e3e96a8 已包含 fork/main，合入远端完成的社区题号、旧占位退役、首页缓存、娱乐加载稳定性、投票人数及升级入口变更。仅 HANDOFF 追加冲突，双方记录保留；其他旧分支均在主线历史，不重复合并。
+- 修复三份受新接口/种子影响的验证夹具：api-fixture 内联 apiReadJson，arena 使用合成跨模型作品，placeholder 比对原数据快照；没有改竞猜、作品源或生产数据。
+- lint、typecheck、build:check、diff --check；arena 13、placeholder 10、community IDs 3、娱乐入口 19、work-ready 16、work-retry 13、stability 5 全部通过；取消/可见时钟、首页缓存、过场、滚动及 vote-split --votes-only 通过。社区题库与竞技场手机截图已目检。完整 check-vote-split 仍引用已删除巡览的旧断言，本轮仅跑适用投票检查；无 npm run check/npm test 聚合脚本。
+- 本轮不重跑真实作品全量、生产登录/计票/邮件/Turnstile或真机；浏览器夹具隔离响应，无生产写入。本仓生成物、其他工作树保留。本轮归档 docs/handoff/2026-10-05-game-remote-integration-wsnxxxs.md。
+- 本轮整合源码含业务变化，需协调重发游戏并先行发布共享后端契约；固定提交随后以 git archive LF 导出、显式 VITE_API_BASE_URL=https://api.arenaofbias.icu 构建，推送 origin/fork，由协调代理核对生产旧文件保留与发布结果。本代理未 SSH 或部署；提交署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com。
 # HANDOFF.md · 当前状态
+## 2026-10-04 · 娱乐人数统计与计票榜单刷新（本地完成）
+
+
+- 用户要求排查选后0/0及投票到榜单链路。AudienceVerdict原人数请求1.2秒超时、从挂载起1.45秒消失，可能早于POST完成及GET返回；现改8秒请求预算，读取结束后展示2.6秒再退场、2.9秒移除。只在saving/saved/dup显示面板，未登录、未验证邮箱、失败保留结果栏原因；管理员试配对按演示处理，不显示真实人数。
+- 成功计票后发aob:votes-changed，已挂载的真实榜单重读聚合；请求清理阻止旧响应覆盖新结果，不重播整板入场。后台计票、作品、数据库不改；精确作品对的左右票与平局口径不变。
+- Tabbit隔离API真实界面验证：POST1.8秒+GET2秒后显示1/0，数据后至少1.8秒可见并随后退场；401/未绑定邮箱/500均不误显示人数。POST5秒期间进入榜单，聚合请求记录[0,1]且界面由有效比较更新为参与比较；0pageerror，未生产投票。共享后端show1compat专项27/27通过；只读线上8条娱乐票与榜单totalVotes8一致，既有9月30日授权清票不恢复。
+- typecheck/lint/build:check、check-vote-split --votes-only、diff check通过。完整check-vote-split仍有已删除巡览的旧断言；validate:votes因测试拼接重复声明apiReadJson失败，validate:leaderboard因已删除002种子题的历史样例缺少promptKind失败，未修改这些无关测试/业务。未commit/push/deploy，保留同期其他改动。
+
+## 2026-10-04 · 娱乐加载与过场稳定性（本地完成）
+
+- 用户要求仔细排查卡顿，先稳现有娱乐流程，不实现后续对话题型。本轮目录读取含响应正文限12秒；作品失败预算只累计前台时间；下一轮在transition就重置一次重试预算；同题换组去掉重复遮挡延迟/src轮询；图片只等待本轮两件并清理预加载；低帧率退场等待恢复最多1.8秒，仍保留作品就绪门及每帧推进上限。
+- typecheck/lint/build:check/diff check通过；loading时钟与取消、game-transition（含持续2fps）、arena-scroll检查通过；work-ready16/16、work-retry13/13、新增stability5/5。连续15次换组后只有两侧iframe/无旧过场，返回首页无iframe；覆盖上一轮恢复后下一轮再恢复、后台暂停、未参赛慢图、挂起目录。夹具未写真票或数据库。
+- Tabbit真实本地副本文字008继续约2.842秒、按钮可用；飞机011一组继续约21.085秒仍偏慢，但最终voting/两iframe/无过场/pageerror0。进一步采样两侧加载到ready约10.247/19.412秒，最后ready到voting约0.577秒；外部Three依赖1.7–2.5秒、一件DOMContentLoaded10.3秒、HTML52ms。重型作品初始化/持续渲染仍是限制，不宣称全部卡顿消除或全部作品审计完成。
+- 详见 docs/qa/2026-10-04-arena-stability.md；本地证据.local/stability-qa与output/stability。中途恢复既有5441/5190/5191本地服务；本轮不改后端/作品/数据库/77镜头/Gallery/正式探针，未commit/push/deploy。同期首页缓存及投票分布改动保留，不归为本轮产物。
+
+
+## 2026-10-04 · 首页封面长期缓存（本地完成，未发布）
+
+- 用户确认优先改善重复进入首页体验。home-next.tsx 三张封面改为 Vite 资源导入，构建自动生成 /assets/prompt-cover-编号-内容哈希.webp；原始 /art/ 文件保留，像素与题库链接不变。换图自动变更地址，不给可覆盖的旧地址强制长期缓存，不引入 Service Worker。
+- 只读 SSH 核对 game vhost 及 proxy include：线上 /assets/ 已有 expires 30d + public, immutable，/ 默认 no-cache。因此无需改 Nginx，发布新的前端构建即可生效。开发 Vite 仍按开发缓存策略返回，不能用开发模式判断生产缓存效果。
+- build:check、typecheck、lint 通过。新增 scripts/check-home-cache.mjs 在隔离真实浏览器、镜像现行线上缓存头且不使用请求拦截的环境验证：首次3张下载，普通刷新/玩法菜单返回首页/新标签页均0新增图片网络请求、transferSize=0；构建图与原图字节相同。入场测试资源匹配兼容 /art/ 和 /assets/ 两种路径。
+- check-hero-arrival 在构建预览通过纸/墨色 × 1440/2048/390 六组，以及减少动态、直达、提前离开/返回、封面失败场景；几何与稳定样式一致，截图字节不完全一致，不宣称逐像素相同。纸色1440稳定截图已目检；隔离预览服务已停止。
+- 本轮仅首页资源引用、缓存/入场验证与文档；同期其他代理的加载稳定性文件保留。未 commit、push、部署或改生产配置/数据；上线后需再核验实际新图片响应头与浏览器缓存。
+
+
+## 2026-10-04 · 首页封面缓存调查（只读）
+
+- 用户反馈每次进入首页像重新加载封面。home-next.tsx 三张图片固定 /art/prompt-cover-016/009/019.webp，无随机参数；合计1,116,574字节。线上和本地Vite响应均no-cache；线上三张有ETag/Last-Modified，curl条件HEAD确认016为304，缓存数据没有失效。
+- Tabbit独立临时页实测首次检查、普通reload、玩法菜单返回首页：三张均发送条件请求，ResourceTiming每张transferSize=300、encodedBodySize为完整原图大小，耗时约140–155ms，表明复用缓存正文但仍需网络校验。Playwright响应200是缓存合并后的视图，不将其判为完整重新下载。未关闭浏览器缓存，也未硬刷新或改用户原标签。
+- 旧Express静态服务art虽有七天immutable，现行生产由Nginx直接提供show1-dist，不使用这段旧部署配置。入场gate调用decode只等解码，不改图片URL；返首页重新挂载图片也会触发该no-cache校验。建议后续为静态封面配版本/内容哈希和长期缓存，HTML/API保持现有即时更新策略；不能直接给同名可覆盖图片一年immutable，否则换图后会陈旧。
+- 本轮不改业务、图片、Nginx或发布配置，未提交/推送/上线；不跑构建测试（仅调查）。检查页关闭、Tabbit任务已释放，保留其他未跟踪文件。
+
+
+## 2026-10-04 · 左侧入口暂不可用（已授权发布）
+
+- 用户改计划，明确推翻前轮保持可点击的要求。portal/index.html 左侧链接改为原生 disabled 按钮，无 href；桌面默认来一局，悬停变黄色暂不可用；触屏直接显示禁用提示。右侧入口和施工文案保留。
+- 1440×900 默认/悬停、真实鼠标点击与 Enter/Space 不跳转、Tab 跳过禁用按钮、390×844 触屏点击不跳转且无横向溢出、右侧进入 Gallery 均通过；两张截图目检通过。构建与 diff 检查通过。本次仅静态入口，不跑整站业务回归。
+- 从 166a9ca 的干净发布工作区实施。本提交时尚待推送后生产替换；将仅备份并替换根站 index.html，核对产物哈希和公网行为，证据存 D:/webarenabias/.local/portal-disabled-20261004。此前 166a9ca 已实际部署成功。
+
+## 2026-10-04 · 总入口施工提示发布准备（用户已授权提交、推送、部署）
+
+- 基于最新 origin/main acf02e3 建立独立 codex/portal-construction 工作区，只移入本轮施工提示，保留原 D:/webarenabias 的分叉分支与既有未跟踪文件。
+- 左侧添加黄黑施工路障标识及「玩法升级中，后续可能有大变化」，「来一局」保持可点击，目标与过渡不变。线上根站已采用 script-src 'self' 和外置 /portal.js；构建脚本及部署说明同步此现状，脚本内容与线上完全一致，本次实际仅需替换 index.html。
+- 本地 1440×900 / 390×844 截图目检、跨站入口和玩法菜单点击通过；构建与差异检查通过。提交时生产替换尚待执行，发布证据保存在原工作区 .local/portal-construction-20261004，完成结果以本轮最终回报为准。归档见 docs/handoff/2026-10-04-portal-construction-Atmeplz.md。
+
+## 2026-10-04 · 删除三个占位题与补四张封面（本地完成）
+
+- 用户确认删除002最后一句、003环游轨道、006整装出发及对应测试记录。线上 Gallery bootstrap 29道公开题、本地 questions/数据包均没有三题，它们来自竞技场历史种子。删除 lib/prompts-seed.json 三行、works-roster.json 四行；共享后端 compat-data.json 删除三题、43作品映射、62快照票及1回填评论，避免重启恢复。
+- 共享后端 scripts/remove-show1-placeholders.mjs 默认只读 dry-run；apply须显式db/backup/actor，VACUUM INTO备份、事务清理固定show1-002/003/006、外键检查及维护审计，拒绝存在共享questions记录的意外环境。停本地服务后应用：清掉44作品、1票、1对局、1评论；备份在下载副本根目录 before-placeholder-removal-20261004.db。其他表的非目标行与备份逐行一致。文件归入本地orphans（Windows原生Move-Item，Node rename在该副本EPERM），不删除源压缩包/原快照。
+- 四张新封面橘子/掠海/深海/破壁存 public/art/prompt-cover-q-*.webp；大小图共用映射，1200×800。提示词和方式记录 docs/artwork/2026-10-04-community-covers.md。Tabbit四题映射/解码和三题搜索消失通过，截图目检。前端typecheck/lint/build:check通过；后端check96/0、test275/275。当前本地API26题/442作品，目标题和作品均0，后端已重启。
+- 未commit/push/deploy或删生产数据。发布需共享兼容快照与前端种子/封面一起更新；生产先停服务，清理脚本dry-run核对后用新备份apply并重启，不能只发前端。保留同期其他未提交改动及77镜头配置。
+
+## 2026-10-04 · 娱乐加载判定与失败恢复（本地完成）
+
+- 文字作品实际是 HTML iframe；旧探针等待 load、渲染帧和固定延迟，完全透明的加载容器可能使跨源 iframe 帧回调被节流。娱乐探针改为定时检查：静态页 DOM 可用，场景页实际绘制且已识别的加载浮层消失才就绪；取消原 8 秒强制报成功。加载期作品容器透明度 .001，仍由过场遮挡。正式/Gallery 探针不改。
+- 场景文档到达后的等待预算 30 秒，静态 10 秒、导航 20 秒不变。自动换组仍仅一次；刷新时废弃旧 iframe 的就绪信号，防迟到信号揭开新对局。异常 intro 不直接放行。键盘和其他相机校准、作品源、数据库均未改。
+- 前端 typecheck/lint/build:check 通过，work-ready 16/16（含旧作品迟到信号）；后端 check 95 文件/0 错误、test 275/275。Tabbit 实际点击文字题继续至 voting 约 2.089 秒，HTML 响应 44–48ms，ready 1.34/1.44 秒；重型飞机隔离真实浏览器 ready 7.38/7.77 秒（含初始目录请求），两侧 canvas 已绘制、识别加载浮层 0、pageerror 0。未实投票，不把相位验证写成所有交互已验证。
+- 本地证据 .local/loading-qa；后端已重启。未 commit/push/deploy，保留同期题库和放大预览改动。重型作品自身初始化及外部依赖下载仍可能较慢；尚未优化这些源内容。
+
+## 2026-10-04 · 放大预览精简顶部与扩大窗口（本地）
+
+- 用户要求移除放大预览顶部长提示词、增大窗口。page.tsx 娱乐弹窗不渲染提示词 Description，保留简短标题/类别/关闭按钮；globals.css 以三行网格让作品填满剩余空间，普通HTML/图片/演示网页及固定画框都使用扩大后的作品区。site-scale.css 对 .8 缩放补偿，实际窗口占物理视口宽、高96%；娱乐弹窗/遮罩层级90/80，高于竞技场导航70，避免放大后关闭按钮被导航遮挡。正式预览与Gallery不改，作品源不改。
+- typecheck/lint/build:check通过；隔离真实浏览器对普通HTML及固定画框，在1280×720、1920×1080、390×844共6组确认96%尺寸、无越界、长提示词不显示、按钮关闭与父页焦点下ESC可用、0pageerror；作品内按钮真实坐标点击通过。截图 output/expanded-preview 已查看。iframe内焦点下ESC不传父页的既有行为未改，本轮不宣称此场景已修复。
+- 未commit/push/deploy或写库；保留同期其他未提交改动（含就绪时序代码），本轮只改弹窗相关片段和交接/决策记录。
+
+## 2026-10-04 · 展览馆新题自动同步竞技场（本地完成）
+
+- 用户在调查后授权修复及覆盖后续新题。共享后端 promptCatalog 接入所有已审核公开题目，旧 arenaId 不变，其他题沿用 canonical task ID；作品、投票、评论、反应共享映射。前端统一 ID 校验用于题库/分享/对局，娱乐随机和直达等目录就绪，长 ID 档案与手机显示紧凑。十件、非演示及跨模型门槛不变，公开审核门禁不放宽；无需迁移或人工补编号。
+- 后端 check93/0、test272/272（新增社区题全生命周期与无编号数据包题）；前端 typecheck/lint/build:check 全通过，community IDs/分享3组、娱乐入口浏览器19项、votes12项，以及 arena13、placeholder10、leaderboard12、share6 回归通过。桌面/390px手机截图 output/community-prompts 已查看；浏览器使用隔离 API 夹具，未生产投票。详见 docs/qa/2026-10-04-community-prompts.md。
+- 未 commit/push/deploy、改作品或写生产数据库；上线须协调竞技场前端和共享后端。Gallery 前端与正式盲测接口不改。保留相机校准及其他未提交文件，本轮不将其视为本任务产物。
+
+## 2026-10-04 · 全量娱乐镜头审阅与独立参数（本地）
+
+- 用户授权三个 GPT-6 Luna 子代理审阅当前 445 件公开作品；77 件保存独立娱乐相机（建模54、场景20、物理3），其余保留自然原视角。共享后端新增 entertainment-calibration.json/mjs，动态固定版本接入相机、绘制前保持参数、canvas直接交互释放保持。参数不写共享 calibration_arena；作品文件、生产数据库不改，展览馆/正式不读取新配置。
+- 后端 check93/0、test270/270，转换473模块/374内联脚本语法通过，77镜头隔离通过。真实浏览器冷启动/静置/resize复查，007Grok FOV65娱乐保持且gallery原48；用户旋转释放通过。修复 `$` 变量截断造成黑屏，Grok/Minimax等复查正常。最后一件键盘拉远以完整显示底座。445审阅不等于原作品所有内部功能已验证；005GPT4o云遮挡/005Dots主体不清为原场景限制，011Astra同步初始化较慢。
+- 报告 docs/qa/2026-10-04-entertainment-calibration.md；本地证据 .local/calibration-20261004/。本地后端已重启加载，未commit/push/deploy。上线需后端代码和JSON共同部署；版本变化重新校准。工作区同期出现其他提示词/分享改动，本轮未动这些文件；保留 jianmo 与 curtain-copy-review。
+
+## 2026-10-04 · Tessera 65 缩放与偏移（本地）
+
+- 复现所述隐藏工具栏后仍保留取景空间的结构问题。后端新增 SHA256 固定 Tessera bundle 适配，仅竞技场取景/arena-scene 使用：insets归零，距离范围由baseRadius的0.42–1.9倍扩到0.08–10倍，取消该预览原入场相机补间并注册桥接。未操作时resize可自动适配，用户已动/已保存则保持视角；其他展示路径与源文件不改。
+- 新 scripts/validate-tessera-camera.mjs 真实副本确认居中、滚轮放大/缩小、抓取、保存值模拟恢复、普通/展览馆/正式样式路径原bundle；APEX完整复验通过。截图 .local/work-controls/tessera-centered.png 与 tessera-camera.png 已查看。后端check91/0、test266/266，Show1 typecheck/lint通过。未实点后台保存、未写数据库、未提交/部署；本地后端已重启。
+
+## 2026-10-04 · APEX-65 取景距离适配（本地）
+
+- 用户授权修复 APEX-65 拉远仍裁切。共享内容服务新增 server/apex-camera.mjs，精确 SHA256 识别当前内嵌 OrbitControls bundle，仅竞技场 bridge 取景/arena-scene HTML 动态转发适配版本：maxDistance 220 -> 2200，初始化后注册既有相机桥接，抓取/恢复沿用原契约。作品源码不改；正式 m 与普通/展览馆预览不转发。版本不匹配保持原作，不泛改其他打包作品。
+- scripts/validate-apex-camera.mjs 真实本地副本浏览器验证：滚轮超过旧上限、postMessage 抓取、模拟服务端保存值启动后恢复且不被220钳回、普通/展览馆/正式样式URL原bundle。未写数据库/实点管理员保存。截图 .local/work-controls/apex-camera.png；后端 check 89/0、test 265/265，Show1 typecheck/lint，两仓 diff check通过。本地后端已重启，无 commit/push/deploy，保留其他改动。
+
 
 ## 2026-10-04 · 游戏仓同步复核（本地完成）
 
@@ -562,3 +656,9 @@
 - 用户要求核实漏洞并修复；竞猜明确要求先搁置，规则/算法/接口未改。当前线上已有CSP和HSTS，报告「完全无CSP」不成立。
 - Vite最终HTML入口加入内联启动脚本SHA-256哈希策略，保留自身脚本、Cloudflare和Blob Worker，限制object/base；与既有Nginx头同时生效。不改旧server、兼容代理或作品资源。
 - lint、typecheck、build:check、diff检查通过；隔离游戏首页/纸色主题正常，额外内联与onclick被阻止、Blob Worker正常。未重跑全部竞技场交互或生产竞猜写入，构建产物不入库。未推送部署。[本轮归档](docs/handoff/2026-10-05-security-csp-wsnxxxs.md)。
+## 2026-10-04 · 展览馆新题未同步到娱乐题库（仅调查）
+
+- 用户要求调查线上新增题（例如二十四节气）超过十件仍不进入竞技场。只读查询共享 API bootstrap/prompts/works 与 game 已部署 JS；未改业务代码、作品、数据库或线上配置，未提交/部署。
+- 二十四节气 q-48c3b43eeb284f6d：调查期间作品从18增到21，最新21件非演示、19个模型；Gallery与竞技场works接口均21。/api/prompts仍25道旧编号题且不含该题。另一题“AI 如何用三句话推销一个橘子🍊？” q-5ebd7c84dff7cd8f有36件、26模型，同样未进入题目目录。
+- 根因：后端 show1compat.promptCatalog 跳过无arenaId题；liveWorks却允许questions表新题并返回q-* promptId，形成作品有/题目无的不一致。线上 page-CQpVf8zR.js 的题目解析器也只接受三位数字，和本地lib/prompts.ts一致。randomArenaHash从题目目录而非作品分组抽题；十件门槛不是本例阻断点。后端published同样依赖目录，仅补前端入口仍不能正常提交票。
+- 后续修复应协调后端题目/作品/投票映射与前端ID解析、路由和分享，保留旧编号与既有十件及跨模型门槛；本轮未实施。上轮全量视角校准未完成的验证/适配工作仍保留待继续，不将本轮调查视为其完成。

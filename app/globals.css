@@ -842,7 +842,8 @@ kbd {
 /* 作品就绪门控（2026-09-18）：大体量作品加载期间藏住作品区，双方完全就绪后才
    统一揭幕淡入——不展开半加载画面，长加载不再出现「过渡动画后半段卡没掉」 */
 .arena-shell.works-hold .work-panel {
-  opacity: 0;
+  /* Fully transparent cross-origin frames can lose their animation clock. */
+  opacity: 0.001;
 }
 .arena-shell.works-reveal .work-panel {
   animation: material-settle 0.55s var(--ease-out) both;
@@ -1932,6 +1933,25 @@ kbd {
   min-height: 0;
   overflow: auto;
   max-height: calc(92svh - 134px);
+}
+.exhibit-dialog.is-entertainment-preview[data-slot='dialog-content'] {
+  z-index: 90;
+  width: var(--exhibit-width, 96vw);
+  max-width: var(--exhibit-width, 96vw);
+  height: var(--exhibit-height, 96svh);
+  max-height: var(--exhibit-height, 96svh);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+[data-slot='dialog-overlay'].exhibit-preview-backdrop {
+  z-index: 80;
+}
+.exhibit-dialog.is-entertainment-preview[data-slot='dialog-content'] .expanded-work {
+  height: 100%;
+  max-height: none;
+}
+.exhibit-dialog.is-entertainment-preview .expanded-work > :is(.html-work, .concept-image, .web-work) {
+  height: 100%;
+  max-height: 100%;
 }
 .expanded-work .concept-image {
   width: 100%;

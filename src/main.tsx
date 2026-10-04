@@ -73,7 +73,7 @@ function Routes() {
   );
   const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
   // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
-  useSyncExternalStore(subscribePrompts, getPromptsState);
+  const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
   useEffect(() => {
     const arenaPromptId = route.startsWith('#arena/')
       ? route.slice(7)
@@ -83,12 +83,12 @@ function Routes() {
     if (!arenaPromptId || currentPairs(arenaPromptId, route.startsWith('#formal/') ? 'formal' : 'entertainment').length === 0)
       window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
-      // 等作品清单就绪再随机抽题（2026-09-20 审查修复）：用内置兜底清单抽题
+      // 等题目和作品清单都就绪再随机抽题：用内置兜底清单抽题
       // 会落到远端实际未就绪的题上（如 002 兜底可配、远端只有 1 件已发布）
-      if (worksState.status !== 'ready') return;
+      if (worksState.status !== 'ready' || promptsState.status !== 'ready') return;
       window.location.replace(currentRandomArenaHash());
     }
-  }, [route, worksState.status]);
+  }, [route, worksState.status, promptsState.status]);
   if (route === '#arena' || route === '#random') return null;
   if (route === '#terms' || route.startsWith('#terms/'))
     return <LegalPage key="terms" kind="terms" section={route.slice(7) || undefined} />;
@@ -130,7 +130,7 @@ function Routes() {
       if (prompt && currentPairs(prompt.id).length === 0) return <PromptPreview key={prompt.id} prompt={prompt} />;
       return <div className="route-empty"><h1>{t('这场对决暂时无法打开。')}</h1><p>{t('作品可能已下架，请从题库选择另一场。')}</p><a href="#prompts">{t('前往提示词库 ↗')}</a></div>;
     }
-    if (worksState.status === 'loading')
+    if (worksState.status === 'loading' || promptsState.status === 'loading')
       return <output className="route-empty">{t('正在接入试验场')}</output>;
     if (prompt && currentPairs(prompt.id).length > 0)
       return <Arena key={prompt.id} prompt={prompt} />;

@@ -1,4 +1,5 @@
 import type { Matchup, ModelResult } from './arena';
+import { isPromptId } from './prompt-id';
 
 export function parseSharedDuel(
   search: string,
@@ -13,7 +14,7 @@ export function parseSharedDuel(
       !ids.every(
         (id) => typeof id === 'string' && id.length > 0 && id.length <= 200,
       ) ||
-      !/^\d{3}$/.test(ids[0]) ||
+      !isPromptId(ids[0]) ||
       ids[1] === ids[2]
     )
       return null;

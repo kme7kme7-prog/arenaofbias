@@ -37,7 +37,7 @@ try {
     });
     let release;
     const hold = new Promise(resolve => { release = resolve; });
-    await page.route('**/art/prompt-cover-*.webp', async route => { await hold; await route.continue(); });
+    await page.route('**/prompt-cover-*.webp', async route => { await hold; await route.continue(); });
     await page.goto(`${origin}/?entry=portal#home`, { waitUntil: 'domcontentloaded' });
     await page.locator('[data-hero-arrival="waiting"]').waitFor();
     const before = await page.locator('.hr-file').first().evaluate(el => getComputedStyle(el).transform);
@@ -131,7 +131,7 @@ try {
   assert.equal(await early.evaluate(() => document.getAnimations().filter(a => a.id.startsWith('hero-arrival')).length), 0);
   await context.close();
   const failure = await browser.newContext();
-  await failure.route('**/art/prompt-cover-*.webp', route => route.fulfill({ status: 404, body: '' }));
+  await failure.route('**/prompt-cover-*.webp', route => route.fulfill({ status: 404, body: '' }));
   const failed = await failure.newPage();
   await failed.goto(`${origin}/?entry=portal#home`, { waitUntil: 'domcontentloaded' });
   await failed.locator('#site-entry-cover[data-failed]').waitFor();

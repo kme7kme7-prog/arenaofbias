@@ -92,6 +92,7 @@ import {
 } from '@/lib/works-gate';
 import { takeTestPair } from '@/lib/test-pair';
 import { animateArenaLayout } from '@/lib/arena-layout';
+import { createLoadingClock } from '@/lib/loading-clock';
 import { ShareButton, duelShareQuery, setSharePair } from '@/components/share';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
 import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-transitions';
@@ -760,7 +761,14 @@ export default function Arena({
   // 已通过探针（作品内渲染循环首帧 postMessage，见 data-aob-probe 注入约定）
   // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
   const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
+  const retiredWindows = useRef<WeakSet<Window>>(new WeakSet());
   const loadingWindows = useRef<WeakMap<Window, number>>(new WeakMap());
+  const loadingClock = useRef<ReturnType<typeof createLoadingClock> | null>(null);
+  useLayoutEffect(() => {
+    const clock = createLoadingClock();
+    loadingClock.current = clock;
+    return () => { clock.dispose(); loadingClock.current = null; };
+  }, []);
   const cardB = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => animateArenaLayout(stageRef.current, reducedMotion), [prompt.id, reducedMotion]);
   // 换组先装载新 iframe，620ms 后才进入 intro。监听必须覆盖整个组件生命期，
@@ -771,7 +779,7 @@ export default function Arena({
       card.current?.querySelector('iframe') === frame,
     );
     const recordStart = (source: Window) => {
-      if (!loadingWindows.current.has(source)) loadingWindows.current.set(source, performance.now());
+      if (!loadingWindows.current.has(source)) loadingWindows.current.set(source, loadingClock.current!.now());
     };
     const onFrameLoad = (event: Event) => {
       const frame = event.target;
@@ -785,7 +793,7 @@ export default function Arena({
         card.current?.querySelector('iframe')?.contentWindow === event.source,
       )) return;
       const source = event.source as Window;
-      if (event.data === 'aob:work-ready') readyWindows.current.add(source);
+      if (event.data === 'aob:work-ready' && !recoveryBusy.current && !retiredWindows.current.has(source)) readyWindows.current.add(source);
       // Start the rendering budget once the document arrives. Repeated signals
       // cannot extend it; error pages use the iframe load event instead.
       if (event.data === 'aob:work-loading') recordStart(source);
@@ -803,21 +811,25 @@ export default function Arena({
   }, [pair, workAttempt]);
   const loadingPhase = useRef(state.phase);
   useLayoutEffect(() => { loadingPhase.current = state.phase; }, [state.phase]);
+  // ARRIVE increments run only after loading. The next round needs its own
+  // retry budget before that point, including after a recovered previous round.
+  const recoveryRun = state.phase === 'transition' ? state.run + 1 : state.run;
   useEffect(() => {
     if (!pair) { releaseWorksGate(); return; }
-    if (recoveryBudget.current.run !== state.run) {
-      recoveryBudget.current = { run: state.run, used: false };
+    if (recoveryBudget.current.run !== recoveryRun) {
+      recoveryBudget.current = { run: recoveryRun, used: false };
     }
     const controller = new AbortController();
-    const started = performance.now();
+    const started = loadingClock.current!.now();
     let live = true;
     const pendingIds = () => [cardA, cardB].flatMap((card, index) => {
       const frame = card.current?.querySelector<HTMLIFrameElement>('iframe[data-ready-probe="required"]');
       const start = frame?.contentWindow && loadingWindows.current.get(frame.contentWindow);
       return frame && (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow)) &&
-        // Navigation has a bounded 20s budget; rendering gets 10s from arrival.
+        // Scene builds may outlive ten seconds. Static content retains the short budget.
         // A stalled request without either signal still reaches recovery.
-        performance.now() - (start ?? started) >= (start === undefined || start === null ? 20000 : 10000) ? [pair[index].id] : [];
+        loadingClock.current!.now() - (start ?? started) >= (start === undefined || start === null ? 20000 :
+          new URL(frame.src, location.href).searchParams.getAll('aob').includes('arena-scene') ? 30000 : 10000) ? [pair[index].id] : [];
     });
     const stopAtEmpty = () => {
       setRecovering(false);
@@ -832,6 +844,10 @@ export default function Arena({
       if (recoveryBudget.current.used) { stopAtEmpty(); return; }
       recoveryBudget.current.used = true;
       recoveryBusy.current = true;
+      [cardA, cardB].forEach(card => {
+        const source = card.current?.querySelector('iframe')?.contentWindow;
+        if (source) retiredWindows.current.add(source);
+      });
       setRecovering(true);
       const notice = document.querySelector('.game-transition.gt-match');
       if (notice) {
@@ -863,7 +879,7 @@ export default function Arena({
       });
     }, 60);
     return () => { live = false; clearInterval(timer); controller.abort(); };
-  }, [pair, prompt.id, scope, state.run, workAttempt]);
+  }, [pair, prompt.id, scope, recoveryRun, workAttempt]);
   const audioRef = useRef<AudioContext | null>(null);
   const soundRef = useRef(false);
   const round = {
@@ -918,7 +934,10 @@ export default function Arena({
 
   useEffect(() => {
     let live = true;
-    const assets = currentResultsForPrompt(prompt.id).flatMap((entry) =>
+    const cleanup: Array<() => void> = [];
+    // Only the current matchup blocks entry. A slow unused image in this topic
+    // must not delay every other pair or consume bandwidth for the entire pool.
+    const assets = (pair ?? []).flatMap((entry) =>
       entry.content.kind === 'image'
         ? [entry.content.src]
         : entry.content.kind === 'web'
@@ -934,6 +953,7 @@ export default function Arena({
             if (done) return;
             done = true;
             clearTimeout(timeout);
+            img.onload = img.onerror = null;
             if (failed && live)
               setFailedAssets((previous) => [...previous, src]);
             resolve();
@@ -942,6 +962,7 @@ export default function Arena({
           img.onload = () => finish(false);
           img.onerror = () => finish(true);
           img.src = src;
+          cleanup.push(() => { finish(false); img.removeAttribute('src'); });
         }),
     );
     void Promise.all(pending).then(() => {
@@ -949,22 +970,24 @@ export default function Arena({
     });
     return () => {
       live = false;
+      cleanup.forEach(cancel => cancel());
     };
-  }, [prompt.id]);
+  }, [pair]);
 
   // 双方作品就绪门控（组件级，transition 快门与 intro 揭幕共用）：HTML 作品挂
   // 同源沙箱 iframe，读 contentDocument 的地址与 readyState；非 iframe 作品
-  // （文字/模板/图片）视为即时就绪。初始 about:blank 算未就绪——防 src 导航
+  // 文字/模板即时就绪；图片等当前节点完成。初始 about:blank 算未就绪——防 src 导航
   // 尚未提交时的假阳性。不透明源（内联 srcDoc 占位）读不到文档，视为就绪不拦。
-  // 探针作品（2026-09-25 起服务端吐文档时一律注入 data-aob-probe）在文档就绪
-  // 后还要等它上报「渲染循环已启动」（load+3 帧+600ms，8s 兜底）——场景型
-  // 作品不放到「脚本跑着、画面还没画」的中间态；无探针的老文档不等人。
+  // 探针作品还要等 aob:work-ready：娱乐静态页以 DOM 可用为准，场景页需
+  // 已实际绘制且已识别的加载浮层消失；正式模式保留原探针策略。
+  // 无探针的老文档沿用文档就绪判断。
   const waitWorksLoaded = useCallback(async (abort: AbortSignal) => {
     const workReady = (card: HTMLElement | null): boolean => {
+      if (Array.from(card?.querySelectorAll<HTMLImageElement>('img.concept-image') ?? []).some(image => !image.complete)) return false;
       const frame = card?.querySelector('iframe');
       if (!frame) return true;
       if (frame.dataset.readyProbe === 'required')
-        return !!frame.contentWindow && readyWindows.current.has(frame.contentWindow);
+        return !!frame.contentWindow && !retiredWindows.current.has(frame.contentWindow) && readyWindows.current.has(frame.contentWindow);
       try {
         const doc = frame.contentDocument;
         if (!doc) return true;
@@ -992,6 +1015,7 @@ export default function Arena({
     // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
     // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
     const poll = (): boolean => {
+      if (recoveryBusy.current) return false;
       if (stageRef.current?.dataset.layoutMoving === 'true') return false;
       const a = workReady(cardA.current);
       const b = workReady(cardB.current);
@@ -1084,8 +1108,7 @@ export default function Arena({
       dispatch({ type: 'READY' });
     };
     sequence().catch((error) => {
-      if (!signal.aborted && error?.name !== 'AbortError')
-        dispatch({ type: 'READY' });
+      if (!signal.aborted && error?.name !== 'AbortError') setWorksStalled(true);
     });
     return () => {
       controller.abort();
@@ -1125,28 +1148,14 @@ export default function Arena({
         // 复用上一轮的快速通道
         setGatePassed(false);
         setWorksStalled(false);
-        await delay(reducedMotion ? 60 : 500, signal);
         if (nextPairRef.current) {
+          await delay(reducedMotion ? 60 : 500, signal);
           const next = nextPairRef.current;
           nextPairRef.current = null;
           setPair(next);
-          // 等 React 把换稿提交进 DOM（iframe src 属性指向新稿）再等就绪：
-          // 提交前 poll 读到的是旧稿——旧稿文档、探针俱全，门会在换稿
-          // 落地前放行，新稿就在退场动画下裸加载（帧采样抓到过）
-          const before = [
-            ...document.querySelectorAll('iframe.html-work'),
-          ].map((frame) => frame.getAttribute('src'));
-          for (let i = 0; before.length > 0 && i < 40; i++) {
-            await delay(16, signal);
-            const now = [
-              ...document.querySelectorAll('iframe.html-work'),
-            ].map((frame) => frame.getAttribute('src'));
-            if (
-              now.length === before.length &&
-              now.some((src, index) => src !== before[index])
-            )
-              break;
-          }
+          // The pair dependency restarts this effect after React commits the new
+          // frames. Do not poll old src values or replay the cover delay again.
+          return;
         }
         const winner = await Promise.race([
           waitWorksLoaded(signal).then(() => 'ready' as const),
@@ -1263,7 +1272,10 @@ export default function Arena({
         outcome,
       }).then((result) => {
         // 票一落库就刷新配对暗分（046）：否则整局会话都用启动时的旧快照
-        if (result.ok) refreshRatings(scope);
+        if (result.ok) {
+          refreshRatings(scope);
+          window.dispatchEvent(new Event('aob:votes-changed'));
+        }
         setVoteRecord({
           run: state.run,
           outcome: result.ok
@@ -1475,7 +1487,7 @@ export default function Arena({
           aria-label={t('本轮创作要求')}
         >
           <div className="briefing-heading">
-            <div className="round-tag"><b data-swap>{round.id}</b></div>
+            <div className="round-tag" data-long-id={round.id.length > 3 || undefined} title={round.id}><b data-swap>{round.id}</b></div>
             <div className="briefing-copy">
               <h1 data-swap>{round.name}</h1>
               <button
@@ -1496,15 +1508,16 @@ export default function Arena({
         </div>
 
         <div className="arena-stage" ref={stageRef}>
-          {(state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' && (
+          {(state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+            (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
               promptId={prompt.id}
               leftRid={pair[0].id}
               rightRid={pair[1].id}
               choice={state.choice}
-              settled={voteOutcome.state !== 'saving' && voteOutcome.state !== 'idle'}
-              placeholder={isPlaceholderMode()}
+              settled={voteOutcome.state !== 'saving'}
+              placeholder={testing || isPlaceholderMode()}
             />
           )}
           <div className="stage-watermark" aria-hidden="true">
@@ -1906,7 +1919,8 @@ export default function Arena({
         }}
       >
         <DialogContent
-          className={`exhibit-dialog dialog-round-${prompt.kind === 'image' ? 0 : prompt.kind === 'text' ? 1 : 2}`}
+          className={`exhibit-dialog${formal ? '' : ' is-entertainment-preview'} dialog-round-${prompt.kind === 'image' ? 0 : prompt.kind === 'text' ? 1 : 2}`}
+          overlayClassName={formal ? undefined : 'exhibit-preview-backdrop'}
           showCloseButton={false}
         >
           <div className="dialog-top">
@@ -1916,7 +1930,7 @@ export default function Arena({
                 {localize(expanded?.toUpperCase())}{' '}
                 <span>/ {localize(round.category)}</span> <AigcLabel />
               </DialogTitle>
-              <DialogDescription>{round.prompt}</DialogDescription>
+              {formal && <DialogDescription>{round.prompt}</DialogDescription>}
             </div>
             <button
               className="icon-button"

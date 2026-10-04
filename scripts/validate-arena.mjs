@@ -161,7 +161,8 @@ check('Matchups never cross prompts or compare a model with itself', () => {
 check(
   'Multiple model results support new pairs, same-model exclusion and empty arenas',
   () => {
-    const [first, second] = modelResults.filter((result) => !result.isDemo);
+    const first = { id: 'first-result', promptId: '900', modelId: 'first-model', content: { kind: 'text', text: 'First' } };
+    const second = { ...first, id: 'second-result', modelId: 'second-model' };
     const third = { ...first, id: 'third-result', modelId: 'third-model' };
     const sameModel = { ...first, id: 'same-model-second-result' };
     const results = [first, second, third, sameModel, ...modelResults.filter((result) => result.promptId !== first.promptId)];

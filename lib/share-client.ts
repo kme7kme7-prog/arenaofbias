@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api';
 import type { ModelResult, Prompt } from './arena';
 import { shareSvg } from './share-card.js';
+import { isPromptId } from './prompt-id';
 
 const site = {
   home: ['不看名字，\n你会选谁？', '两份 AI 作品，一个属于你的答案。先看作品，凭直觉选择，再揭晓模型身份。', '#home'],
@@ -111,7 +112,7 @@ export async function resolveShareData(query: string): Promise<ShareData> {
   }
   if (type !== 'duel' && type !== 'prompt') throw new Error('分享类型无效。');
   const promptId = params.get('prompt') ?? '';
-  if (!/^\d{3}$/.test(promptId)) throw new Error('这道题暂不可用。');
+  if (!isPromptId(promptId)) throw new Error('这道题暂不可用。');
   const prompts = await publicList<Prompt>('/api/prompts', 'prompts');
   const prompt = prompts.find((item) => item.id === promptId);
   if (!prompt) throw new Error('这道题暂不可用。');

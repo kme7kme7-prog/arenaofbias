@@ -1,5 +1,10 @@
 # 原创演示素材
 
+## 社区题目四张封面（2026-10-04）
+
+- 橘子推销、掠海长航、深海启航、破碎墙壁使用内置 imagegen 独立生成，题库大图与目录缩略图共用。站点文件位于 `public/art/prompt-cover-q-*.webp`，1200×800，合计约 548KB；不写作品或共享题目记录。
+- 完整提示词与路径见 [生成记录](artwork/2026-10-04-community-covers.md)。真实 Tabbit 检查四题大小图映射、图片解码均通过，并目检页面截图；typecheck/lint/build:check 通过。
+
 生成方式：内置 imagegen；每个素材一次生成。原始大小均为 1536 × 1024，站点使用 WebP 压缩版。
 
 ## A / public/art/signal-a.webp

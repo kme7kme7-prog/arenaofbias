@@ -33,16 +33,16 @@ export function AudienceVerdict({
   useEffect(() => {
     if (!settled || placeholder) return;
     const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+      setFailed(true);
+    }, 8000);
     void fetchVotes(controller.signal).then((votes) => {
       if (controller.signal.aborted) return;
       clearTimeout(timeout);
       if (votes === null) setFailed(true);
       else setCounts(summarizePairVotes(votes, promptId, leftRid, rightRid));
     });
-    const timeout = setTimeout(() => {
-      controller.abort();
-      setFailed(true);
-    }, 1200);
     return () => {
       controller.abort();
       clearTimeout(timeout);
@@ -50,13 +50,14 @@ export function AudienceVerdict({
   }, [settled, placeholder, promptId, leftRid, rightRid]);
 
   useEffect(() => {
-    const leaveTimer = setTimeout(() => setLeaving(true), 1200);
-    const dismissTimer = setTimeout(() => setDismissed(true), 1450);
+    if (!complete) return;
+    const leaveTimer = setTimeout(() => setLeaving(true), 2600);
+    const dismissTimer = setTimeout(() => setDismissed(true), 2900);
     return () => {
       clearTimeout(leaveTimer);
       clearTimeout(dismissTimer);
     };
-  }, []);
+  }, [complete]);
 
   if (dismissed) return null;
   const total = counts ? counts.left + counts.right : 0;
