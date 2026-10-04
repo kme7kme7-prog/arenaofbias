@@ -41,6 +41,9 @@ h1 { font-size: clamp(44px, 5.6vw, 88px); line-height: 1.04; }
 .arena .label, .arena .en { color: #59635d; }
 .arena h1 { font-family: var(--cond); font-weight: 700; letter-spacing: .01em; }
 .arena .line { color: #3a4441; }
+.construction { align-self: flex-start; display: flex; align-items: center; gap: 10px; max-width: 100%; margin-top: 20px; padding: 10px 14px; border-left: 4px solid #242820; background: #e9edbd; color: #303627; font-size: 14px; line-height: 1.6; }
+.construction svg { flex: 0 0 22px; }
+.construction + .go { margin-top: 24px; }
 .arena .go { background: #1c2423; color: #d9fb51; box-shadow: 3px 4px 0 #94a073; transition: transform .25s, box-shadow .25s; }
 .arena .go:hover { transform: translate(-1px, -3px); box-shadow: 5px 7px 0 #94a073; }
 .arena .go:active { transform: translate(2px, 3px); box-shadow: 0 0 0 #94a073; }
@@ -85,6 +88,7 @@ h1 { font-size: clamp(44px, 5.6vw, 88px); line-height: 1.04; }
     <h1>偏见试验场</h1>
     <p class="en">ARENA OF BIAS</p>
     <p class="line">不看名字，凭直觉二选一。<br><span class="line-more">还有一些小游戏。</span></p>
+    <p class="construction"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 15v6m14-6v6" stroke="currentColor" stroke-width="2"/><rect x="2" y="5" width="20" height="10" rx="1" fill="#f1d45b" stroke="currentColor" stroke-width="2"/><path d="m7 5-4 10m12-10-4 10m11-8-3 8" stroke="currentColor" stroke-width="3"/></svg><span>玩法升级中，后续可能有大变化</span></p>
     <a class="go" href="https://game.arenaofbias.icu/">来一局 <span>→</span></a>
   </section>
 
