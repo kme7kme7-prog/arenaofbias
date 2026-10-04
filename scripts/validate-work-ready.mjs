@@ -24,7 +24,7 @@ let browser;
 const results = [];
 try {
   browser = await chromium.launch({ executablePath, headless: true });
-  async function scenario(name, { delay = 40, changeCanvas = false, count = 10, sandboxed = false, reducedMotion = 'no-preference', theme = 'paper', replay = false } = {}) {
+  async function scenario(name, { delay = 40, changeCanvas = false, count = 10, sandboxed = false, reducedMotion = 'no-preference', theme = 'paper', replay = false, lateReady = false } = {}) {
     const context = await browser.newContext({ reducedMotion });
     const page = await context.newPage();
     const errors = [];
@@ -49,9 +49,10 @@ try {
         ...(changeCanvas && i < 2 ? { framing: { width: 1280, height: 720 } } : {}),
       }),
     }));
-    await page.route('**/api/**', route => {
+    await page.route('**/api/**', async route => {
       const endpoint = new URL(route.request().url()).pathname;
       if (endpoint === '/api/works') rosterRequests++;
+      if (lateReady && endpoint === '/api/works' && rosterRequests > 1) await new Promise(resolve => setTimeout(resolve, 1800));
       const payload = endpoint === '/api/works' ? { works }
         : endpoint === '/api/prompts' ? { prompts: [{ id: '005', kind: 'web', name: '就绪时序回归', prompt: '比较两份作品', code: 'READY' }] }
         : endpoint === '/api/auth/me' ? { user: null }
@@ -61,7 +62,7 @@ try {
     });
     await page.route('**/ready-fixture/*', route => {
       const id = Number(new URL(route.request().url()).pathname.match(/(\d+)\.html$/)[1]);
-      const wait = id < 2 || rosterRequests > 1 ? 40 : delay;
+      const wait = id < 2 || rosterRequests > 1 ? 40 : lateReady ? 11000 : delay;
       return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><body data-work="${id}">
         <h1>Ready fixture ${id}</h1><script data-aob-probe>
         ${wait === null ? '' : `setTimeout(() => { document.body.dataset.sent = 'true'; parent.postMessage({ type: 'fixture-ready', id: ${id} }, '*'); parent.postMessage('aob:work-ready', '*'); }, ${wait});`}
@@ -133,6 +134,7 @@ try {
     await scenario(`${theme}: 未就绪作品超时仍保持遮挡并给跳过出口`, { delay: null, theme });
     await scenario(`${theme}: 隔离作品按探针就绪，不能复用旧作品状态`, { delay: 1600, sandboxed: true, theme });
     await scenario(`${theme}: 隔离作品未就绪时刷新一次并避开失败作品`, { delay: null, sandboxed: true, theme });
+    await scenario(`${theme}: 刷新期间旧作品迟到就绪不能提前揭幕`, { delay: null, sandboxed: true, theme, lateReady: true });
   }
   }
 } finally {
