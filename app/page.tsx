@@ -760,6 +760,7 @@ export default function Arena({
   // 已通过探针（作品内渲染循环首帧 postMessage，见 data-aob-probe 注入约定）
   // 声明「渲染管线已启动」的 iframe 窗口。WeakSet：换题后旧窗口自然失效
   const readyWindows = useRef<WeakSet<Window>>(new WeakSet());
+  const retiredWindows = useRef<WeakSet<Window>>(new WeakSet());
   const loadingWindows = useRef<WeakMap<Window, number>>(new WeakMap());
   const cardB = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => animateArenaLayout(stageRef.current, reducedMotion), [prompt.id, reducedMotion]);
@@ -785,7 +786,7 @@ export default function Arena({
         card.current?.querySelector('iframe')?.contentWindow === event.source,
       )) return;
       const source = event.source as Window;
-      if (event.data === 'aob:work-ready') readyWindows.current.add(source);
+      if (event.data === 'aob:work-ready' && !recoveryBusy.current && !retiredWindows.current.has(source)) readyWindows.current.add(source);
       // Start the rendering budget once the document arrives. Repeated signals
       // cannot extend it; error pages use the iframe load event instead.
       if (event.data === 'aob:work-loading') recordStart(source);
@@ -815,9 +816,10 @@ export default function Arena({
       const frame = card.current?.querySelector<HTMLIFrameElement>('iframe[data-ready-probe="required"]');
       const start = frame?.contentWindow && loadingWindows.current.get(frame.contentWindow);
       return frame && (!frame.contentWindow || !readyWindows.current.has(frame.contentWindow)) &&
-        // Navigation has a bounded 20s budget; rendering gets 10s from arrival.
+        // Scene builds may outlive ten seconds. Static content retains the short budget.
         // A stalled request without either signal still reaches recovery.
-        performance.now() - (start ?? started) >= (start === undefined || start === null ? 20000 : 10000) ? [pair[index].id] : [];
+        performance.now() - (start ?? started) >= (start === undefined || start === null ? 20000 :
+          new URL(frame.src, location.href).searchParams.getAll('aob').includes('arena-scene') ? 30000 : 10000) ? [pair[index].id] : [];
     });
     const stopAtEmpty = () => {
       setRecovering(false);
@@ -832,6 +834,10 @@ export default function Arena({
       if (recoveryBudget.current.used) { stopAtEmpty(); return; }
       recoveryBudget.current.used = true;
       recoveryBusy.current = true;
+      [cardA, cardB].forEach(card => {
+        const source = card.current?.querySelector('iframe')?.contentWindow;
+        if (source) retiredWindows.current.add(source);
+      });
       setRecovering(true);
       const notice = document.querySelector('.game-transition.gt-match');
       if (notice) {
@@ -956,15 +962,15 @@ export default function Arena({
   // 同源沙箱 iframe，读 contentDocument 的地址与 readyState；非 iframe 作品
   // （文字/模板/图片）视为即时就绪。初始 about:blank 算未就绪——防 src 导航
   // 尚未提交时的假阳性。不透明源（内联 srcDoc 占位）读不到文档，视为就绪不拦。
-  // 探针作品（2026-09-25 起服务端吐文档时一律注入 data-aob-probe）在文档就绪
-  // 后还要等它上报「渲染循环已启动」（load+3 帧+600ms，8s 兜底）——场景型
-  // 作品不放到「脚本跑着、画面还没画」的中间态；无探针的老文档不等人。
+  // 探针作品还要等 aob:work-ready：娱乐静态页以 DOM 可用为准，场景页需
+  // 已实际绘制且已识别的加载浮层消失；正式模式保留原探针策略。
+  // 无探针的老文档沿用文档就绪判断。
   const waitWorksLoaded = useCallback(async (abort: AbortSignal) => {
     const workReady = (card: HTMLElement | null): boolean => {
       const frame = card?.querySelector('iframe');
       if (!frame) return true;
       if (frame.dataset.readyProbe === 'required')
-        return !!frame.contentWindow && readyWindows.current.has(frame.contentWindow);
+        return !!frame.contentWindow && !retiredWindows.current.has(frame.contentWindow) && readyWindows.current.has(frame.contentWindow);
       try {
         const doc = frame.contentDocument;
         if (!doc) return true;
@@ -992,6 +998,7 @@ export default function Arena({
     // 逐侧就绪回写：加载期下方两条投票条按各自队列色当进度条用；
     // 同时上报纸幕门——钉着的牌面 duel 连线按侧填色（096）
     const poll = (): boolean => {
+      if (recoveryBusy.current) return false;
       if (stageRef.current?.dataset.layoutMoving === 'true') return false;
       const a = workReady(cardA.current);
       const b = workReady(cardB.current);
@@ -1084,8 +1091,7 @@ export default function Arena({
       dispatch({ type: 'READY' });
     };
     sequence().catch((error) => {
-      if (!signal.aborted && error?.name !== 'AbortError')
-        dispatch({ type: 'READY' });
+      if (!signal.aborted && error?.name !== 'AbortError') setWorksStalled(true);
     });
     return () => {
       controller.abort();
@@ -1475,7 +1481,7 @@ export default function Arena({
           aria-label={t('本轮创作要求')}
         >
           <div className="briefing-heading">
-            <div className="round-tag"><b data-swap>{round.id}</b></div>
+            <div className="round-tag" data-long-id={round.id.length > 3 || undefined} title={round.id}><b data-swap>{round.id}</b></div>
             <div className="briefing-copy">
               <h1 data-swap>{round.name}</h1>
               <button
@@ -1906,7 +1912,8 @@ export default function Arena({
         }}
       >
         <DialogContent
-          className={`exhibit-dialog dialog-round-${prompt.kind === 'image' ? 0 : prompt.kind === 'text' ? 1 : 2}`}
+          className={`exhibit-dialog${formal ? '' : ' is-entertainment-preview'} dialog-round-${prompt.kind === 'image' ? 0 : prompt.kind === 'text' ? 1 : 2}`}
+          overlayClassName={formal ? undefined : 'exhibit-preview-backdrop'}
           showCloseButton={false}
         >
           <div className="dialog-top">
@@ -1916,7 +1923,7 @@ export default function Arena({
                 {localize(expanded?.toUpperCase())}{' '}
                 <span>/ {localize(round.category)}</span> <AigcLabel />
               </DialogTitle>
-              <DialogDescription>{round.prompt}</DialogDescription>
+              {formal && <DialogDescription>{round.prompt}</DialogDescription>}
             </div>
             <button
               className="icon-button"

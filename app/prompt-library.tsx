@@ -48,6 +48,8 @@ const coverIds = ['001', '002', '003', '004', '005', '006', '007'];
 const individualCoverIds = new Set([
   '008', '009', '010', '011', '012', '013', '014', '016', '018',
   '019', '020', '021', '022', '023', '024', '025', '026', '027',
+  'q-5ebd7c84dff7cd8f', 'q-7520307699d6010e',
+  'q-c7e65f283bc453a5', 'q-d9886c5bbd71a318',
 ]);
 const motionQuery = '(prefers-reduced-motion: reduce)';
 const PAGE_SIZE = 8;
@@ -158,7 +160,7 @@ function PromptDossier({ prompt }: { prompt: Prompt }) {
             <p className="archive-selected-label">{t('当前命题')}</p>
             <h2 id="dossier-title">{prompt.name}</h2>
           </div>
-          <span className="archive-dossier-number" aria-hidden="true">
+          <span className="archive-dossier-number" data-long-id={prompt.id.length > 3 || undefined} title={prompt.id} aria-hidden="true">
             {localize(prompt.id)}
           </span>
         </div>
@@ -450,7 +452,7 @@ export default function PromptLibrary() {
                       onClick={() => setSelectedId(prompt.id)}
                       onKeyDown={(event) => moveSelection(event, pageStart + index)}
                     >
-                      <span className="archive-option-number">
+                      <span className="archive-option-number" data-long-id={prompt.id.length > 3 || undefined} title={prompt.id}>
                         {localize(prompt.id)}
                       </span>
                       {prompt.id === '001' ? (

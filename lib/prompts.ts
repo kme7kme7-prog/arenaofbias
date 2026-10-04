@@ -7,13 +7,13 @@
 import { apiFetch } from '@/lib/api';
 import { prompts as seedPrompts } from '@/lib/arena';
 import type { Prompt } from '@/lib/arena';
+import { isPromptId } from './prompt-id';
 
 function parsePromptRow(row: unknown): Prompt | null {
   if (!row || typeof row !== 'object') return null;
   const candidate = row as Record<string, unknown>;
   if (
-    typeof candidate.id !== 'string' ||
-    !/^\d{3}$/.test(candidate.id) ||
+    !isPromptId(candidate.id) ||
     (candidate.kind !== 'image' &&
       candidate.kind !== 'text' &&
       candidate.kind !== 'web') ||

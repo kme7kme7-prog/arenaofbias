@@ -1,5 +1,47 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 删除三个占位题与补四张封面（本地完成）
+
+- 用户确认删除002最后一句、003环游轨道、006整装出发及对应测试记录。线上 Gallery bootstrap 29道公开题、本地 questions/数据包均没有三题，它们来自竞技场历史种子。删除 lib/prompts-seed.json 三行、works-roster.json 四行；共享后端 compat-data.json 删除三题、43作品映射、62快照票及1回填评论，避免重启恢复。
+- 共享后端 scripts/remove-show1-placeholders.mjs 默认只读 dry-run；apply须显式db/backup/actor，VACUUM INTO备份、事务清理固定show1-002/003/006、外键检查及维护审计，拒绝存在共享questions记录的意外环境。停本地服务后应用：清掉44作品、1票、1对局、1评论；备份在下载副本根目录 before-placeholder-removal-20261004.db。其他表的非目标行与备份逐行一致。文件归入本地orphans（Windows原生Move-Item，Node rename在该副本EPERM），不删除源压缩包/原快照。
+- 四张新封面橘子/掠海/深海/破壁存 public/art/prompt-cover-q-*.webp；大小图共用映射，1200×800。提示词和方式记录 docs/artwork/2026-10-04-community-covers.md。Tabbit四题映射/解码和三题搜索消失通过，截图目检。前端typecheck/lint/build:check通过；后端check96/0、test275/275。当前本地API26题/442作品，目标题和作品均0，后端已重启。
+- 未commit/push/deploy或删生产数据。发布需共享兼容快照与前端种子/封面一起更新；生产先停服务，清理脚本dry-run核对后用新备份apply并重启，不能只发前端。保留同期其他未提交改动及77镜头配置。
+
+## 2026-10-04 · 娱乐加载判定与失败恢复（本地完成）
+
+- 文字作品实际是 HTML iframe；旧探针等待 load、渲染帧和固定延迟，完全透明的加载容器可能使跨源 iframe 帧回调被节流。娱乐探针改为定时检查：静态页 DOM 可用，场景页实际绘制且已识别的加载浮层消失才就绪；取消原 8 秒强制报成功。加载期作品容器透明度 .001，仍由过场遮挡。正式/Gallery 探针不改。
+- 场景文档到达后的等待预算 30 秒，静态 10 秒、导航 20 秒不变。自动换组仍仅一次；刷新时废弃旧 iframe 的就绪信号，防迟到信号揭开新对局。异常 intro 不直接放行。键盘和其他相机校准、作品源、数据库均未改。
+- 前端 typecheck/lint/build:check 通过，work-ready 16/16（含旧作品迟到信号）；后端 check 95 文件/0 错误、test 275/275。Tabbit 实际点击文字题继续至 voting 约 2.089 秒，HTML 响应 44–48ms，ready 1.34/1.44 秒；重型飞机隔离真实浏览器 ready 7.38/7.77 秒（含初始目录请求），两侧 canvas 已绘制、识别加载浮层 0、pageerror 0。未实投票，不把相位验证写成所有交互已验证。
+- 本地证据 .local/loading-qa；后端已重启。未 commit/push/deploy，保留同期题库和放大预览改动。重型作品自身初始化及外部依赖下载仍可能较慢；尚未优化这些源内容。
+
+## 2026-10-04 · 放大预览精简顶部与扩大窗口（本地）
+
+- 用户要求移除放大预览顶部长提示词、增大窗口。page.tsx 娱乐弹窗不渲染提示词 Description，保留简短标题/类别/关闭按钮；globals.css 以三行网格让作品填满剩余空间，普通HTML/图片/演示网页及固定画框都使用扩大后的作品区。site-scale.css 对 .8 缩放补偿，实际窗口占物理视口宽、高96%；娱乐弹窗/遮罩层级90/80，高于竞技场导航70，避免放大后关闭按钮被导航遮挡。正式预览与Gallery不改，作品源不改。
+- typecheck/lint/build:check通过；隔离真实浏览器对普通HTML及固定画框，在1280×720、1920×1080、390×844共6组确认96%尺寸、无越界、长提示词不显示、按钮关闭与父页焦点下ESC可用、0pageerror；作品内按钮真实坐标点击通过。截图 output/expanded-preview 已查看。iframe内焦点下ESC不传父页的既有行为未改，本轮不宣称此场景已修复。
+- 未commit/push/deploy或写库；保留同期其他未提交改动（含就绪时序代码），本轮只改弹窗相关片段和交接/决策记录。
+
+## 2026-10-04 · 展览馆新题自动同步竞技场（本地完成）
+
+- 用户在调查后授权修复及覆盖后续新题。共享后端 promptCatalog 接入所有已审核公开题目，旧 arenaId 不变，其他题沿用 canonical task ID；作品、投票、评论、反应共享映射。前端统一 ID 校验用于题库/分享/对局，娱乐随机和直达等目录就绪，长 ID 档案与手机显示紧凑。十件、非演示及跨模型门槛不变，公开审核门禁不放宽；无需迁移或人工补编号。
+- 后端 check93/0、test272/272（新增社区题全生命周期与无编号数据包题）；前端 typecheck/lint/build:check 全通过，community IDs/分享3组、娱乐入口浏览器19项、votes12项，以及 arena13、placeholder10、leaderboard12、share6 回归通过。桌面/390px手机截图 output/community-prompts 已查看；浏览器使用隔离 API 夹具，未生产投票。详见 docs/qa/2026-10-04-community-prompts.md。
+- 未 commit/push/deploy、改作品或写生产数据库；上线须协调竞技场前端和共享后端。Gallery 前端与正式盲测接口不改。保留相机校准及其他未提交文件，本轮不将其视为本任务产物。
+
+## 2026-10-04 · 全量娱乐镜头审阅与独立参数（本地）
+
+- 用户授权三个 GPT-6 Luna 子代理审阅当前 445 件公开作品；77 件保存独立娱乐相机（建模54、场景20、物理3），其余保留自然原视角。共享后端新增 entertainment-calibration.json/mjs，动态固定版本接入相机、绘制前保持参数、canvas直接交互释放保持。参数不写共享 calibration_arena；作品文件、生产数据库不改，展览馆/正式不读取新配置。
+- 后端 check93/0、test270/270，转换473模块/374内联脚本语法通过，77镜头隔离通过。真实浏览器冷启动/静置/resize复查，007Grok FOV65娱乐保持且gallery原48；用户旋转释放通过。修复 `$` 变量截断造成黑屏，Grok/Minimax等复查正常。最后一件键盘拉远以完整显示底座。445审阅不等于原作品所有内部功能已验证；005GPT4o云遮挡/005Dots主体不清为原场景限制，011Astra同步初始化较慢。
+- 报告 docs/qa/2026-10-04-entertainment-calibration.md；本地证据 .local/calibration-20261004/。本地后端已重启加载，未commit/push/deploy。上线需后端代码和JSON共同部署；版本变化重新校准。工作区同期出现其他提示词/分享改动，本轮未动这些文件；保留 jianmo 与 curtain-copy-review。
+
+## 2026-10-04 · Tessera 65 缩放与偏移（本地）
+
+- 复现所述隐藏工具栏后仍保留取景空间的结构问题。后端新增 SHA256 固定 Tessera bundle 适配，仅竞技场取景/arena-scene 使用：insets归零，距离范围由baseRadius的0.42–1.9倍扩到0.08–10倍，取消该预览原入场相机补间并注册桥接。未操作时resize可自动适配，用户已动/已保存则保持视角；其他展示路径与源文件不改。
+- 新 scripts/validate-tessera-camera.mjs 真实副本确认居中、滚轮放大/缩小、抓取、保存值模拟恢复、普通/展览馆/正式样式路径原bundle；APEX完整复验通过。截图 .local/work-controls/tessera-centered.png 与 tessera-camera.png 已查看。后端check91/0、test266/266，Show1 typecheck/lint通过。未实点后台保存、未写数据库、未提交/部署；本地后端已重启。
+
+## 2026-10-04 · APEX-65 取景距离适配（本地）
+
+- 用户授权修复 APEX-65 拉远仍裁切。共享内容服务新增 server/apex-camera.mjs，精确 SHA256 识别当前内嵌 OrbitControls bundle，仅竞技场 bridge 取景/arena-scene HTML 动态转发适配版本：maxDistance 220 -> 2200，初始化后注册既有相机桥接，抓取/恢复沿用原契约。作品源码不改；正式 m 与普通/展览馆预览不转发。版本不匹配保持原作，不泛改其他打包作品。
+- scripts/validate-apex-camera.mjs 真实本地副本浏览器验证：滚轮超过旧上限、postMessage 抓取、模拟服务端保存值启动后恢复且不被220钳回、普通/展览馆/正式样式URL原bundle。未写数据库/实点管理员保存。截图 .local/work-controls/apex-camera.png；后端 check 89/0、test 265/265，Show1 typecheck/lint，两仓 diff check通过。本地后端已重启，无 commit/push/deploy，保留其他改动。
+
 ## 2026-10-04 · 配置表单漏隐藏与后台取景一致性（本地）
 
 - 用户授权修改。后端 arena-fold.js 将配置表单与登录/普通表单区分：radio/range/select 配置且无凭据/textarea 可隔离，入口保护保留。共享后台 admin/admin.js 的竞技场取景附加 arena-fold，建模/3D/物理/体素类别附加 arena-scene，保留 bridge/face；展览馆不变。未修改任何作品文件或写入取景数据。
@@ -508,3 +550,10 @@
 - [双主题上线](docs/handoff/2026-09-30-竞技场双主题-Atmeplz.md)、[主题交付](docs/THEME-DELIVERY.md)：纸 / 墨方案、构建与验收边界。
 - [可选邮箱](docs/handoff/2026-09-29-email-auth-v2-wsnxxxs.md)、[浏览器分享](docs/handoff/2026-09-29-share-v2-wsnxxxs.md)、[模态判色](docs/handoff/2026-09-29-模态判色修复-Atmeplz.md)：已合入的近期功能。
 - [内测收口历史](docs/handoff/2026-09-25-内测开闸前收口-kme7kme7-prog.md)、[更早交接](docs/handoff/2026-09-24-历史交接快照-Atmeplz.md)：迁移前邮箱、后台、模型治理与快门记录。
+
+## 2026-10-04 · 展览馆新题未同步到娱乐题库（仅调查）
+
+- 用户要求调查线上新增题（例如二十四节气）超过十件仍不进入竞技场。只读查询共享 API bootstrap/prompts/works 与 game 已部署 JS；未改业务代码、作品、数据库或线上配置，未提交/部署。
+- 二十四节气 q-48c3b43eeb284f6d：调查期间作品从18增到21，最新21件非演示、19个模型；Gallery与竞技场works接口均21。/api/prompts仍25道旧编号题且不含该题。另一题“AI 如何用三句话推销一个橘子🍊？” q-5ebd7c84dff7cd8f有36件、26模型，同样未进入题目目录。
+- 根因：后端 show1compat.promptCatalog 跳过无arenaId题；liveWorks却允许questions表新题并返回q-* promptId，形成作品有/题目无的不一致。线上 page-CQpVf8zR.js 的题目解析器也只接受三位数字，和本地lib/prompts.ts一致。randomArenaHash从题目目录而非作品分组抽题；十件门槛不是本例阻断点。后端published同样依赖目录，仅补前端入口仍不能正常提交票。
+- 后续修复应协调后端题目/作品/投票映射与前端ID解析、路由和分享，保留旧编号与既有十件及跨模型门槛；本轮未实施。上轮全量视角校准未完成的验证/适配工作仍保留待继续，不将本轮调查视为其完成。

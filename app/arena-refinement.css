@@ -841,6 +841,8 @@ html[lang='en'] .arena-shell .vote-copy strong {
 .arena-shell .briefing-heading { display: flex; align-items: center; gap: 16px; min-height: 40px; }
 .arena-shell .round-tag { align-self: center; min-height: 36px; padding: 0; }
 .arena-shell .round-tag b { margin: 0; font: 650 25px/1.4 var(--mono); }
+.arena-shell .round-tag[data-long-id] { min-width: 0; max-width: 100px; }
+.arena-shell .round-tag[data-long-id] b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .arena-shell .briefing-copy { min-width: 0; min-height: 36px; flex: 1; padding-left: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 7px 20px; }
 .arena-shell .briefing h1 { font-size: 20px; line-height: 1.5; font-weight: 750; margin: 0; }
 .arena-shell .prompt-toggle { min-width: 0; min-height: 36px; padding: 0; display: flex; align-items: center; text-align: left; cursor: pointer; color: var(--text-4f634b); font-size: 12px; line-height: 1.5; font-weight: 500; }

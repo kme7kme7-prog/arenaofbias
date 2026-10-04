@@ -262,6 +262,11 @@
   font: 11px var(--mono);
   color: var(--archive-muted);
 }
+.archive-option-number[data-long-id] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .archive-option[aria-pressed='true'] .archive-option-number {
   color: var(--acid);
 }
@@ -466,6 +471,15 @@
   letter-spacing: -0.065em;
   color: var(--text-bec9b0);
   flex-shrink: 0;
+}
+.archive-dossier-number[data-long-id] {
+  max-width: 35%;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  flex-shrink: 1;
 }
 .archive-commentary {
   margin: 11px 0 19px;

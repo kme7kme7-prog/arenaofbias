@@ -4,7 +4,7 @@
 
 > 2026-09-29：线上动态 API 已由 `arenaofbias-server` 共享后端提供。本仓 `server/` 的 Express 邮箱实现与下文相关 API 表述是迁移前参考；当前邮箱契约、环境变量及部署顺序以共享后端的 `docs/api-contract.md` 和 `README.md` 为准。开发时可把 Vite 的 `/api` 代理指向本地共享后端。
 
-共享正式题目由独立数据仓库的 `tasks/<id>/task.json` 登记，`arenaId` 映射稳定三位编号，`kind` 区分文字与网页。共享后端 `/api/prompts` 合并正式题与兼容历史题，前端 `lib/prompts.ts` 解析后供题库与竞技场使用；本仓内置种子只作请求失败时的回退。此登记不写社区 questions 表。
+共享正式题目由独立数据仓库的 `tasks/<id>/task.json` 登记，`arenaId` 映射稳定三位编号，`kind` 区分文字与网页。共享后端 `/api/prompts` 合并数据包、兼容历史题及数据库中已审核公开的题目；无 `arenaId` 的公开题直接沿用 canonical task ID（如 `q-48c3b43eeb284f6d`），不要求手工增加竞技场编号。前端 `lib/prompt-id.ts` 统一题目、分享与对局 ID 校验，`lib/prompts.ts` 解析目录供题库与竞技场使用；随机及直达娱乐入口等待题目和作品清单就绪，十件公开非演示作品与跨模型门槛保持。内置种子只作请求失败时的回退。数据包登记不写社区 questions 表，新题审核仍由共享后端维护。
 
 `promptVariants` 保存同一道题的长短原文，前端保留 `{id, label, prompt}` 并由 `components/prompt-variant-switch.tsx` 提供题库和待收录预览的切换按钮。没有可比较作品的题落提示词预览页。生产题库是否包含新增题，取决于后端实际消费的数据包版本，不能只据前端代码版本判断。
 
