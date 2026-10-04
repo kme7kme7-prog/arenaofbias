@@ -25,3 +25,11 @@ lint、typecheck、placeholder 10/10、formal 6/6 通过。固定源码生产构
 ## 下一步建议
 
 构建固定源码并与共享后端、Gallery、数据包协调发布。
+
+## 完成追加（2026-10-03）
+
+48b0871 已推送 origin/main；固定 LF 源码生产构建在 2026-10-02T19:00:25Z 与 Gallery e0e980b、后端 a280874、数据包 389199bd 协调上线。lint / typecheck / build、placeholder 10/10、formal 6/6 通过。真实共享后端隔离双站会话联调 8 项及公网只读验收通过，桌面 / 手机页面已目检，没有未捕获页面异常。
+
+构建只包含当前源码资源，另将线上已有的 113 个 works / assets 文件保留在新目录，逐文件哈希验证，无无差别删除。旧 game /api 反代与既有 Nginx 配置保持；正式 API 请求继续发往 API 主机。没有新产品决策或待拍板发布事项。
+
+真实生产账号 + Turnstile、邮件、外部审核与全部玩法没有完整写入验收。服务器备份 /root/aob-coordinated-release-20261003/backup，证据在后端 output/coordinated-release-20261003。其他工作树及生成物保留；完成交接 / 归档本地追加，不另建第二条提交。

@@ -36,3 +36,23 @@
 ## 下一步建议
 
 主代理推送固定提交后，先发布兼容探针和娱乐门槛的共享后端，再替换 /www/wwwroot/show1-dist；保留服务器旧 works/hash 资产与 game /api 反代，并核对静态文件集合及 SHA256。
+
+## 完成追加（2026-10-03）
+
+固定游戏源码 b5499c9ee2f942149604dde4d982109e04d5daf7 已非 force 推送 origin/main 与 fork/main，并由协调代理部署至 /www/wwwroot/show1-dist。本轮固定 LF 源码生产构建为 820 文件，API 基址为 https://api.arenaofbias.icu；本地验证结果见上文。两个游戏远端没有 GitHub Actions workflow，当前提交无 CI 运行或 check-run，不将本地验证称为 CI 通过。
+
+部署采用既有 overlay 约定：固定构建加内容不变的 121 个历史线上文件（101 个 works/004–007 子树、根 ZIP，以及 20 个旧哈希 JS/CSS），有效集合共 941 文件；暂存完整集合与逐文件 SHA256 核对通过，16 个路径变化、0 删除。旧作品的 HTML、JS、CSS、图片与字体整套保留，旧收藏入口继续可访问；历史资源没有复制进 Git，game /api 反代保留。静态包及源码 manifest 在 output/integration-20261003-game，协调部署差异证据位于 Gallery 忽略目录 output/integrated-release-20261003/game-plan.json。
+
+共享后端 a7179f2 已运行 API2 / schema38，Gallery 0a6e3e2，正式数据包已同步。协调代理报告 Linux 后端 259 测试通过，数据库 19 张表原有列内容保留；本代理未重复后端验证或写生产数据库。生产公网验收仍在进行，生产账号、Turnstile、邮件及全部作品交互未因此补全验收。
+
+本追加仅留本地交接，不再 commit / push，保持实际部署 SHA。其他原有脏交接材料原样保留。
+
+## 公网验收完成追加（2026-10-03）
+
+协调代理确认最终发布于 2026-10-03T11:21:38Z，服务 running。游戏实际部署源码保持 b5499c9ee2f942149604dde4d982109e04d5daf7，Gallery 0a6e3e2 与正式数据包保持；共享后端最终为 9bf06d0（API2 / schema38）。此前完成追加中的 a7179f2 与「公网验收进行中」是发布中间状态，以本追加为准。
+
+公网验收发现 #prompts 的 001 鹈鹕封面被 game 全站 frame-ancestors none 拦截。游戏 iframe 按源码加载 /art/pelican-cover.html（减少动态效果时附 motion=reduce）且保持 sandbox=allow-scripts，文件在固定构建内；后端 9bf06d0 在 Nginx CSP URI map 为精确 /art/pelican-cover.html 与 /works/ 增加 frame-ancestors self 例外，game 顶层 none 保持。Nginx 检查与 reload 成功。实际浏览器 390px 手机及 1440px 桌面 #prompts 鹈鹕示例均已渲染，iframe 拒绝连接文案消失，无捕获 console error，页面无横向溢出；没有通过放宽 iframe sandbox 或重建游戏源码处理。
+
+最新 24 项 HTTP 公网检查通过；game index 与固定 b5499c9 构建 hash 一致，四个旧作品入口返回 200，game /api/works 与 API 均为 526 件。部署有效 941 文件的完整集合及全量 hash 核对通过，121 个保留历史文件 hash 不变。本轮没有逐一测试全部作品，也没有据此补全生产账号、Turnstile、邮件等完整写入验收。
+
+本次仅补本地交接及归档，不再 commit / push；保留游戏上线 SHA 与其他人的原有脏文档。

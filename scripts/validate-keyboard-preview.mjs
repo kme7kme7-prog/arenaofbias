@@ -58,7 +58,7 @@ try {
   }
   console.log('PASS formal keyboard comparison retains original pages');
   const fixture = await browser.newPage({ viewport: { width: 800, height: 500 } });
-  const adapter = await readFile('../Show2/fusion/arenaofbias-server/server/arena-fold.js', 'utf8');
+  const adapter = await readFile(process.env.ARENA_FOLD_SCRIPT || new URL('../../arenaofbias-server/server/arena-fold.js', import.meta.url), 'utf8');
   await fixture.route('http://fixture.local/**', route => route.fulfill({ contentType: 'text/html', body: '<body><aside>产品描述</aside><main></main></body>' }));
   await fixture.goto('http://fixture.local/?aob=arena-scene');
   await fixture.addScriptTag({ content: adapter });
