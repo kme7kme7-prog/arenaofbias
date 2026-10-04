@@ -1,3 +1,9 @@
+## 2026-10-05 · 补齐跨平台锁文件（发布前修复）
+
+- 协调发布在 Linux Node22.23.2 的干净 npm ci 发现 package-lock 缺 @emnapi/core、@emnapi/runtime 1.11.3；按用户授权最小补齐两个 dev/optional 根条目及官方 npm integrity，未升级已有依赖、未改 package.json 或应用源码。
+- 比对上一提交：仅新增两个锁条目，每个原有 package 记录完全不变。协调代理已用本补丁在 Linux 干净 npm ci 安装227包，lint 0错0警告；typecheck/build:check及生产暂存发布结果由协调代理汇总。本机干净安装经过锁校验，npmmirror缺缓存包下载缓慢；不重复扩大浏览器测试。
+- 固定新提交将以与1a9948a相同的UTF-8 CRLF→LF导出及生产API配置重建，逐文件核对旧827文件；精确SHA与清单由协调代理汇总。未部署或写生产数据。
+- 归档 docs/handoff/2026-10-05-game-lockfile-repair-wsnxxxs.md；本轮仅锁文件与必要交接，生成物/他人工作保留。署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com，单条英文提交同步origin/fork。
 ## 2026-10-05 · 游戏远端归并与统一发布准备（本地验证完成）
 
 - 用户授权四仓联调、适用分支归并、提交、推送及统一发布；游戏代理仅处理本仓，生产由协调代理执行。初始干净，main 8b0dd86 保留本地脚本 CSP 加固；fetch 后 origin/main e3e96a8 已包含 fork/main，合入远端完成的社区题号、旧占位退役、首页缓存、娱乐加载稳定性、投票人数及升级入口变更。仅 HANDOFF 追加冲突，双方记录保留；其他旧分支均在主线历史，不重复合并。
