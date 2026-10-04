@@ -223,7 +223,7 @@ npm start          # 生产形态：http://localhost:3000
 
 ## 当前主站静态发布
 
-总域名 `https://arenaofbias.icu` 的独立总入口在 `/www/wwwroot/arenaofbias-home`；`node scripts/build-portal.mjs` 将 `portal/` 的 CSS/JS 内联为 `output/portal-dist/index.html`，保持根站只提供 `/` 的现行跳转规则。竞技场 `https://game.arenaofbias.icu` 的静态目录为 `/www/wwwroot/show1-dist`，Gallery 独立发布；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
+总域名 `https://arenaofbias.icu` 的独立总入口在 `/www/wwwroot/arenaofbias-home`；`node scripts/build-portal.mjs` 将 `portal/` 构建为 `output/portal-dist/index.html`（CSS 内联）与 `portal.js`（兼容线上 CSP，JS 外置），保持根站 `/` 与 `/portal.js` 的现行静态路由及其他路径跳转规则。竞技场 `https://game.arenaofbias.icu` 的静态目录为 `/www/wwwroot/show1-dist`，Gallery 独立发布；共享后端的现行部署、数据库保护和回滚操作见 `arenaofbias-server/docs/deploy.md`。从已提交并推送的主站源码构建，验证静态文件 manifest 后在暂存目录切换；HTML 使用 no-cache，哈希资源保留长期缓存。旧站副本为 `show1-dist.prev`，既有上线与回滚证据见本仓 vote-release 和 shared-question-release 归档。
 
 game 的 `npm run build` 会自动读取仓库内的 `.env.production`；发布命令应显式使用 `VITE_API_BASE_URL=https://api.arenaofbias.icu npm run build`，并确认产物包含该基址。PowerShell 对应 `$env:VITE_API_BASE_URL='https://api.arenaofbias.icu'; npm run build`。变量在构建时写入静态产物，修改后需要重新构建。上线后原 game 主机的会话 Cookie 不再使用，现有用户需重新登录一次；旧 Cookie 自然过期即可。
 

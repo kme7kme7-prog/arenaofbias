@@ -3,8 +3,8 @@
 `index.html` 以 2026-10-01 公网总入口源码为基线，保留原文案、色彩和布局。
 本目录为独立静态站源码，发布到 `arenaofbias.icu`；不要覆盖竞技场构建目录。
 
-线上总入口仅 `/` 提供静态 HTML，其他路径重定向竞技场。发布前运行
-`node scripts/build-portal.mjs`，只发布 `output/portal-dist/index.html`（CSS/JS 内联）。
+线上总入口 `/` 提供静态 HTML，`/portal.js` 提供过渡脚本，其他路径重定向竞技场。发布前运行
+`node scripts/build-portal.mjs`，发布 `output/portal-dist/index.html` 与 `portal.js`（CSS 内联，JS 外置以兼容线上 `script-src 'self'`）。
 不需要修改 Nginx 或破坏旧路径跳转。
 
 两侧按钮先将所选色块铺满视口，再导航至对应子域的 `?entry=portal`。
