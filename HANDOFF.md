@@ -1,5 +1,15 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 游戏仓最终收工核对（本地完成）
+
+- 用户授权核对未提交修改、联调、适用分支归并、提交、推送和统一发布；本代理仅处理游戏仓，SSH 与生产核验由主代理执行。初始工作区干净，fetch --all --prune 后 main、origin/main、fork/main 均为 7eff18a。
+- 分支证据：main 对 origin/main 与 fork/main 均 0/0；对 origin/codex/paper-ink-theme 为 20/0，对本地 codex/integration-game-20261003 为 5/0。所有分支功能均在主线，不重复合并、不删除其他工作树。
+- 9202875 到本轮起点仅修改交接和归档，游戏业务源码不变。上一固定发布源码仍为 920287583741f92ddda50fbd3282d5987e9eca8f；本次只新增收工记录，不需要因文档变化重新发布游戏。实际线上版本由主代理核对。
+- 本轮 lint、typecheck、build:check、git diff --check、validate:arena 13/13、validate:placeholder 10/10、娱乐门槛浏览器 5/5 通过。无 npm run check/npm test 聚合脚本。浏览器使用隔离内存接口，没有生产账号、投票或业务写入。
+- 没有再次跑真实作品、就绪/失败恢复全组或生产登录/计票/邮件/Turnstile；源码未改变，本轮沿用上轮已归档结果并如实保留验证边界。生成物保留，没有清理本地数据或独立工作树。
+- 本轮归档：docs/handoff/2026-10-04-game-final-closeout-wsnxxxs.md。提交署名使用经 GitHub API 核对的负责人 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com，最终提交与两端推送结果由主代理汇总。
+
+
 ## 2026-10-04 · 四仓近期提交复核与游戏只读联调（本地完成）
 
 - 用户授权四仓近期提交联调、适用分支归并、提交、推送和协调部署；本代理仅处理游戏仓，推送及生产核验由主代理统一协调。初始工作区干净；fetch origin/fork 后 main、两远端 main 均为 9202875。paper-ink-theme 与本地 integration-game 分支均完全在主线历史，无独有或未推送代码，不重复合并。
