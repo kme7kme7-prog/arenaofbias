@@ -1,5 +1,14 @@
 # HANDOFF.md · 当前状态
 
+## 2026-10-04 · 四仓近期提交复核与游戏只读联调（本地完成）
+
+- 用户授权四仓近期提交联调、适用分支归并、提交、推送和协调部署；本代理仅处理游戏仓，推送及生产核验由主代理统一协调。初始工作区干净；fetch origin/fork 后 main、两远端 main 均为 9202875。paper-ink-theme 与本地 integration-game 分支均完全在主线历史，无独有或未推送代码，不重复合并。
+- 游戏源码没有新增修改。上一轮固定游戏源码 920287583741f92ddda50fbd3282d5987e9eca8f 已由协调代理报告部署；本轮无需重复游戏产物，实际线上 SHA 由协调代理复核。此次交接文档提交不代表再次部署。
+- lint、typecheck、build:check、diff --check、arena 13、placeholder 10、旧 server 临时库 formal 6、check:arena-scroll、娱乐门槛浏览器 5、work-ready 14、work-retry 13 全部通过。无 npm run check/npm test 聚合脚本，旧 formal 验证不代替现共享后端生产写入验收。
+- 当前游戏 Vite 5441 显式调用隔离共享 API 5463/内容 5464。浏览器直接运行实际 works/prompts/ratings/show1-board 前端解析器：全新临时库返回 194 件作品、25 题，全部解析，131 件带就绪探针；与生产作品量不同，不作生产统计。真实 011 双飞机完成就绪、娱乐小窗适配、放大原作及关闭恢复；390px 题库无横向溢出。飞机与手机题库截图已目检，所有非 GET API 请求被拦截，没有投票、track 或账号写库。
+- 游戏页面无未捕获异常、无解析坏行警告；真实作品输出 Three/WebGL 采样及零尺寸 framebuffer 警告，不把本次成功加载称为全部原作交互无警告。未逐件验作品、生产登录/计票/邮件/Turnstile、真手机、长期后台或逐帧性能，未 SSH、未重复构建生产包。
+- 本轮仅更新本节与归档 docs/handoff/2026-10-04-game-review-integration-wsnxxxs.md；本地证据在忽略 output/playwright/game-integration-20261004/，工作就绪与失败恢复结果沿用各自忽略目录。不改、删其他工作树或生成物。
+
 ## 2026-10-04 · 最新主线归并与协调发布准备（本地验证完成）
 
 - 用户授权提交已有未提交修改、联调、必要合并、推送与发布；本代理只负责游戏仓，主代理统一生产部署。fetch 两远端后 main 71213f7 快进到 origin/main 175ec33，保留移除巡览、慢作品就绪窗口、失败页导航与配置表单验证。paper-ink-theme 已在主线历史；fork 无独有提交，随后同步。
