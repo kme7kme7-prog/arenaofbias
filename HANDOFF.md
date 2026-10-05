@@ -1,3 +1,9 @@
+## 2026-10-05 · Gallery 默认排序发布配套复核
+
+- 按用户四仓联调、提交、推送及统一发布授权复核本仓。开始 main e4e0411 与 fetch 后 origin/main、fork/main 一致，工作树干净；全部功能分支已合入，无需再次合并，既有工作树保留。
+- lint、typecheck、build:check、diff --check 通过；社区题号 3 项、loading 前台时钟与读取取消、vote-split --votes-only、work-ready 16 项隔离浏览器检查通过。没有 check/test 聚合脚本；完整 vote-split 的退役巡览断言仍不适用，不新增无关测试修复。
+- 本轮只追加交接和归档，游戏业务源码与 e4e0411 相同。未逐件复测原作、目检生产页面或写生产数据；正式构建及统一部署由主任务负责，check 模式 dist 不用作正式包。
+- 固定提交导出需规范 LF，并明确 VITE_API_BASE_URL=https://api.arenaofbias.icu；发布保留旧 works/ZIP/hash 静态资产与 game /api 反代。本轮归档 docs/handoff/2026-10-05-gallery-count-sort-release-wsnxxxs.md，署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com，英文文档提交同步 origin/fork。
 ## 2026-10-05 · 补齐跨平台锁文件（发布前修复）
 
 - 协调发布在 Linux Node22.23.2 的干净 npm ci 发现 package-lock 缺 @emnapi/core、@emnapi/runtime 1.11.3；按用户授权最小补齐两个 dev/optional 根条目及官方 npm integrity，未升级已有依赖、未改 package.json 或应用源码。
