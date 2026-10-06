@@ -99,8 +99,13 @@ import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-tr
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
+import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, ORANGE_PROMPT_ID } from '@/components/orange-counter';
+import { NightChatMasthead, NightChatReply, nightChatQuestion } from '@/components/night-chat';
 import './conversation-arena.css';
 import './arena-empty.css';
+import './orange-counter.css';
+import './orange-signboards.css';
+import './night-chat.css';
 
 // 评论区暂时隐藏（2026-09-30 用户决定）；恢复时改回 true，后端评论接口未改动。
 const COMMENTS_ENABLED = false;
@@ -571,6 +576,14 @@ export default function Arena({
   const [pair, setPair] = useState<Matchup | null>(
     () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope) ?? null,
   );
+  const orange = ORANGE_REVIEW && !formal && prompt.id === ORANGE_PROMPT_ID &&
+    new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
+    !!pair?.every(result => result.content.kind === 'text');
+  const orangeBoards = orange && new URLSearchParams(window.location.search).get('presentation') !== 'counter';
+  const chatQuestion = prompt.id === '008' ? nightChatQuestion(prompt.prompt) : null;
+  const nightChat = ORANGE_REVIEW && !formal && !!chatQuestion &&
+    new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
+    !!pair?.every(result => result.content.kind === 'text');
   const recoveryBusy = useRef(false);
   const recoveryBudget = useRef({ run: 0, used: false });
   const [workAttempt, setWorkAttempt] = useState(0);
@@ -581,10 +594,10 @@ export default function Arena({
   // testing 按无序对号判定（2026-09-20 审查修复）：换一组时 finishPair 会随机
   // 翻左右，按座位比会把「同一对、镜像出场」误判为普通对局——测试徽标消失且
   // 票真落库（只有一对可用作品的题必中，真库 003 就是）
-  const testing =
+  const testing = ORANGE_REVIEW || (
     !!testIds &&
     !!pair &&
-    pairKeyOf(pair[0].id, pair[1].id) === pairKeyOf(testIds[0], testIds[1]);
+    pairKeyOf(pair[0].id, pair[1].id) === pairKeyOf(testIds[0], testIds[1]));
   // 题目分享卡嵌当前对局缩略图（决策 107）：页脚分享入口在全局布局里，
   // 对局 id 经 share 模块的小 store 递过去，卸载即清。
   useEffect(() => {
@@ -1429,7 +1442,7 @@ export default function Arena({
 
   return (
     <div
-      className={`arena-shell ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
+      className={`arena-shell ${orange ? 'orange-arena' : ''} ${orangeBoards ? 'orange-signboards' : ''} ${nightChat ? 'wechat-arena' : ''} ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       } ${state.phase === 'intro' && gatePassed ? 'shutter-exit' : ''}`}
     >
@@ -1508,7 +1521,9 @@ export default function Arena({
         </div>
 
         <div className="arena-stage" ref={stageRef}>
-          {(state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+          {orange && <OrangeCounter choice={state.choice} boards={orangeBoards} />}
+          {nightChat && <NightChatMasthead />}
+          {!orangeBoards && !nightChat && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
@@ -1531,6 +1546,7 @@ export default function Arena({
                 key={side}
                 className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && state.choice !== 'draw' && !chosen ? 'not-chosen' : ''}`}
               >
+                {orangeBoards && <OrangeSignFrame side={side} chosen={chosen} />}
                 <div className="work-panel" ref={index === 0 ? cardA : cardB}>
                   <span className="work-arrival-veil" aria-hidden="true" />
                   <div className="panel-heading">
@@ -1539,7 +1555,7 @@ export default function Arena({
                         {localize(side.toUpperCase())}
                       </span>
                       <span className="model-identity">
-                        {localize(revealed ? round.models[index] : '未知模型')}
+                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : '未知模型')}
                       </span>
                     </div>
                     <span className="entry-number">
@@ -1565,7 +1581,7 @@ export default function Arena({
                         prompt.kind === 'web' && !workCanvas(result) ? true : undefined
                       }
                     >
-                      <Work
+                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : <Work
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
                         key={`${result.id}-${workAttempt}`}
                         result={result}
@@ -1579,7 +1595,7 @@ export default function Arena({
                           result.content.kind === 'image' &&
                           failedAssets.includes(result.content.src)
                         }
-                      />
+                      />}
                     </div>
                     <span className="image-corner tl" aria-hidden="true" />
                     <span className="image-corner br" aria-hidden="true" />
@@ -1639,7 +1655,7 @@ export default function Arena({
                   <span className="vote-copy">
                     <strong>
                       {localize(
-                        side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
+                        orange ? `这单给 ${side.toUpperCase()}` : nightChat ? `想和 ${side.toUpperCase()} 继续聊` : side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
                       )}
                     </strong>
                   </span>
@@ -1669,6 +1685,7 @@ export default function Arena({
                 )}
                 {state.phase === 'result' &&
                   state.mode !== 'formal' &&
+                  !ORANGE_REVIEW &&
                   revealed && (
                     <ReactionBar
                       promptId={prompt.id}
@@ -1695,7 +1712,7 @@ export default function Arena({
                 )}
               </span>
               <span className="vote-copy">
-                <strong>{localize(drawLabel)}</strong>
+                <strong>{localize(nightChat ? '两边都想聊' : drawLabel)}</strong>
               </span>
               <kbd>{t('S')}</kbd>
             </button>

@@ -1,0 +1,149 @@
+/* A-frame stalls. Geometry is fixed before the shared Arena curtain uncovers. */
+.arena-shell.orange-signboards {
+  --sign-frame: #344137;
+  --sign-frame-edge: #69735b;
+  --sign-face: #faf5e5;
+  --sign-stripe: #e1decc;
+}
+[data-theme='ink'] .arena-shell.orange-signboards {
+  --sign-frame: #a0a78a;
+  --sign-frame-edge: #535f50;
+  --sign-face: #29342b;
+  --sign-stripe: #425043;
+}
+.arena-shell.orange-signboards .arena-stage {
+  gap: 0 32px;
+  grid-template-columns: minmax(0,1fr) 220px minmax(0,1fr);
+  padding: 20px 22px 12px;
+  border-top: 0;
+  background: transparent;
+}
+.orange-signboards .orange-masthead { padding-bottom: 30px; border-bottom: 0; }
+.orange-signboards .orange-masthead h2 { font-size: clamp(40px,4vw,66px); }
+.orange-signboards .orange-edition span:first-child { padding: 6px 11px; background: var(--orange-ink); color: var(--orange-paper); transform: rotate(-2deg); }
+.arena-shell.orange-signboards .contender {
+  position: relative;
+  isolation: isolate;
+  padding: 76px 38px 86px;
+  margin-top: 12px;
+  transform-origin: 50% calc(100% - 15px);
+}
+.orange-sign-rig { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+.orange-sign-rig > span { position: absolute; display: block; }
+.orange-sign-shadow { inset: auto 3px 4px; height: 20px; background: #192a2224; border-radius: 50%; filter: blur(4px); }
+.orange-sign-back { inset: 16px -6px 14px 26px; background: var(--sign-frame-edge); clip-path: polygon(0 0,85% 0,100% 100%,94% 100%,79% 4%,7% 4%,7% 100%,0 100%); }
+.orange-sign-leg { bottom: 9px; height: 92px; width: 15px; background: linear-gradient(90deg,var(--sign-frame) 0 65%,var(--sign-frame-edge) 65%); border-bottom: 7px solid #1e2b24; }
+.orange-sign-leg-left { left: 14px; transform: rotate(5deg); }
+.orange-sign-leg-right { right: 14px; transform: rotate(-5deg); }
+.orange-sign-brace { left: 37px; right: 37px; bottom: 34px; height: 8px; background: var(--sign-frame-edge); box-shadow: 0 3px 0 #16231b2a; }
+.orange-sign-face {
+  inset: 22px 6px 61px;
+  background:
+    radial-gradient(circle at 10px 10px,var(--sign-frame-edge) 0 2px,transparent 2.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px,var(--sign-frame-edge) 0 2px,transparent 2.5px),
+    radial-gradient(circle at 10px calc(100% - 10px),var(--sign-frame-edge) 0 2px,transparent 2.5px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),var(--sign-frame-edge) 0 2px,transparent 2.5px),
+    linear-gradient(135deg, #ffffff12, transparent 60%), var(--sign-face);
+  border: 10px solid var(--sign-frame);
+  border-top-color: var(--sign-frame-edge);
+  box-shadow: inset 0 0 0 2px var(--sign-frame-edge), inset 0 4px 8px #18291b0b, 5px 6px 0 #1b2a2520;
+  transform: rotate(-.7deg);
+}
+.contender-b .orange-sign-face { transform: rotate(.7deg); }
+.orange-sign-hinge { top: 14px; left: calc(50% - 34px); height: 13px; width: 68px; border: 2px solid var(--sign-frame); background: repeating-linear-gradient(90deg,var(--sign-frame-edge) 0 8px,var(--sign-frame) 8px 10px); }
+.orange-sign-banner { top: 35px; left: 8px; right: 8px; height: 35px; padding: 0 23px; display: flex !important; align-items: center; justify-content: space-between; background: var(--team); color: #26372e; border-bottom: 2px solid #26372e42; transform: rotate(-.7deg); }
+.orange-sign-banner b { font: 850 14px var(--font-sans); letter-spacing: .1em; }
+.orange-sign-banner em { font: 700 11px var(--font-sans); font-style: normal; letter-spacing: .2em; }
+.orange-sign-banner::before { content: ''; position: absolute; inset: 2px 5px; border-block: 1px solid #ffffff45; pointer-events: none; }
+.contender-b .orange-sign-banner { transform: rotate(.7deg); }
+.arena-shell.orange-signboards .panel-heading { height: 49px; padding-bottom: 10px; border-bottom: 1px solid var(--orange-line); }
+.arena-shell.orange-signboards .side-letter { width: 40px; height: 38px; background: none; color: var(--orange-ink); font: 850 38px/.9 var(--font-sans); }
+.arena-shell.orange-signboards .model-identity { font-size: 13px; }
+.arena-shell.orange-signboards.phase-result .panel-heading { background: transparent; }
+.arena-shell.orange-signboards.phase-result .model-identity { font-size: clamp(12px,1vw,16px); color: var(--orange-ink); }
+.arena-shell.orange-signboards .identity-pick { display: none; }
+.arena-shell.orange-signboards .is-chosen .work-panel { box-shadow: none; }
+.arena-shell.orange-signboards .panel-lock { margin-left: 6px; }
+.arena-shell.orange-signboards .work-panel { overflow: visible; }
+.arena-shell.orange-signboards .work-viewport { min-height: 230px; }
+.orange-signboards .orange-pitch { padding: 19px 0 3px; }
+.orange-signboards .orange-pitch p { grid-template-columns: 24px minmax(0,1fr); gap: 9px; margin-bottom: 19px; }
+.orange-signboards .orange-line-number { color: var(--orange-accent); font-weight: 700; }
+.orange-signboards .orange-line-text { font-size: clamp(19px,1.42vw,23px); line-height: 1.75; font-weight: 600; }
+.arena-shell.orange-signboards .vote-button { height: 54px; border: 2px solid var(--orange-ink); background: var(--sign-face); margin-top: 8px; }
+.arena-shell.orange-signboards .vote-copy strong { font-size: 18px; }
+.arena-shell.orange-signboards .vote-button::after { height: 5px; }
+.arena-shell.orange-signboards .vote-button { transition: background-color 160ms ease, color 160ms ease; }
+.arena-shell.orange-signboards .vote-button:focus-visible { outline: 2px solid var(--orange-accent); outline-offset: 4px; }
+.arena-shell.orange-signboards .side-result { min-height: 54px; margin-top: 8px; padding: 12px 0; }
+.arena-shell.orange-signboards.phase-result .vote-button { height: 0; border: 0; margin: 0; }
+.orange-sale-stamp { position: absolute; bottom: 10px; left: calc(50% - 52px); z-index: 2; width: 104px; text-align: center; border: 4px double var(--orange-accent); padding: 7px 12px; font: 850 28px/1 var(--font-sans); letter-spacing: .16em; color: var(--orange-accent); background: var(--orange-paper); transform: rotate(-9deg) scale(1.15); opacity: 0; pointer-events: none; transition: transform 220ms ease-out, opacity 160ms ease-out; }
+.orange-sale-stamp.is-stamped { transform: rotate(-9deg) scale(1); opacity: 1; }
+.orange-signboards .orange-product { align-self: center; padding-block: 20px 36px; position: relative; }
+.orange-signboards .orange-fruit { position: relative; z-index: 1; margin-top: 8px; }
+.orange-crate {
+  position: relative; height: 74px; margin: -38px 8px 18px; padding: 10px 16px;
+  border: 2px solid #657053;
+  background: linear-gradient(90deg,transparent 0 10px,#6e784d44 10px 14px,transparent 14px calc(100% - 14px),#6e784d44 calc(100% - 14px) calc(100% - 10px),transparent calc(100% - 10px)),repeating-linear-gradient(0deg,transparent 0 22px,#8e9670 22px 24px),#c9cba0;
+  color: #344137; display: flex; align-items: center; justify-content: center;
+  box-shadow: 5px 6px 0 #23302622,inset 0 0 0 4px #e0dfb7; transform: rotate(-2deg);
+}
+.orange-crate::before { content: ''; position: absolute; inset: -11px -2px auto; height: 10px; border: 2px solid #657053; background: #d9dab2; transform: skewX(-20deg); transform-origin: bottom; }
+.orange-crate b { font: 800 32px var(--font-sans); }
+.orange-crate i { position: absolute; inset: auto 16px 5px; height: 1px; background: #5a674f55; }
+.orange-signboards .orange-deal { font-size: 14px; }
+.arena-shell.orange-signboards .draw-row { margin-top: -6px; border-top: 2px solid var(--orange-line); padding-top: 10px; }
+/* A single ease-out reaches resting geometry without a final shrink or bounce. */
+.arena-shell.orange-signboards.works-hold :is(.orange-sign-rig,.orange-sale-stamp) { visibility: hidden; }
+.arena-shell.orange-signboards .work-arrival-veil { display: none; }
+.arena-shell.orange-signboards.works-reveal .contender { animation: orange-sign-open 400ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes orange-sign-open {
+  from { transform: translateY(24px); }
+  to { transform: translateY(0); }
+}
+@media (max-width: 1150px) {
+  .arena-shell.orange-signboards .arena-stage { grid-template-columns: minmax(0,1fr) 160px minmax(0,1fr); gap: 0 18px; padding-inline: 10px; }
+  .arena-shell.orange-signboards .contender { padding-inline: 27px; }
+  .orange-signboards .orange-masthead h2 { font-size: 42px; }
+  .orange-crate { margin-inline: 0; }
+  .orange-signboards .orange-line-text { font-size: 19px; }
+}
+@media (max-width: 720px) {
+  .arena-shell.orange-signboards .arena-stage { grid-template-columns: minmax(0,1fr); gap: 0; padding: 20px 9px 12px; }
+  .orange-signboards .orange-masthead { padding: 0 8px 10px; }
+  .orange-signboards .orange-masthead h2 { font-size: 36px; }
+  .orange-signboards .orange-product { grid-column: 1; grid-row: 2; width: 220px; margin: 0 auto 12px; padding: 4px 0; }
+  .orange-signboards .orange-fruit { width: 110px; margin: 0 auto; }
+  .orange-signboards .orange-deal { margin: 5px 0 0; min-height: 20px; }
+  .orange-signboards .orange-crate { display: none; }
+  .arena-shell.orange-signboards .contender { grid-column: 1; padding: 59px 27px 68px; margin-top: 0; }
+  .arena-shell.orange-signboards .contender-a { grid-row: 3; }
+  .arena-shell.orange-signboards .contender-b { grid-row: 4; margin-top: 14px; }
+  .orange-sign-face { inset: 18px 2px 51px; border-width: 7px; transform: rotate(-.6deg); }
+  .contender-b .orange-sign-face { transform: rotate(.6deg); }
+  .orange-sign-back { right: -3px; left: 14px; bottom: 8px; }
+  .orange-sign-leg { width: 10px; height: 62px; }
+  .orange-sign-leg-left { left: 8px; }
+  .orange-sign-leg-right { right: 8px; }
+  .orange-sign-brace { left: 25px; right: 25px; bottom: 26px; height: 7px; }
+  .orange-sign-banner { height: 29px; top: 26px; left: 3px; right: 3px; padding: 0 17px; }
+  .orange-sign-banner b { font-size: 12px; }
+  .orange-sign-banner em { font-size: 9px; }
+  .orange-sign-hinge { top: 12px; width: 38px; height: 10px; left: calc(50% - 19px); }
+  .arena-shell.orange-signboards .panel-heading { height: 54px; }
+  .arena-shell.orange-signboards .work-viewport { min-height: 180px; }
+  .arena-shell.orange-signboards .panel-identity { gap: 3px; }
+  .arena-shell.orange-signboards .side-letter { font-size: 29px; width: 28px; }
+  .arena-shell.orange-signboards .model-identity { font-size: 11px; }
+  .orange-signboards .orange-pitch p { grid-template-columns: 23px minmax(0,1fr); gap: 8px; margin-bottom: 16px; }
+  .orange-signboards .orange-line-text { font-size: 18px; line-height: 1.65; }
+  .arena-shell.orange-signboards .vote-button { height: 47px; padding-inline: 7px; }
+  .arena-shell.orange-signboards .vote-copy strong { font-size: 14px; }
+  .arena-shell.orange-signboards .vote-icon { width: 16px; }
+  .orange-sale-stamp { bottom: 1px; width: 76px; left: calc(50% - 38px); font-size: 22px; padding: 5px 8px; }
+  .arena-shell.orange-signboards .draw-row { grid-row: 5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-shell.orange-signboards.works-reveal .contender { animation: none; }
+  .orange-sale-stamp { transition: none; }
+}

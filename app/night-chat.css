@@ -1,0 +1,152 @@
+/* Local entertainment presentation. Original messages enter on a short shared beat. */
+.arena-shell.wechat-arena {
+  --chat-bg: #eeefeb;
+  --chat-header: #f9faf7;
+  --chat-incoming: #fff;
+  --chat-text: #202723;
+  --chat-line: #dedfd8;
+  --chat-self: #a8e77a;
+  --chat-stage-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='%23696354' opacity='.045'%3E%3Ccircle cx='7' cy='11' r='.6'/%3E%3Ccircle cx='34' cy='5' r='.5'/%3E%3Ccircle cx='53' cy='27' r='.6'/%3E%3Ccircle cx='21' cy='33' r='.5'/%3E%3Ccircle cx='9' cy='55' r='.6'/%3E%3Ccircle cx='39' cy='49' r='.5'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(145deg, #f3f2ec, #e8e9e2);
+  --chat-stage-text: #2b3330;
+  --chat-clock: #727b70;
+  --chat-edge: #d9dcd3;
+  --chat-shadow: 0 1px 2px #30392d08, 0 8px 20px #30392d08, 0 24px 42px #30392d08;
+  --chat-draw-line: #808c7438;
+  --chat-draw-text: #4f5c50;
+  --chat-draw-hover: #ffffff70;
+  --chat-bubble-shadow: 0 1px 2px #26372808, inset 0 0 0 1px #ffffff80;
+  --chat-stage-rim: #ffffff90;
+}
+[data-theme='ink'] .arena-shell.wechat-arena {
+  --chat-bg: #202523;
+  --chat-header: #292e2b;
+  --chat-incoming: #373d39;
+  --chat-text: #e8eee9;
+  --chat-line: #424b45;
+  --chat-self: #94ce69;
+  --chat-stage-bg: linear-gradient(145deg, #2d2e2a, #252724);
+  --chat-stage-text: #e8e9e5;
+  --chat-clock: #b4b9b0;
+  --chat-edge: #b4b9b02a;
+  --chat-shadow: 0 1px 2px #00000018, 0 12px 32px #00000020;
+  --chat-draw-line: #b4b9b040;
+  --chat-draw-text: #c5cdc3;
+  --chat-draw-hover: #ffffff08;
+  --chat-bubble-shadow: 0 1px 2px #00000012, inset 0 0 0 1px #ffffff05;
+  --chat-stage-rim: #ffffff09;
+}
+.arena-shell.wechat-arena .main-terminal { max-width: 1540px; }
+.arena-shell.wechat-arena .arena-stage {
+  gap: 28px 32px;
+  padding: 32px 40px 22px;
+  border-radius: 22px;
+  background: var(--chat-stage-bg);
+  perspective: none;
+  color: var(--chat-stage-text);
+  box-shadow: inset 0 0 0 1px var(--chat-stage-rim), 0 12px 40px #30392405;
+}
+.night-chat-masthead { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.night-chat-masthead h2 { margin: 0; font: 750 clamp(25px, 2.6vw, 42px)/1.35 var(--font-sans); letter-spacing: -.025em; }
+.night-chat-masthead time { display: flex; align-items: center; gap: 14px; color: var(--chat-clock); font: 400 23px/1 var(--mono); letter-spacing: .03em; font-variant-numeric: tabular-nums; }
+.night-chat-masthead time svg { width: 25px; height: 25px; }
+.arena-shell.wechat-arena .contender { position: relative; background: var(--chat-header); border: 1px solid var(--chat-edge); border-radius: 14px; overflow: hidden; box-shadow: var(--chat-shadow); }
+.arena-shell.wechat-arena .contender::after { content: ''; position: absolute; inset: 0; border: 1px solid #55aa6b; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 180ms ease; }
+.arena-shell.wechat-arena .contender.is-chosen::after { opacity: 1; }
+.arena-shell.wechat-arena .work-panel { padding: 0; background: transparent; box-shadow: none; border: 0; }
+.arena-shell.wechat-arena .work-panel::before,
+.arena-shell.wechat-arena .work-panel::after { display: none; }
+.arena-shell.wechat-arena .panel-heading { height: 70px; padding: 0 22px; color: var(--chat-text); background: var(--chat-header); border-bottom: 1px solid var(--chat-line); box-shadow: inset 0 1px 0 var(--chat-stage-rim); }
+.arena-shell.wechat-arena .panel-heading::after { content: '•••'; margin-left: auto; font: 700 16px var(--font-sans); letter-spacing: 3px; }
+.arena-shell.wechat-arena.phase-result .panel-heading { background: var(--chat-header); }
+.arena-shell.wechat-arena .panel-identity { min-width: 0; gap: 12px; }
+.arena-shell.wechat-arena .side-letter { width: 35px; height: 35px; padding: 0; border: 0; border-radius: 8px; background: linear-gradient(145deg, #e0e9df, #d0ded1); color: #365442; box-shadow: inset 0 1px 0 #ffffff90, 0 1px 2px #253a2810; font: 700 18px/1 var(--font-sans); flex-shrink: 0; }
+.arena-shell.wechat-arena .model-identity { color: var(--chat-text); font-size: 18px; letter-spacing: 0; overflow-wrap: anywhere; }
+.arena-shell.wechat-arena :is(.entry-number, .aigc-label, .panel-lock, .identity-pick, .panel-bottom, .image-corner, .expand-control, .versus-spine, .stage-watermark, .work-arrival-veil) { display: none; }
+.arena-shell.wechat-arena .work-viewport { height: 570px; aspect-ratio: auto; background: var(--chat-bg); }
+.arena-shell.wechat-arena .work-inner { height: 100%; overflow: hidden; }
+.wechat-thread { height: 100%; padding: 28px 22px 36px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #78897c60 transparent; color: var(--chat-text); outline: none; }
+.wechat-thread:focus-visible { box-shadow: inset 0 0 0 2px #6da064; }
+.chat-message { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.chat-message-self { justify-content: flex-end; margin-bottom: 30px; }
+.chat-avatar { flex: 0 0 38px; width: 38px; height: 38px; border-radius: 7px; background: linear-gradient(145deg, #879a87, #687e6b); color: #e5eee7; overflow: hidden; box-shadow: inset 0 1px 0 #ffffff35, 0 1px 2px #2c3b2c10; }
+.chat-avatar svg { display: block; width: 100%; height: 100%; }
+.chat-avatar-self { background: linear-gradient(145deg, #acb4aa, #919d93); color: #f5f7f4; }
+.chat-bubble { position: relative; min-width: 0; max-width: calc(100% - 60px); margin: 0; padding: 12px 15px; border-radius: 7px; background: var(--chat-incoming); color: var(--chat-text); box-shadow: var(--chat-bubble-shadow); font: 400 17px/1.75 var(--font-sans); white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-bubble::before { content: ''; position: absolute; top: 14px; left: -5px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); }
+.chat-question { background: var(--chat-self); color: #1f3220; }
+.chat-question::before { left: auto; right: -5px; }
+.arena-shell.wechat-arena .vote-button {
+  width: calc(100% - 44px); height: 49px; margin: 16px 22px;
+  padding: 0 17px; border: 0; border-radius: 6px; clip-path: none;
+  background: linear-gradient(180deg, #0bae61, #079e55); color: #fff; box-shadow: inset 0 1px 0 #ffffff25, 0 2px 3px #007e3512; transform: none;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+.arena-shell.wechat-arena .vote-button::before,
+.arena-shell.wechat-arena .vote-button::after { display: none; }
+[data-theme] .arena-shell.wechat-arena .vote-button { color: #fff; }
+.arena-shell.wechat-arena .vote-button :is(.vote-copy, .vote-icon, kbd) { color: inherit; }
+.arena-shell.wechat-arena .vote-copy strong { font-size: 17px; }
+.arena-shell.wechat-arena .vote-button:not(:disabled):hover { background: linear-gradient(180deg, #09a458, #078c49); transform: none; }
+.arena-shell.wechat-arena .vote-icon { transition: transform 160ms ease; }
+@media (hover: hover) { .arena-shell.wechat-arena .vote-button:not(:disabled):hover .vote-icon { transform: translateX(3px); } }
+.arena-shell.wechat-arena .vote-button:not(:disabled):active { transform: translateY(1px); }
+.arena-shell.wechat-arena .vote-button:focus-visible { outline: 2px solid #07a95b; outline-offset: 4px; }
+.arena-shell.wechat-arena .vote-button kbd { border-color: #ffffff55; background: transparent; }
+.arena-shell.wechat-arena.phase-intro .vote-button,
+.arena-shell.wechat-arena.phase-loading .vote-button { filter: none; }
+.arena-shell.wechat-arena.phase-result .vote-button { height: 0; margin-block: 0; padding-block: 0; overflow: hidden; }
+.arena-shell.wechat-arena .side-result { padding: 17px 22px; border-top: 1px solid var(--chat-line); color: var(--chat-text); }
+.arena-shell.wechat-arena .is-chosen { border-color: #83ce87; }
+.arena-shell.wechat-arena .is-chosen .work-panel { box-shadow: none; }
+.arena-shell.wechat-arena .draw-row { grid-column: 1 / -1; margin: -10px 0 0; }
+.arena-shell.wechat-arena .draw-rule { display: none; }
+.arena-shell.wechat-arena .vote-draw { height: 38px; border: 1px solid var(--chat-draw-line); border-radius: 6px; color: var(--chat-draw-text); background: transparent; box-shadow: none; }
+.arena-shell.wechat-arena .vote-draw:not(:disabled):hover { color: var(--chat-draw-text); background: var(--chat-draw-hover); }
+.arena-shell.wechat-arena .vote-draw kbd { color: inherit; border-color: var(--chat-draw-line); }
+.arena-shell.wechat-arena.works-hold .night-chat-masthead { visibility: hidden; }
+/* Shared curtain phase owns the entry clock; messages stagger without layout changes. */
+.arena-shell.wechat-arena.works-reveal .work-panel { animation: none; }
+.arena-shell.wechat-arena .contender { --chat-entry-x: -16px; }
+.arena-shell.wechat-arena .contender-b { --chat-entry-x: 16px; }
+.arena-shell.wechat-arena.works-reveal .contender { animation: night-chat-open 660ms cubic-bezier(.24, .72, .24, 1) both; }
+.arena-shell.wechat-arena.works-reveal .contender-b { animation-delay: 45ms; }
+.arena-shell.wechat-arena.works-reveal .night-chat-masthead { animation: night-chat-heading 520ms cubic-bezier(.24, .72, .24, 1) both; }
+.arena-shell.wechat-arena.works-reveal .chat-message-self { animation: night-chat-question 460ms 90ms cubic-bezier(.24, .72, .24, 1) both; }
+.arena-shell.wechat-arena.works-reveal .chat-replies > .chat-message { animation: night-chat-messages 260ms cubic-bezier(.24, .72, .24, 1) both; animation-delay: calc(140ms + var(--chat-message-order, 0) * var(--chat-message-step, 55ms)); }
+/* A held curtain may wait for seconds. Do not spend the visible motion behind it. */
+body:has(.game-transition:not([data-gt-phase='exit'])) .arena-shell.wechat-arena.works-reveal :is(.contender, .night-chat-masthead, .chat-message) { animation-play-state: paused; }
+/* The shared reveal class persists through a same-topic swap. Reset under cover. */
+.arena-shell.wechat-arena.phase-transition :is(.contender, .night-chat-masthead, .chat-message) { animation: none; }
+.arena-shell.wechat-arena.phase-transition .chat-replies > .chat-message { animation: none; }
+@keyframes night-chat-open { from { opacity: .72; transform: translate(var(--chat-entry-x), 26px); } to { opacity: 1; transform: translate(0, 0); } }
+@keyframes night-chat-heading { from { opacity: .5; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes night-chat-question { from { opacity: .7; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes night-chat-messages { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 1050px) {
+  .arena-shell.wechat-arena .arena-stage { gap: 24px; padding: 26px 22px 20px; }
+  .chat-bubble { font-size: 16px; }
+  .wechat-thread { padding-inline: 16px; }
+}
+@media (max-width: 720px) {
+  .arena-shell.wechat-arena .arena-stage { grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 24px 14px 18px; border-radius: 15px; }
+  .arena-shell.wechat-arena .contender { --chat-entry-x: 0px; }
+  .night-chat-masthead { align-items: flex-start; gap: 12px; }
+  .night-chat-masthead h2 { max-width: 9em; font-size: 26px; }
+  .night-chat-masthead time { padding-top: 6px; font-size: 17px; gap: 8px; }
+  .night-chat-masthead time svg { width: 21px; height: 21px; }
+  .arena-shell.wechat-arena .panel-heading { height: 65px; padding-inline: 17px; }
+  .arena-shell.wechat-arena .model-identity { font-size: 17px; }
+  .arena-shell.wechat-arena .work-viewport { height: 500px; }
+  .wechat-thread { padding: 22px 14px 28px; }
+  .chat-avatar { flex-basis: 31px; width: 31px; height: 31px; }
+  .chat-message { gap: 10px; }
+  .chat-bubble { max-width: calc(100% - 47px); padding: 10px 12px; font-size: 16px; }
+  .arena-shell.wechat-arena .vote-button { width: calc(100% - 32px); margin: 14px 16px; }
+  .arena-shell.wechat-arena .vote-button kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arena-shell.wechat-arena.works-reveal :is(.contender, .night-chat-masthead, .chat-message) { animation: none; }
+  .arena-shell.wechat-arena.works-reveal .chat-replies > .chat-message { animation: none; }
+  .arena-shell.wechat-arena .contender::after,
+  .arena-shell.wechat-arena :is(.vote-button, .vote-icon) { transition: none; }
+}
