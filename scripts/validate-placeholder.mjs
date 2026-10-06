@@ -178,6 +178,7 @@ check('默认关闭时 currentResults 原样返回真实数据（同一引用）
 });
 
 check('开启后两套数据严格隔离：无任何 id 或对象重叠', () => {
+  const originalResults = structuredClone(modelResults);
   localStorage.setItem(
     'arenaofbias:dev',
     JSON.stringify({ placeholderMode: true, placeholderModelCount: 6 }),
@@ -186,8 +187,7 @@ check('开启后两套数据严格隔离：无任何 id 或对象重叠', () => 
   assert.equal(placeholder.length, prompts.length * 6);
   const realIds = new Set(modelResults.map((r) => r.id));
   assert.ok(placeholder.every((r) => !realIds.has(r.id)));
-  assert.equal(modelResults.length, 5); // 真实数据原封不动
-  assert.equal(modelResults[0].id, '001-sample');
+  assert.deepEqual(modelResults, originalResults); // 真实数据原封不动
 });
 
 check('占位投票：数量、合法性、时间分布与强弱梯度', () => {

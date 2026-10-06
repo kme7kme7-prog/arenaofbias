@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url';
+import { createHash } from 'node:crypto';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/postcss';
 import { defineConfig } from 'vite';
@@ -13,6 +14,19 @@ export default defineConfig({
   css: { postcss: { plugins: [tailwindcss()] } },
   plugins: [
     react(),
+    {
+      name: 'static-script-csp',
+      apply: 'build',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html) {
+          const hashes = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+            .map((match) => `'sha256-${createHash('sha256').update(match[1].replaceAll('\r\n', '\n')).digest('base64')}'`);
+          const policy = `script-src 'self' ${hashes.join(' ')} https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'`;
+          return html.replace(/<head>/i, `<head>\n<meta http-equiv="Content-Security-Policy" content="${policy}">`);
+        },
+      },
+    },
     {
       name: 'admin-entry-alias',
       configureServer(server) {

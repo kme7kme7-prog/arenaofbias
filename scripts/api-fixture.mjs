@@ -11,7 +11,7 @@ const promptIdCode = ts.transpileModule(await readFile(new URL('../lib/prompt-id
 
 export function withApiFixture(code) {
   return apiCode + '\n' + promptIdCode + '\n' + code.replace(
-    /^import\s*\{\s*apiFetch\s*\}\s*from\s*['"]@\/lib\/api['"];?\s*$/gm,
+    /^import\s*\{\s*(?:apiFetch|apiReadJson)\s*\}\s*from\s*['"]@\/lib\/api['"];?\s*$/gm,
     '',
   ).replace(/^import\s*\{\s*isPromptId\s*\}\s*from\s*['"]\.\/prompt-id['"];?\s*$/gm, '');
 }

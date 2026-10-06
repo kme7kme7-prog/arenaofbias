@@ -1,3 +1,22 @@
+## 2026-10-05 · Gallery 默认排序发布配套复核
+
+- 按用户四仓联调、提交、推送及统一发布授权复核本仓。开始 main e4e0411 与 fetch 后 origin/main、fork/main 一致，工作树干净；全部功能分支已合入，无需再次合并，既有工作树保留。
+- lint、typecheck、build:check、diff --check 通过；社区题号 3 项、loading 前台时钟与读取取消、vote-split --votes-only、work-ready 16 项隔离浏览器检查通过。没有 check/test 聚合脚本；完整 vote-split 的退役巡览断言仍不适用，不新增无关测试修复。
+- 本轮只追加交接和归档，游戏业务源码与 e4e0411 相同。未逐件复测原作、目检生产页面或写生产数据；正式构建及统一部署由主任务负责，check 模式 dist 不用作正式包。
+- 固定提交导出需规范 LF，并明确 VITE_API_BASE_URL=https://api.arenaofbias.icu；发布保留旧 works/ZIP/hash 静态资产与 game /api 反代。本轮归档 docs/handoff/2026-10-05-gallery-count-sort-release-wsnxxxs.md，署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com，英文文档提交同步 origin/fork。
+## 2026-10-05 · 补齐跨平台锁文件（发布前修复）
+
+- 协调发布在 Linux Node22.23.2 的干净 npm ci 发现 package-lock 缺 @emnapi/core、@emnapi/runtime 1.11.3；按用户授权最小补齐两个 dev/optional 根条目及官方 npm integrity，未升级已有依赖、未改 package.json 或应用源码。
+- 比对上一提交：仅新增两个锁条目，每个原有 package 记录完全不变。协调代理已用本补丁在 Linux 干净 npm ci 安装227包，lint 0错0警告；typecheck/build:check及生产暂存发布结果由协调代理汇总。本机干净安装经过锁校验，npmmirror缺缓存包下载缓慢；不重复扩大浏览器测试。
+- 固定新提交将以与1a9948a相同的UTF-8 CRLF→LF导出及生产API配置重建，逐文件核对旧827文件；精确SHA与清单由协调代理汇总。未部署或写生产数据。
+- 归档 docs/handoff/2026-10-05-game-lockfile-repair-wsnxxxs.md；本轮仅锁文件与必要交接，生成物/他人工作保留。署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com，单条英文提交同步origin/fork。
+## 2026-10-05 · 游戏远端归并与统一发布准备（本地验证完成）
+
+- 用户授权四仓联调、适用分支归并、提交、推送及统一发布；游戏代理仅处理本仓，生产由协调代理执行。初始干净，main 8b0dd86 保留本地脚本 CSP 加固；fetch 后 origin/main e3e96a8 已包含 fork/main，合入远端完成的社区题号、旧占位退役、首页缓存、娱乐加载稳定性、投票人数及升级入口变更。仅 HANDOFF 追加冲突，双方记录保留；其他旧分支均在主线历史，不重复合并。
+- 修复三份受新接口/种子影响的验证夹具：api-fixture 内联 apiReadJson，arena 使用合成跨模型作品，placeholder 比对原数据快照；没有改竞猜、作品源或生产数据。
+- lint、typecheck、build:check、diff --check；arena 13、placeholder 10、community IDs 3、娱乐入口 19、work-ready 16、work-retry 13、stability 5 全部通过；取消/可见时钟、首页缓存、过场、滚动及 vote-split --votes-only 通过。社区题库与竞技场手机截图已目检。完整 check-vote-split 仍引用已删除巡览的旧断言，本轮仅跑适用投票检查；无 npm run check/npm test 聚合脚本。
+- 本轮不重跑真实作品全量、生产登录/计票/邮件/Turnstile或真机；浏览器夹具隔离响应，无生产写入。本仓生成物、其他工作树保留。本轮归档 docs/handoff/2026-10-05-game-remote-integration-wsnxxxs.md。
+- 本轮整合源码含业务变化，需协调重发游戏并先行发布共享后端契约；固定提交随后以 git archive LF 导出、显式 VITE_API_BASE_URL=https://api.arenaofbias.icu 构建，推送 origin/fork，由协调代理核对生产旧文件保留与发布结果。本代理未 SSH 或部署；提交署名 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com。
 # HANDOFF.md · 当前状态
 ## 2026-10-06 · 聊天气泡快速逐条冒出（本地待审）
 
@@ -723,6 +742,11 @@
 - [可选邮箱](docs/handoff/2026-09-29-email-auth-v2-wsnxxxs.md)、[浏览器分享](docs/handoff/2026-09-29-share-v2-wsnxxxs.md)、[模态判色](docs/handoff/2026-09-29-模态判色修复-Atmeplz.md)：已合入的近期功能。
 - [内测收口历史](docs/handoff/2026-09-25-内测开闸前收口-kme7kme7-prog.md)、[更早交接](docs/handoff/2026-09-24-历史交接快照-Atmeplz.md)：迁移前邮箱、后台、模型治理与快门记录。
 
+## 2026-10-05 · 游戏脚本CSP加固（本地完成，未推送、未部署）
+
+- 用户要求核实漏洞并修复；竞猜明确要求先搁置，规则/算法/接口未改。当前线上已有CSP和HSTS，报告「完全无CSP」不成立。
+- Vite最终HTML入口加入内联启动脚本SHA-256哈希策略，保留自身脚本、Cloudflare和Blob Worker，限制object/base；与既有Nginx头同时生效。不改旧server、兼容代理或作品资源。
+- lint、typecheck、build:check、diff检查通过；隔离游戏首页/纸色主题正常，额外内联与onclick被阻止、Blob Worker正常。未重跑全部竞技场交互或生产竞猜写入，构建产物不入库。未推送部署。[本轮归档](docs/handoff/2026-10-05-security-csp-wsnxxxs.md)。
 ## 2026-10-04 · 展览馆新题未同步到娱乐题库（仅调查）
 
 - 用户要求调查线上新增题（例如二十四节气）超过十件仍不进入竞技场。只读查询共享 API bootstrap/prompts/works 与 game 已部署 JS；未改业务代码、作品、数据库或线上配置，未提交/部署。
