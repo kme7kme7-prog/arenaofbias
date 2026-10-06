@@ -99,7 +99,7 @@ import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-tr
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
-import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, ORANGE_PROMPT_ID } from '@/components/orange-counter';
+import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, SKINS_ENABLED, ORANGE_PROMPT_ID } from '@/components/orange-counter';
 import { NightChatMasthead, NightChatReply, nightChatQuestion } from '@/components/night-chat';
 import './conversation-arena.css';
 import './arena-empty.css';
@@ -576,12 +576,12 @@ export default function Arena({
   const [pair, setPair] = useState<Matchup | null>(
     () => testPair ?? initialPair ?? currentMatchup(prompt.id, undefined, scope) ?? null,
   );
-  const orange = ORANGE_REVIEW && !formal && prompt.id === ORANGE_PROMPT_ID &&
+  const orange = SKINS_ENABLED && !formal && prompt.id === ORANGE_PROMPT_ID &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
   const orangeBoards = orange && new URLSearchParams(window.location.search).get('presentation') !== 'counter';
   const chatQuestion = prompt.id === '008' ? nightChatQuestion(prompt.prompt) : null;
-  const nightChat = ORANGE_REVIEW && !formal && !!chatQuestion &&
+  const nightChat = SKINS_ENABLED && !formal && !!chatQuestion &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
   const recoveryBusy = useRef(false);
