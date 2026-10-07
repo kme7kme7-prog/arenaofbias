@@ -22,3 +22,28 @@ export async function apiReadJson(path: string, signal?: AbortSignal): Promise<u
     signal?.removeEventListener('abort', abort);
   }
 }
+
+/** Initial catalog reads get one retry. Empty catalogs are successful results. */
+export async function readCatalogWithRetry<T>(
+  read: (signal: AbortSignal) => Promise<T | null>,
+  signal: AbortSignal,
+): Promise<T | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (signal.aborted) return null;
+    const result = await read(signal);
+    if (signal.aborted) return null;
+    if (result !== null) return result;
+    if (attempt === 0) {
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          clearTimeout(timer);
+          signal.removeEventListener('abort', finish);
+          resolve();
+        };
+        const timer = setTimeout(finish, 400);
+        signal.addEventListener('abort', finish, { once: true });
+      });
+    }
+  }
+  return null;
+}

@@ -3,7 +3,7 @@
 // 拉不到时调用方回退到 lib/arena.ts 的内置花名册，站点行为与改造前一致。
 // 后台内容管理（登记/发布开关）落地后，这里就是「后台点了、前台即刻生效」的通道。
 
-import { apiReadJson } from '@/lib/api';
+import { apiReadJson, readCatalogWithRetry } from '@/lib/api';
 import { knownContentKinds, modelResults } from '@/lib/arena';
 import type { ModelResult } from '@/lib/arena';
 
@@ -97,7 +97,8 @@ export type WorksState =
 type Listener = () => void;
 
 let state: WorksState = { status: 'loading' };
-let started = false;
+let worksLoad: Promise<void> | null = null;
+let worksController: AbortController | null = null;
 const listeners = new Set<Listener>();
 
 function emit() {
@@ -119,18 +120,30 @@ export function worksReady(): boolean {
   return state.status === 'ready';
 }
 
-/** 启动拉取（幂等）。失败时落到 builtin，站点用内置花名册继续运行。 */
-export function loadWorks(): void {
-  if (started) return;
-  started = true;
-  void (async () => {
-    const works = await fetchWorks();
+/** Share pending reads; retry only failed catalogs, never replace a successful roster. */
+export function loadWorks(): Promise<void> {
+  if (worksLoad) return worksLoad;
+  if (state.status === 'ready' && state.source === 'remote') return Promise.resolve();
+  const controller = new AbortController();
+  worksController = controller;
+  state = { status: 'loading' };
+  emit();
+  worksLoad = (async () => {
+    const works = await readCatalogWithRetry(fetchWorks, controller.signal);
+    const current = getWorksState();
+    if (controller.signal.aborted || (current.status === 'ready' && current.source === 'remote')) return;
     state =
       works === null
         ? { status: 'ready', source: 'builtin', works: modelResults }
         : { status: 'ready', source: 'remote', works };
     emit();
-  })();
+  })().finally(() => {
+    if (worksController === controller) {
+      worksController = null;
+      worksLoad = null;
+    }
+  });
+  return worksLoad;
 }
 
 /** Recovery refresh: retain the current roster on failure, publish a valid empty roster. */
@@ -144,7 +157,9 @@ export async function refreshWorks(signal: AbortSignal): Promise<boolean> {
 
 /** 测试/调试用：重置回未加载状态（生产代码不调用） */
 export function resetWorksForTest(): void {
-  started = false;
+  worksController?.abort();
+  worksController = null;
+  worksLoad = null;
   state = { status: 'loading' };
 }
 

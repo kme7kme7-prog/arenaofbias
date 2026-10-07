@@ -262,6 +262,28 @@
   font: 11px var(--mono);
   color: var(--archive-muted);
 }
+.archive-load-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--archive-line);
+  color: var(--archive-muted);
+  font-size: 13px;
+}
+.archive-load-notice button {
+  padding: 8px 12px;
+  border: 1px solid var(--archive-line);
+  color: var(--text-main);
+  cursor: pointer;
+}
+.archive-load-notice button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .archive-option-number[data-long-id] {
   overflow: hidden;
   text-overflow: ellipsis;

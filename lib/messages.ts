@@ -1,5 +1,8 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  '正在同步展览馆题目与作品…': 'Loading gallery prompts and works…',
+  '正在加载…': 'Loading…',
+  '展览馆数据未能加载完整，当前显示临时内容。': 'Gallery data could not be loaded completely. Temporary content is shown.',
   '作品收集中（{count}/{minimum}）': 'Collecting works ({count}/{minimum})',
   '作品收集中（{count}/{minimum}），暂未开放娱乐盲测': 'Collecting works ({count}/{minimum}); entertainment matching is not open yet',
   '暂未开放娱乐盲测，至少需要 10 件作品。': 'Entertainment matching requires at least 10 works.',

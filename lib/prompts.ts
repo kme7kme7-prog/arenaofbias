@@ -4,7 +4,7 @@
 // 与 lib/works.ts 同构：后台题目管理（新增/编辑/上下架）落库后，
 // 这里就是「后台点了、前台刷新即生效」的通道。
 
-import { apiReadJson } from '@/lib/api';
+import { apiReadJson, readCatalogWithRetry } from '@/lib/api';
 import { prompts as seedPrompts } from '@/lib/arena';
 import type { Prompt } from '@/lib/arena';
 import { isPromptId } from './prompt-id';
@@ -57,9 +57,9 @@ function parsePromptRow(row: unknown): Prompt | null {
 
 /** 拉已发布题目清单；失败返回 null（调用方回退内置题库）。空清单是合法结果
  *（题目全部下架——决策 045「完全隐藏」），原样返回 []，不回退内置题库 */
-export async function fetchPrompts(): Promise<Prompt[] | null> {
+export async function fetchPrompts(signal?: AbortSignal): Promise<Prompt[] | null> {
   try {
-    const data = (await apiReadJson('/api/prompts')) as { prompts?: unknown } | null;
+    const data = (await apiReadJson('/api/prompts', signal)) as { prompts?: unknown } | null;
     if (!data) return null;
     if (!Array.isArray(data.prompts)) return null;
     const parsed = data.prompts.map(parsePromptRow);
@@ -83,7 +83,8 @@ export type PromptsState =
 type Listener = () => void;
 
 let state: PromptsState = { status: 'loading' };
-let started = false;
+let promptsLoad: Promise<void> | null = null;
+let promptsController: AbortController | null = null;
 const listeners = new Set<Listener>();
 
 function emit() {
@@ -105,23 +106,36 @@ export function promptsReady(): boolean {
   return state.status === 'ready';
 }
 
-/** 启动拉取（幂等）。失败时落到 builtin，站点用内置题库继续运行。 */
-export function loadPrompts(): void {
-  if (started) return;
-  started = true;
-  void (async () => {
-    const prompts = await fetchPrompts();
+/** Share pending reads; a failed catalog can be loaded again without a page reload. */
+export function loadPrompts(): Promise<void> {
+  if (promptsLoad) return promptsLoad;
+  if (state.status === 'ready' && state.source === 'remote') return Promise.resolve();
+  const controller = new AbortController();
+  promptsController = controller;
+  state = { status: 'loading' };
+  emit();
+  promptsLoad = (async () => {
+    const prompts = await readCatalogWithRetry(fetchPrompts, controller.signal);
+    if (controller.signal.aborted) return;
     state =
       prompts === null
         ? { status: 'ready', source: 'builtin', prompts: seedPrompts }
         : { status: 'ready', source: 'remote', prompts };
     emit();
-  })();
+  })().finally(() => {
+    if (promptsController === controller) {
+      promptsController = null;
+      promptsLoad = null;
+    }
+  });
+  return promptsLoad;
 }
 
 /** 测试/调试用：重置回未加载状态（生产代码不调用） */
 export function resetPromptsForTest(): void {
-  started = false;
+  promptsController?.abort();
+  promptsController = null;
+  promptsLoad = null;
   state = { status: 'loading' };
 }
 

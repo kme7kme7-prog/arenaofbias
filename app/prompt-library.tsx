@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import { convoyNavigate } from '@/lib/game-transitions';
 import { revealLibrary } from '@/lib/library-motion';
-import { currentPrompts } from '@/lib/prompts';
+import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '@/lib/prompts';
+import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 import { GALLERY_QUESTIONS } from '@/lib/gallery-links';
 import type { Prompt } from '@/lib/arena';
 import {
@@ -247,6 +248,11 @@ export default function PromptLibrary() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const focusSelection = useRef(false);
+  const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
+  const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
+  const catalogLoading = promptsState.status === 'loading' || worksState.status === 'loading';
+  const catalogUnavailable = (promptsState.status === 'ready' && promptsState.source === 'builtin') ||
+    (worksState.status === 'ready' && worksState.source === 'builtin');
   const prompts = currentPrompts();
   const visible = prompts.filter(
     (prompt) =>
@@ -394,6 +400,20 @@ export default function PromptLibrary() {
             </span>
           </div>
         </section>
+        {(catalogLoading || catalogUnavailable) && (
+          <output className="archive-load-notice">
+            <span>{t(catalogLoading
+              ? '正在同步展览馆题目与作品…'
+              : '展览馆数据未能加载完整，当前显示临时内容。')}</span>
+            <button
+              type="button"
+              disabled={catalogLoading}
+              onClick={() => { void loadPrompts(); void loadWorks(); }}
+            >
+              {t(catalogLoading ? '正在加载…' : '重新加载')}
+            </button>
+          </output>
+        )}
         <div className="archive-toolbar">
           <div className="archive-filters" aria-label={t('按作品类型筛选')}>
             {filters.map(([value, label]) => (

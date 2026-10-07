@@ -75,6 +75,12 @@ function Routes() {
   // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
   const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
   useEffect(() => {
+    const recoverCatalogs = () => { void loadPrompts(); void loadWorks(); };
+    recoverCatalogs();
+    window.addEventListener('online', recoverCatalogs);
+    return () => window.removeEventListener('online', recoverCatalogs);
+  }, [route]);
+  useEffect(() => {
     const arenaPromptId = route.startsWith('#arena/')
       ? route.slice(7)
       : route.startsWith('#formal/')
@@ -150,8 +156,8 @@ if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
 // 应用启动即拉取服务端作品清单；拉不到时 lib/works.ts 会回退内置花名册。
 // 同时上报一次页面浏览（含初始 hash 路由，后台访客统计用）
 trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
-loadWorks();
-loadPrompts(); // 动态题库（决策 045）
+void loadWorks();
+void loadPrompts(); // 动态题库（决策 045）
 loadRatings(); // 声望分：软性匹配的数据源（决策 046）
 loadRatings('formal'); // 正式匹配使用独立快照，不借用娱乐分数或出场数。
 reactRoot.render(
