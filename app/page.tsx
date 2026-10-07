@@ -1523,7 +1523,7 @@ export default function Arena({
         <div className="arena-stage" ref={stageRef}>
           {orange && <OrangeCounter choice={state.choice} boards={orangeBoards} />}
           {nightChat && <NightChatMasthead />}
-          {!orangeBoards && !nightChat && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+          {(state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
