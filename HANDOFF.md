@@ -1,3 +1,9 @@
+## 2026-10-08 · 贴吧楼皮肤正式启用（已发布）
+
+- 用户验收 5443 试版后拍板启用。仅一处开关切换：page.tsx 的 forum 条件 ORANGE_REVIEW → SKINS_ENABLED（与橘子/深夜聊天同款），testing 旗标保持 DEV-only 不动，正式环境投票照常落库。
+- 生效条件不变：非 formal、题目 q-a71a7e7e4bcaadc7、非 ?presentation=classic、两侧均为 text 作品；?presentation=classic 保留逃生口。题名显示「弱智吧问答」，无 AI 生成标签，品牌头像揭晓。
+- typecheck/lint/build 通过。commit + push + 部署 show1-dist（备份照例）。
+
 ## 2026-10-08 · 弱智吧问答头像揭晓与分层入场（本地待审）
 
 - 用户要求去掉此题的AI生成标签、选择前保持匿名头像、揭晓时过渡到对应厂商图标，题名改为「弱智吧问答」，入场更顺滑。保留柔和纸面与现有经典楼层；仅当前5443 DEV娱乐限题，未授权生产启用/提交/发布。

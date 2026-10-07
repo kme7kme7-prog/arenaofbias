@@ -586,7 +586,7 @@ export default function Arena({
   const nightChat = SKINS_ENABLED && !formal && !!chatQuestion &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
-  const forum = ORANGE_REVIEW && !formal && prompt.id === FORUM_PROMPT_ID &&
+  const forum = SKINS_ENABLED && !formal && prompt.id === FORUM_PROMPT_ID &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
   const recoveryBusy = useRef(false);

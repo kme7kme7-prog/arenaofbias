@@ -2,7 +2,7 @@ import type { ModelResult, Side } from '@/lib/arena';
 
 // Review server only: ordinary dev and production builds keep the existing arena.
 export const ORANGE_REVIEW = import.meta.env.DEV && import.meta.env.VITE_ORANGE_REVIEW === '1';
-// 2026-10-06 用户拍板正式启用两套皮肤；ORANGE_REVIEW 仍是本地试版开关（不计数）。
+// 2026-10-06 用户拍板正式启用两套皮肤；2026-10-08 追加贴吧楼皮肤。ORANGE_REVIEW 仍是本地试版开关（不计数）。
 export const SKINS_ENABLED = true;
 export const ORANGE_PROMPT_ID = 'q-5ebd7c84dff7cd8f';
 
