@@ -101,11 +101,13 @@ import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
 import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, SKINS_ENABLED, ORANGE_PROMPT_ID } from '@/components/orange-counter';
 import { NightChatMasthead, NightChatReply, nightChatQuestion } from '@/components/night-chat';
+import { ForumPost, ForumReply, ForumAvatar, FORUM_PROMPT_ID, FORUM_PROMPT_NAME } from '@/components/forum-thread';
 import './conversation-arena.css';
 import './arena-empty.css';
 import './orange-counter.css';
 import './orange-signboards.css';
 import './night-chat.css';
+import './forum-thread.css';
 
 // 评论区暂时隐藏（2026-09-30 用户决定）；恢复时改回 true，后端评论接口未改动。
 const COMMENTS_ENABLED = false;
@@ -584,6 +586,9 @@ export default function Arena({
   const nightChat = SKINS_ENABLED && !formal && !!chatQuestion &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
+  const forum = ORANGE_REVIEW && !formal && prompt.id === FORUM_PROMPT_ID &&
+    new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
+    !!pair?.every(result => result.content.kind === 'text');
   const recoveryBusy = useRef(false);
   const recoveryBudget = useRef({ run: 0, used: false });
   const [workAttempt, setWorkAttempt] = useState(0);
@@ -897,6 +902,7 @@ export default function Arena({
   const soundRef = useRef(false);
   const round = {
     ...prompt,
+    name: forum ? FORUM_PROMPT_NAME : prompt.name,
     models: pair?.map((entry) => entry.modelName) ?? [],
     labels: pair?.map((entry) => entry.title) ?? [],
   };
@@ -1442,7 +1448,7 @@ export default function Arena({
 
   return (
     <div
-      className={`arena-shell ${orange ? 'orange-arena' : ''} ${orangeBoards ? 'orange-signboards' : ''} ${nightChat ? 'wechat-arena' : ''} ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
+      className={`arena-shell ${orange ? 'orange-arena' : ''} ${orangeBoards ? 'orange-signboards' : ''} ${nightChat ? 'wechat-arena' : ''} ${forum ? 'forum-arena' : ''} ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       } ${state.phase === 'intro' && gatePassed ? 'shutter-exit' : ''}`}
     >
@@ -1523,7 +1529,8 @@ export default function Arena({
         <div className="arena-stage" ref={stageRef}>
           {orange && <OrangeCounter choice={state.choice} boards={orangeBoards} />}
           {nightChat && <NightChatMasthead />}
-          {!orangeBoards && !nightChat && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+          {forum && <ForumPost question={prompt.prompt} />}
+          {!orangeBoards && !nightChat && !forum && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
@@ -1552,16 +1559,16 @@ export default function Arena({
                   <div className="panel-heading">
                     <div className="panel-identity">
                       <span className="side-letter">
-                        {localize(side.toUpperCase())}
+                        {forum ? <ForumAvatar key={result.id} side={side} modelId={result.modelId} revealed={revealed} /> : localize(side.toUpperCase())}
                       </span>
                       <span className="model-identity">
-                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : '未知模型')}
+                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : '未知模型')}
                       </span>
                     </div>
                     <span className="entry-number">
                       {localize(round.code)} / 0{index + 1}
                     </span>
-                    <AigcLabel />
+                    {!forum && <AigcLabel />}
                     {chosen && (
                       <span className="identity-pick">
                         <Check size={14} />{t('YOUR PICK')}
@@ -1581,7 +1588,7 @@ export default function Arena({
                         prompt.kind === 'web' && !workCanvas(result) ? true : undefined
                       }
                     >
-                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : <Work
+                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : forum ? <ForumReply key={`${result.id}-${state.run}`} result={result} side={side} /> : <Work
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
                         key={`${result.id}-${workAttempt}`}
                         result={result}
@@ -1641,6 +1648,7 @@ export default function Arena({
                     </span>
                   </div>
                 </div>
+                {forum && <span className="forum-floor-number">{index + 2} 楼</span>}
                 <button
                   className={`vote-button vote-${side} ${
                     worksLoading && worksPendingBySide[side] ? 'is-pending' : ''
@@ -1650,12 +1658,12 @@ export default function Arena({
                   disabled={state.phase !== 'voting'}
                 >
                   <span className="vote-icon">
-                    {chosen ? <Check size={24} /> : <ArrowUpRight size={25} />}
+                    {chosen ? <Check size={24} /> : forum ? <ThumbsUp size={18} /> : <ArrowUpRight size={25} />}
                   </span>
                   <span className="vote-copy">
                     <strong>
                       {localize(
-                        orange ? `这单给 ${side.toUpperCase()}` : nightChat ? `想和 ${side.toUpperCase()} 继续聊` : side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
+                        orange ? `这单给 ${side.toUpperCase()}` : nightChat ? `想和 ${side.toUpperCase()} 继续聊` : forum ? `顶 ${index + 2} 楼` : side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
                       )}
                     </strong>
                   </span>
@@ -1712,7 +1720,7 @@ export default function Arena({
                 )}
               </span>
               <span className="vote-copy">
-                <strong>{localize(nightChat ? '两边都想聊' : drawLabel)}</strong>
+                <strong>{localize(nightChat ? '两边都想聊' : forum ? '这两层打平' : drawLabel)}</strong>
               </span>
               <kbd>{t('S')}</kbd>
             </button>

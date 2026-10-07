@@ -1,0 +1,62 @@
+{
+  "promptId": "q-a71a7e7e4bcaadc7",
+  "title": "弱智吧问答",
+  "models": {
+    "gpt-6-astra": {
+      "logo": "/forum-brands/openai.svg",
+      "name": "OpenAI"
+    },
+    "claude-opus-5.5": {
+      "logo": "/forum-brands/claude.png",
+      "name": "Claude"
+    },
+    "claude-sonnet-5.5": {
+      "logo": "/forum-brands/claude.png",
+      "name": "Claude"
+    },
+    "gemini-3.8-flash": {
+      "logo": "/forum-brands/google.png",
+      "name": "Google Gemini"
+    },
+    "gpt-6.1-sol": {
+      "logo": "/forum-brands/openai.svg",
+      "name": "OpenAI"
+    },
+    "gpt-6-luna": {
+      "logo": "/forum-brands/openai.svg",
+      "name": "OpenAI"
+    },
+    "kimi-k3": {
+      "logo": "/forum-brands/kimi.ico",
+      "name": "Kimi"
+    },
+    "glm-5.3": {
+      "logo": "/forum-brands/zai.svg",
+      "name": "Z.ai"
+    },
+    "glm-5.3-flash": {
+      "logo": "/forum-brands/zai.svg",
+      "name": "Z.ai"
+    },
+    "qwen3.8-flash-next": {
+      "logo": "/forum-brands/qwen.png",
+      "name": "Qwen"
+    },
+    "qwen3.8-max": {
+      "logo": "/forum-brands/qwen.png",
+      "name": "Qwen"
+    },
+    "grok-4.7": {
+      "logo": "/forum-brands/xai.ico",
+      "name": "xAI"
+    },
+    "deepseek-v4.1-flash": {
+      "logo": "/forum-brands/deepseek.ico",
+      "name": "DeepSeek"
+    },
+    "minimax-m3": {
+      "logo": "/forum-brands/minimax.ico",
+      "name": "MiniMax"
+    }
+  }
+}
