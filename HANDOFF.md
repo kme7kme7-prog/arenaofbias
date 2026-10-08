@@ -1,3 +1,10 @@
+## 2026-10-08 · 总入口备案链接（已上线）
+
+- 用户授权添加 arenaofbias.icu 导航页备案号并提交、推送、部署。基于 origin/main dadf17d 的隔离工作区，仅修改 portal/index.html：页脚条款、隐私后加入「闽ICP备2026019671号-2」，链接工信部查询页；桌面靠右，窄屏自然换行。
+- 独立入口构建、过渡脚本语法、现有 portal source invariants、diff --check 通过。本地 1440/390 截图目检及 320 窄屏无横溢；公网 1440/390 截图目检、备案文字与 href、完整 HTML SHA 核对通过。仅既有 favicon 404，无捕获的脚本异常。Gallery 配套 check66/0、test30/30、build176件/69site、严格 intake0错/8既有提示通过；没有发布 Gallery 或私有包。
+- 生产入口的施工文案与禁用按钮仍与 main 有既有差异；本轮发布自动重建当前线上基线，逐字节复现后仅应用同一页脚源码差异，保留全部非页脚字节。仅原子替换 arenaofbias-home/index.html；portal.js、Nginx、游戏、后端与业务数据不动。上线 HTML SHA 94b25484d9ebc267d3c3a0c41b1602fb5c4207d7554f9019456f93580872d558。
+- 备份 /root/aob-portal-beian-20261008/index.html.before；忽略证据在 Gallery output/portal-preview/。原游戏工作区与 Gallery 并行改动保留、不纳入提交。归档 docs/handoff/2026-10-08-portal-beian-wsnxxxs.md；本轮按一条英文提交推送 origin/main。
+
 ## 2026-10-08 · 贴吧楼皮肤正式启用（已发布）
 
 - 用户验收 5443 试版后拍板启用。仅一处开关切换：page.tsx 的 forum 条件 ORANGE_REVIEW → SKINS_ENABLED（与橘子/深夜聊天同款），testing 旗标保持 DEV-only 不动，正式环境投票照常落库。
