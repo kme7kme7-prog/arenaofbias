@@ -54,6 +54,12 @@
 - 新text-presentations主题表、text-stage组件/CSS及page局部接线，正常娱乐路径启用源码；仅在5444本地只读试版验证，未commit/push/deploy。现有三套优先，classic逃生口保留；HTML旧作品沿用原iframe与就绪，原生文字无额外内容请求。动作复用遮幕entry暂停/exit播放及覆盖复位，760ms内落位，无尺寸缩放/回弹/新等待。
 - 本轮有效作品104件（98原生文字逐份原文核对、6HTML加载/哈希），24个桌面手机纸墨布局、选择揭晓/继续/重播、局部动作及末态尺寸、旧三套/classic/formal隔离检查通过；通用版另查未来题、长短文和门槛。typecheck/lint/build:check通过。Tabbit桌面A、手机B、揭晓/继续实测及截图目检。详见docs/qa/2026-10-08-text-themes.md；性能只测本地缓存，未验线上写票或真机FPS。
 - 体验选单 http://127.0.0.1:5444/reference/text-themes-review.html ；prepare-text-themes-review.mjs只读获取快照，serve-text-themes-review.mjs启动，全API写403。`.local/text-themes-review/`与`output/text-themes-review/`均忽略。线上2行缺modelId（013 up-imkun6wp、橘子up-l1uqw5tv）已记录未修。保留无关jianmo/、reference/curtain-copy-review.html。
+## 2026-10-08 · 总入口备案链接（已上线）
+
+- 用户授权添加 arenaofbias.icu 导航页备案号并提交、推送、部署。基于 origin/main dadf17d 的隔离工作区，仅修改 portal/index.html：页脚条款、隐私后加入「闽ICP备2026019671号-2」，链接工信部查询页；桌面靠右，窄屏自然换行。
+- 独立入口构建、过渡脚本语法、现有 portal source invariants、diff --check 通过。本地 1440/390 截图目检及 320 窄屏无横溢；公网 1440/390 截图目检、备案文字与 href、完整 HTML SHA 核对通过。仅既有 favicon 404，无捕获的脚本异常。Gallery 配套 check66/0、test30/30、build176件/69site、严格 intake0错/8既有提示通过；没有发布 Gallery 或私有包。
+- 生产入口的施工文案与禁用按钮仍与 main 有既有差异；本轮发布自动重建当前线上基线，逐字节复现后仅应用同一页脚源码差异，保留全部非页脚字节。仅原子替换 arenaofbias-home/index.html；portal.js、Nginx、游戏、后端与业务数据不动。上线 HTML SHA 94b25484d9ebc267d3c3a0c41b1602fb5c4207d7554f9019456f93580872d558。
+- 备份 /root/aob-portal-beian-20261008/index.html.before；忽略证据在 Gallery output/portal-preview/。原游戏工作区与 Gallery 并行改动保留、不纳入提交。归档 docs/handoff/2026-10-08-portal-beian-wsnxxxs.md；本轮按一条英文提交推送 origin/main。
 
 ## 2026-10-08 · 贴吧楼皮肤正式启用（已发布）
 
