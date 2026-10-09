@@ -12,6 +12,7 @@ import { AccountButton } from '@/components/account';
 import { useEffect, useRef, useState } from 'react';
 import {
   createGameTransition,
+  navigationTransitionActive,
   bandsNavigate,
   convoyNavigate,
 } from '@/lib/game-transitions';
@@ -81,7 +82,7 @@ export default function Home() {
   // 决策 032：主按钮改走档案锁定过场（lib/game-transitions.ts 的 frame），
   // 盖满时经 onCovered 切路由；随机入场走钉住纸幕（2026-09-19，取代横扫）
   const enter = () => {
-    if (leaving || frameTransitionRunning) return;
+    if (leaving || frameTransitionRunning || navigationTransitionActive()) return;
     setLeaving(true);
     frameTransitionRunning = true;
     const transition = createGameTransition('frame', {

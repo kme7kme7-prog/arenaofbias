@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>翻页与场景过场 · 对照</title>
+<style>body{margin:0;background:#e2cec7;color:#57453f;font:16px/1.8 system-ui}main{max-width:800px;margin:12vh auto;padding:30px}h1{font-weight:500}button,a{color:inherit;font:inherit;padding:12px 20px;margin:6px;border:1px solid #8e7c6c66;background:#f5ede0;cursor:pointer}label{display:block;margin:24px 6px}.hint{opacity:.7;font-size:14px}</style></head>
+<body><main><p>实际过场模块 · 本地动效对照</p><h1>合上这一页，翻开下一页。</h1><div id="scenes"></div><label><input id="hold" type="checkbox">模拟作品慢加载（取消勾选后继续展开）</label><p class="hint">沿用实际就绪门；减少动态时直接切换。此页仅用于检查遮挡、材质与翻开节奏。</p><a href="/reference/text-themes-review.html">返回完整场景</a></main>
+<script type="module">
+import '/app/game-transitions.css';
+import {createGameTransition} from '/lib/game-transitions.ts';
+const scenes={forest:['小红帽','#dce2d6'],letter:['未寄出的告白','#e2cec7'],blackout:['停电','#1d282b'],waiting:['等待','#d8dfdb'],channels:['十八楼，三种口吻','#e9e3d6'],reading:['偏见读物','#e7e3d8']};
+let current;
+for(const [scene,[title,color]] of Object.entries(scenes)){
+ const button=document.createElement('button');button.textContent=title;document.querySelector('#scenes').append(button);
+ button.onclick=()=>{if(current)return;current=createGameTransition('match',{readingScene:scene,title,holdGate:()=>!document.querySelector('#hold').checked,onCovered:()=>{document.documentElement.dataset.scene=scene;document.body.style.backgroundColor=color;document.body.style.color=scene==='blackout'?'#dedfd4':'#57453f';document.documentElement.style.setProperty('--surface-e8ecdf',color);document.documentElement.style.setProperty('--gt-text',scene==='blackout'?'#dedfd4':'#57453f');window.dispatchEvent(new Event('aob:scene-tone'));},onFinish:()=>current=null});current.play();};
+}
+</script></body></html>

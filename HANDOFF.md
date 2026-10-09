@@ -1,3 +1,60 @@
+## 2026-10-09 · 定稿视觉后的过场衔接收尾（本地验证完成）
+
+- 用户认可上一版“以后就这样”，本轮只修流程。确认三项可复现混播：停电墨色下左页被后加载的 ink-shutter-exit 覆盖、右页仍 text-shutter-open；整屏换题仍生成3条旧文字遮罩；同帧点题库/首页可生成2层路由幕。修复后分别为双侧同折页、0旧遮条、1层幕。新增 scripts/check-text-transition-flow.mjs，baseline/checks 在 output/text-themes-review/transition-flow/。
+- 导航入口/跨题/同题/重播/快捷键检查当前幕布到退场结束；主题请求等待本地快门退出。保留低层 createGameTransition 多实例对照能力。另修复缓存原文重播立即跳过合页：统一使用既有500ms覆盖时间，新对挂载重启 effect 不重等，减少动态60ms。未改书页设计、厚度、原文或库数据；备份 .local/text-themes-review/before-transition-coordination/。
+- 最终 typecheck/lint/build:check/diff --check 通过；flow检查覆盖六材质墨色/390窄屏、跨入口抢播、路由退出快捷键、主题双向互斥、重播与继续连点、缓存重播合页、减少动态；book-motion 六慢加载门/三真实菜单/同题/厚度通过；scene-polish 八条真实进退/色层/偏好恢复通过；text-themes 24纸墨桌面手机/10原文样本/选择揭晓继续及旧皮肤/正式隔离通过，0页面异常与业务写入。game-transitions 七种双主题生命周期通过。
+- Tabbit 实际点击停电同题、粉色重播，双侧动画名一致，末态截图已查看。5444 服务曾停止，已隐藏重启只读本地快照服务。本轮未测试104原文全量/线上写票/真机FPS；旧check:theme颜色规范问题未扩改。仍未commit/push/deploy；无关jianmo/、reference/curtain-copy-review.html保留。
+
+## 2026-10-09 · 书页翻开与文字场景过场（本地待审）
+
+- 用户认可当前静态设计，要求书页翻开、书稍厚，过场适配文字题尤其粉色告白。保留版式/装饰/原文，forest与blackout沿中缝840ms展开，纸边5→10px并加薄书皮；手机按单页轻翻。告白760ms信纸舒展、等待730ms邮票落位，无新依赖或加载计时。
+- game-transitions新增readingScene材料分支，沿用match的420/760/1260ms及原就绪门、卡顿推进和取消逻辑。整屏不透明底保证换路由时覆盖，双叶翻开仅transform/opacity，scene-tone在同一时间轴融合目标底色。文字进入/换题/回题库/回首页接入，旧三皮肤/正式/其他玩法保持默认。作品/共享库/Gallery不动。
+- 同题换组在原450ms覆盖、500ms换稿、420ms揭幕范围换成本题材质的开合，移除新文字题中的通用SWITCHING FREQUENCY/巨型轮次；原作就绪与恢复出口保持。新增reference/text-book-motion-review.html使用真实模块，可模拟慢加载。备份.local/text-themes-review/before-book-motion/。
+- typecheck/lint/build:check/game-transitions通过；新增book-motion六种全屏遮幕/慢加载门/无缝覆盖、三种真实菜单进入/重复点击/同题切换、厚度/末态/减少动态通过；text-themes24组合/10原文样本/揭晓继续/隔离，scene-polish8条进退与偏好恢复，posters18布局/入场均通过。工具/测试采样中间失败已修正，产品门控时轴未为测试修改；详见QA。未跑104全量/本轮旧HTML融合专测/真机FPS/线上写票，旧check:theme色值规范问题仍保留。
+- Tabbit已实际播放书页、目检翻开中途与静态厚度、粉色切换中间态；后续工具任务过期后重附着失败，清理本次意外生成的about:blank，用户原页保留。最终粉色稳态用专项截图目检。仍5444本地体验选单，未commit/push/deploy。
+
+## 2026-10-08 · 文字阅读载体与纸面精修（本地待审）
+
+- 最新用户认可停电左侧动画、三文风群聊、小红帽总体方向，要求重新设计其余正文载体与周围点缀。保留认可部分，停电正文改暗处摊开的暖灰书页；三文风前两栏改杂志剪页、带淡楼梯线稿的胶片；小红帽原生正文复用文楷并增加静态纸纹/书脊；等待改整圈齿孔与轻影；告白更换花卉邮票、波浪邮戳、回形针，加少量页边植物/书/信封线稿，无新装饰文案。备份 `.local/text-themes-review/before-paper-objects/`。
+- 本轮只改 text-stage 组件/CSS、两张很小的代码SVG、体验选单与文档；不改答案、作品HTML、对局/投票/就绪/过场时轴/主题业务。旧6份HTML字体保留，不能把原生文楷改动说成所有旧HTML也换了。新增纹理非动态滤镜，不引入等待或循环。
+- typecheck/lint/build:check通过；海报18布局/入场检查、text-themes 24组合/10原文样本/选择继续/正式隔离、details 11文风作品/12外观/阅读底部、scene-polish 8条入退及偏好恢复、paper-blending 6HTML/24组合/原始放大均通过。Tabbit实点电影/群聊/B揭晓/同题继续；截图目检桌面与手机。未重跑104全量/真机FPS/线上写票；旧check:theme直写色值冲突未扩改。详细边界见QA。
+- 入口仍 `http://127.0.0.1:5444/reference/text-themes-review.html`，本地只读试版，视觉待用户审阅，未commit/push/deploy。无关jianmo/和reference/curtain-copy-review.html未动。
+
+## 2026-10-08 · 文字题海报重排（本地待审）
+
+- 用户否定上轮视觉，明确允许激进重排和入场动作调整，要求像海报。六套新文字场景已重做构图：停电改竖排巨字侧栏/门缝光/双栏夜读；三文风改整页书刊、电影、群聊三种材料，保留同步切栏；告白保留粉色、文楷、叠纸邮戳；森林与等待保留生成插画，放大成书封/候场海报；通用改杂志式双稿。精简外围题头框和投票矩形，完整正文、原作品、正式/Gallery不变。备份.local/text-themes-review/before-poster-redesign/。
+- 标题分行数据在text-presentations，局部揭字/纸面/墨迹按既有遮幕播放，最长790ms，无缩放/循环/加载等待。文风切栏300ms平面色淡化；同题重置文风向现有过场发scene-tone事件，避免墨色海报被浅色过场割裂，不写主题偏好。深色文风外围按钮/提示可读性已修复；新check-text-posters覆盖18宽度组合、标题不裁切、入场暂停/末态、减少动态、文风色帧及7项外围文字对比度。
+- 本轮typecheck/lint/build:check/game-transitions通过；text-themes 24组合/10样本/揭晓继续/隔离、scene-details 11份文风/12外观/阅读底部、paper-blending 6原HTML/24组合、scene-polish 8入退路径，以及新poster检查均通过。未重跑104全量/线上写票/真机FPS；check:theme旧直接色值冲突仍保留。详见docs/qa/2026-10-08-text-themes.md。
+- 仍 http://127.0.0.1:5444/reference/text-themes-review.html ，Tabbit实点文风/选择B/揭晓/同题继续，截图目检桌面与响应布局。仅本地试版，未commit/push/deploy；保留无关jianmo/、reference/curtain-copy-review.html。
+
+## 2026-10-08 · 文字场景外围配色修正（本地待审）
+
+- 用户明确纠正：保留告白粉色等场景大色块和内部层次，改外围背景使其同色衔接，不是去大色块后统一灰绿。已恢复原材质/叠页/字体/插画，最外舞台去描边、外圈接各题底色；停电保留整页暗场与小光影，弱化内部方框。决策已追加，备份.local/text-themes-review/before-fourth-polish，deboxed-rejected.css是被否尝试勿恢复。
+- 保留本轮修复：6份已核实小红帽单色HTML仅预览融合纸/墨底色，源HTML/隔离/放大保持；三文风自然高度并顶部起排，移除电影上下黑条，原文/三外观/同步切栏保留。未来未知HTML不染色。主题scene扩展至六文字场景，只有停电强制临时ink，其余尊重paper/ink；进退沿用已有遮幕色层与时轴，不增加加载等待。
+- 最终typecheck/lint/build:check、game-transitions、text-themes六场景24组合/揭晓继续/隔离、scene-polish八条进退路径、scene-details 11份文风/12外观、paper-blending 6HTML/24组合/源哈希/放大/浏览器暗色偏好均通过。修复的是测试采样循环互相污染，不是修改产品动画时长；未重跑104全量/线上写票/真机FPS。旧check:theme静态直写颜色冲突仍记录。详情docs/qa/2026-10-08-text-themes.md。
+- 仍 http://127.0.0.1:5444/reference/text-themes-review.html ，已Tabbit截图目检恢复粉色外围与原信纸；未提交或上线，不改原作品、共享库、Gallery/正式。保留无关jianmo/、reference/curtain-copy-review.html。
+## 2026-10-08 · 文字场景第三轮精修（本地待审）
+
+- 按最新反馈修改forest/letter/channels/blackout。小红帽改浅鼠尾草绿书页、内置imagegen生成透明有叶树林v3，并分离长文与投票区；旧HTML框恢复零内边距。告白标题与正文改自托管霞鹜文楷Lite Regular（97按需分片、OFL与来源保留），不参与就绪门。三文风同步切栏保留，分别呈现书页/字幕/群聊，当前栏隐藏重复【文风名】但DOM原文和全篇不变。停电保留整页暗场过渡，重排夜读卡层次、字体、间距，去掉亮着的装饰吊灯。
+- 本轮业务仅page增加data-reading-channel；正文组件保留原字符并标记重复标题，其余CSS、插画、字体及测试/文档。备份.local/text-themes-review/before-third-polish。未改作品、数据库、后台、Gallery/正式或共用过场逻辑。
+- typecheck/lint/build:check及6场景24组合、原文/投票揭晓/继续/隔离验证通过；check-text-scene-polish再次验证进退、偏好恢复、减少动态。新增check-text-scene-details覆盖全部11件三文风逐字一致/隐藏标签、12款纸墨桌面手机文风组合、桌面切换几何稳定、字体本地按需与阅读底部滚动/间隔。字体实际样本13个本地请求（含CSS），不是97片全量加载。lint测试脚本Set.size风格项已修正并复验通过，详情见QA。旧check:theme直接色值约束冲突仍记录，不宣称全仓全绿。
+- Tabbit旧页重新附着失败，核对工具后用已创建的空白测试页完成实际页面截图；用户原页保留。仍 http://127.0.0.1:5444/reference/text-themes-review.html ，未commit/push/deploy，未测真机/线上写票/全设备FPS。
+
+## 2026-10-08 · 文字场景第二轮视觉打磨（本地待审）
+
+- 用户退回三文风拼块，要求告白继续精修、通用大字打磨、森林/等待用透明图像生成插画、停电扩展整页暗色并自然进出。已落实；原文件备份.local/text-themes-review/before-polish/。新插画及生成提示词在public/text-scenes/，两次内置imagegen生成/压简，保留透明底。
+- 三文风改同步切栏并保留看全篇；原段落不删，换栏归顶、换组恢复首栏，原匿名/揭晓逻辑不变。告白改薄纸叠页/折痕和衬线排版，通用取消大首字、主标题收敛。新文字皮肤限定修复揭晓后旧深绿标题栏覆盖模型名的问题。
+- 停电整页使用临时scene墨色，不写用户主题偏好；离开恢复。theme.ts提供临时场景接口；game-transitions只在场景变色事件发生时追加静态色层opacity轨道，沿用原帧时轴。涉及停电的换题整屏覆盖，返回提示词库沿用现有bands过场；不加等待/额外内容请求，正式/Gallery不变。
+- 新check-text-scene-polish覆盖桌面/手机真实路由入退、材质淡化/整屏覆盖/偏好恢复、文风切换/完整原文/揭晓/换组/滚动归顶/减少动态。104作品原文与HTML复核通过；游戏过场检查、typecheck/lint/build:check通过。check:theme静态颜色规范仍失败（旧三皮肤及本轮局部调色板直接色值），没有绕过断言或扩改旧皮肤，详情见docs/qa/2026-10-08-text-themes.md。本地体验不代表全设备FPS验证。
+- 仍 http://127.0.0.1:5444/reference/text-themes-review.html ，Tabbit实测及截图目检；未commit/push/deploy、未改原题/作品/数据库。保留无关jianmo/、reference/curtain-copy-review.html。
+
+## 2026-10-08 · 五套文字题场景与通用阅读界面（本地待审）
+
+- 用户要求全部现有可比文字题各有娱乐表现，并给未来文字题提供默认界面。公开快照13道文字题、8道达标：保留已上线橘子/008/弱智吧，新增013森林故事书、告白信封、十八楼三文风、停电夜读、等待票根；通用「偏见读物」按短文/长文收紧或滚动，未注册题自动匹配。只展示层，不改原题/作品/共享库/正式/Gallery/10件门槛。
+- 新text-presentations主题表、text-stage组件/CSS及page局部接线，正常娱乐路径启用源码；仅在5444本地只读试版验证，未commit/push/deploy。现有三套优先，classic逃生口保留；HTML旧作品沿用原iframe与就绪，原生文字无额外内容请求。动作复用遮幕entry暂停/exit播放及覆盖复位，760ms内落位，无尺寸缩放/回弹/新等待。
+- 本轮有效作品104件（98原生文字逐份原文核对、6HTML加载/哈希），24个桌面手机纸墨布局、选择揭晓/继续/重播、局部动作及末态尺寸、旧三套/classic/formal隔离检查通过；通用版另查未来题、长短文和门槛。typecheck/lint/build:check通过。Tabbit桌面A、手机B、揭晓/继续实测及截图目检。详见docs/qa/2026-10-08-text-themes.md；性能只测本地缓存，未验线上写票或真机FPS。
+- 体验选单 http://127.0.0.1:5444/reference/text-themes-review.html ；prepare-text-themes-review.mjs只读获取快照，serve-text-themes-review.mjs启动，全API写403。`.local/text-themes-review/`与`output/text-themes-review/`均忽略。线上2行缺modelId（013 up-imkun6wp、橘子up-l1uqw5tv）已记录未修。保留无关jianmo/、reference/curtain-copy-review.html。
+
 ## 2026-10-08 · 贴吧楼皮肤正式启用（已发布）
 
 - 用户验收 5443 试版后拍板启用。仅一处开关切换：page.tsx 的 forum 条件 ORANGE_REVIEW → SKINS_ENABLED（与橘子/深夜聊天同款），testing 旗标保持 DEV-only 不动，正式环境投票照常落库。

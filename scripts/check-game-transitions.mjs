@@ -78,9 +78,16 @@ function element() {
     },
   };
 }
-const fakeDocument = { body: element(), createElement: element, documentElement: { dataset: { theme: 'paper' } } };
+const fakeDocument = { body: element(), createElement: element, documentElement: { dataset: { theme: 'paper' } },
+  querySelector: () => fakeDocument.body.children.find(node => node.className?.includes('game-transition')) ?? null,
+};
 globalThis.document = fakeDocument;
-globalThis.window = { matchMedia: () => ({ matches: false }) };
+const sceneEvents = new EventTarget();
+globalThis.window = {
+  matchMedia: () => ({ matches: false }),
+  addEventListener: sceneEvents.addEventListener.bind(sceneEvents),
+  removeEventListener: sceneEvents.removeEventListener.bind(sceneEvents),
+};
 globalThis.requestAnimationFrame = (fn) => {
   raf.set(++id, fn);
   return id;

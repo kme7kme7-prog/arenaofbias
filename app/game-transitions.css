@@ -33,6 +33,10 @@
 .game-transition * {
   box-sizing: border-box;
 }
+.gt-scene-wash { position: absolute; inset: 0; pointer-events: none; will-change: opacity; }
+.gt-scene-wash::before { content: ''; position: absolute; inset: 7%; border: 1px solid var(--border); opacity: .4; }
+.gt-match-upper .gt-scene-wash::before { bottom: 0; border-bottom: 0; }
+.gt-match-lower .gt-scene-wash::before { top: 0; border-top: 0; }
 
 /* Match-only paper interlude. Typography is shared by two clipped halves,
    so it comes together on closure and parts with the paper on opening. */
@@ -890,3 +894,32 @@
   font: 600 13px/1 var(--font-sans, 'Bahnschrift', 'Microsoft YaHei', 'PingFang SC', sans-serif);
 }
 @media (prefers-reduced-motion: reduce) { .game-transition *, .game-transition *::before, .game-transition *::after { animation: none !important; transition: none !important; } }
+
+/* Reading scenes close in their own stock, then unfold over the ready page. */
+.game-transition[data-reading-scene] { --gt-paper: #e7e3d8; --gt-text: #534d40; background: transparent; perspective: 1800px; }
+.game-transition[data-reading-scene='forest'] { --gt-paper: #dce2d6; --gt-text: #394a39; }
+.game-transition[data-reading-scene='letter'] { --gt-paper: #e2cec7; --gt-text: #755549; }
+.game-transition[data-reading-scene='blackout'] { --gt-paper: #1d282b; --gt-text: #dedfd4; }
+.game-transition[data-reading-scene='waiting'] { --gt-paper: #d8dfdb; --gt-text: #426454; }
+.game-transition[data-reading-scene='channels'] { --gt-paper: #e9e3d6; --gt-text: #895441; }
+.game-transition[data-reading-scene][data-theme='ink'] { --gt-paper: #2a322d; --gt-text: #ded7c7; }
+.game-transition[data-reading-scene='letter'][data-theme='ink'] { --gt-paper: #382d2c; --gt-text: #e8d7c8; }
+.game-transition[data-reading-scene='blackout'] { --gt-paper: #1d282b; }
+.game-transition[data-reading-scene] .gt-reading-ground { position: absolute; inset: 0; background: var(--gt-paper); }
+.game-transition[data-reading-scene] .gt-reading-leaf { position: absolute; top: -1px; bottom: -1px; height: auto; width: calc(50% + 1px); background: var(--gt-paper); backface-visibility: hidden; overflow: hidden; }
+.game-transition[data-reading-scene] .gt-reading-leaf-0 { left: 0; transform-origin: left center; }
+.game-transition[data-reading-scene] .gt-reading-leaf-1 { left: auto; right: 0; transform-origin: right center; }
+.game-transition[data-reading-scene] .gt-material-plate::before,.game-transition[data-reading-scene] .gt-material-leaf::before { display: none; }
+.game-transition[data-reading-scene] .gt-scene-wash::before { display: none; }
+.game-transition[data-reading-scene] .gt-recovery { color: var(--gt-text); border-color: currentColor; }
+.game-transition[data-reading-scene] .gt-reading-leaf::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 75%,#57482d12); pointer-events: none; }
+.game-transition[data-reading-scene] .gt-reading-leaf-1::after { transform: rotate(180deg); }
+.game-transition[data-reading-scene='letter'] .gt-reading-leaf { left: -1px; right: -1px; width: auto; height: calc(50% + 1px); }
+.game-transition[data-reading-scene='letter'] .gt-reading-leaf-0 { top: 0; bottom: auto; transform-origin: center top; }
+.game-transition[data-reading-scene='letter'] .gt-reading-leaf-1 { top: auto; bottom: 0; transform-origin: center bottom; }
+.game-transition[data-reading-scene='letter'] .gt-reading-leaf::after { background: linear-gradient(0deg,#765d4810,transparent 32%); }
+.game-transition[data-reading-scene] .gt-static-copy { color: var(--gt-text); gap: 18px; }
+.game-transition[data-reading-scene] .gt-reading-mark { font: 14px/1.7 var(--font-sans,sans-serif); letter-spacing: .2em; opacity: .7; }
+.game-transition[data-reading-scene] .gt-static-title { font: 400 clamp(25px,3.5cqw,48px)/1.5 'LXGW WenKai Lite','Songti SC',SimSun,serif; letter-spacing: .03em; max-width: 22em; }
+.game-transition[data-reading-scene] .gt-match-holdnote { display: none; opacity: .65; }
+.game-transition[data-reading-scene][data-gt-hold='1'] .gt-match-holdnote { display: block; }

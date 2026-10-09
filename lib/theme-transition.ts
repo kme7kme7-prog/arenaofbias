@@ -41,7 +41,7 @@ export function transitionTheme(request: Request, animate = true) {
     // Route curtains own their ready gate. Never cover or release it from here.
     if (
       document.querySelector(
-        '.game-transition, .page-wipe, .phase-transition .transition-shutter',
+        '.game-transition, .page-wipe, .phase-transition .transition-shutter, .shutter-exit .transition-shutter',
       )
     ) {
       timer = setTimeout(run, 50);

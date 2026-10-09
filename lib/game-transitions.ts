@@ -8,6 +8,15 @@ export function setTransitionTranslator(translator: (text: string) => string) {
 // 注意：本文件被 scripts/check-game-transitions.mjs 转译成 data: URL 导入测试，
 // 不能加任何静态/动态模块导入（data: URL 下相对路径无法解析），导航封装也一样。
 
+// Read the mounted layers, including their exit tails. Per-button locks cannot
+// prevent a different navigation entry from starting a competing route change.
+// Keep the low-level constructor independent for multi-instance review pages.
+export function navigationTransitionActive() {
+  return !!document.querySelector(
+    '.game-transition, .page-wipe, .theme-curtain, .arena-shell.phase-transition, .arena-shell.shutter-exit',
+  );
+}
+
 // Ranking entry and homepage return share the classic push in opposite directions.
 // 与首页主按钮的 frame 接入同模式：盖满时换路由，模块级锁防跨实例重入。
 let bandsNavRunning = false;
@@ -16,7 +25,7 @@ export function bandsNavigate(
   options: Pick<GameTransitionOptions, 'title' | 'words' | 'labels'> = {},
 ) {
   if (hash === '#home') { homeNavigate(); return; }
-  if (bandsNavRunning) return;
+  if (bandsNavRunning || navigationTransitionActive()) return;
   bandsNavRunning = true;
   createGameTransition(hash.startsWith('#rank') ? 'push' : 'bands', {
     ...options,
@@ -34,7 +43,7 @@ export function bandsNavigate(
 // convoy 导航（2026-09-13 用户拍板）：首页→题库、玩法菜单→测评走一体斜幕。
 let homeNavRunning = false;
 export function homeNavigate() {
-  if (homeNavRunning) return;
+  if (homeNavRunning || navigationTransitionActive()) return;
   homeNavRunning = true;
   createGameTransition('push', {
     direction: 'back',
@@ -45,7 +54,7 @@ export function homeNavigate() {
 
 let convoyNavRunning = false;
 export function convoyNavigate(hash: string, title?: string) {
-  if (convoyNavRunning) return;
+  if (convoyNavRunning || navigationTransitionActive()) return;
   convoyNavRunning = true;
   const swap = () => {
     window.location.hash = hash;
@@ -73,7 +82,7 @@ export function convoyNavigate(hash: string, title?: string) {
 
 // Same menu lock as convoy: rapid clicks cannot launch competing route swaps.
 export function guessNavigate() {
-  if (convoyNavRunning) return;
+  if (convoyNavRunning || navigationTransitionActive()) return;
   convoyNavRunning = true;
   createGameTransition('deal', {
     onCovered: () => {
@@ -101,6 +110,8 @@ export interface GameTransitionOptions {
   hold?: number;
   reduced?: boolean;
   theme?: 'paper' | 'ink';
+  // Text scenes keep their own paper and fold; false preserves the classic route.
+  readingScene?: 'reading' | 'forest' | 'letter' | 'channels' | 'blackout' | 'waiting' | false;
   direction?: 'forward' | 'back';
   onCovered?: () => void;
   onFrame?: (time: number, duration: number) => void;
@@ -151,6 +162,10 @@ export function createGameTransition(
   const timing = gameTransitionTiming(kind, options.hold);
   const layer = document.createElement('div');
   layer.className = `game-transition gt-${kind}${options.parent ? ' gt-contained' : ''}`;
+  const sourceScene = document.documentElement?.dataset.scene;
+  const readingScene = options.readingScene === false ? undefined : options.readingScene ??
+    (['match', 'push', 'bands'].includes(kind) && ['reading', 'forest', 'letter', 'channels', 'blackout', 'waiting'].includes(sourceScene ?? '') ? sourceScene : undefined);
+  if (readingScene) layer.dataset.readingScene = readingScene;
   layer.setAttribute('aria-hidden', 'true');
   const animations: Animation[] = [];
   const title = options.title || 'ARENA OF BIAS';
@@ -166,7 +181,7 @@ export function createGameTransition(
   let slowSince: number | undefined;
   const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
   let reducedMode = !!options.reduced || motionPreference.matches;
-  const el = (className: string, parent = layer, text?: string) => {
+  const el = (className: string, parent: HTMLElement = layer, text?: string) => {
     const node = document.createElement('div');
     node.className = className;
     if (text !== undefined) node.textContent = translateTransition(text);
@@ -204,7 +219,28 @@ export function createGameTransition(
   const fade = (node: HTMLElement, from: number, to: number, start: number, duration: number) =>
     track(node, [{ opacity: from }, { opacity: to }], start, duration);
   // Restore the historical mystery-card entry; other routes keep material sweeps.
-  if (kind === 'deal') {
+  if (readingScene) {
+    // An opaque backing guarantees coverage while the folded leaves meet. Only
+    // transform/opacity move; the existing frame clock and ready gate own exit.
+    const ground = el('gt-reading-ground gt-material-plate');
+    track(ground, [
+      { opacity: 0, offset: 0 },
+      { opacity: 1, offset: timing.covered / timing.duration },
+      { opacity: 1, offset: timing.exitStart / timing.duration },
+      { opacity: 0, offset: 1 },
+    ], 0, timing.duration, 'linear');
+    for (let i = 0; i < 2; i++) {
+      const leaf = el(`gt-reading-leaf gt-reading-leaf-${i} gt-material-leaf`);
+      const axis = readingScene === 'letter' ? 'X' : 'Y';
+      const sign = i ? -1 : 1;
+      track(leaf, [
+        { transform: `perspective(1800px) rotate${axis}(${sign * 88}deg)`, opacity: 0, offset: 0, easing: 'cubic-bezier(.3,.65,.2,1)' },
+        { transform: `perspective(1800px) rotate${axis}(0deg)`, opacity: 1, offset: timing.covered / timing.duration },
+        { transform: `perspective(1800px) rotate${axis}(0deg)`, opacity: 1, offset: timing.exitStart / timing.duration, easing: 'cubic-bezier(.45,0,.2,1)' },
+        { transform: `perspective(1800px) rotate${axis}(${-sign * 94}deg)`, opacity: 0, offset: 1 },
+      ], 0, timing.duration, 'linear');
+    }
+  } else if (kind === 'deal') {
     // The card becomes a fully opaque viewport before routing. Its two halves
     // own the hold and exit, so no independent background can outlive the reveal.
     for (let i = 0; i < 2; i++) {
@@ -355,7 +391,11 @@ export function createGameTransition(
     }
   }
   const copy = el('gt-static-copy');
-  if (kind !== 'push' && kind !== 'deal') {
+  if (readingScene) {
+    el('gt-reading-mark', copy, readingScene === 'letter' ? '致你' : readingScene === 'blackout' ? '夜读' : '翻开下一页');
+    if (options.title) el('gt-static-title', copy, options.title);
+    el('gt-match-holdnote', copy, '正在准备正文');
+  } else if (kind !== 'push' && kind !== 'deal') {
   const note = kind === 'match' ? 'NEXT / ARENA OF BIAS' : 'ARENA OF BIAS / TRUST YOUR INSTINCT';
   el('gt-static-kicker', copy, note);
   el('gt-static-title', copy, title);
@@ -378,6 +418,29 @@ export function createGameTransition(
   }
   copy.hidden = true;
   (options.parent ?? document.body).append(layer);
+  if (document.documentElement.dataset.scene) {
+    layer.style.setProperty('--gt-paper', getComputedStyle(document.documentElement).getPropertyValue('--surface-e8ecdf'));
+  }
+
+  // Scene changes happen under the route curtain. Blend its material on the same
+  // frame clock, so a stalled frame cannot leave a pale curtain over the dark page.
+  const onSceneTone = () => {
+    if (disposed) return;
+    const rootStyle = getComputedStyle(document.documentElement);
+    const surface = rootStyle.getPropertyValue('--surface-e8ecdf').trim();
+    const text = rootStyle.getPropertyValue('--gt-text').trim();
+    const start = Math.min(time, timing.exitStart);
+    const duration = Math.max(120, timing.exitStart - start);
+    layer.dataset.sceneBlend = 'true';
+    layer.querySelectorAll<HTMLElement>('.gt-material-leaf, .gt-material-plate').forEach(node => {
+      const target = kind === 'push' && !readingScene ? rootStyle.getPropertyValue('--foreground').trim() : surface;
+      const wash = el('gt-scene-wash', node);
+      wash.style.backgroundColor = target;
+      track(wash, [{ opacity: 0 }, { opacity: 1 }], start, duration, 'ease-in-out');
+    });
+    copy.style.color = text;
+  };
+  window.addEventListener('aob:scene-tone', onSceneTone);
 
   const seek = (value: number) => {
     if (disposed) return;
@@ -414,6 +477,7 @@ export function createGameTransition(
     pause();
     disposed = true;
     motionPreference.removeEventListener?.('change', onPreference);
+    window.removeEventListener('aob:scene-tone', onSceneTone);
     animations.forEach((animation) => animation.cancel());
     layer.remove();
   };

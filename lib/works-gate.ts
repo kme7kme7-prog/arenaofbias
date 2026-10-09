@@ -3,8 +3,10 @@
 // （或用户主动离开）才开门放幕，揭幕直接落在就绪作品上，
 // 「正在接入试验场」整拍被纸幕吸收。
 // 模块级状态跨路由存活：层挂在 body 上活过旧页卸载，新页在同一份 JS 上下文里放门。
-import { createGameTransition } from './game-transitions';
+import { createGameTransition, navigationTransitionActive } from './game-transitions';
 import { captureArenaLayout } from './arena-layout';
+import { currentPrompts } from './prompts';
+import { textTransitionScene } from './text-presentations';
 
 const RECOVERY_MS = 15000;
 let armed = false;
@@ -58,12 +60,15 @@ export function worksGateSides(): Readonly<{ a: boolean; b: boolean }> {
 // 还钉着时静默不响应，与「下一题」同口径）。
 let entering = false;
 export function enterArena(hash: string, title?: string, index?: string) {
-  if (entering || !worksGateOpen()) return false;
+  if (entering || !worksGateOpen() || navigationTransitionActive()) return false;
   entering = true;
   armWorksGate();
   const transition = createGameTransition('match', {
     title,
     index,
+    readingScene: hash.startsWith('#arena/')
+      ? textTransitionScene(currentPrompts().find(prompt => `#arena/${prompt.id}` === hash), new URLSearchParams(window.location.search).get('presentation'))
+      : false,
     holdGate: worksGateOpen,
     onFrame: () => {
       updateWorksGateRecovery(transition.layer);

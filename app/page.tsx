@@ -95,19 +95,22 @@ import { animateArenaLayout } from '@/lib/arena-layout';
 import { createLoadingClock } from '@/lib/loading-clock';
 import { ShareButton, duelShareQuery, setSharePair } from '@/components/share';
 import { schedulePromptScroll, alignArenaTransition } from '@/lib/arena-scroll';
-import { createGameTransition, homeNavigate, bandsNavigate } from '@/lib/game-transitions';
+import { createGameTransition, homeNavigate, bandsNavigate, navigationTransitionActive } from '@/lib/game-transitions';
 import { Afterparty } from '@/components/afterparty';
 import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
 import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, SKINS_ENABLED, ORANGE_PROMPT_ID } from '@/components/orange-counter';
 import { NightChatMasthead, NightChatReply, nightChatQuestion } from '@/components/night-chat';
 import { ForumPost, ForumReply, ForumAvatar, FORUM_PROMPT_ID, FORUM_PROMPT_NAME } from '@/components/forum-thread';
+import { TextStageMasthead, TextStageReply, useTextSceneTone, type ReadingChannel } from '@/components/text-stage';
+import { textPresentation, textIdentity, textTransitionScene } from '@/lib/text-presentations';
 import './conversation-arena.css';
 import './arena-empty.css';
 import './orange-counter.css';
 import './orange-signboards.css';
 import './night-chat.css';
 import './forum-thread.css';
+import './text-stage.css';
 
 // 评论区暂时隐藏（2026-09-30 用户决定）；恢复时改回 true，后端评论接口未改动。
 const COMMENTS_ENABLED = false;
@@ -589,6 +592,13 @@ export default function Arena({
   const forum = SKINS_ENABLED && !formal && prompt.id === FORUM_PROMPT_ID &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
+  const textTheme = SKINS_ENABLED && !formal && prompt.kind === 'text' && !orange && !nightChat && !forum &&
+    new URLSearchParams(window.location.search).get('presentation') !== 'classic'
+    ? textPresentation(prompt, new URLSearchParams(window.location.search).get('presentation') === 'reading') : null;
+  useTextSceneTone(pair ? textTheme?.id ?? null : null);
+  const [channelSelection, setChannelSelection] = useState<{ run: number; channel: ReadingChannel }>({ run: state.run, channel: 'prose' });
+  const readingChannel = channelSelection.run === state.run ? channelSelection.channel : 'prose';
+  const setReadingChannel = (channel: ReadingChannel) => setChannelSelection({ run: state.run, channel });
   const recoveryBusy = useRef(false);
   const recoveryBudget = useRef({ run: 0, used: false });
   const [workAttempt, setWorkAttempt] = useState(0);
@@ -659,6 +669,7 @@ export default function Arena({
   // 换对的新稿暂存：快门盖满前旧作还在场上，提前 setPair 会让新作品的加载
   // 过程从没盖住的缝隙里漏出来——transition 效应在盖满那一刻才真正换稿
   const nextPairRef = useRef<Matchup | null>(null);
+  const shutterStartedAt = useRef<number | null>(null);
   // transition 门控是否真等到了双侧就绪（8s 兜底放行不算）：放行了的 ARRIVE
   // 走 intro 快速通道（不再闪「正在接入试验场」），快门退场直接落在成品上
   const [gatePassed, setGatePassed] = useState(false);
@@ -717,7 +728,7 @@ export default function Arena({
       setTimeout(() => setSoloNotice(false), 3000);
       return;
     }
-    if (arenaTransition.current) return;
+    if (arenaTransition.current || navigationTransitionActive()) return;
     // 上一幕纸幕还被作品就绪门钉着：此刻再起一幕会两张叠放，直接不响应
     if (!worksGateOpen()) return;
     continueLock.current = true;
@@ -738,15 +749,19 @@ export default function Arena({
       return;
     }
     const destination = currentPrompts().find((item) => `#arena/${item.id}` === candidate);
+    const presentation = new URLSearchParams(window.location.search).get('presentation');
+    const fullSceneTransition = !!textTheme || (SKINS_ENABLED && !formal && presentation !== 'classic' && destination?.kind === 'text' && !['008', ORANGE_PROMPT_ID, FORUM_PROMPT_ID].includes(destination.id));
     // 布防作品就绪门（决策 096）：纸幕盖满切 hash 后钉在盖满位，新页双侧
     // 作品就绪（或超时/跳过）才扫出——「正在接入试验场」整拍被牌面吸收
     armWorksGate();
     const transition = createGameTransition('match', {
       title: destination?.name,
       index: destination?.id,
+      readingScene: SKINS_ENABLED && !formal && presentation !== 'classic'
+        ? textTransitionScene(destination, presentation) ?? textTheme?.id : false,
       holdGate: worksGateOpen,
       onFrame: () => {
-        alignArenaTransition(transition.layer);
+        if (!fullSceneTransition) alignArenaTransition(transition.layer);
         updateWorksGateRecovery(transition.layer);
         // 新页上报的逐侧就绪写回牌面：duel 连线按侧填成队色报进度
         const sides = worksGateSides();
@@ -763,9 +778,11 @@ export default function Arena({
     arenaTransition.current = transition;
     // 纸幕只盖场内区域；盖区外会变动的文本行先用纸条遮住（决策 089），
     // 新页挂载后由 consumeTextSwap + reveal 接手错峰揭开
-    armTextSwap();
-    textSwapMask.cover(terminal, reducedMotion);
-    alignArenaTransition(transition.layer);
+    if (!fullSceneTransition) {
+      armTextSwap();
+      textSwapMask.cover(terminal, reducedMotion);
+    }
+    if (!fullSceneTransition) alignArenaTransition(transition.layer);
     transition.play();
   };
   const stageRef = useRef<HTMLDivElement>(null);
@@ -1159,6 +1176,9 @@ export default function Arena({
     // 再被「正在接入试验场」盖住，正是用户截图里那一串。卡死超过
     // worksSkipAt 放行给 intro 的「跳过此题」出口，不死等。
     if (state.phase === 'transition' && pair) {
+      // Readiness can resolve immediately on replay. Still finish covering first;
+      // preserve this timestamp when replacing the pair restarts the effect.
+      shutterStartedAt.current ??= performance.now();
       const controller = new AbortController();
       const signal = controller.signal;
       let live = true;
@@ -1167,8 +1187,8 @@ export default function Arena({
         // 复用上一轮的快速通道
         setGatePassed(false);
         setWorksStalled(false);
+        await delay(Math.max(0, (reducedMotion ? 60 : 500) - (performance.now() - shutterStartedAt.current!)), signal);
         if (nextPairRef.current) {
-          await delay(reducedMotion ? 60 : 500, signal);
           const next = nextPairRef.current;
           nextPairRef.current = null;
           setPair(next);
@@ -1202,6 +1222,7 @@ export default function Arena({
         controller.abort();
       };
     }
+    shutterStartedAt.current = null;
     const timeout =
       state.phase === 'locking'
         ? setTimeout(
@@ -1314,7 +1335,7 @@ export default function Arena({
 
   const vote = useCallback(
     (side: Side | 'draw') => {
-      if (state.phase !== 'voting' || !pair) return;
+      if (state.phase !== 'voting' || !pair || navigationTransitionActive()) return;
       play('vote');
       dispatch({ type: 'VOTE', side });
       recordVote(side);
@@ -1325,7 +1346,7 @@ export default function Arena({
     if (
       state.phase === 'loading' || state.phase === 'transition' ||
       ((worksLoading || continueLock.current) && !worksStalled) ||
-      arenaTransition.current || !worksGateOpen()
+      arenaTransition.current || !worksGateOpen() || navigationTransitionActive()
     ) return;
     continueLock.current = true;
     setContinueFromRun(state.run);
@@ -1351,7 +1372,7 @@ export default function Arena({
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        event.repeat
+        event.repeat || navigationTransitionActive()
       )
         return;
       if (
@@ -1448,7 +1469,9 @@ export default function Arena({
 
   return (
     <div
-      className={`arena-shell ${orange ? 'orange-arena' : ''} ${orangeBoards ? 'orange-signboards' : ''} ${nightChat ? 'wechat-arena' : ''} ${forum ? 'forum-arena' : ''} ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
+      data-text-theme={textTheme?.id}
+      data-reading-channel={textTheme?.id === 'channels' ? readingChannel : undefined}
+      className={`arena-shell ${textTheme ? 'text-arena' : ''} ${orange ? 'orange-arena' : ''} ${orangeBoards ? 'orange-signboards' : ''} ${nightChat ? 'wechat-arena' : ''} ${forum ? 'forum-arena' : ''} ${prompt.id === '008' ? 'conversation-arena' : ''} phase-${state.phase} ${reducedMotion ? 'reduced-motion' : ''} ${
         worksLoading ? 'works-hold' : worksSettled ? 'works-reveal' : ''
       } ${state.phase === 'intro' && gatePassed ? 'shutter-exit' : ''}`}
     >
@@ -1471,7 +1494,10 @@ export default function Arena({
         <div className="terminal-label">
           <span className="live-dot" />
           {localize(' ')}
-          <a href="#prompts" className="arena-home-link">
+          <a href="#prompts" className="arena-home-link" onClick={event => {
+            if (!textTheme || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault(); bandsNavigate('#prompts');
+          }}>
             {t('提示词库')}
           </a>
         </div>
@@ -1530,7 +1556,8 @@ export default function Arena({
           {orange && <OrangeCounter choice={state.choice} boards={orangeBoards} />}
           {nightChat && <NightChatMasthead />}
           {forum && <ForumPost question={prompt.prompt} />}
-          {!orangeBoards && !nightChat && !forum && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+          {textTheme && <TextStageMasthead theme={textTheme} channel={readingChannel} onChannelChange={setReadingChannel} />}
+          {!orangeBoards && !nightChat && !forum && !textTheme && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
@@ -1562,13 +1589,13 @@ export default function Arena({
                         {forum ? <ForumAvatar key={result.id} side={side} modelId={result.modelId} revealed={revealed} /> : localize(side.toUpperCase())}
                       </span>
                       <span className="model-identity">
-                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : '未知模型')}
+                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : textTheme ? textIdentity(textTheme, side) : '未知模型')}
                       </span>
                     </div>
                     <span className="entry-number">
                       {localize(round.code)} / 0{index + 1}
                     </span>
-                    {!forum && <AigcLabel />}
+                    {!forum && !textTheme && <AigcLabel />}
                     {chosen && (
                       <span className="identity-pick">
                         <Check size={14} />{t('YOUR PICK')}
@@ -1588,7 +1615,9 @@ export default function Arena({
                         prompt.kind === 'web' && !workCanvas(result) ? true : undefined
                       }
                     >
-                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : forum ? <ForumReply key={`${result.id}-${state.run}`} result={result} side={side} /> : <Work
+                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : forum ? <ForumReply key={`${result.id}-${state.run}`} result={result} side={side} /> : textTheme ? <TextStageReply key={`${result.id}-${state.run}`} result={result} theme={textTheme} side={side} channel={readingChannel}>
+                        <Work key={`${result.id}-${workAttempt}`} result={result} side={side} cleanPreview={!formal && state.mode === 'blind'} interactive={state.phase === 'voting' || state.phase === 'result'} />
+                      </TextStageReply> : <Work
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
                         key={`${result.id}-${workAttempt}`}
                         result={result}
@@ -1663,7 +1692,7 @@ export default function Arena({
                   <span className="vote-copy">
                     <strong>
                       {localize(
-                        orange ? `这单给 ${side.toUpperCase()}` : nightChat ? `想和 ${side.toUpperCase()} 继续聊` : forum ? `顶 ${index + 2} 楼` : side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
+                        orange ? `这单给 ${side.toUpperCase()}` : nightChat ? `想和 ${side.toUpperCase()} 继续聊` : forum ? `顶 ${index + 2} 楼` : textTheme ? textTheme.vote : side === 'a' ? '我寻思这边能行' : '显然是这边厉害',
                       )}
                     </strong>
                   </span>
@@ -1720,7 +1749,7 @@ export default function Arena({
                 )}
               </span>
               <span className="vote-copy">
-                <strong>{localize(nightChat ? '两边都想聊' : forum ? '这两层打平' : drawLabel)}</strong>
+                <strong>{localize(nightChat ? '两边都想聊' : forum ? '这两层打平' : textTheme ? textTheme.draw : drawLabel)}</strong>
               </span>
               <kbd>{t('S')}</kbd>
             </button>
@@ -1762,8 +1791,8 @@ export default function Arena({
             </div>
           )}
           <div className="transition-shutter" aria-hidden="true">
-            <span>{t('SWITCHING FREQUENCY')}</span>
-            <b>{localize(String(state.pendingRound + 1).padStart(2, '0'))}</b>
+            <span>{t(textTheme ? textTheme.label : 'SWITCHING FREQUENCY')}</span>
+            {!textTheme && <b>{localize(String(state.pendingRound + 1).padStart(2, '0'))}</b>}
             <div className="shutter-progress">
               <i
                 className={worksPendingBySide.a ? 'is-pending' : 'is-done'}
@@ -1862,7 +1891,12 @@ export default function Arena({
             ) : (
               <button
                 className="text-button"
-                onClick={() => dispatch({ type: 'REPLAY' })}
+                onClick={() => {
+                  if (continueLock.current || navigationTransitionActive()) return;
+                  continueLock.current = true;
+                  setContinueFromRun(state.run);
+                  dispatch({ type: 'REPLAY' });
+                }}
                 disabled={blocked}
               >
                 <RotateCcw size={14} />
