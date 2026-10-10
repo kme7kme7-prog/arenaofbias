@@ -101,6 +101,12 @@ import { AudienceVerdict } from '@/components/vote-split';
 import { AigcLabel } from '@/components/legal-footer';
 import { OrangeCounter, OrangePitch, OrangeSignFrame, ORANGE_REVIEW, SKINS_ENABLED, ORANGE_PROMPT_ID } from '@/components/orange-counter';
 import { NightChatMasthead, NightChatReply, nightChatQuestion } from '@/components/night-chat';
+import { PlaygroundChatMasthead, PlaygroundChatReply } from '@/app/playground/playground-chat';
+import { PlaygroundOrange } from '@/app/playground/playground-orange';
+import { PlaygroundLetterSignature } from '@/app/playground/playground-letter';
+import { preparePlaygroundReader } from '@/app/playground/playground-preparation';
+import { coverReaderRound } from '@/app/playground/playground-passage';
+import playgroundCatalog from '@/app/playground/playground-catalog.json';
 import { ForumPost, ForumReply, ForumAvatar, FORUM_PROMPT_ID, FORUM_PROMPT_NAME } from '@/components/forum-thread';
 import { TextStageMasthead, TextStageReply, useTextSceneTone, type ReadingChannel } from '@/components/text-stage';
 import { textPresentation, textIdentity, textTransitionScene } from '@/lib/text-presentations';
@@ -550,11 +556,13 @@ export function Work({
 export default function Arena({
   prompt,
   formal = false,
+  playground = false,
   initialPair,
 }: {
   prompt: Prompt;
   // 正式测评（决策 024）：全程匿名、无评论区；地址 #formal/{promptId}
   formal?: boolean;
+  playground?: boolean;
   initialPair?: Matchup;
 }) {
   const { t, localize } = useI18n();
@@ -721,7 +729,9 @@ export default function Arena({
   const gotoRandomArena = () => {
     // 加载超时后仍允许既有「跳过此题」出口，普通继续按钮保持禁用。
     if (((continueLock.current || worksLoading) && !worksStalled) || state.phase === 'transition') return;
-    const candidate = currentRandomArenaHash(prompt.id, scope);
+    const available = playgroundCatalog.filter(item => currentPairs(item.id).length > 0);
+    const nextText = available[(available.findIndex(item => item.id === prompt.id) + 1) % available.length];
+    const candidate = playground ? `#arena/${nextText?.id ?? prompt.id}` : currentRandomArenaHash(prompt.id, scope);
     const next = formal ? candidate.replace('#arena/', '#formal/') : candidate;
     if (next === window.location.hash) {
       setSoloNotice(true);
@@ -750,7 +760,7 @@ export default function Arena({
     }
     const destination = currentPrompts().find((item) => `#arena/${item.id}` === candidate);
     const presentation = new URLSearchParams(window.location.search).get('presentation');
-    const fullSceneTransition = !!textTheme || (SKINS_ENABLED && !formal && presentation !== 'classic' && destination?.kind === 'text' && !['008', ORANGE_PROMPT_ID, FORUM_PROMPT_ID].includes(destination.id));
+    const fullSceneTransition = playground || !!textTheme || (SKINS_ENABLED && !formal && presentation !== 'classic' && destination?.kind === 'text' && !['008', ORANGE_PROMPT_ID, FORUM_PROMPT_ID].includes(destination.id));
     // 布防作品就绪门（决策 096）：纸幕盖满切 hash 后钉在盖满位，新页双侧
     // 作品就绪（或超时/跳过）才扫出——「正在接入试验场」整拍被牌面吸收
     armWorksGate();
@@ -1081,6 +1091,9 @@ export default function Arena({
     };
     const sequence = async () => {
       resetScroll();
+      if (playground && await preparePlaygroundReader({ stage: introStage, signal, waitReady: waitWorksLoaded, ready: () => dispatch({ type: 'READY' }), reveal: () => { setWorksSettled(true); setWorksPendingBySide({ a: false, b: false }); } })) {
+        play('reveal'); dispatch({ type: 'READY' }); return;
+      }
       // 快门门控放行的 ARRIVE（重播/换对已验证双侧就绪）：整段加载过场跳过，
       // 不再闪「正在接入试验场」——快门退场扫完直接落在成品作品上
       if (gatePassed) {
@@ -1160,6 +1173,7 @@ export default function Arena({
     state.run,
     state.round,
     prompt.kind,
+    playground,
     reducedMotion,
     play,
     waitWorksLoaded,
@@ -1183,11 +1197,12 @@ export default function Arena({
       const signal = controller.signal;
       let live = true;
       const arrive = async () => {
+        if (playground) await coverReaderRound(prompt.id, signal);
         // 上一轮 intro 遗留的放行标记先清掉：8s 兜底放行的 ARRIVE 不准
         // 复用上一轮的快速通道
         setGatePassed(false);
         setWorksStalled(false);
-        await delay(Math.max(0, (reducedMotion ? 60 : 500) - (performance.now() - shutterStartedAt.current!)), signal);
+        if (!playground) await delay(Math.max(0, (reducedMotion ? 60 : 500) - (performance.now() - shutterStartedAt.current!)), signal);
         if (nextPairRef.current) {
           const next = nextPairRef.current;
           nextPairRef.current = null;
@@ -1236,7 +1251,7 @@ export default function Arena({
     return () => {
       if (timeout) clearTimeout(timeout);
     };
-  }, [state.phase, reducedMotion, play, waitWorksLoaded, pair, workAttempt]);
+  }, [state.phase, reducedMotion, play, waitWorksLoaded, pair, workAttempt, playground, prompt.id]);
 
   // 盲测揭晓时的身份解密：真实身份一挂载就用遮黑条盖住（layout effect 保证
   // 用户看不到未遮盖的名字），再按行错峰退开。娱乐模式身份全程公开不解密。
@@ -1278,7 +1293,7 @@ export default function Arena({
     (side: Side | 'draw') => {
       // 测试对局（后台直达对比）：票不落库，但本地反馈流程照跑完——
       // 记为 saved 让揭晓/票数面板正常收场，note 单独文案说明未计入
-      if (testing) {
+      if (playground || testing) {
         setVoteRecord({ run: state.run, outcome: { state: 'saved' } });
         return;
       }
@@ -1330,7 +1345,7 @@ export default function Arena({
         });
       });
     },
-    [pair, prompt.id, state.mode, state.run, testing, scope],
+    [pair, prompt.id, state.mode, state.run, testing, scope, playground],
   );
 
   const vote = useCallback(
@@ -1542,7 +1557,7 @@ export default function Arena({
                 onClick={() => setExpandedPrompt(current => current === round.id ? null : round.id)}
               >{t('查看完整提示词')}</button>
             </div>
-            <span className="arena-mode-label">{t(formal ? '正式测评' : '娱乐测评')}</span>
+            <span className="arena-mode-label">{t(formal ? '正式测评' : playground ? '随心玩' : '娱乐测评')}</span>
           </div>
           <p className="briefing-prompt" id={`arena-prompt-${round.id}`} hidden={expandedPrompt !== round.id} data-swap>{round.prompt}</p>
         </section>
@@ -1553,8 +1568,8 @@ export default function Arena({
         </div>
 
         <div className="arena-stage" ref={stageRef}>
-          {orange && <OrangeCounter choice={state.choice} boards={orangeBoards} />}
-          {nightChat && <NightChatMasthead />}
+          {orange && (playground ? <PlaygroundOrange choice={state.choice} /> : <OrangeCounter choice={state.choice} boards={orangeBoards} />)}
+          {nightChat && (playground ? <PlaygroundChatMasthead question={chatQuestion!} /> : <NightChatMasthead />)}
           {forum && <ForumPost question={prompt.prompt} />}
           {textTheme && <TextStageMasthead theme={textTheme} channel={readingChannel} onChannelChange={setReadingChannel} />}
           {!orangeBoards && !nightChat && !forum && !textTheme && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
@@ -1580,7 +1595,7 @@ export default function Arena({
                 key={side}
                 className={`contender contender-${side} ${chosen ? 'is-chosen' : ''} ${state.choice && state.choice !== 'draw' && !chosen ? 'not-chosen' : ''}`}
               >
-                {orangeBoards && <OrangeSignFrame side={side} chosen={chosen} />}
+                {orangeBoards && !playground && <OrangeSignFrame side={side} chosen={chosen} />}
                 <div className="work-panel" ref={index === 0 ? cardA : cardB}>
                   <span className="work-arrival-veil" aria-hidden="true" />
                   <div className="panel-heading">
@@ -1589,7 +1604,7 @@ export default function Arena({
                         {forum ? <ForumAvatar key={result.id} side={side} modelId={result.modelId} revealed={revealed} /> : localize(side.toUpperCase())}
                       </span>
                       <span className="model-identity">
-                        {localize(revealed ? round.models[index] : orange ? `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : textTheme ? textIdentity(textTheme, side) : '未知模型')}
+                        {localize(revealed && !(playground && textTheme?.id === 'letter') ? round.models[index] : orange ? playground ? `文案 ${side.toUpperCase()}` : `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : textTheme ? textIdentity(textTheme, side) : '未知模型')}
                       </span>
                     </div>
                     <span className="entry-number">
@@ -1615,7 +1630,7 @@ export default function Arena({
                         prompt.kind === 'web' && !workCanvas(result) ? true : undefined
                       }
                     >
-                      {orange ? <OrangePitch result={result} /> : nightChat ? <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : forum ? <ForumReply key={`${result.id}-${state.run}`} result={result} side={side} /> : textTheme ? <TextStageReply key={`${result.id}-${state.run}`} result={result} theme={textTheme} side={side} channel={readingChannel}>
+                      {orange ? <OrangePitch result={result} /> : nightChat ? (playground ? <PlaygroundChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} /> : <NightChatReply key={`${result.id}-${state.run}`} result={result} side={side} question={chatQuestion!} />) : forum ? <ForumReply key={`${result.id}-${state.run}`} result={result} side={side} /> : textTheme ? <TextStageReply key={`${result.id}-${state.run}`} result={result} theme={textTheme} side={side} channel={readingChannel} isolateChannels={playground}>
                         <Work key={`${result.id}-${workAttempt}`} result={result} side={side} cleanPreview={!formal && state.mode === 'blind'} interactive={state.phase === 'voting' || state.phase === 'result'} />
                       </TextStageReply> : <Work
                         // 新作品使用新窗口，不能沿用上一份 iframe 的就绪身份。
@@ -1699,7 +1714,7 @@ export default function Arena({
                   <kbd>{localize(side === 'a' ? 'A' : 'D')}</kbd>
                 </button>
                 {state.phase === 'result' && (
-                  <div className="side-result">
+                  playground && textTheme?.id === 'letter' ? <PlaygroundLetterSignature name={round.models[index]} chosen={chosen} draw={state.choice === 'draw'} /> : <div className="side-result">
                     <span>
                       {localize(
                         state.choice === 'draw'
@@ -1722,7 +1737,7 @@ export default function Arena({
                 )}
                 {state.phase === 'result' &&
                   state.mode !== 'formal' &&
-                  !ORANGE_REVIEW &&
+                  !ORANGE_REVIEW && !playground &&
                   revealed && (
                     <ReactionBar
                       promptId={prompt.id}
@@ -1912,7 +1927,7 @@ export default function Arena({
                   disabled={continueBlocked || !hasOtherArena}
                   aria-describedby={!hasOtherArena ? 'continue-note' : undefined}
                 >
-                  <span>{t('换个题库继续')}</span>
+                  <span>{t(playground ? '下一题' : '换个题库继续')}</span>
                   <ArrowUpRight size={17} />
                 </button>
                 <button
@@ -1922,7 +1937,7 @@ export default function Arena({
                   disabled={continueBlocked}
                   aria-describedby={pairCount === 1 ? 'continue-note' : undefined}
                 >
-                  <span>{t('同一题库继续')}</span>
+                  <span>{t(playground ? '本题继续' : '同一题库继续')}</span>
                   <ArrowRight size={17} />
                 </button>
               </fieldset>

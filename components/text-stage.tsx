@@ -75,7 +75,7 @@ export function TextStageMasthead({ theme, channel, onChannelChange }: { theme: 
   </div>}</>;
 }
 
-export function TextStageReply({ result, theme, side, channel, children }: { result: ModelResult; theme: TextTheme; side: Side; channel: ReadingChannel; children: ReactNode }) {
+export function TextStageReply({ result, theme, side, channel, children, isolateChannels = false }: { result: ModelResult; theme: TextTheme; side: Side; channel: ReadingChannel; children: ReactNode; isolateChannels?: boolean }) {
   const reading = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     if (theme.id === 'channels' && reading.current) reading.current.scrollTop = 0;
@@ -86,7 +86,7 @@ export function TextStageReply({ result, theme, side, channel, children }: { res
   const groups = theme.id === 'channels' ? channelGroups(paragraphs) : [{ channel: 'plain', paragraphs }];
   return <article ref={reading} className={`text-reading${native ? '' : ' text-reading-embedded'}`} data-paper-embed={!native && result.promptId === '013' && legacyPaperWorks.has(result.id) ? '' : undefined} data-channel={theme.id === 'channels' ? channel : undefined} data-work-id={result.id} data-side={side} data-tour-scroll tabIndex={0} aria-label={`阅读作品 ${side.toUpperCase()}`}>
     {native ? <div className="text-originals">
-      {groups.map((group, index) => <section className={`text-passage text-channel-${group.channel}`} key={index} hidden={theme.id === 'channels' && channel !== 'all' && group.channel !== 'plain' && group.channel !== channel}>
+      {groups.map((group, index) => <section className={`text-passage text-channel-${group.channel}`} key={index} hidden={theme.id === 'channels' && channel !== 'all' && (group.channel !== 'plain' || (isolateChannels && groups.some(item => item.channel !== 'plain'))) && group.channel !== channel}>
         {group.paragraphs.map((paragraph, i) => {
           // The active lens already names the style. Keep source labels in the DOM and full view.
           const heading = theme.id === 'channels' ? paragraph.match(/^(\s*【(?:张爱玲|王家卫|业主群大妈)】\s*)/)?.[0] : undefined;

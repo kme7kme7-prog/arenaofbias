@@ -1,3 +1,324 @@
+## 2026-10-11 · 随心玩菜单横推/标志返回与发布准备
+
+- 用户明确授权修复后commit/push/deploy。菜单进入采用三层实体色块横推，目的文档首帧遮挡、挂载就绪再揭开；两区标志返回主站玩法菜单 `/#play`，不再返回本区入口。单owner、减少动态、BFCache清理和错误返回保留；文字双门/翻书和3D垂直拆箱不改。
+- 新 `public/playground-entry-boot.js`、`lib/playground-entry.ts`；主站/两区HTML入口和菜单/标志接入，原过场检测共享遮挡。入口11项通过（立即反馈、慢模块遮挡、重复点击、返回、减少动态），主站接入46项复跑通过；typecheck/focused oxlint/boot语法/build:check与原过场不变量通过。
+- 待发布线上须先后端后静态站，固定已推送main源码；静态根为 `/www/wwwroot/show1-dist`，不要用已退役旧deploy:vps。已发现线上后端还有个人署名/预览/加载优化，不可直接用本地全包覆盖；正在核对来源并与用户确认增量保留方案。当前归档是发布前验证，不代表已上线；发布证据写 `.local/playground-release/`。
+- 原型、jianmo资料及既有未跟踪遗留保持，发布提交只纳入正式模块、必要资源、验证工具及其记录。没有生产投稿/投票/付费模型调用，不逐件重测所有作品。
+
+## 2026-10-11 · 「随心玩」正式代码接入主站（未提交、未推送、未部署）
+
+- 用户明确授权接入并改名，不再叫娱乐测评。名称采用「随心玩」；共用原首页，玩法菜单与首页快速游玩进入 `/playground.html`，文字目录/场景在此独立文档内，3D为 `/objects.html?topic=<id>`。主站原hash首页、正式评测及旧分享/竞技场深链保留；历史榜单不改称本玩法榜。
+- 新正式模块 `app/playground/`，Vite增加两个HTML入口。已认可单屏、八道文字材质/聊天/橘子/信尾署名、无把手题名双门/同步翻书，以及十一道3D景窗/垂直拆箱/揭晓/继续沿用。`app/page.tsx` 和 TextStageReply使用显式playground选择；预览源码transform不再作为正式运行依赖。主站默认过场通过可选factory保留。
+- 文字走共享后端只读 `/api/playground/works`，3D复用公开题目/作品清单并按稳定ID白名单筛选，至少10件不同作品且两个模型。双方选择仅本页揭晓，不计旧榜，不调用投票/反应/评论写接口。六份森林HTML仅在公开源及SHA一致时原生文本投影，未知/变化HTML保留原内容；原文件不修改。
+- 同步配套共享后端 content/show1compat 与新增bridge/surface/forest-texts文件：合法父站opt-in、真实绘制/加载浮层/镜头稳定门、原iframe身份/来源校验和双iframe卸载。保留正式盲测/普通内容门禁，纸色背景及单份台灯桌面延展按固定版本动态适配，无schema或后端依赖。发布需后端先于前端，见 `docs/playground-integration.md`，后端HANDOFF/API合同已更新。
+- 验证：主站接入46项（4档入口一屏、八题文字、真实键盘台灯、11题筛选/下一题/返回/揭晓/继续与无写入）；常速文字过场300项（题名、同步翻书、慢加载、取消/快速换题/手机/减少动态）；原主站过场不变量通过。FIELD68定向实载真实绘制/就绪通过，通用相机复位API缺失，前端禁用并说明。没有逐件重测所有作品、全随机配对视觉或真机FPS验收。
+- typecheck、定向oxlint、生产和check构建、27文件构建依赖扫描通过；共享后端最终check113/0、test330/330。既有TextStage组件另有两条原a11y lint提示，未顺手改无关行为。Tabbit真实菜单进入、键盘揭晓并换到台灯成功，2032×979 CSS视口单屏；已目检更新后景窗台灯桌面边缘。
+- 预演 `http://127.0.0.1:5452/#play`，当前service PID42800，内容端5453；实际共享处理器+内存SQLite+缓存公开素材，只读不触生产数据。生成dist最后恢复build:check，便于本地API预演；生产build也已通过。证据 `output/playground/main-integration/`、`passage/` 和 `.local/playground-*.log`。Tabbit按实际aria-label修正一次测试定位超时，产品无对应失败。
+- 原5446/5447服务PID31240的重启被自动审批拦截，旧进程保留，可能仍持有旧transform；最初5450/5451预演PID51852也保留，当前效果以5452为准。没有强行终止/替换其他进程。本轮无commit/push/deploy；不要把本地接入或生产构建通过称为线上已发布。原作品、既有未跟踪原型/资料与包依赖遗留均保留。
+
+## 2026-10-11 · 主站接入准备：统一入口一屏与十一题3D清单
+
+- 用户要求准备主站接入，统一入口不要上下滚动，3D仅纳入机械键盘、台灯、营造法式、事件视界、飞瀑穿云、铁路小镇、飞尘工地、篝火营地、湖上四境、雪山牧场、小岛昏沉幻境。口述「湖上泗泾」按当前唯一对应的「湖上四境」准备，已在过程消息说明；不改原题名。仍为接入准备，没有切换主站入口或发布。
+- 新增 `reference/playground-home.css`：入口用100dvh网格分配高度，卡片/插画跟随剩余空间；2K限制主体最高850px及纸插画280px，避免拉成长条，手机压成两张紧凑横向内容卡。只在home作用，文字目录/正文未改排版。
+- 新增 `reference/playground-object-catalog.json` 作为稳定ID白名单和顺序，纯投影模块 `playground-object-selection.mjs` 保留源库。5446服务输出11题441件作品；选题/下一题只在此范围，未加入的深链提示选题，不自动换键盘。完整37题682件快照及源文件仍原样保留。原开放门槛、双iframe、景窗和垂直拆箱不改。
+- `docs/playground-integration.md` 记录题号/数量、主站入口/路由、文字transform移植、线上数据与隔离内容域、加载/取消、选择记录和构建资源准备点。正式路线与名称仍为建议；当前3D无投票API，预览只读，不能默认上线即恢复计榜。旧键盘FIELD68未获得就绪证据的风险仍需接入前定向复核，不宣称441件全部验收。
+- 48项准备检查通过（1920×880、2560×1240、1536×720、1280×620、390×844、640×360：无整页溢出、两入口/返回、真实键盘台灯、十一题结构、白名单/深链）；已目检1920/2560/390截图。旧library-browser检查按服务实际清单更新，34项真实导航/搜索/揭晓/手机/慢加载恢复通过；完整库37题682件1743资产哈希与跨模型检查通过。typecheck、focused oxlint、diff检查通过。其余题结构验证阻止内容请求，不能当逐件绘制/FPS验收。证据 `output/playground/integration-prep/` 和 `output/object-stage/library/browser-checks.json`。
+- 为服务投影重启经身份核验的旧PID38924，现PID31240，日志 `.local/playground-integration-server*.log`。备份 `.local/playground-integration-before-*` 与 `.local/playground-integration-object-stage-before.mjs`。服务已有原作品解析跳过/字体public路径提示，本轮不扩范围修原数据。没有新增依赖、主站集成构建、后台/投票/作品内容修改、commit/push/deploy。
+
+## 2026-10-11 · 聊天设计获认可，补回右侧提问
+
+- 用户认可上一版聊天设计，要求将「如果人生注定要分别，那相遇还有什么意义？」补回聊天，增强情景。两窗顶部增加右对齐的柔和绿色提问气泡，使用实际 question 参数；随后接各自原回复。其他布局保持不变。
+- 45 项 chat 检查通过，新增两窗原问题一致与右对齐断言；typecheck、focused oxlint、diff 检查通过。已目检更新后的 1920 截图，证据仍在 `output/playground/chat-redesign/`。未重跑全题/过场套件（仅局部聊天气泡调整）。无需重启服务，无主站接入、提交推送。
+
+## 2026-10-11 · 深夜聊天重新设计：共享话题与两份回复
+
+- 用户否定上一版观感，授权按判断重新设计。本轮只重做本地深夜聊天：左侧以凌晨02:30和实际原问题构成情景，问题只显示一次；右侧直接显示两份回复，去掉每段重复头像/重复问题/荧光绿大按钮，改为纸白气泡、灰绿底、克制的署名栏与底部圆形箭头选择。保留单屏桌面与所有原文段落，模型身份在选择后揭晓。
+- 新增 `reference/playground-chat.tsx/css`，预览 server 用唯一匹配断言替换 NightChat 组件导入与题头传参，未编辑共享 app/page.tsx 或原 night-chat 组件。深夜聊天可独立回退，其他题和3D不改。手机按回复内容自适应高度，长回复保留内部滚动，短回复不再撑出整屏空白。
+- 742项 reader 全题三档检查、299项 passage 生命周期检查通过；新增41项 chat 检查覆盖最长/最短回答逐段原文、390/1280/1920/2560尺寸、完整滚动、无横向溢出、真实作者揭晓与本题继续；最终移动布局/文案微调后重跑41项通过。typecheck/focused oxlint/diff检查通过。独立滚动 article 保留键盘tabIndex，针对性lint注释说明原因。
+- Tabbit实际浏览器查看、选择、揭晓和继续成功，2032×979 CSS视口文档高度979；作者揭晓为当前真实配对名称。已目检实际页以及1280/390长短极端配对。证据 `output/playground/chat-redesign/`（含 `tabbit-final.png`），Tabbit任务已finish且保留查看页，无强制清理。未做全部随机配对视觉或真机帧率验收。
+- 服务重启前核验旧PID42796，现PID38924；日志 `.local/chat-redesign-server*.log`。备份 `.local/chat-redesign-before-*`。初轮小屏比例为.66超既有.65阈值，收紧最大宽度后reader通过。没有新依赖、原数据改写、主站接入、提交推送。查看 `/reference/playground.html?trial=night-letter#arena/008`。
+## 2026-10-11 · 深夜聊天侧边题意与手机比例
+
+- 用户要求聊天再高一点、题目放侧边，或缩小头像/气泡。本轮仅改本地聊天 CSS：左侧 145–180px 题意+时间，右侧两个聊天窗口同高，占据原先题头空间；宽度随视口高度收缩，单窗宽高比三档均不超过 .65。保留无外围大框与一屏选择/继续。
+- 正文15px/1.75、头像30px、气泡9×12px内边距，窗口标题和选择按钮不变。侧栏题意23px、自然两行，避免大字断词。手机窄屏仍保留原自然布局。本轮不改其他题、原作品或动画时钟。
+- 742项reader三视口/八题/结果/文风检查通过，新增聊天侧栏位置、窗口比例、可读字号断言；已目检1920和1280聊天截图。最后收小侧栏题目后复跑通过。未重跑typecheck/数据/过场全套（只改CSS及几何检查）。证据 `output/playground/reader/*-chat.png`，备份 `.local/chat-phone-before-*`。服务仍PID42796，无需重启；无依赖、主站接入、提交推送。
+## 2026-10-10 · 文风前言隔离、聊天去外围框、论坛三楼等高
+
+- 用户指出三文风右侧混入题头/情景说明。`channelGroups` 原设计把 plain 分组带到所有选中文风；预览 transform 改为有正式文风分组时，plain 只在看全篇显示，无分组作品仍保留正文。原答案不删改，共享组件未编辑。
+- 深夜聊天去掉 arena-stage 背景/内描边/阴影，保留两个聊天窗口，宽度上限从 1040 改为 1160，并放宽随高度收窄的公式。论坛楼主、二楼、三楼均为相同 fr 高度；矮窗口回复按钮轨从46缩为38px，保证正文至少110px、头像64px，控制不挤出一屏。
+- 730 项 reader 检查通过（含三楼等高、聊天无外围阴影、单独文风不显示 plain 前言），298 项 passage 检查通过；focused oxlint 通过。目检1280论坛等高截图 `output/playground/reader/1280-forum.png`。初轮服务重启后一个 load 导航超时，复跑通过；首次新断言发现矮窗口正文103px，收紧按钮轨后111px，重跑通过。
+- 只改本地 preview transform、CSS、验证与记录，无主站/3D/原作品/依赖/提交推送。为 transform 重启已核验旧进程，当前 PID42796，日志 `.local/reader-floors-server*.log`。
+## 2026-10-10 · 各文字题收窄、停电正文末尾渐隐
+
+- 用户要求所有文字题比例都收一收，包括深夜聊天，仍不整页滚动。仅改本地 reader CSS：信纸/等待/三文风宽度上限 1160px，停电 1400px（保留左题意右书），聊天 1040px、论坛 1040px、橘子 1200px；除论坛外按视口高度进一步收窄，缩短一般题头并适度收小字号。森林沿用已认可比例。
+- 停电最终纸张样式覆盖了早期渐隐为 mask:none，造成下沿残字生硬。预览统一给原生文字滚动区添加 38px 末尾渐隐和 42px 底部内边距，渐隐限于正文，按钮保持清晰且独立；原回答不改，书页与门的时钟不改。
+- 706 项 reader 检查通过：八题、三视口、结果与文风切换、一屏控件、非论坛竖向比例、渐隐和阅读/按钮分界。302 项 passage 检查通过。目检 1920 深夜聊天与 1280 停电，截图 `output/playground/reader/`。首轮比例断言发现橘子旧末尾规则覆盖新宽度，已改末尾规则并重跑通过。
+- 只改 CSS/几何断言/交接决策，无共享组件/3D/作品数据/主站改动，无新依赖和提交推送；服务仍 PID 38448，无需重启。未重跑数据检查和 typecheck（本轮未改数据或 TS）。
+## 2026-10-10 · 小红帽旧 HTML 提取为原生书页
+
+- 用户指出左侧旧 HTML 自带排版难看，授权提取文字。本地六份 forest HTML 改为原生 story 段落；标题、分节与段落按原顺序保留，实体由惰性 DOMParser 解码，不执行原脚本。原 HTML、snapshot、作品身份和其他答案不改。去掉上一轮 iframe .94 光学缩放。
+- `scripts/extract-playground-forest.mjs` 生成 `reference/playground-forest-texts.json`，每份带源 SHA256；预览服务启动核验原文件，变化即要求重新提取，避免静默使用旧文本。只在 5446 API 投影为 native text，原 HTML 地址仍原样可访问。不改主站和 3D。
+- reader 598 项、passage 299 项检查通过；typecheck、focused oxlint 通过。六份提取文本逐段与独立 DOM 读数一致；六份定向配对显示检查确认无 iframe、全文段落一致、18px 字体。目检提取/原生混合配对 `output/playground/forest-native/mixed-story.png`，无旧大标题/大留白。
+- 内容检查曾因初始 response body 在长浏览器检查后才读取，触发十秒请求 timeout；已改为先读取 body，重新验证。此前重启初次请求也出现一次 ECONNRESET，随后的内容检查成功；不归因于故事加载。
+- 预览服务当前 PID 38448，日志 `.local/forest-native-server*.log`。无新增依赖、提交、推送或部署。
+## 2026-10-10 · 小红帽恢复正常书页比例与字号
+
+- 用户指出小红帽横向铺得过满、显得扁且字号过大，要求大小正常一点。仅改本地 `playground-reader.css` 的 forest 桌面规则，其他题材、门与翻书时钟均不改。小红帽舞台最大 1100px 宽，并按可用视口高度收窄；题头占高降至 72–120px，书页保持较高的阅读比例。标题 30px、原生正文 18px/1.85、作者标识 13px；六份旧 HTML 在预览 iframe 层光学缩放至 .94，未改原文件或扩展阅读内容。
+- `check-playground-reader.mjs` 增加书页宽高比 .7–1.1、正常原生字号断言。598 项三档 reader 检查通过（1920×880、2560×1240、1280×620），八题/结果/文风/所有底栏仍一屏。小红帽实际单页为 533×588、533×658、339×384；已目检 1920、1280 和包含旧 HTML 的 1844×865 配对，确认 iframe .94 后显示宽度仍等于正文窗口，不产生横向溢出。内容/HTML 哈希与写入阻止检查、diff 检查通过；只改 CSS，未重跑上一轮动效全套和 typecheck。
+- 证据 `output/playground/forest-proportion/`，备份 `.local/playground-before-forest-proportion-20261010-232747/`。无需服务重启，仍 PID 44384；没有主站接入、原作品修改或 commit/push。查看 `http://127.0.0.1:5446/reference/playground.html?trial=forest-proportion#arena/013`。
+
+## 2026-10-10 · 找回书页展开、题名双门，重排贴吧与橘子
+
+- 用户纠正「下一题过场」是显示下一道题的名字，而非写字面「下一题」；要求参考最早认可的开门/翻书感觉，恢复可见翻书、收紧贴吧比例、用 3D 区风格重做继续按钮、解决正文压到投票行，并大改橘子页。范围仅 5446 文字原型，原作品、杂志目录、3D 与主站未改。
+- 查到 `docs/DECISIONS.md` 的 2026-10-09「保留静态设计，书页翻开与题目材质过场」「文字场景与翻页视觉定稿」，对应 `.local/text-themes-review/before-transition-coordination/` 与共享 `app/text-stage.css`。上一轮本地禁用全部 contender 入场，连书页动作也被关掉。本轮沿用书脊/纸层/68 度展开，新增 `playground-book.ts`，书页和 `playground-passage.ts` 共用 RAF 时钟，在开门期间展开，不恢复一套过场后才启动的 CSS 入场。
+- 双门保持无把手与实际就绪门，显示目标题名；使用旧阅读材料的合拢/打开曲线及相反方向展开，去掉门内装饰框。当前合拢 240ms、换题停留 180ms（同题 60ms、目录 40ms）、打开 560ms，原题意仍在正文。取消/返回/重播都会清理纸页内联变换与临时阴影；此为待用户体验的调参，并非新的视觉定稿。
+- `playground-reader.css` 将论坛限宽 1040px、舞台连底栏限高 642px，头像恢复 76px（较矮桌面 64px），保留楼主/二楼/三楼纵排，减少楼层空白；正文容器单独裁剪并与投票行隔 10px，投票行使用实体纸底，放大按钮仍可用。底部文案改「下一题 / 本题继续」，按钮使用 3D 区纸白/深绿矩形风格，并覆盖三文风和墨色旧主题样式。
+- 新增 `playground-orange.tsx`：两张暖纸文案与中央已有生成橘子插图，撤掉招牌/木架/成交大印/手绘果实；短题意常驻顶部，三句原回答保留。组件、作者顶部文案和继续按钮文案均经 `playground-text-server.mjs` 唯一匹配断言式 transform 接入，未编辑共享 `app/page.tsx`。
+- 最终验证：586 项 reader 检查（1920×880、2560×1240、1280×620，八题、结果、文风切换、论坛头像/空白上限、正文与投票边界、每种主题的继续按钮颜色）；300 项 passage 检查（单 owner、实际遮挡/就绪、题名、可见书页运动、取消清理、重播/同题/换题、慢模块、返回、手机/减少动态）通过。255 条原回答、6 份原 HTML 哈希与写入阻止通过。桌面/手机 response 检查通过，本机反馈约 14–51ms；typecheck、focused oxlint、diff 检查通过。
+- 已目检桌面橘子、论坛、矮窗口停电；Tabbit 实际浏览器核对橘子与论坛，并用当前 passage 的 seek 暂停查看森林开门/翻书中段，确认后清理并返回目录。证据 `output/playground/reader/`、`reader-context-passage/`、`response/reader-restored*/` 和 Tabbit「阅读器复核」截图。不宣称全部随机配对或真机 FPS 验收。
+- 备份 `.local/playground-before-reader-restore-20261010-230259/`。为加载预览 transform，只重启原 5446/5447 服务，当前 PID 44384，日志 `.local/reader-restore-server*.log`；未动其他遗留文件，无新依赖/音效、主站接入、commit/push/deploy。查看 `http://127.0.0.1:5446/reference/playground.html?trial=reader-restored#text`。
+
+## 2026-10-10 · 文字阅读细节：信尾署名、竖向楼层、短双门
+
+- 最新用户授权按上一条需求梳理开始实现，仅改 5446 文字原型。告白保留纸面/折痕/回形针，`playground-letter.tsx` 在结果行显示真实模型署名，顶部仍为来信 A/B，投票前没有署名 DOM。通过 `playground-text-server.mjs` 的断言式预览 transform 接入，未编辑共享 `app/page.tsx` 或原回答。
+- `playground-reader.css` 让题材标题与一句解释左右相邻、插画在右；停电仍为左侧题意/右侧书。论坛改为楼主原问题、二楼 A、三楼 B 的竖向单列，桌面限制 1160px 宽并分配楼层内部滚动空间，选择/揭晓与底部继续保持一屏。手机保留原自然阅读结构。
+- `playground-passage.ts/css` 移除门把手，仅保留「下一题」/「再读两篇」/目录短提示；合拢 220ms、初次/换题停留 200ms（同题 60ms、目录 40ms）、打开 420ms。真实加载未好仍遮住，唯一 owner、取消/返回和已就绪再揭开继续保留。点击启动模块预载，无需先有鼠标悬停。
+- 查明嵌套论坛资料/正文、聊天气泡、三文风段落的原入场 CSS 被外层过场暂停，门移除后才续播。本地 CSS 取消这些第二轮入场；门同步 `data-gt-phase`，正文和按钮在遮住时提交。预览 transform 去掉原同题额外 500ms 快门等待，保留真实关门后再换作品。
+- 验证：397 项三档桌面 reader 检查、278 项 passage 检查通过，覆盖楼层纵向、题意不拥挤、署名不提前泄露、八题进入/重播/继续/下一题、逐帧遮挡/就绪与嵌套正文没有第二次入场、慢模块/取消/返回/手机/减少动态。255 条原回答与 6 份 HTML 哈希/写入阻止检查通过。桌面和手机 response 检查通过，点击反馈本机约 14–51ms。typecheck、focused oxlint、diff 检查通过。
+- 已目检 1080P 档论坛/告白/三文风、矮窗口森林/论坛及 2K 三文风；Tabbit 实际浏览器告白投票后署名为 22px，并切到论坛核对上下两楼与整页无滚动（2032×979 CSS px）。证据 `output/playground/reader/`、`reader-context-passage/`、`response/reader-polish*/`。不宣称所有随机配对或真机帧率均已验收。
+- 最后加大署名字号并沿用信件楷体后，针对 1280/1920/2560/390 CSS px 补查署名边界、字体与横向溢出全部通过（`reader/signature-checks.json`）。补查首轮曾因相同带 hash URL 未重新导航、仍停在结果状态而超时，改为各尺寸不同查询串后确认通过；不是慢加载放行。Tabbit 有一次可恢复 ERR_ABORTED 导航记录，后续实际页、选择和换题均成功；未据此声称浏览器零网络事件。
+- 备份 `.local/playground-before-reader-polish-20261010-223200/`；为加载预览 transform，只重启原 5446/5447 服务，当前 PID 43888，日志 `.local/reader-polish-server*.log`。无新依赖/音效、主站接入、commit/push/deploy。刷新原链接即可，或用 `http://127.0.0.1:5446/reference/playground.html?trial=reader-polish#text`。
+
+## 2026-10-10 · 恢复题材正文布局，题意从过场移回阅读页
+
+- 用户否定把情景/任务塞进过场，要求恢复此前题材布局，字号和内容可适当收小，但桌面仍不整页上下滚动；特别指出停电左侧题意、右侧书页。仅改 5446 文字原型。双开门移除题名/介绍及「打开看看」，保留原开合、500ms 主动停留、真实作品就绪门、取消与单一生命周期。
+- `playground-reader.css` 恢复原 masthead 和题材小装饰：停电恢复左侧标题/一句题意/门缝光，右侧共用书脊；告白、童话、等待恢复紧凑上方标题与插画；三文风上方保留题意和切换；橘子与深夜聊天恢复各自短标题。论坛继续以原楼主问题交代题意。缩小正文字号、限制舞台 1540px 宽/900px 高，告白信纸另限 1360px，选择/结果/继续仍在底部。长文在正文内部滚动；手机仍走原自然文档布局。
+- `playground-intros.ts` 改为五题各一句常驻说明，经 `playground-preparation.ts` 更新原 masthead 的 note；不再分情景与任务，不增加一组小字，完整提示词仍在「查看题目」。原答案和共享组件未修改。较矮窗口收紧橘子标题间距和结果行高度，保留牌子结构。
+- 349 项 reader 检查通过：1920×880、2560×1240、1280×620，八题与揭晓、文风切换、题意可见且简短、停电侧栏/书页位置、无整页溢出及控件可达。246 项 passage 检查通过：进入/换题/本题继续/重播、空白双门、单层、真实遮挡/就绪、慢模块、取消/返回、手机/减少动态及无运行错误。修正测试对滚动帧记录及晚采样 hold 起点的判断，未改播放时钟。response 检查通过，反馈约 9–43ms；内容检查 8 题/255 回答/6 原 HTML 哈希与写入阻止仍通过。typecheck、focused oxlint、diff 检查通过。
+- 已目检停电、告白、森林、等待、三文风、矮窗口橘子，并通过 Tabbit 查看实际停电页面。证据 `output/playground/reader/`、`reader-context-passage/`、`response/reader-context/`；未做真机 FPS 或所有随机配对视觉验收。布局前备份 `.local/playground-reader-context-20261010-213640/`（该目录的过场源码已经是撤字后的状态，非整轮前完整备份）。没有新依赖、音效、服务重启、主站接入、commit/push/deploy。
+- 刷新现有文字页即可；可直接看停电 `http://127.0.0.1:5446/reference/playground.html?trial=reader-context#arena/q-b23ef619e82dec65`。仍待用户体验视觉比例。
+
+## 2026-10-10 · 双开门介绍停留缩短到半秒
+
+- 用户认为上一轮等待太久，明确要求零点几秒。初次进入/换题的主动停留由 2800ms 改为 500ms；开关动作、文案、同题 90ms 与真实作品就绪门保持原样。加载未完成时仍遮住正文，避免提前揭幕。
+- 更新过场检查的最低停留断言。针对已就绪过场的浏览器采样为约 518ms，层正常清理；`check-playground-response.mjs door-short` 通过，慢模块仍遮挡、取消无迟到导航，点击反馈约 12–44ms。本轮只改时长，未重跑上一轮 256 项完整过场检查。diff 检查通过。
+- 刷新现有 5446 文字原型即可；未改 3D、主站或原作品，无 commit/push/deploy。
+
+## 2026-10-10 · 恢复双开门，中间用情景与任务介绍题意
+
+- 用户否定材料展开的自然度，要求恢复最早的开关过场、增加中间停留，并指出只看题名/背景不易懂比什么，但不想堆小字。本轮恢复 2026-10-09 暖纸双开门的外侧铰链、内框/把手/投影与原两段曲线；八题保持自己的纸色/墨色。移除封面复制、正文收拢与局部纸页遮挡；这些仅保留在 `.local/playground-before-door-context/` 备份，不是获认可方案。
+- 仍用 `playground-passage.ts` 的唯一生命周期，只复用 `playground-door.css` 视觉，不重新接入旧 door 播放器。初次进入/换题合拢后最少停留 2800ms，左侧题名加情景、右侧一句写作任务；正文真实就绪时可点「打开看看」或在遮层焦点按 Enter/空格提前打开。未就绪不能提前揭幕。重播/本题继续只停 90ms，不重复介绍；返回目录保持短过场。2800ms 是本轮调参值，不是用户固定时长。
+- 新 `reference/playground-intros.ts` 对照本地原题写八份短介绍，明确橘子销售难点、深夜聊天问题、小红帽人设、告白禁词、三种文体及停电/等待的反转要求。完整原提示词继续从「查看题目」打开。单屏正文、目录、3D、主站和原作品均未改；没有新依赖或音效。
+- 首次检查发现初始 paint 调用 onFrame 早于调用方 transition 赋值，导致进入失败；已限定挂载后再触发回调并重跑真实进入。最终过场检查 256 项通过：双门、情景/任务同屏、至少 2.7s 实际停留、同题短停、盖满才换回答、单一层、提前打开、慢模块禁提前揭幕、取消/返回、手机与减少动态。桌面/手机 response 检查通过，可见反馈约 8–54ms（本机采样）；内容检查仍为 8 题/255 原回答/6 原 HTML 哈希及写入阻止。typecheck、focused oxlint 与 diff 检查通过。最后微调告白介绍，明确「150 字以内」并缩短结句；手机最终短文案与提前打开流程复验通过，动作不变。
+- 目检真实进入的告白/小红帽/三文体/停电、就绪后的开门中间帧、390 与 2560 视口；八题手机介绍范围检查通过，按钮退场时实际 opacity=0。证据 `output/playground/door-context/` 与 `response/door-context*/`。没有真机 FPS、全随机配对或六份原 HTML 的慢网络实载验收，本轮没有重跑未变的整套 reader 布局检查。
+- 体验 `http://127.0.0.1:5446/reference/playground.html?trial=door-context#text`；无需重启服务，无 commit/push/deploy，仍为本地文字原型、主站晚点接。当前版本等待用户视觉审阅。
+
+## 2026-10-10 · 文字过场改为封面展开与局部换稿
+
+- 用户认为上一轮整屏扉页草率，授权按讨论方向打磨。本轮仍只改 5446 文字原型，保留 magazine 目录、单屏阅读、各题正文材质与顶部单行；不改 3D、主站或原回答。没有新依赖和音效，备份 `.local/playground-before-material-entry/`。
+- `playground.tsx` 点击时记录实际封面的矩形并复制装饰节点；`playground-passage.ts/css` 以同一 owner 将该封面从目录位置移动到中央，再展开到两篇阅读材料。小红帽从中间书脊打开，告白信纸展开，停电保留门页开启；使用已有插画、纸纹与题材配色。不会复制正文或 iframe。直接链接保留紧凑题材封面回退，不再播放整屏大标语。
+- 本题继续与重播改为两份局部纸页覆盖后换稿，周围顶部/底部始终可见；下一题和返回目录先将现有两篇材料收拢，再换目标。每次取消/卸载恢复被收拢节点的内联 transform。正文更早揭开，纸页转动时保持实体遮挡，避免半透明正文重影；换稿返回按钮放在底部中央，不压导航。
+- 保留既有真实就绪门及遮住时 READY 提交、root inert、Escape/返回清理，绝不靠固定时间裸露未准备的内容。动作改为绝对进度 RAF，可用 `playground-passage-review.html` 拖动八题及局部换稿。共享 `app/page.tsx`、`lib/game-transitions.ts` 和预览服务 transform 本轮没有修改。
+- 最终 `check-playground-passage.mjs` 214 项通过：八题进入/重播/同题/下一题、实际封面来源、唯一遮层、遮住才换回答、局部换稿无全屏背景、慢模块、取消/返回、收拢清理、手机、减少动态与零 pageerror。`check-playground-reader.mjs` 229 项、内容检查 8 题/255 原回答/6 原 HTML 哈希及写入阻止通过；response 桌面/手机冷慢模块与热进入可见反馈约 9–70ms（本机采样）。typecheck、focused oxlint 通过。已目检实际封面、信纸/书页/门页中间帧、局部换稿和手机；没有真机 FPS 或全部随机配对验收，不把慢模块验证扩大为所有原 HTML 慢网络实载验收。
+- 证据 `output/playground/material-entry/`、`reader/`、`response/material-entry/` 和 `response/material-mobile/`。体验 `http://127.0.0.1:5446/reference/playground.html?trial=material-entry#text`；无需重启服务，无 commit/push/deploy，主站仍晚点接。上一条的整屏扉页行为被此版取代，仍待用户视觉审阅。
+
+## 2026-10-10 · 文字顶部与八题过场重新设计
+
+- 用户否定上一轮顶部两层栏与把文字放进旧过场的效果，要求重新设计、解决闪烁。本轮仅改 5446 文字原型：阅读顶部合成「返回目录 / 当前题名 / 查看题目」一行，随题配色；完整原提示词用可关闭对话框打开。保留单屏正文、各题材质与 magazine 目录；3D、主站和原作品均未改。
+- 新增 `reference/playground-passage.ts/css`：八题各用固定纸色/字色与原有题材插画，题名和插画属于同一整张扉页。上移盖满后切路由/换作品，等待就绪，正文及最终按钮在遮住时提交，再整体继续上移揭开。原复制标题层、告白 View Transition、快门与换题文字遮条退出默认 magazine 流程；旧试验源码保留但不作为当前入场链。
+- 同一 owner 管理入场、重播、同题、下一题和返回；root inert 与键盘锁跟随生命周期，取消/Escape/浏览器返回清理遮层并释放就绪门，慢模块不超时裸露正文。保留既有作品就绪检测；没有新音效或依赖。默认流程通过 `playground-preparation.ts` 和预览服务 transform 接入，共享 `app/page.tsx` / `lib/game-transitions.ts` 原文件未改。正文 READY 提前在遮住时提交，避免揭开后「跳过入场」变「重播入场」及按钮再变亮。
+- 新增 `reference/playground-passage-review.html` 逐题播放/拖动对照页；`scripts/check-playground-passage.mjs` 最终 163 项通过，按 RAF 记录单一遮层、盖满才换回答、题名与配色恒定、纸面单向连续、等待全屏覆盖、揭幕前最终控件就绪，并覆盖八题进入/重播/同题/下一题、取消、浏览器返回、手机和减少动态。旧 reader-motion 命令转入此套检查，不再检查已退休的 DOM。
+- `check-playground-reader.mjs` 229 项通过（1920×880 / 2560×1240 / 1280×620，八题阅读/揭晓与控件可达）；response 桌面/手机的慢模块反馈、取消防迟到、热进入与菜单响应通过，本机可见反馈约 58–104ms。原内容检查仍为 8 题、255 原回答、6 原 HTML 哈希一致与写入阻止；typecheck、focused oxlint、diff 检查通过。目检新顶部、八题代表扉页、手机、2K 阅读和实际退场中间帧；未测真机 FPS 或遍历所有随机配对，慢加载检查针对模块，不宣称六份原 HTML 均完成慢网络实载验收。
+- 备份 `.local/playground-before-passage/`；证据 `output/playground/passage/`、`reader/`、`response/passage*/`。为更新本地 transform 仅重启 5446/5447 预览服务，无 commit/push/deploy。体验 `http://127.0.0.1:5446/reference/playground.html?trial=passage#text`；主站接入仍等用户后续决定。
+
+## 2026-10-10 · 文字八题收成桌面单屏阅读
+
+- 用户认可 3D 单屏布局，要求文字区也收紧、把大标题放进过场，明确不是给文字加盒子且主站晚点接。本轮仅改 5446 文字原型：新增 `reference/playground-reader.css/ts`，在既有 `playground-preparation.ts` 本地钩子接入，并由 `playground.tsx` 导入样式。没有修改共享 `app/page.tsx`、原回答、3D 或主站入口。
+- 桌面 ≥960×560 使用固定视口阅读区：压缩顶栏与题目栏，大标题退出常驻区域；两篇正文、选择、揭晓和底部继续按钮留在一屏。阅读区限宽 1680px、最高 1000px，防止 2K 继续无限拉长。保留信纸/书页/聊天/橘子摊等原材质，三种文风继续切换，论坛共享楼主问题后并排读回复。长文内部滚动，原 HTML iframe 不改；提示词浮层与放大阅读可用。手机和极矮视口保持原来的自然滚动。
+- 标题与原小装饰复制到现有路由/首次加载/换对幕的展示节点；告白标题使用已有纸张 View Transition 的时间，不追加等待或新就绪门。快速重播沿用原快门，不再叠首次标题遮层；取消/卸载由原 AbortSignal 清理。普通阅读状态不会遗留标题覆盖正文。CSS 只对本地原型生效，原 magazine 选题目录不改。
+- 新增 `check-playground-reader.mjs` 的 229 项检查通过：1920×880、2560×1240、1280×620，八题阅读/揭晓、三种文风、正文空间、选择与继续可见、无整页溢出与标题残留。`check-playground-reader-motion.mjs` 49 项实际浏览器流程通过：八题从目录入场/重播/同题继续、长文滚到底、提示词、放大、换题和手机回退。测试过程发现并修正标题继承 visibility 造成的叠字；中途失败不计入通过数。
+- 既有 response 检查通过：慢模块即时反馈、取消、热告白入场约 385ms 起动及菜单反馈；原内容检查仍为八题、255 原回答、6 份原 HTML 哈希一致、写入阻止。typecheck、focused oxlint 与 diff 检查通过。已目检桌面三尺寸的代表题、标题入场与手机；未测真机 FPS，未遍历 255 个答案的所有随机配对。
+- 备份 `.local/playground-before-single-screen/`；证据 `output/playground/reader/`、`reader-motion/`、`response/single-screen/`。从 `http://127.0.0.1:5446/reference/playground.html?trial=single-screen#text` 点题体验。无需重启服务，无 commit/push/deploy，主站接入仍待后续。
+
+## 2026-10-10 · 全 3D 题套用景窗，拆箱改为向上提走
+
+- 用户认可当前单屏适配，要求其余布局保持，只把大纸箱拆封后改为竖直向上离开，并将其他 3D 题都套用景窗。本轮保留 1080P / 2K 布局、字号、尺寸及 CSS（与备份 SHA256 一致），不针对 2K 再重做视觉。箱体移除横向甩出与翻滚轨道，保留封条、起抬阻力、接触影和两侧先后节拍；盖箱/目的地面单/初次过场时长不变。
+- `presentationFor()` 默认统一为 window，所有 37 道目录题（其中 21 可玩、16 收集）共用景窗，作品与校准相机不改。`presentation=case` 只作旧版对照。未更改十件及跨模型门槛，未重取远端目录或素材。
+- 先更新拆箱不变量再修改轨道。单元时轴、24 项景窗检查、29 项桌面视口/入场/揭晓/继续检查、34 项拆箱生命周期、44 项完整目录浏览器检查通过，typecheck 与 focused oxlint 通过。44 项包括原 20 项流程、键盘/瀑布/黑洞实际加载的默认载体，以及 21 可玩题逐题点击后的载体结构检查；后者遮住并阻断作品请求，仅证明每题使用新模板，不当作所有作品实载或视觉验收。原目录 37/682/1743 与原文件哈希检查通过。
+- 目检台灯、瀑布、黑洞景窗及拆箱中间帧。证据 `output/object-stage/window/`、`viewport/`、`library/`、`weighted-parcel/`；未重新逐份实载 682 件或测真机 FPS，完整库前轮剩余 5 件就绪问题及 2 件运行错误仍见 `docs/qa/2026-10-10-object-stage-library.md`，本轮未扩范围处理。
+- 已只读核对主站 `src/main.tsx`、`app/play-menu.tsx`、公开题目/作品接口及本地 bridge。建议保留共用主页，由「随心玩」进入文字/3D 选题，再将本地快照与 localhost bridge 换成生产数据/作品就绪通道，统一路由与过场生命周期；先在本地主站接线验收，再考虑线上切换。名称仍是建议，投票与榜单语义没有擅自决定；当前未修改主站入口、作品源或共享后端。
+- 备份 `.local/object-stage-before-vertical-all/`。刷新 `http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards&trial=vertical-window`，全部题目可切其他景窗；服务没有重启，无 commit/push/deploy。
+
+## 2026-10-10 · 3D 展台改为桌面单屏比较
+
+- 用户认可景窗，但指出在 1080P / 2K、100% 缩放下画面太小且操作需要上下滚动。要求大标题融入进入模式的过场，将空间优先给两件作品。本轮保留景窗风格与二选一，移除常驻大标题，压缩顶栏/题目栏；桌面按实际视口高度排两幅作品、作者/复位/放大、选择按钮和底部操作。下一题、本题继续、重播、平局与引导留在屏内，揭晓结果复用底栏，不新增一段把页面撑长。
+- 初次纸色过渡改为 880ms，原「拆开看看，哪件合你心意？」在遮层上短暂出现后退出，整张展台随后显露。入场结束移除标题/遮层再挂作品，真实就绪后拆箱；后续换组只沿用盖箱/拆箱，不重播标题。动作对照页自动读取新时长，单元不变量与菜单检查同步更新。
+- 桌面景窗铺满列宽与剩余高度；纸箱两种载体使用统一遮挡尺寸，盖住后换载体不会突然换箱尺寸。原作品和相机未改。手机和极矮视口保留自然文档滚动，不强塞一屏；窄屏继续按钮保持整行。顺带修正原屏幕阅读器状态节点占一像素文档高度的问题。
+- 新增 `check-object-stage-viewport.mjs`，先验证旧布局不能满足单屏，再实现。29 项视口/入场/揭晓/继续检查通过：1920×880、2560×1240（扣浏览器栏后的测试视口）、1536×720、1280×620；前两种实画面约 871×536、1173×893，双侧一致，按钮均可见，缩放布局不重建 iframe。19 项景窗遮挡/慢加载/载体切换、19 项真实菜单入场/面单及 34 项拆封生命周期回归通过，单元、typecheck、focused oxlint 通过。证据 `output/object-stage/viewport/`；已目检桌面两尺寸、放大、标题、拆封中间帧、台灯和手机操作区，最终窄屏按钮修正后也已目检。未测真机 FPS 或重新全验 682 件作品。
+- 备份 `.local/object-stage-before-single-screen/`。仍为 5446 本地原型，直接刷新 `http://127.0.0.1:5446/reference/object-stage.html?topic=004` 体验；未改主站、原作品、共享数据，没有重启服务、commit、push 或部署。
+
+## 2026-10-10 · 营造法式先试景窗
+
+- 用户认可讨论中的景窗方向，要求先实现体验。本轮仅在本地展台为「营造法式」`topic=004` 默认启用窄暖灰窗沿、浅厚度与内侧阴影，取消原斜侧玻璃、反光线和底座；键盘、台灯等保留原载体。原作品内容与相机不改，仍为独立 iframe。
+- 沿用现有纸色入场、盖箱和拆封时轴；箱子完全盖稳后才替换载体与作品，景窗拆封不播放玻璃扫光。窗沿完整位于箱面遮挡范围，放大复用原 iframe；修正负间距工具栏被透明展盒区域拦截的问题。
+- 体验 `http://127.0.0.1:5446/reference/object-stage.html?topic=004`；加 `&presentation=case` 可对照旧玻璃盒。动作对照页支持 `?topic=004` 与原盒链接；本轮未重启服务，HTML/CSS/MJS 每次请求读取。
+- 先扩展时轴不变量检查，再改行为。19 项真实浏览器检查通过：就绪、拆封中作品静止、窗沿遮挡、慢加载、放大、揭晓、盖住后切回台灯、旧版对照、手机横溢与减少动态；单元时轴、typecheck、focused oxlint 通过。桌面、手机、放大与拆封中间帧已目检，证据 `output/object-stage/window/`。未重跑 682 件全库、未测真机 FPS，不将局部通过扩大为所有作品视觉验收。
+- 备份 `.local/object-stage-before-scene-window/`。仅为待用户体验的局部载体试版，不是全题推广或主站接入；没有远端访问/写入、commit、push 或部署。
+
+## 2026-10-10 · 完整线上 3D 库接入本地展台
+
+- 用户希望以后保留共用主页，将「娱乐测评」改名并进入当前统一选题页；当前明确先把完整作品库放到展台体验。名称采用现有草稿「随心玩」，本轮先做本地完整 3D 库，不修改主站入口、投票/榜单/正式/Gallery，不 commit/push/deploy。线上公开 API 此次读取为 62 题、1156 作品；按公开分类「建模 / 3D 场景 / 物理模拟」纳入 37 题、682 非演示作品，文字与静态网页不进入玻璃盒。
+- `fetch-object-stage-library.py` 只下载公开 API 列出的作品原目录，682 件 / 1743 资产原始哈希核验；332 件复用相同本地缓存，350 件新下载。快照 `.local/object-stage-library/`，不手改 data/dist/outputs。`prepare-object-stage.mjs --library` 将完整库写入当前本地清单；不带参数仍是原两题样本，请不要误覆盖完整库。
+- 增加可搜索的「全部题目」原生 dialog；21 题达十件且可跨模型，16 题显示收集进度并保持禁用，直达也不绕门槛。保留键盘/台灯快捷项和已认可的入场/盖箱/拆封；一次只创建两个独立源 iframe，RoundDeck 新增跨模型约束。固定视角作品以真实绘制和就绪解锁，复位能力独立判断；新未知作品保留原背景，不把全部场景染纸色。慢加载 12 秒后保留同组重试并新增「换一组」。
+- 本地服务复用原内容适配，允许与生产相同 CDN，关闭仅此 loopback 快照服务的生产 IP 读取限额；本地外壳 CSP 仅允许本地隔离作品通配源，避免 682 个源撑大响应头。原作品与共享后端源码保持。
+- **已告知用户的取库副作用**：首次误用远端 `createLibrary` 的初始化入口，其 `purgeDrafts` 在数据库只读错误前清理了一个已过期草稿临时目录；公开题目/作品及数据库行未写。读回只剩 1 过期行且目录已不存在，drafts 目录 mtime UTC 07:03:11，与该次调用对应。现在脚本只用 SELECT 和静态 catalog，不再实例化 library；不要把此次取库描述为全程零文件写入。后续素材传输只读且全部原哈希核验。
+- 已通过：37/682/1743 全目录/哈希/跨模型不变量、20 项真实全目录 UI/筛选/换题/继续/揭晓/手机/直达门槛/慢加载换组、19 项菜单衔接、28 项换场、34 项拆箱、单元轮换/时轴、typecheck/focused oxlint、check-playground（原 255 回答 / 6 HTML、写入阻止）。其中菜单 19 项、完整库 20 项与换场 28 项在最终统一就绪探针后复跑通过；34 项拆箱属于较早同轮验证。初次批量受旧本地读取限流影响，以及中途适配尚未完成的失败/中断不计通过。
+- 首轮 682 件逐份实载：634 件 16 秒内就绪、48 超时、17 件有运行错误。修正后串行复查首轮超时或有错的 65 件：60 就绪、5 超时、2 件仍有运行错误，WeakSet 错误消失。合并两次证据为 677 件达到过就绪、5 件待查，不等于全 682 件都在最终代码下重跑或视觉/FPS 全验收。证据 `output/object-stage/library/probe.json` / `compatibility-recheck.json`；完整结果和剩余作品见 `docs/qa/2026-10-10-object-stage-library.md`。
+- 修正 `__objectStageRender` 对内部普通 render 的误拦截；排除离屏贴图/小 SVG 图标，新增 WebGPU 实际提交、2D putImageData 与大 SVG 场景识别。仅本地 HTML 替换原 WebGL-only 探针，由桥接等待 DOM、真实绘制、加载遮层消失及两次稳定检查，避免 GPU/SVG 画面已出现但工作就绪永远不到。未识别相机控制时禁用复位、不显示旋转手势，不造能力。
+- 已目检选题 dialog、瀑布、黑洞桌面与手机选题；保留原作，不伪造 ready。剩 5 件：FIELD 68 长介绍首屏（键盘）、DeepSeek 云山巨城、Grok 维多利亚港（已绘制但就绪未过）、Fable 最后一夜（收集题）、GPT-6 Luna 破壁；另 paused/setSize 两件错误未完整归因。备份 `.local/object-stage-before-library/`；只重启当前 5446/5447 服务以加载新桥接，其他服务未操作。
+- 体验仍 `http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards`；同题继续轮换完整题内池，全部题目可搜索。此快照不是自动同步线上更新，更新需重新取公开清单、读取原资产并核验，再 prepare --library / 重启本地服务。
+
+## 2026-10-10 · 菜单到 3D 改成短纸色过场，初次不再落两箱
+
+- 用户反馈首页进入时仍像两个盒子突然冒出，要求简单过场。菜单点击立即反馈后，220ms 淡到纸色；目的 HTML 自带同色遮层，避免模块/数据等待时露出新布局。整张展台连同已放好的箱子以 360ms 露出，遮层清理后才加载两个作品，再按真实就绪拆封。初次进入不再执行两箱下落；下一题/本题继续的盖箱、目的箱名与拆封保留。
+- 沿用既有 CSS/WAAPI，无新库、标题幕或声音。目的页异常时也清理遮层；菜单返回/取消清理自己的遮层与轨道。动作对照页的初次范围改为实际 360ms，换题仍 740ms，拆封仍 1560ms。
+- 菜单与面单 19 项浏览器检查、原换场 28 项、单元动作、typecheck、focused oxlint、check-playground 与 diff 检查通过。验证真实菜单、同色遮层渐隐、过场期间零 iframe、慢加载、返回清理、快速改选与减少动态；中间帧 `output/object-stage/entry/review-arrival.png` 已目检。本轮未重新跑全部原拆箱截图测试或测真机 FPS。
+- 备份 `.local/object-stage-before-simple-passage/`；未重启服务，刷新 `http://127.0.0.1:5446/reference/playground.html` 后重新点 3D。仅本地原型，无 commit/push/deploy，不修改作品、线上或共享数据。
+
+## 2026-10-10 · 箱面目的地提前印好，补齐菜单到 3D 的落箱入场
+
+- 用户指出题名在箱子盖稳后突然变、从统一菜单进入 3D 没有入场。本轮仅更新 5446 本地 prototype：正常换题先在隐藏的箱子上印好目的地再下落，`resetLabel` 不再替换可见箱面文字。途中再改选或已盖稳加载时改题，纸质面单先离开、隐藏时改字、重新贴回；同一时间轴顺序处理，继续采用最新目标、不重启半途的箱体动作。
+- 菜单卡片及顶部 3D 链接新增即时反馈（160ms 短动作、减少动态 1ms），再跳页；返回菜单清理反馈/锁，改点文字入口取消未完成的 3D 离场。目的页新增 `arriving`：壳层出现、两箱落座（740ms），之后才创建两个作品 iframe；真实 ready/rendered/camera-ready 到齐再执行既有拆封。保留现有箱体/展盒与文字目录，没有新增通用全屏幕或依赖。
+- 先补 `check-object-stage-entry.mjs`、扩展动作对照页，再修改行为。新增 18 项检查通过：真实菜单路径、即时反馈、落箱期间零 iframe、慢加载遮住等待、目的文字先于下降、途中改选只在面单 opacity=0 改字、最新目标、返回菜单、入场/拆封独立拖动及减少动态。原 28 项换场与 34 项拆箱回归通过，后者更新为等待新落座阶段完成再检查已盖稳状态；单元动作/配对、typecheck、focused oxlint、check-playground（原文字数据与写入阻止）通过。
+- 桌面真实菜单入场、目的箱名和 review 中间帧截图已目检，证据 `output/object-stage/entry/`。本轮未测真机 FPS、未把本机检查扩大为全设备流畅结论。备份 `.local/object-stage-before-entry-fix/`，未重启服务、未修改作品/共享数据，无 commit/push/deploy。
+- 从 `http://127.0.0.1:5446/reference/playground.html#home` 刷新后点「3D 作品」体验；`reference/object-stage-motion-review.html` 可重看和拖动落座、拆封动作。
+
+## 2026-10-10 · 3D 同题换对、下一题与盖箱过场
+
+- 用户要求 3D 页提供「下一题 / 本题继续」，用盒子遮住换场和真实加载，再揭开。本轮在 5446 `reference/object-stage.*` 实现；题内文字、主站和共享库不改，无 commit/push/deploy。
+- 底部新增两个常驻按钮：本题继续抽同题新组合，下一题切到下一主题；选择前后均可继续。原「再拆一次」仍是同两 iframe 重播，与换作品分开。新增 `object-stage-rounds.mjs`：两件不同作品、优先更换双方、组合用完前不重复，各题独立记忆（仅当前页面会话）。
+- `prepare-object-stage.mjs` 从已有公开本地快照给键盘/台灯各补两件，共八作品，入口仍每次仅加载两个；原文件 SHA256 校验通过，未访问远端或修改作品。新增键盘 Astra High / 5.6 Sol Max，台灯 Sol Max / Astra Max。`serve-object-stage.mjs` 增加轮换模块静态路由，原 5446/5447 预览服务已重启，其他服务未操作。
+- 换场采用实体箱套下落、轻微落座、遮住加载后复用原拆封。两箱全部盖稳后才更换 iframe，纸箱/展台 DOM 保留；先移除旧 iframe 再挂两个新 iframe。等待仍需真实 work-ready、rendered、camera-ready，失败 12s 显示原组合重试。盖箱期间连续切题只更新目标，不拉回已运动的箱子；拆箱/选择期间请求顺序接力，旧窗口消息按窗口身份与 revision 拒收。
+- 先补 `check-object-stage-rounds.mjs` 与动作对照页，再改行为；对照页现在可独立拖动盖箱/拆箱。`check-object-stage-transition.mjs` 28 项及原 `check-object-stage-unboxing.mjs` 34 项通过：慢加载完整遮挡、作品静止、纸箱节点不换、同题真实换两件、下一题、快速切题与排队、最多两 iframe、失败原组合重试、减弱动态/手机按钮、无页面异常和 API 写入；单元轨道/组合检查、focused oxlint、check-playground 原内容/写入阻止通过。发现初次挂载 about:blank 同步 load 访问另一空 iframe 的错误，已修正并复验。
+- 桌面盖箱中间帧、等待、新增四作品、揭晓与手机在屏视口已目检，证据 `output/object-stage/rounds/`。本机一次连续播放盖箱约 754ms、真实加载约 560ms、拆箱约 1566ms，属独立浏览器本机采样，不是全设备流畅保证。手机整页截图会漏掉离屏 WebGL 内容，滚入视口后两新增键盘均实渲染可见（`mobile-visible-a/b.png`）；未改桥接渲染器，不将此推论扩大到全部作品。
+- 备份 `.local/object-stage-before-rounds/`；体验 `http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards&trial=rounds`。本地演示仍只有键盘/台灯两题，每题四作品，并非接入全部线上题库。
+
+## 2026-10-10 · magazine 减少小字、明确题意与橘子插画
+
+- 用户要求删除「文字游乐场 / 08 个场景 · 随意翻阅 / 翻开一个场景」等装饰性说明，不以小字填空；题目可以有趣但要看得懂比什么。本轮删去刊头两行说明及页尾抒情句，保留主刊头和一句主张，以小书本图案替换文字印记。保留既有杂志排版、各题内部与过场，不引入新效果或依赖。
+- 目录一题只保留一句具体说明，核对实际题面后改写聊天、告白、小红帽、三种文风、停电、等待；弱智吧按用户原句「不太正经的问题，不太正经的回复。」。不修改远端题目、作品或题内内容。
+- 内置 image_gen 生成青皮橘子插画，替换目录的 CSS 果子；透明 WebP `public/text-scenes/orange-editorial-v1.webp`，约 430 KiB，懒加载并预留尺寸。完整提示词和来源见 `docs/artwork/2026-10-10-orange-editorial.md`；原 PNG 保留，FFmpeg 仅作格式压缩。备份 `.local/playground-before-copy-polish/`。
+- typecheck、focused oxlint、check-playground（8 题、255 原回答、6 原 HTML 与写入阻止）及既有 response 检查通过：即时反馈、慢模块取消、热进入约 374ms、无页面异常。1440/820/390 的八入口、插画解码与无横溢通过；桌面/手机截图已目检，证据 `output/playground/copy-polish/`。没有重测全部题内动效或真机帧率，本轮没有改动效。
+- 仍在 `http://127.0.0.1:5446/reference/playground.html?trial=magazine#text` 体验；无 commit/push/deploy，未迁移主站。
+
+## 2026-10-10 · 回到 magazine，停止空间翻书目录
+
+- 用户明确否定继续打磨 paper 方案，恢复 `http://127.0.0.1:5446/reference/playground.html?trial=magazine#text`，后续专注杂志版排版、可读性及克制动效。此前 paper 不是认可定稿，不再主动推进；题内原设计保留。
+- magazine 原本就保留为默认分支，本轮不再另改视觉；把 `paper-library-journey` 从通用入口的静态导入改为仅试验分支动态导入，隔离完整试验加载链。Three.js / GSAP 及试验源码保留备用，未增加新库、未删他人文件、未改主站或共享数据，无 commit/push/deploy。
+- 已验证 magazine 样式与 `.local/playground-before-studio/playground-magazine.css` SHA256 一致；浏览器为「字里行间」八题、无试验画布、无 paper-library / Three.js / GSAP 请求。typecheck、focused oxlint、既有 check-playground-response（慢模块即时反馈/取消防迟到导航、热进入、首页反馈、无页面异常）通过；热进入约 390ms 为本机该次检查，不作全设备保证。
+
+## 2026-10-10 · Three.js 纸面试阅（局部材质样本，已停止推进，见上条）
+
+- 用户授权先试，喜欢此前翻书质感但不要全部套用，明确不加音效。本轮独立入口 `http://127.0.0.1:5446/reference/playground.html?layout=paper#text`；原 magazine 默认入口和题内定稿保留。试版只提供小红帽 / 告白 / 深夜聊天三个实题样本，完整目录链接仍有八题；未迁移主站、未改 3D 展台、原作品或共享数据。
+- 新 `reference/paper-library.tsx/css`、`paper-library-scene.ts`、`paper-library-journey.ts`：真实封皮厚度、页边、带纤维的 Canvas 贴图、弯曲薄页与光影；告白抽信、聊天卡片不套翻书。新增 exact `three@0.186.1`、`gsap@3.15.0`、开发类型 `@types/three@0.186.0`，只在 paper 变体懒加载。未新增音效，原阅读器默认静音保持。备份 `.local/playground-before-paper/`。
+- 隐藏实际阅读器准备完成后，材料动作接一次短淡变，最后解锁投票；复用旧本地 `preparePlaygroundReader` 就绪判断，补 `pgMaterial` 守卫；共享 `app/page.tsx` 源码未动。消除新目录进入后题内再次开书/文字重播，已打开的封面不再空等一遍。取消/超时回收状态，回目录复用 WebGL，上一级卸载时释放资源，无 WebGL 可走静态入口。
+- GSAP 只编排本场景，独立真实时间时钟驱动，避免默认 lag smoothing 在低帧率浏览器中把一秒动作拉长；空闲无 WebGL 渲染循环，像素比上限 1.65，减少动态直接定位。新 `reference/paper-library-review.html` 可拖动实际书页状态；`scripts/check-paper-library.mjs` 检查真实路径而非截图代替就绪。
+- typecheck / focused oxlint / check-playground 通过。纸面检查通过：慢模块反馈及取消、连点切换、三个实题各两作品及无二次入场、返回保留画布/焦点、820/390 无溢出、4 FPS 模拟下翻书 <2.2s、减少动态、无 WebGL 回退、离开释放、默认八题、无 pageerror / 非 GET 写入。桌面、折页与窄屏截图 `output/playground/paper/` 已目检。Tabbit 实际翻书到 open=1、进入小红帽到 phase-voting 且两作品确认；该浏览器帧调度受限，未声明真机全设备帧率通过。新增依赖后曾发生旧 Vite 缓存重复 React，已重启原 5446/5447 服务并复测消失。
+- 仍是方向试版，未获得视觉定稿授权，无 commit/push/deploy。
+
+## 2026-10-10 · 宽屏构图草稿，随后转入重库路线讨论
+
+- 用户要求参考 Natascha Vavrina 快速做简单草稿。新增 `reference/playground-studio.css` 和 `playground.tsx` 中仅 `?layout=studio` 启用的变体：大字背景、三组错位封面、八题索引；保留原 magazine 默认入口及题内场景，备份 `.local/playground-before-studio/`。入口 `http://127.0.0.1:5446/reference/playground.html?layout=studio#text`。
+- typecheck / focused oxlint 与 `.local/studio-check.mjs` 通过：三组/索引、真实两稿进入、返回焦点、390 无横溢、减少动态、原 magazine 八入口。桌面/手机与组图在 `output/playground/studio/`，已目检。修正了返回时 CSS 入场可能重播，改为只在换组时执行可取消 WAAPI。尚未做真机 FPS、完整逐帧过场复测或 Tabbit 实际交互验收。
+- 用户随后认为方向越来越平庸，提出引入重库并明确要求先讨论；已停止继续打磨与集成，当前草稿未获认可。正在讨论 GSAP 时间轴与 Three.js 空间封面方向，没有安装新库，没有修改主站、3D、原作品或共享数据，无 commit/push/deploy。
+
+## 2026-10-10 · 文字选题页刊物式排版（本地待体验）
+
+- 用户认为当前文字选题目录太素、毛坯，授权查参考或直接改；用户随后澄清就是改当前页面。本轮直接更新 5446 的 `reference/playground.tsx` 与新 `playground-magazine.css`，不另起替代玩法。备份 `.local/playground-before-magazine/`；既有 `playground-editorial.css` 继续提供封面和动作基础，后加载的局部样式负责新版目录。
+- 浏览 Awwwards 收录内容，并通过 Tabbit 实际查看 https://www.niccolomiranda.com/ 的报纸式作品集，借鉴刊头/主次/纸面组织，未复制其源码或素材。目录改为「字里行间」刊头、暖纸底与墨绿/砖红配色；告白/聊天双开篇，其余按三列编排，收紧原来分散留白。保留既有插画与信纸节点，补聊天夜色、回帖纸条、邮票压印和题目编号/一句原目录说明；仅 hover/点击原反馈，未加全页入场计时、循环动效或依赖。
+- 已目检 `output/playground/magazine/desktop.png`、`mobile.png`；1440/820/390 宽度均有八入口、无横溢。typecheck、focused oxlint、check-playground（255 原 work 行/6 原 HTML/写入阻止）通过。既有 response / journey-frames 检查在桌面和手机全部通过：慢模块取消与立即反馈、7 入场/3 返回采样、隐藏阅读器不染目录、返回滚动/焦点；热模块进入约 384/378ms，仅该环境实测，不是冷启动或真机帧率保证。目检桌面中间帧及回程。
+- Tabbit 实际点击告白后两稿可见、旧幕为 0、返回八入口且焦点回到原卡片。题内定稿、3D、原作品/共享库、正式/Gallery均未改；不做主站迁移，无 commit/push/deploy。入口 http://127.0.0.1:5446/reference/playground.html?trial=magazine#text ，仍待用户审阅。
+
+## 2026-10-10 · 台灯桌板边缘越出展盒的局部修正
+
+- 用户要求先保留展盒现状，只避免截图中台灯桌板斜边露出。定位为 `dp-021-gpt-6-astra-high` 自带 10 × 6.7 的有限桌板；本轮未重做玻璃、纸箱或动画。
+- 新增 `scripts/object-stage-surface.mjs`，仅在 5446/5447 本地服务响应中，对已核实的作品 ID、模块路径、哈希元数据及唯一代码片段适配：桌板 X/Z 延展 40 倍，木纹重复同步调为 80，保持高度、厚度、材质、灯光、相机和作品本体。未知作品不猜测适配，原始文件不写入；服务脚本备份 `.local/object-stage-before-surface/`。
+- `check-object-stage-surface.mjs` 通过：原文件哈希、限定适配/幂等、真实场景几何、四个视角、复位、放大、重播保留 iframe、零页面异常/业务写入；`check-playground.mjs`、相关脚本语法及 focused oxlint 通过。`output/object-stage/table-edge/` 的前后、放大及背面截图已目检。Tabbit 实际拖动改变相机、复位可用；不据此声称所有作品自动兼容或全设备流畅。
+- Tabbit 实际重播后两份 iframe 保留、选择恢复可用；该浏览器截图仍超时，视觉证据采用独立浏览器截图，没有将其计为 Tabbit 截图通过。
+- 用户随后圈出展盒左下悬空短斜线，要求去掉。本轮从共用 SVG 轮廓中移除该线段，两侧展盒同步生效，底座/其余轮廓/动画不变；原 HTML 备份 `.local/object-stage-before-surface/object-stage-before-line.html`。浏览器确认两侧路径并目检 `output/object-stage/table-edge/clean-corner.png`，不为单条装饰线增设测试套件。
+- 预览服务已重启，入口 http://127.0.0.1:5446/reference/object-stage.html?topic=lamps&trial=clean-corner 。仅本地展示变化，正式/Gallery、共享数据与原作品不变；此前记录的窄屏空白问题不在本轮修改内。未 commit/push/deploy。
+
+## 2026-10-10 · 纸箱厚度与拆包重量感（本地待体验）
+
+- 用户反馈上一轮箱子简陋、轻飘；本轮只打磨 5446 3D 草稿包装及其动作。备份 .local/object-stage-before-weight/；未改作品、相机、服务适配、文字、正式/Gallery，无 commit/push/deploy。
+- 扁平 SVG 箱罩换成 CSS 3D 五面空心箱，补内壁、四条瓦楞切边、纸面纤维、贴纸与跨面封条。投影与原玻璃对齐；封条折起后先短暂受阻、抽离玻璃，再翻转沿弧线向外下落。箱体直到出场末尾保持不透明；独立接触阴影随起抬分离，作品 iframe 不动。最长 1560ms、两边错开 140ms，仍走真实 ready 和唯一取消时间轴，不增库。
+- 更新 object-stage-motion-review.html 的逐帧范围及 check-object-stage / check-object-stage-unboxing.mjs。检查发现并修复投影中心导致箱体偏移，以及飞出物体撑长页面/横溢；main 的裁切限制飞出层，不干涉原焦点浮层。34 项浏览器流程/布局检查通过，包括慢加载遮挡、真实覆盖几何、7 桌面/4 手机关键帧不改页面尺寸、快速切题、双击、保留 iframe 重播、放大/减少动态/无异常和业务写入；focused oxlint / node --check / diff 检查通过。
+- 证据 output/object-stage/weighted-parcel/：封箱、起抬/翻转、手机、结果等已目检。独立 headless 桌面实际播放约 1572ms、最大采样间隔约 37ms；不是全设备 FPS 保证。Tabbit 状态/实际重播可完成，但该环境 RAF 被约 1Hz 限流，截图超时；CLI 不支持错误信息建议的 foreground 参数，因此未称 Tabbit 前台流畅验收。
+- **另发现的原有问题（未改）**：390 窄屏原作品画面空白。用 route 还原本轮备份 HTML/CSS/motion（确认 2 个旧 parcel-shell）也复现，同当前版本均报告 camera/render ready；截图 mobile-before-confirm.png / mobile-fresh.png。这属于作品窄屏展示或捕获链路的另一个排查项，不能把手机布局通过说成作品视觉通过，本轮没有擅自改桥接适配。
+- 入口 http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards&trial=weighted-carton 。本地服务原未运行，本轮启动原 serve-object-stage.mjs（隐藏窗口）；“再拆一次”重播。等待用户判断重量感，未把试版记成定稿。
+
+## 2026-10-09 · 3D 展台拆包与细节打磨（本地待体验）
+
+- 用户认可点击反馈修复，要求返回 3D 区打磨、用上此前巧思。本轮仅 `reference/object-stage.html/css/mjs`、`object-stage-motion.mjs` 与检查/对照页；备份 `.local/object-stage-before-unboxing/`。文字、原作品、相机、服务适配/共享库、正式/Gallery 未改，未 commit/push/deploy。
+- 加载期用带标签/封签/纤维纹的纸箱套遮住两作品，仍需实际 render、相机注册与作品 ready 全齐。统一有限时轴先剥封签，再提走/丢开两箱套（错开 110ms，轨道最长 1145ms）；真正的 iframe 静止，拆完再解锁。切题先箱套盖回再替换，连点取消旧时轴，重播同两 iframe，不重新加载 WebGL。
+- 透明展盒补底座渐层/厚度、落地阴影和一次玻璃反光；入口排版、主题标签、匿名纸牌、线式选择条、圆形“就它了”贴纸与签收结果统一。首用一个拖动手势提示，实际拖动后收起；“怎么玩”打开可关闭的三步小卡片。揭晓时纸牌翻成厂商标识（GPT 使用已有 OpenAI 素材，未收录厂商用模型名称首字，不冒充官方 logo）。放大复用原 iframe，底层画面全遮避免重新排栏的重影。
+- 新 `reference/object-stage-motion-review.html` 复用实际场景，`motion-review=1` 可暂停/定位真实拆包帧；普通入口无额外等待。新 `scripts/check-object-stage-unboxing.mjs` 19 项通过：人为阻塞 iframe 时箱套覆盖与交互门、5 入场采样帧保持画布位置、首用提示、放大无重影/保留实例、双击一次、署名、重播不重载、快速切题仅两 iframe、390 窄屏/帮助卡/减少动态平局、0 pageerror / 0 非 GET/HEAD。截图在 `output/object-stage/unboxing/`，桌面/手机/台灯/拆包关键帧/放大均已目检；发现放大透明叠影后修正并整套复跑。
+- `check-object-stage` 状态机/取消/动作先后检查、focused oxlint、node --check、check-playground（8 题 255 原回答 / 6 原 HTML / 写入禁止）通过。Tabbit 实际拖动使相机位置变化、恢复后与初始一致；放大两 iframe、关闭返回、选择 B 后一次计数及两模型署名通过。未做全量作品兼容、线上冷启动或真机 FPS；台灯自己的地面/阴影保留，展盒仍是 CSS/SVG，不是真实玻璃物理场景。
+- 用户入口：`http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards&trial=unboxing`；底部“再拆一次”可回看。本轮静态模块即时生效，无需重启服务。
+
+## 2026-10-09 · 点击即时反馈与移除隐藏阅读器重复等待
+
+- 用户反馈点后两三秒没有反应。先新增 `scripts/check-playground-response.mjs` 复现：阻塞模块加载时，原信纸无动作、卡片仍写“读一读”；模块已缓存时点击到原生展开仍等约 1764ms。原因是准备中的阅读器还跑共享竞技场原 intro 的 680ms + 至少 700ms 等待。
+- `playground-editorial.css` / `playground.tsx` 为被点击卡片立即显示“正在打开…”并轻抬封面，告白两张纸稍微分开；手机可见，减少动态保留文字反馈。`playground-journey.ts` 在准备导入/挂载前先让点击状态绘制一帧，取消仍能打断这段准备。新 `reference/playground-preparation.ts` 通过本地 `scripts/playground-text-server.mjs` 响应适配注入：只在目录遮住的隐藏阅读器中复用实际作品就绪判断，放行展开；展开结束才解锁投票，不再跑第二个 intro 计时。共享 `app/page.tsx` 源文件未修改，普通题内流程继续原实现。
+- 同口径自动复测热加载到展开约 375ms（手机约 372ms）；模拟慢模块仍即时反馈且不提前跳路由，取消后迟到模块不导航。Tabbit 实际浏览器首个反馈帧约 31ms、点击到展开约 699ms，返回焦点/米白目录正常。首页入口另测一度约 972ms 首帧，随后独立采样约 15ms 且无 longtask，自动复测约 113ms；未稳定复现，因此未扩大修改首页动画，不能称全环境帧率保证。
+- 验证：response 桌面/手机、journey 25 项、motion 11 项、frame continuity 桌面/手机（7 入场帧 / 3 回程帧）通过；typecheck/focused oxlint、check-playground（8 题、255 条原回答、6 份原 HTML 与禁止写入）通过；慢加载和中间帧截图目检。证据 `output/playground/response/`、`output/playground/journey-bug/response*`，备份 `.local/playground-before-click-feedback/`。仅 5446 本地试版，未 commit/push/deploy，未测线上冷加载/真机 FPS。
+- 更新入口：`http://127.0.0.1:5446/reference/playground.html?trial=instant-feedback#text`。预览服务因响应适配更新已重启，保留其他服务和无关文件。
+
+## 2026-10-09 · 修复用户 GIF 中的预加载变色与整页重影
+
+- 用户 GIF 明确暴露上一版严重衔接问题：隐藏告白阅读器加载 `text-stage.css` 后，延迟注入的全局场景规则先把仍可见的目录染粉；原 `pg-letter-surface` 又把整个阅读器（标题/按钮/正文）当作小封面的目标快照，造成整页缩放重叠。已拆 44 帧定位，新增 `scripts/check-playground-journey-frames.mjs`，旧版本真实复现并因“隐藏阅读器不得染色目录”断言失败。上一轮检查覆盖不到这一段，不能把动画轨道存在当作视觉连续性验收。
+- 仅修改 `reference/playground.tsx`、`playground-journey.ts/css` 与专项检查：目录背景用更明确作用域抵抗延迟 CSS；独立纯色背景承接封面，纸张只移动纸面，封面字/阅读正文/选择按钮分为固定位置快照，纸张接近落位再淡入文字；补全屏底色连续插值，避免边角末帧变色。回程修正两张纸的前后层级、目录装饰位于底色之上，并让旧纸夹/纸边在交接完成前退掉，避免最后突然换层/消失。没有重排已认可的目录或正文。备份 `.local/playground-before-journey-fix/`。
+- 专项在 1440 桌面和 390 手机逐帧检查预加载全程底色、7 个进入帧/3 个返回帧、结束后纸张几何、快照层级、旧纸夹退出、滚动目录位置恢复及无横向溢出；截图已目检，证据在 `output/playground/journey-bug/`。原 journey 25 项、旧入口 motion 11 项、typecheck/focused oxlint、check-playground 原回答/原 HTML/写入阻止检查复验。Tabbit 实际进退确认准备阶段背景始终为原米白，使用独立背景/阅读/正文轨道，返回 8 题目录并恢复焦点。
+- 仍是 5446 本地试版，原作品/共享库/主站/正式/Gallery/3D 未改，未 commit/push/deploy。未测真机 FPS 或线上冷加载；暂停时间轴截图用于核对中间视觉，不等同于帧率测量。更新预览使用 `?trial=paper-journey-fix#text` 避免无 HMR 的旧页面保留上一版模块。
+
+## 2026-10-09 · 文字目录与信纸连续展开试版（本地待体验）
+
+- 用户认为连续几版通用过场仍同质化，要求参考 Awwwards 的排版和动效后做一版试试。浏览 Briganti 等公开页面/样式，独立 5446 文字目录改为错落的书封、信纸、聊天、邮票；本轮先完成“目录 → 不说爱的告白 → 返回目录”的连续纸张动作。其余题目仍沿用此前题内设计与过场，不能称全入口过场已替换。未照搬第三方源码或资源。
+- 新 `reference/playground-editorial.css`、`playground-journey.ts/css`；`playground.tsx` 保持目录可见并在隐藏阅读器内准备实际两份原回答，就绪后原生 View Transition 将目录两张纸映射到阅读区，返回反向收回并恢复滚动/焦点。隐藏准备到进入保持同一对作品、同一阅读器；无新增库。备份 `.local/playground-before-editorial/`。
+- 新 `reference/playground-journey-review.html` 与 `scripts/check-playground-journey.mjs`。真实捕获发现并修复 update callback 等待 RAF 导致浏览器暂停绘制互锁，以及根元素 zoom 切换导致原生动画被取消；现在根视口固定 1，既有阅读器局部 0.8，实际原生纸张动画轨道已验证。支持慢加载取消、迟到任务丢弃、减少动态和无 View Transition API 的淡入降级，防旧过场叠加/本地信纸二次入场。
+- 最终 typecheck、focused oxlint、25 项 journey 检查通过；覆盖真实两稿/投票揭晓/同题继续、八题入口与原阅读比例、手机普通/减少动态、回程焦点、取消及降级。check-playground 原回答 255 行、6 份 HTML 原字节/隔离及写接口禁止通过；旧入口 motion 11 项检查通过（零尺寸协调锁应等待 attached，修正原测试误等 visible 后复验）。截图和诊断位于 `output/playground/journey/`，目录桌面/手机、信纸中间态/末态、森林回归已目检；Tabbit 实点进退有 9 条原生纸张轨道、0 旧纸门/叶幕并恢复焦点。
+- 入口 `http://127.0.0.1:5446/reference/playground.html#text`，先点第一张“不说爱的告白”，再点顶栏“文字题目”体验回程。真实浏览器操作包含加载/工具开销，未做真机 FPS、线上冷加载或主站全套回归；不要把原生轨道存在说成全环境流畅保证。所有变化仅 reference 草稿，主站/3D 场内/作品/数据库/Gallery/正式盲测未改，无 commit/push/deploy。保留无关 `jianmo/`、`reference/curtain-copy-review.html`。
+
+## 2026-10-09 · 新入口通用过场改为纸门（本地待体验）
+
+- 用户否定截图中的荧光三色横条/品牌巨字，要求立即撤换。定位为统一入口调用旧 `bandsNavigate`。新增 `reference/playground-door.ts/css`，暖纸色双门先合拢遮挡切页再打开，不显示品牌标题或彩色横条；分段原生 WAAPI、可取消、就绪门、减少动态与既有 `.gt-match` 阶段信号兼容。修正过强透视导致两门相互挤压的问题。
+- `scripts/playground-text-server.mjs` 在本地 Vite 响应里仅为 `data-playground` 的非 readingScene 过场接入纸门；源 `lib/game-transitions.ts` 与主站构建未改，已认可的六套文字折页/信纸/邮票继续原实现。新入口进选单、返回以及橘子/聊天/贴吧通用入场使用新门；3D 场内动画不动。
+- 新 `reference/playground-motion-review.html` 可调帧/模拟慢加载，`scripts/check-playground-motion.mjs` 的 11 项检查通过：遮挡、帧定位不导航、就绪等待、防重播放、取消/清轨、真实进退、原信纸保留和手机减少动态等。最终 typecheck/focused oxlint/check-playground/diff 检查通过。Tabbit 播放并查看真实入场与开门中间帧；截图/检查在 `output/playground/motion/`。
+- Tabbit 实播发现 RAF 每帧封顶推进将过场拖到约 6.6 秒；改为关闭/打开各自的原生有限动画段，关闭完成后切页、等待就绪再开门，避免两个阶段越过加载门。最终实播约 3.4 秒，仍高于理想节奏，不能声称所有环境稳定秒开或 FPS 已优化；未做真机 FPS 或主站全套回归，未 commit/push/deploy。用户页已刷新加载最终实现。
+
+## 2026-10-09 · 统一入口与定稿文字场景复用（独立本地待体验）
+
+- 用户要求先保留 3D 草稿，复刻此前认可的文字展示，增加 3D/文字统一入口；主站迁移以后再讨论。新增 `reference/playground.html/tsx/css`、`playground-catalog.json`、`scripts/playground-text-server.mjs`、`scripts/check-playground.mjs`。入口 `http://127.0.0.1:5446/reference/playground.html`，文字选单 `#text`；3D 原入口保留，顶栏补回首页/文字区导航。未修改主站组件、作品、Gallery、数据库或正式盲测。
+- 八套文字展示直接复用当前定稿组件、字体、书页/邮票/信纸、真实就绪门与专属过场：橘子、深夜聊天、弱智吧、小红帽、告白、三文风、停电、等待。新入口正常缩放，场景沿用主站 0.8 缩放，返回入口恢复；独立顶栏保持可见。动态加载取消检查避免离开选单后迟到跳入，沿用已有过场互斥处理连续点击。选择仅内存演示，无业务写入。
+- 启动仍为 `node scripts/serve-object-stage.mjs`，服务内嵌现有 Vite 供文字试版使用，关闭生产代理与 HMR；文字只读接口 `/playground-review/api/*` 仅取 `.local/text-themes-review/snapshot.json` 中上述八题，不依赖 5444 服务。255 条原始 work 行不是 255 份可比较作品，原有无效行由既有解析器过滤；六份旧 HTML 原字节/SHA256 保留、CSP sandbox 隔离。非 GET/HEAD 请求拒绝。无新依赖。
+- `typecheck`、新文件 focused oxlint、`check-playground`、`check-object-stage`、`git diff --check` 通过。Tabbit 八套真实进入/选择揭晓/返回、三文风切栏、同题继续/换题通过；最终缩放调整后复验手机选择返回、同帧连点仅一层幕、减少动态、3D 两作品就绪与回入口。最终监听页面异常 0、非 GET/HEAD 请求 0；390 视口选单八卡无横向溢出（含滚动条 clientWidth 373）。截图目检，证据在 `output/playground/`。
+- 未测线上冷加载、真机 FPS 或主站全套回归；开发 Vite 首次编译曾约 30 秒，不能把热缓存流程通过表述为冷启动性能已优化。仅本地草稿，未 commit/push/deploy。用户偏好快递箱遮加载/就绪后丢开、开门等有动作含义的过场，本轮明确延后 3D 动效重做；“先这样”不是动画定稿。无关 `jianmo/`、`reference/curtain-copy-review.html` 与旧偏心桌保留。
+
+## 2026-10-09 · 3D 小展台通用草稿（独立本地待体验）
+
+- 用户认为偏心桌存在情景硬缝和一次消耗太多作品的问题，讨论后回到二选一；提出 3D/文字/网页分区，当前只要求先做 3D 通用模板草稿。新增 `reference/object-stage.html/css/mjs`、`object-stage-motion.mjs`、`object-stage-bridge.js` 与 prepare/serve/check-object-stage 脚本。入口 `http://127.0.0.1:5446/reference/object-stage.html?topic=keyboards`，也可切换 lamps。旧偏心桌与已认可的主站文字设计保留，未接入生产。
+- 透明展盒、底座、真实作品分拍入场，匿名二选一/平局、拖动旋转、恢复角度、同一 iframe 放大、选择贴纸与模型揭晓、重播和轻量提示。两组四件真实键盘/台灯，直接使用本地只读快照；prepare 逐项核对原入口与模块 SHA256，未修改作品。展盒为 CSS/SVG 外观，作品仍是隔离 iframe，不是提取模型后的真实玻璃折射或物理场景。
+- 启动前 `node scripts/prepare-object-stage.mjs`，再 `node scripts/serve-object-stage.mjs`；服务只监听 127.0.0.1，5446 页面 / 5447 各作品独立 localhost 子域。依赖 `.local/calibration-20261004/`、`.local/public-works-20261007.json`、`.local/db-snapshots/20261003T103735Z/full-local-20261003T104123Z/`，来源清单生成在 `.local/object-stage/`。复用 Show2 既有只读内容处理器和 hash 校验过的娱乐相机适配；仅预览响应注入校准、纯色背景融合和绘制门控。未修改 Show2、数据库、原作或 Gallery。无新依赖、无投票/API 写入。
+- 单时间轴取消旧动作；切题先销毁旧 iframe，再挂新两件；必须实际 render、相机注册和加载信号齐备才开放选择，12 秒只提示稍慢并可重试，不伪报失败或就绪。拿近时抑制另一件 GPU render，隐藏页面同理；原作品自己的 RAF/计时器仍可能运行，不能声称完全暂停。修正 OrbitControls 残余惯性导致恢复角度偏移；新结果按钮等揭晓完成才可点。
+- check-object-stage 取消/过期完成/减少动态/轨道清理/选择门控通过；focused oxlint、node --check、diff --check 通过，四件来源哈希验证通过。Tabbit 实测拖动、恢复角度、放大保留两 iframe、选择揭晓、同帧双击只记一次、重播匿名复位、快速切题最终两件且无残余轨道、减少动态全流程通过。最终监听页面异常 0、非 GET 写请求 0。1440 桌面和 390 窄屏截图已目检，窄屏无横向溢出；证据在 `output/object-stage/`。未测全量作品兼容、真机 FPS、线上冷加载或主站整套回归。独立草稿未 commit/push/deploy；无关 `jianmo/`、`reference/curtain-copy-review.html` 保留。
+
+## 2026-10-09 · 偏心桌玩法草稿（独立本地待体验）
+
+- 用户希望娱乐测评减少评审负担，认可“喜欢的留着、新作品来挑战”的方向，要求先挑方便的真实作品做草稿。新增 `reference/preference-desk.html` 与配套 CSS/mjs/state；独立静态服务 `node scripts/serve-preference-desk.mjs`，入口 `http://127.0.0.1:5445/reference/preference-desk.html`。未接主站、未删除榜单、未替换已定稿文字场景。
+- “偏心桌”用纸箱送件、保留/换位、局末揭晓：每题4份作品，3次选择可完成，也可选择一次后提前收桌；重开洗牌，模型身份在本局结束后显示。有两组素材：卖橘子4份本地快照原文、机械键盘4张既有校准截图。键盘明确标注截图演示，未接实时3D、未提取或改动原作。来源与SHA256在 `.local/preference-desk/sources.json`，可由 `node scripts/prepare-preference-desk.mjs` 重建。
+- 无新依赖/数据库/API代理/投票请求；服务器仅绑定127.0.0.1，非GET/HEAD拒绝。状态机8条完整选择路径、提前结束/重复保护通过；新文件oxlint、node --check、diff --check通过。Tabbit真实保留、换位、完整揭晓、键盘提前揭晓、重开/切题、放大/说明、手机与桌面布局通过；同帧重复点击只记一次，切题取消旧动画，减少动态可完成全流程。最终页面异常0、业务写请求0。
+- 目检桌面橘子/键盘与窄屏截图；最终实际CSS视口1440与390均无横向溢出，橘子短回答完整可读。曾修正短文截行、带小数点截图文件名404、结果按钮在入场结束前可点的问题。未做实时3D/真机FPS/主站全套回归；独立reference不进入生产构建，未commit/push/deploy。无关 `jianmo/`、`reference/curtain-copy-review.html` 保留。
+
 ## 2026-10-09 · 定稿视觉后的过场衔接收尾（本地验证完成）
 
 - 用户认可上一版“以后就这样”，本轮只修流程。确认三项可复现混播：停电墨色下左页被后加载的 ink-shutter-exit 覆盖、右页仍 text-shutter-open；整屏换题仍生成3条旧文字遮罩；同帧点题库/首页可生成2层路由幕。修复后分别为双侧同折页、0旧遮条、1层幕。新增 scripts/check-text-transition-flow.mjs，baseline/checks 在 output/text-themes-review/transition-flow/。

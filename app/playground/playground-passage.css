@@ -1,0 +1,27 @@
+.pg-passage { position:fixed!important; inset:0!important; width:100vw!important; height:100dvh!important; z-index:32000; overflow:hidden; isolation:isolate; background:transparent!important; color:var(--passage-ink)!important; }
+.pg-passage,.pg-passage * { box-sizing:border-box; }
+.pg-passage-sheet { position:absolute; inset:-3px; background:var(--passage-paper); pointer-events:none; }
+.pg-passage .pg-door-paper { background:var(--passage-paper) url('/text-scenes/paper-fibers.svg'); }
+.pg-passage-label { position:absolute; top:50%; left:50%; z-index:7; transform:translate(-50%,-50%); padding:12px 24px; color:var(--passage-ink); font:400 clamp(24px,2.3vw,36px)/1.5 'Noto Serif SC',SimSun,serif; letter-spacing:.12em; white-space:nowrap; pointer-events:none; }
+.pg-passage .pg-door-inset { display:none; }
+.pg-passage .pg-door-leaf { box-shadow:0 0 30px #252c2420; }
+.pg-book-fold-shade { position:absolute; inset:0; z-index:12; background:linear-gradient(90deg,transparent 25%,#273026); pointer-events:none; }
+.pg-book-fold-shade-1 { background:linear-gradient(270deg,transparent 25%,#273026); }
+.pg-passage-cancel { position:absolute; z-index:8; min-height:44px; border:0; background:transparent; color:var(--passage-ink); font:14px/1.5 sans-serif; cursor:pointer; }
+.pg-passage-cancel { top:26px; right:36px; }
+.pg-passage-status[hidden] { display:none; }
+.pg-passage-status { position:absolute; bottom:5%; left:50%; z-index:8; transform:translateX(-50%); font-size:13px; color:var(--passage-ink); }
+.pg-passage .gt-recovery { display:none; }
+/* The single passage owns navigation; retired CSS masks stay inactive here. */
+html[data-playground] .pg-scene-host :is(.loading-overlay,.transition-shutter,.work-arrival-veil,.pg-reader-opening) { display:none!important; }
+html[data-playground] .pg-scene-host :is(.contender,.work-panel,.vote-button,.text-masthead,.text-originals,.poster-title-line>span,.text-reading,.wechat-thread,.orange-pitch,.forum-reply,.night-chat-masthead,.forum-board) { animation:none!important; }
+/* Nested entrances used to remain paused behind the doors and start a second
+   reveal afterwards. Commit their final appearance with the ready content. */
+html[data-playground] .pg-scene-host :is(.forum-op,.forum-op-profile,.forum-op-body,.forum-reply-content,.panel-identity,.chat-message) { animation:none!important; }
+html[data-playground] .pg-scene-host .text-passage { animation:none!important; }
+html[data-playground] .pg-scene-host .phase-transition :is(.work-panel,.vote-button) { opacity:1; transform:none; }
+html[data-playground] .pg-scene-host .works-hold :is(.contender,.work-panel,.text-masthead) { opacity:1; visibility:visible; }
+html[data-pg-passage] .pg-scene-host .phase-voting :is(.vote-button,.vote-draw) { opacity:1; filter:none; transition:none!important; animation:none!important; }
+@media(max-width:700px) {
+  .pg-passage-cancel { top:14px; right:20px; font-size:12px; }
+}

@@ -7,6 +7,10 @@ import { apiReadJson, readCatalogWithRetry } from '@/lib/api';
 import { knownContentKinds, modelResults } from '@/lib/arena';
 import type { ModelResult } from '@/lib/arena';
 
+let catalogEndpoint = '/api/works';
+/** Set once by the isolated playground entry; legacy routes keep the original catalog. */
+export function configureWorksCatalog(endpoint: '/api/playground/works') { catalogEndpoint = endpoint; }
+
 // /api/works 返回的行：身份字段与 ModelResult 同构，content 是 JSON 字符串
 type WorkRow = Omit<ModelResult, 'content' | 'isDemo'> & {
   isDemo: 0 | 1;
@@ -70,7 +74,7 @@ function parseWorkRow(row: unknown): ModelResult | null {
  *（作品全部下架——发布开关语义），原样返回 []，不回退内置清单 */
 export async function fetchWorks(signal?: AbortSignal): Promise<ModelResult[] | null> {
   try {
-    const data = (await apiReadJson('/api/works', signal)) as { works?: unknown } | null;
+    const data = (await apiReadJson(catalogEndpoint, signal)) as { works?: unknown } | null;
     if (!data) return null;
     if (!Array.isArray(data.works)) return null;
     const parsed = data.works.map(parseWorkRow);

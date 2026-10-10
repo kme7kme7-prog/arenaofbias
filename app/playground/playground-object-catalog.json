@@ -1,0 +1,13 @@
+[
+  { "id": "keyboards", "promptId": "010", "name": "机械键盘" },
+  { "id": "lamps", "promptId": "021", "name": "桌面台灯" },
+  { "id": "004", "promptId": "004", "name": "营造法式" },
+  { "id": "007", "promptId": "007", "name": "事件视界" },
+  { "id": "005", "promptId": "005", "name": "飞瀑穿云" },
+  { "id": "009", "promptId": "009", "name": "桌面微缩铁路小镇" },
+  { "id": "018", "promptId": "018", "name": "飞尘工地" },
+  { "id": "027", "promptId": "027", "name": "篝火营地" },
+  { "id": "q-0e1c04d1e7b7a531", "promptId": "q-0e1c04d1e7b7a531", "name": "湖上四境" },
+  { "id": "q-d61106403bd11c9c", "promptId": "q-d61106403bd11c9c", "name": "雪山牧场" },
+  { "id": "q-f51f3f9cca233da0", "promptId": "q-f51f3f9cca233da0", "name": "小岛昏沉幻境" }
+]

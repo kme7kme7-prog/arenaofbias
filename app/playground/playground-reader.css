@@ -1,0 +1,317 @@
+.pg-reader-header { --reader-nav-ink: #3d4b42; display: flex; align-items: center; gap: 26px; width: calc(100% - 80px); max-width: 1540px; min-height: 64px; margin: auto; padding: 0 16px; color: var(--reader-nav-ink); }
+html[data-playground] { zoom: 1; }
+html[data-scene=letter] .pg-reader-header { --reader-nav-ink: #78554c; }
+html[data-scene=blackout] .pg-reader-header { --reader-nav-ink: #dfddce; }
+.pg-reader-header a,.pg-reader-header button { color: inherit; font: 13px/1.5 var(--font-sans); text-decoration: none; border: 0; background: none; padding: 10px 0; cursor: pointer; }
+.pg-reader-header .pg-reader-back { display: flex; align-items: center; gap: 12px; opacity: .7; }
+.pg-reader-back span { font-size: 22px; }
+.pg-reader-header h1 { margin: 0; padding-left: 26px; border-left: 1px solid color-mix(in srgb,currentColor 20%,transparent); color: inherit; font: 500 20px/1.5 'Noto Serif SC',SimSun,serif; }
+.pg-reader-header nav { display: flex; align-items: center; gap: 28px; margin-left: auto; opacity: .7; }
+.pg-reader-header a:hover,.pg-reader-header button:hover { opacity: 1; text-decoration: underline; text-underline-offset: 5px; }
+.pg-topic-dialog { position: fixed; width: min(680px,calc(100vw - 40px)); max-height: 78dvh; padding: 30px; border: 0; background: #f5f0e5; color: #3d493f; box-shadow: 0 12px 65px #14251d30; }
+.pg-topic-dialog::backdrop { background: #17282066; }
+.pg-topic-dialog>div { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.pg-topic-dialog h2 { margin: 0; font: 500 23px/1.5 'Noto Serif SC',SimSun,serif; }
+.pg-topic-dialog button { border: 0; background: none; color: inherit; font-size: 26px; min-width: 40px; min-height: 40px; cursor: pointer; }
+.pg-topic-dialog p { white-space: pre-wrap; margin-bottom: 0; font-size: 16px; line-height: 1.9; }
+html[data-playground] .pg-scene-host .briefing { display: none; }
+html[data-playground] .pg-scene-host .pg-letter-signature { align-items: center; gap: 24px; border-top: 0; }
+html[data-playground] .pg-scene-host .pg-letter-signature > span { font-size: 12px; color: var(--reading-muted); }
+html[data-playground] .pg-scene-host .text-arena[data-text-theme=letter] .pg-letter-signature strong { display: flex; align-items: baseline; gap: 12px; margin-left: auto; color: var(--reading-ink); font: 400 clamp(17px,1.15vw,22px)/1.5 'LXGW WenKai Lite',KaiTi,serif; overflow-wrap: anywhere; }
+html[data-playground] .pg-scene-host .pg-letter-signature i { font-size: 14px; font-style: normal; opacity: .5; }
+@media(max-width:700px) { .pg-reader-header { width: calc(100% - 32px); gap: 12px; padding: 0; flex-wrap: wrap; min-height: 72px; } .pg-reader-header h1 { font-size: 16px; padding-left: 12px; } .pg-reader-header nav { gap: 12px; } .pg-reader-header nav a { display: none; } .pg-reader-header a,.pg-reader-header button { font-size: 12px; } }
+@media (min-width: 960px) and (min-height: 560px) {
+  html[data-playground][data-playground-view=scene],
+  html[data-playground][data-playground-view=scene] body { height: 100%; min-height: 0; overflow: hidden; }
+  html[data-playground-view=scene] #playground-root { height: 100dvh; display: grid; grid-template-rows: 64px minmax(0,1fr); }
+  html[data-playground-view=scene] .pg-header { position: relative; width: calc(100% - 64px); max-width: 1740px; height: 56px; min-height: 0; margin: 0 auto; padding: 0; }
+  html[data-playground] .pg-scene-host { display: grid; align-items: center; zoom: 1; min-height: 0; height: 100%; }
+  html[data-playground] .pg-scene-host[data-preparing] { inset: 56px 0 0; height: calc(100dvh - 56px); }
+  html[data-playground] .pg-scene-host .arena-shell { display: grid; align-items: center; height: 100%; min-height: 0; }
+  html[data-playground] .pg-scene-host .main-terminal {
+    --reader-dock: 60px;
+    display: grid; grid-template-rows: minmax(0,1fr) var(--reader-dock);
+    position: relative; width: calc(100% - 80px); max-width: 1540px; height: 100%; max-height: 900px; min-height: 0;
+    margin: 0 auto; padding: 0 0 10px; gap: 12px;
+  }
+  html[data-playground] .pg-scene-host .briefing { position: relative; min-height: 0; height: 44px; padding: 0; margin: 0; border: 0; background: transparent; z-index: 20; }
+  html[data-playground] .pg-scene-host .briefing-heading { height: 100%; min-height: 0; }
+  html[data-playground] .pg-scene-host .briefing-copy { padding: 0; min-height: 0; flex-wrap: nowrap; justify-content: space-between; }
+  html[data-playground] .pg-scene-host .briefing h1 { font-size: 17px; font-weight: 550; }
+  html[data-playground] .pg-scene-host .briefing-prompt:not([hidden]) { position: absolute; top: 40px; right: 0; width: min(680px,85vw); max-height: 60dvh; overflow: auto; margin: 0; padding: 24px; border: 1px solid var(--reading-line,var(--line-a9b2a4-38)); background: var(--reading-paper,var(--surface-e8ecdf)); box-shadow: 0 12px 32px #0002; }
+  html[data-playground] .pg-scene-host :is(.field-meta,.arena-context,.prompt-recall) { display: none; }
+  html[data-playground] .pg-scene-host .arena-stage {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: clamp(120px,18dvh,185px) minmax(0,1fr);
+    min-height: 0; height: 100%; margin: 0; padding: 8px 16px 12px; gap: 28px; align-items: stretch;
+  }
+  html[data-playground] .pg-scene-host .arena-stage > :is(.text-masthead,.orange-masthead,.night-chat-masthead) { display: flex; grid-column: 1 / -1; grid-row: 1; min-height: 0; padding: 0 8px; align-items: center; }
+  html[data-playground] .pg-scene-host .text-edition { display: none; }
+  html[data-playground] .pg-scene-host .text-masthead h2 { font-size: clamp(35px,4.8dvh,54px); line-height: 1.12; letter-spacing: -.04em; }
+  html[data-playground] .pg-scene-host .text-masthead p { margin-top: 14px; font-size: clamp(15px,.9vw,17px); line-height: 1.8; max-width: 34em; }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .text-masthead-copy { display: grid; grid-template-columns: max-content minmax(0,1fr); align-items: center; gap: clamp(24px,4vw,68px); flex: 1; padding-right: 24px; }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .text-masthead-copy > p { max-width: 19em; margin: 0; text-wrap: pretty; }
+  html[data-playground] .pg-scene-host .forest-scene { width: 34%; height: 100%; max-height: 165px; }
+  html[data-playground] .pg-scene-host .letter-postage { flex-basis: 200px; transform: scale(.75); transform-origin: right center; }
+  html[data-playground] .pg-scene-host .waiting-scene { width: 30%; max-height: 165px; margin: 0 16px; }
+  html[data-playground] .pg-scene-host .contender {
+    display: flex; flex-direction: column; grid-row: 2; grid-column: auto; min-height: 0; height: 100%; margin: 0; align-self: stretch;
+  }
+  html[data-playground] .pg-scene-host .work-panel { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; height: auto; margin: 0; }
+  html[data-playground] .pg-scene-host .panel-heading { flex: 0 0 54px; height: 54px; min-height: 0; }
+  html[data-playground] .pg-scene-host .model-identity { font-size: 15px; }
+  html[data-playground] .pg-scene-host .side-letter { font-size: 30px; }
+  html[data-playground] .pg-scene-host .work-viewport { flex: 1 1 0; height: auto; min-height: 0; max-height: none; aspect-ratio: auto; }
+  html[data-playground] .pg-scene-host .work-inner { height: 100%; min-height: 0; overflow: hidden; }
+  html[data-playground] .pg-scene-host :is(.text-reading,.wechat-thread,.orange-pitch,.forum-reply) { height: 100%; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  html[data-playground] .pg-scene-host .text-reading { padding-block: clamp(20px,3dvh,34px); }
+  html[data-playground] .pg-scene-host .text-reading-embedded { padding: 0; }
+  html[data-playground] .pg-scene-host .text-original { font-size: clamp(18px,1.05vw,21px); line-height: 1.95; }
+  html[data-playground] .pg-scene-host .expand-control { top: -43px; right: var(--poster-inset,20px); }
+  html[data-playground] .pg-scene-host .vote-button { flex: 0 0 48px; height: 48px; min-height: 0; margin-top: 0; margin-bottom: 12px; }
+  html[data-playground] .pg-scene-host .phase-result .vote-button { flex: 0 0 0; height: 0; margin: 0; padding: 0; border: 0; }
+  html[data-playground] .pg-scene-host .side-result { flex: 0 0 48px; min-height: 0; margin-top: 0; margin-bottom: 12px; }
+  html[data-playground] .pg-scene-host .vote-copy strong { font-size: 15px; }
+  html[data-playground] .pg-scene-host .arena-stage > .draw-row { position: absolute; left: 0; top: calc(100% + 12px); height: var(--reader-dock); margin: 0; padding: 0; border: 0; justify-content: flex-start; z-index: 3; }
+  html[data-playground] .pg-scene-host .arena-stage > .draw-row { grid-column: auto; }
+  html[data-playground] .pg-scene-host .draw-rule { display: none; }
+  html[data-playground] .pg-scene-host .vote-draw { min-width: 0; height: 42px; margin: 0; padding: 0 12px; }
+  html[data-playground] .pg-scene-host .phase-result .draw-row { display: none; }
+  html[data-playground] .pg-scene-host .round-console { position: relative; display: flex; min-height: 0; height: var(--reader-dock); margin: 0; padding: 0; gap: 16px; border: 0; border-top: 1px solid var(--reading-line,var(--line-a9b2a4-38)); border-radius: 0; background: transparent; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
+  html[data-playground] .pg-scene-host .round-actions { flex: 0 0 auto; width: auto; max-width: none; flex-wrap: nowrap; gap: 18px; }
+  html[data-playground] .pg-scene-host .next-button { min-height: 44px; height: 44px; padding: 0 20px; font-size: 14px; white-space: nowrap; }
+  html[data-playground] .pg-scene-host .continue-buttons { gap: 10px; }
+  html[data-playground] .pg-scene-host .result-console { margin-right: auto; min-width: 0; }
+  html[data-playground] .pg-scene-host .result-caption { gap: 10px; flex-wrap: nowrap; font-size: 14px; }
+  html[data-playground] .pg-scene-host .result-caption strong { font-size: 14px; }
+
+  /* Restore each scene's composition while keeping its controls in the viewport. */
+  html[data-playground] .pg-scene-host .text-arena:is([data-text-theme=forest],[data-text-theme=blackout]) .arena-stage { column-gap: 3px; padding-inline: 16px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .arena-stage { grid-template-columns: clamp(180px,16vw,245px) repeat(2,minmax(0,1fr)); grid-template-rows: minmax(0,1fr); padding-top: 24px; padding-bottom: 24px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .text-masthead { grid-column: 1; grid-row: 1; flex-direction: column; align-items: flex-start; justify-content: center; gap: clamp(22px,5dvh,52px); margin: 0 28px 0 0; padding: 0 12px 0 0; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .text-masthead h2 { display: block; font-size: clamp(76px,12dvh,118px); line-height: 1.1; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .text-masthead p { max-width: 12em; margin-top: 24px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .reading-night { flex: 0 0 auto; margin-left: 12px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .contender { grid-row: 1; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .contender-a { grid-column: 2; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .contender-b { grid-column: 3; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .side-letter { font-size: 19px; padding: 10px 9px 17px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=letter] .arena-stage { width: 100%; max-width: 1360px; justify-self: center; padding-top: 4px; column-gap: 38px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=letter] .text-original { font-size: clamp(21px,1.12vw,24px); }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .arena-stage { grid-template-rows: clamp(120px,18dvh,185px) 44px minmax(0,1fr); row-gap: 14px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .contender { grid-row: 3; }
+  html[data-playground] .pg-scene-host .channel-floor b { font-size: clamp(100px,15dvh,170px); }
+  html[data-playground] .pg-scene-host .text-channel-nav { grid-row: 2; min-height: 0; padding: 0; }
+  html[data-playground] .pg-scene-host .text-channel-nav button { min-height: 0; height: 40px; font-size: 14px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .text-reading { display: block; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels][data-reading-channel=cinema] .contender { padding-bottom: 10px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels][data-reading-channel=cinema] .text-original { max-width: none; text-align: left; }
+
+  /* Keep the object between the sales pitches and the shared question above replies. */
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-columns: minmax(0,1fr) minmax(150px,180px) minmax(0,1fr); column-gap: 24px; }
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-rows: clamp(82px,12dvh,120px) minmax(0,1fr); }
+  html[data-playground] .pg-scene-host .orange-masthead { gap: 0; border: 0; }
+  html[data-playground] .pg-scene-host .orange-edition { display: none; }
+  html[data-playground] .pg-scene-host .orange-masthead h2 { font-size: clamp(28px,4dvh,42px); }
+  html[data-playground] .pg-scene-host .orange-arena .contender { padding: 14px 0 0; }
+  html[data-playground] .pg-scene-host .orange-arena .contender-b { grid-column: 3; }
+  html[data-playground] .pg-scene-host .orange-product { grid-row: 2; grid-column: 2; padding: 0; }
+  html[data-playground] .pg-scene-host .orange-pitch { padding-block: 24px; }
+  html[data-playground] .pg-scene-host .orange-signboards .contender { padding: 70px 32px 64px; }
+  html[data-playground] .pg-scene-host .wechat-arena .arena-stage { grid-template-rows: clamp(72px,10dvh,100px) minmax(0,1fr); padding: 12px 18px; gap: 20px; border-radius: 12px; }
+  html[data-playground] .pg-scene-host .night-chat-masthead h2 { font-size: clamp(26px,3.8dvh,38px); }
+  html[data-playground] .pg-scene-host .wechat-arena .vote-button { margin-top: 10px; }
+  html[data-playground] .pg-scene-host .wechat-arena .phase-result .vote-button { margin-top: 0; }
+  /* A thread is read from the original question down through two floors. */
+  html[data-playground] .pg-scene-host .forum-arena .main-terminal { max-width: 1040px; max-height: 642px; }
+  html[data-playground] .pg-scene-host .forum-arena .arena-stage { --forum-rail: 148px; --forum-inset: 30px; grid-template-columns: minmax(0,1fr); grid-template-rows: 60px repeat(3,minmax(0,1fr)); gap: 0; padding: 0; overflow: visible; }
+  html[data-playground] .pg-scene-host .forum-board { display: block; grid-column: 1; grid-row: 1; }
+  html[data-playground] .pg-scene-host .forum-masthead { padding: 10px 24px; height: 100%; border-bottom: 1px solid var(--forum-edge); }
+  html[data-playground] .pg-scene-host .forum-board-icon { width: 38px; height: 38px; }
+  html[data-playground] .pg-scene-host .forum-brand { gap: 12px; }
+  html[data-playground] .pg-scene-host .forum-brand strong { font-size: 20px; }
+  html[data-playground] .pg-scene-host :is(.forum-thread-bar,.forum-back) { display: none; }
+  html[data-playground] .pg-scene-host .forum-op { grid-column: 1; grid-row: 2; max-height: none; min-height: 0; }
+  html[data-playground] .pg-scene-host .forum-op-profile { padding: 14px 8px; gap: 8px; }
+  html[data-playground] .pg-scene-host .forum-avatar { width: 76px; height: 76px; }
+  html[data-playground] .pg-scene-host .forum-op-body { overflow: auto; padding: 12px var(--forum-inset); gap: 4px; justify-content: center; }
+  html[data-playground] .pg-scene-host .forum-post-question { font-size: 18px; line-height: 1.7; }
+  html[data-playground] .pg-scene-host .forum-op-floor { display: none; }
+  html[data-playground] .pg-scene-host .forum-arena .contender { display: grid; grid-column: 1; grid-template-columns: var(--forum-rail) minmax(0,1fr); grid-template-rows: minmax(0,1fr) 46px; border: 0; border-top: 1px solid var(--forum-edge); }
+  html[data-playground] .pg-scene-host .forum-arena .contender-a { grid-row: 3; }
+  html[data-playground] .pg-scene-host .forum-arena .contender-b { grid-row: 4; }
+  html[data-playground] .pg-scene-host .forum-arena .work-panel { display: grid; grid-template-columns: var(--forum-rail) minmax(0,1fr); grid-template-rows: minmax(0,1fr); grid-row: 1; grid-column: 1 / -1; height: 100%; }
+  html[data-playground] .pg-scene-host .forum-arena .panel-heading { height: 100%; min-height: 0; flex-direction: column; padding: 18px 10px 4px; }
+  html[data-playground] .pg-scene-host .forum-arena .panel-identity { flex-direction: column; gap: 8px; }
+  html[data-playground] .pg-scene-host .forum-arena .side-letter { flex: 0 0 auto; }
+  html[data-playground] .pg-scene-host .forum-arena .model-identity { text-align: center; min-height: 0; width: 100%; }
+  html[data-playground] .pg-scene-host .forum-reply { padding-block: 18px; }
+  html[data-playground] .pg-scene-host .forum-original { font-size: clamp(18px,1.05vw,21px); }
+  html[data-playground] .pg-scene-host .forum-arena .vote-button { grid-column: 2; grid-row: 2; align-self: start; height: 34px; margin: 0 var(--forum-inset); }
+  html[data-playground] .pg-scene-host .forum-arena .forum-floor-number { bottom: 21px; left: 62px; right: auto; }
+  html[data-playground] .pg-scene-host .forum-arena.phase-result .vote-button { flex-basis: 0; height: 0; margin: 0; }
+  html[data-playground] .pg-scene-host .forum-arena .side-result { grid-column: 2; grid-row: 2; height: 34px; margin: 0 var(--forum-inset); }
+}
+
+@media (min-width: 960px) and (min-height: 560px) and (max-height: 760px) {
+  html[data-playground-view=scene] #playground-root { grid-template-rows: 56px minmax(0,1fr); }
+  .pg-reader-header { min-height: 56px; }
+  html[data-playground-view=scene] .pg-header { height: 48px; }
+  html[data-playground] .pg-scene-host[data-preparing] { inset-block-start: 48px; height: calc(100dvh - 48px); }
+  html[data-playground] .pg-scene-host .main-terminal { --reader-dock: 52px; grid-template-rows: minmax(0,1fr) var(--reader-dock); gap: 8px; padding-bottom: 6px; }
+  html[data-playground] .pg-scene-host .briefing { height: 36px; }
+  html[data-playground] .pg-scene-host .arena-stage > .draw-row { top: calc(100% + 8px); }
+  html[data-playground] .pg-scene-host .panel-heading { flex-basis: 46px; height: 46px; }
+  html[data-playground] .pg-scene-host .text-reading { padding-block: 16px; }
+  html[data-playground] .pg-scene-host .text-original { font-size: 18px; line-height: 1.85; }
+  html[data-playground] .pg-scene-host .text-arena .arena-stage { grid-template-rows: 102px minmax(0,1fr); row-gap: 16px; }
+  html[data-playground] .pg-scene-host .text-arena .text-masthead h2 { font-size: 32px; }
+  html[data-playground] .pg-scene-host .text-arena .text-masthead p { margin-top: 10px; font-size: 14px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .arena-stage { grid-template-rows: 96px 40px minmax(0,1fr); row-gap: 10px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .arena-stage { grid-template-rows: minmax(0,1fr); padding-top: 12px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .text-masthead h2 { font-size: 72px; }
+  html[data-playground] .pg-scene-host .forest-scene,html[data-playground] .pg-scene-host .waiting-scene { max-height: 102px; }
+  html[data-playground] .pg-scene-host .letter-postage { transform: scale(.58); }
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-rows: 54px minmax(0,1fr); row-gap: 12px; }
+  html[data-playground] .pg-scene-host .orange-signboards .panel-heading { flex-basis: 38px; height: 38px; }
+  html[data-playground] .pg-scene-host .orange-signboards .orange-line-text { font-size: 18px; }
+  html[data-playground] .pg-scene-host .expand-control { top: -38px; }
+  html[data-playground] .pg-scene-host .vote-button { flex-basis: 42px; height: 42px; margin-bottom: 8px; }
+  html[data-playground] .pg-scene-host .side-result { flex-basis: 42px; height: 42px; margin-bottom: 8px; }
+  html[data-playground] .pg-scene-host .forum-arena .arena-stage { grid-template-rows: 44px repeat(3,minmax(0,1fr)); --forum-rail: 128px; }
+  html[data-playground] .pg-scene-host .forum-arena .panel-heading { padding-block: 6px; }
+  html[data-playground] .pg-scene-host .forum-arena .panel-identity { gap: 4px; }
+  html[data-playground] .pg-scene-host .forum-arena .contender { grid-template-rows: minmax(0,1fr) 38px; }
+  html[data-playground] .pg-scene-host .forum-masthead { padding-block: 6px; }
+  html[data-playground] .pg-scene-host .forum-board-icon { width: 28px; height: 28px; }
+  html[data-playground] .pg-scene-host .forum-op-profile { padding: 6px 8px; }
+  html[data-playground] .pg-scene-host .forum-avatar { width: 64px; height: 64px; }
+  html[data-playground] .pg-scene-host .forum-arena .panel-heading { padding-top: 12px; }
+  html[data-playground] .pg-scene-host .forum-reply { padding-block: 12px; }
+}
+
+/* Calm controls shared with the 3D desk, in the reader's own dock. */
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button {
+  clip-path: none; border: 1px solid #bfc5b4; border-radius: 0;
+  background: #f7f4eb; color: #304139; box-shadow: none;
+  min-width: 140px; padding-inline: 20px; gap: 30px; font-weight: 500;
+  transition: background-color 160ms, transform 160ms;
+}
+html[data-playground] .pg-scene-host .next-button::before,
+html[data-playground] .pg-scene-host .next-button::after { display: none; }
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button svg { color: #71846b; }
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button.continue-same { background: #405444; border-color: #405444; color: #fcf7e9; box-shadow: none; }
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button.continue-same svg { color: #d3d9b3; }
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button:not(:disabled):hover { background: #e7e9dc; transform: translateY(-1px); }
+html[data-playground] .pg-scene-host .arena-shell .continue-buttons .next-button.continue-same:not(:disabled):hover { background: #4d6551; color: #fcf7e9; }
+html[data-playground] .pg-scene-host .text-arena .vote-button { position: relative; z-index: 2; background: var(--reading-paper); }
+html[data-playground] .pg-scene-host .text-arena .side-result { position: relative; z-index: 2; background: var(--reading-paper); }
+@media (min-width:960px) and (min-height:560px) {
+  html[data-playground] .pg-scene-host .text-arena .work-viewport { margin-bottom: 10px; }
+  /* A storybook needs taller pages; its width follows the available height. */
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .main-terminal { max-width: min(1100px,calc(165dvh - 310px)); }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .arena-stage { grid-template-rows: clamp(72px,12dvh,120px) minmax(0,1fr); row-gap: 20px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .text-masthead h2 { font-size: 30px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .text-masthead p { font-size: 14px; line-height: 1.7; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .forest-scene { max-height: 120px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .panel-heading { height: 46px; flex-basis: 46px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .model-identity { font-size: 13px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .text-reading:not(.text-reading-embedded) { padding: 22px 26px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=forest] .text-original { font-size: 18px; line-height: 1.85; }
+  /* Match the width to the available reading height instead of stretching to 2K. */
+  html[data-playground] .pg-scene-host .text-arena:is([data-text-theme=letter],[data-text-theme=waiting]) .main-terminal { max-width: min(1160px,calc(180dvh - 360px)); }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .main-terminal { max-width: min(1160px,calc(180dvh - 350px)); }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=blackout] .main-terminal { max-width: min(1400px,calc(190dvh - 280px)); }
+  html[data-playground] .pg-scene-host .wechat-arena .main-terminal { max-width: min(1040px,calc(100dvh + 220px)); }
+  html[data-playground] .pg-scene-host .wechat-arena .arena-stage { grid-template-columns: clamp(145px,15vw,180px) repeat(2,minmax(0,1fr)); grid-template-rows: minmax(0,1fr); background: transparent; box-shadow: none; border-radius: 0; }
+  html[data-playground] .pg-scene-host .wechat-arena .night-chat-masthead { grid-column: 1; grid-row: 1; flex-direction: column; align-items: flex-start; justify-content: center; gap: 34px; padding: 0 16px 0 0; }
+  html[data-playground] .pg-scene-host .wechat-arena .night-chat-masthead h2 { max-width: none; font-size: 23px; line-height: 1.85; font-weight: 500; letter-spacing: 0; text-wrap: pretty; }
+  html[data-playground] .pg-scene-host .wechat-arena .night-chat-masthead time { font-size: 20px; }
+  html[data-playground] .pg-scene-host .wechat-arena .contender { grid-row: 1; }
+  html[data-playground] .pg-scene-host .wechat-arena .contender-a { grid-column: 2; }
+  html[data-playground] .pg-scene-host .wechat-arena .contender-b { grid-column: 3; }
+  html[data-playground] .pg-scene-host .wechat-arena .panel-heading { padding-inline: 14px; }
+  html[data-playground] .pg-scene-host .wechat-arena .wechat-thread { padding: 22px 14px 28px; }
+  html[data-playground] .pg-scene-host .wechat-arena .chat-avatar { flex-basis: 30px; width: 30px; height: 30px; border-radius: 5px; }
+  html[data-playground] .pg-scene-host .wechat-arena .chat-message { gap: 9px; margin-bottom: 14px; }
+  html[data-playground] .pg-scene-host .wechat-arena .chat-message-self { margin-bottom: 24px; }
+  html[data-playground] .pg-scene-host .wechat-arena .chat-bubble { max-width: calc(100% - 39px); padding: 9px 12px; font-size: 15px; line-height: 1.75; }
+  html[data-playground] .pg-scene-host .wechat-arena .vote-button { width: calc(100% - 28px); margin-inline: 14px; }
+  html[data-playground] .pg-scene-host .forum-arena .main-terminal { max-width: 1040px; }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .arena-stage { grid-template-rows: clamp(72px,12dvh,120px) minmax(0,1fr); row-gap: 20px; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=channels] .arena-stage { grid-template-rows: clamp(72px,12dvh,120px) 44px minmax(0,1fr); row-gap: 12px; }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .text-masthead h2 { font-size: clamp(28px,3.6dvh,36px); }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .text-masthead-copy { gap: 26px; padding-right: 12px; }
+  html[data-playground] .pg-scene-host .text-arena:not([data-text-theme=blackout]) .text-masthead p { font-size: 14px; max-width: 18em; }
+  html[data-playground] .pg-scene-host .text-arena[data-text-theme=letter] .text-original { font-size: 20px; line-height: 1.9; }
+}
+
+/* The last visible line fades inside the scroll window, before the action row. */
+html[data-playground] .pg-scene-host .text-arena .text-reading:not(.text-reading-embedded) {
+  mask-image: linear-gradient(to bottom,#000 calc(100% - 38px),transparent 100%);
+  padding-bottom: 42px;
+}
+
+/* The orange is an illustrated product; the replies are two pieces of paper. */
+html[data-playground] .pg-scene-host .orange-arena {
+  --orange-paper: #fbf5e3; --orange-line: #b6b79c;
+  --orange-ink: #424b36; --orange-muted: #797f68; --orange-accent: #aa593c;
+}
+html[data-playground] .pg-scene-host .orange-arena .arena-stage { background: transparent; border: 0; }
+html[data-playground] .pg-scene-host .pg-orange-masthead { justify-content: space-between; gap: 36px; padding-inline: 8px; }
+html[data-playground] .pg-scene-host .pg-orange-masthead h2 { font: 400 clamp(32px,3.4vw,48px)/1.3 'Noto Serif SC',SimSun,serif; letter-spacing: -.03em; }
+html[data-playground] .pg-scene-host .pg-orange-masthead p { color: var(--orange-muted); font-size: 15px; line-height: 1.7; }
+html[data-playground] .pg-scene-host .orange-arena .contender {
+  padding: 0 28px; border: 0; border-radius: 0; background: var(--orange-paper) url('/text-scenes/paper-fibers.svg');
+  box-shadow: 1px 3px 3px #45492a0c, 0 9px 19px -12px #45492a40;
+}
+html[data-playground] .pg-scene-host .orange-arena .work-panel { padding: 0; border: 0; box-shadow: none; background: transparent; }
+html[data-playground] .pg-scene-host .orange-arena .panel-heading { padding: 0; height: 64px; flex-basis: 64px; }
+html[data-playground] .pg-scene-host .orange-arena .panel-identity { gap: 14px; }
+html[data-playground] .pg-scene-host .orange-arena .side-letter { width: auto; height: auto; font: italic 32px/1 Georgia,serif; color: var(--orange-accent); background: none; }
+html[data-playground] .pg-scene-host .orange-arena .contender-b .side-letter { color: #697d56; }
+html[data-playground] .pg-scene-host .orange-arena .model-identity { font-size: 14px; color: var(--orange-ink); font-weight: 500; }
+html[data-playground] .pg-scene-host .orange-arena .work-viewport { min-height: 0; }
+html[data-playground] .pg-scene-host .orange-arena .orange-pitch { padding: 34px 0 26px; }
+html[data-playground] .pg-scene-host .orange-arena .orange-pitch p { grid-template-columns: 25px minmax(0,1fr); gap: 14px; margin-bottom: 32px; }
+html[data-playground] .pg-scene-host .orange-arena .orange-line-number { font: italic 14px/1.8 Georgia,serif; color: var(--orange-accent); padding-top: 4px; }
+html[data-playground] .pg-scene-host .orange-arena .orange-line-text { font: 400 clamp(19px,1.25vw,24px)/1.9 'LXGW WenKai Lite',KaiTi,serif; }
+html[data-playground] .pg-scene-host .orange-arena .vote-button {
+  position: relative; z-index: 2; margin: 0 0 16px; padding-inline: 0;
+  height: 48px; flex-basis: 48px; border: 0; border-top: 1px solid var(--orange-line); background: var(--orange-paper); color: var(--orange-ink);
+}
+html[data-playground] .pg-scene-host .orange-arena .vote-button::after { display: none; }
+html[data-playground] .pg-scene-host .orange-arena .vote-button:not(:disabled):hover { background: #eee9cf; }
+html[data-playground] .pg-scene-host .orange-arena .side-result { height: 48px; min-height: 0; flex-basis: 48px; margin: 0 0 16px; padding: 0; }
+html[data-playground] .pg-scene-host .orange-arena.phase-result .vote-button { height: 0; flex-basis: 0; min-height: 0; margin: 0; padding: 0; border: 0; }
+html[data-playground] .pg-scene-host .pg-orange-product { margin: 0; width: 100%; padding: 0; }
+.pg-orange-portrait { position: relative; isolation: isolate; }
+.pg-orange-portrait::before { content: ''; position: absolute; inset: 12% 5% 3%; z-index: -1; background: #dbe0b7; border-radius: 50%; }
+.pg-orange-portrait img { display: block; width: 100%; height: auto; filter: drop-shadow(0 9px 7px #424b3618); }
+.pg-orange-product figcaption { margin-top: 22px; font: 400 15px/1.8 'LXGW WenKai Lite',KaiTi,serif; color: var(--orange-muted); text-wrap: balance; }
+html[data-playground] .pg-scene-host .pg-orange-product .orange-deal { min-height: 24px; margin-top: 12px; font: 400 16px/1.5 'LXGW WenKai Lite',KaiTi,serif; }
+@media (min-width:960px) and (min-height:560px) {
+  html[data-playground] .pg-scene-host .orange-arena .main-terminal { max-width: min(1200px,calc(185dvh - 160px)); max-height: 810px; }
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-columns: minmax(0,1fr) clamp(180px,16vw,260px) minmax(0,1fr); grid-template-rows: clamp(100px,15dvh,138px) minmax(0,1fr); column-gap: 28px; }
+  html[data-playground] .pg-scene-host .pg-orange-product { grid-row: 2; grid-column: 2; align-self: center; }
+}
+@media (min-width:960px) and (min-height:560px) and (max-height:760px) {
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-rows: 76px minmax(0,1fr); gap: 16px; }
+  html[data-playground] .pg-scene-host .orange-arena .contender { padding-inline: 22px; }
+  html[data-playground] .pg-scene-host .orange-arena .panel-heading { flex-basis: 48px; height: 48px; }
+  html[data-playground] .pg-scene-host .orange-arena .orange-pitch { padding-block: 18px; }
+  html[data-playground] .pg-scene-host .orange-arena .orange-pitch p { margin-bottom: 22px; }
+  html[data-playground] .pg-scene-host .orange-arena .orange-line-text { font-size: 19px; line-height: 1.75; }
+  html[data-playground] .pg-scene-host .orange-arena .vote-button,
+  html[data-playground] .pg-scene-host .orange-arena .side-result { height: 42px; flex-basis: 42px; margin-bottom: 10px; }
+}
+@media (max-width:959px), (max-height:559px) {
+  html[data-playground] .pg-scene-host .orange-arena .arena-stage { grid-template-columns: minmax(0,1fr); gap: 18px; padding: 18px 12px; }
+  html[data-playground] .pg-scene-host .pg-orange-masthead { grid-column: 1; grid-row: 1; display: block; }
+  html[data-playground] .pg-scene-host .pg-orange-masthead p { margin-block: 14px; }
+  html[data-playground] .pg-scene-host .pg-orange-product { grid-column: 1; grid-row: 2; width: 180px; justify-self: center; }
+  html[data-playground] .pg-scene-host .orange-arena .contender-a { grid-column: 1; grid-row: 3; }
+  html[data-playground] .pg-scene-host .orange-arena .contender-b { grid-column: 1; grid-row: 4; }
+  html[data-playground] .pg-scene-host .orange-arena .draw-row { grid-column: 1; grid-row: 5; }
+  html[data-playground] .pg-scene-host .orange-arena .orange-pitch { height: auto; }
+  html[data-playground] .pg-scene-host .next-button { min-width: 110px; padding-inline: 14px; gap: 20px; }
+}

@@ -4,11 +4,10 @@ import { LanguageSwitch } from '@/components/language-switch';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { AccountButton } from '@/components/account';
 import { GALLERY_BLIND } from '@/lib/gallery-links';
-import { currentRandomArenaHash } from '@/lib/placeholder';
-import { currentPrompts } from '@/lib/prompts';
 import { guessNavigate, homeNavigate } from '@/lib/game-transitions';
-import { enterArena } from '@/lib/works-gate';
 import { LegalFooter } from '@/components/legal-footer';
+import { useEffect } from 'react';
+import { playgroundNavigate, settlePlaygroundEntry } from '@/lib/playground-entry';
 
 // 玩法分层的菜单数据（名称暂定，见决策 023/024/026）。
 // 正式测评入口前往 Gallery 盲测，本站其他玩法保持原行为。
@@ -22,10 +21,10 @@ export const MODES = [
   },
   {
     id: 'party',
-    code: 'PARTY',
-    name: '娱乐测评',
+    code: 'PLAY',
+    name: '随心玩',
     status: '随时可玩',
-    desc: '看作品，凭直觉选。做出选择之后才揭晓模型身份。',
+    desc: '转一转作品，读一段故事。挑喜欢的，再看看是谁做的。',
   },
   {
     id: 'event',
@@ -45,13 +44,7 @@ export const MODES = [
 
 export default function PlayMenu() {
   const { t, localize } = useI18n();
-  // 菜单进测评（2026-09-19）：整屏纸幕钉住当加载中间态，作品就绪才展开；
-  // 目的地点击时现抽，牌面标题/题号随之带上
-  const enterMode = (hash: string) => {
-    const promptId = hash.replace(/^#(arena|formal)\//, '');
-    const prompt = currentPrompts().find((item) => item.id === promptId);
-    enterArena(hash, prompt?.name, prompt?.id);
-  };
+  useEffect(settlePlaygroundEntry, []);
   return (
     <div className="lobby play-classic">
       <header className="lobby-header">
@@ -101,20 +94,22 @@ export default function PlayMenu() {
                           ? '#guess'
                           : mode.id === 'formal'
                             ? GALLERY_BLIND
-                            : '#random'
+                            : '/playground.html'
                     }
                     onClick={(e) => {
-                      // 菜单进测评走钉住纸幕（2026-09-19 用户拍板，取代一体斜幕）；
-                      // 模一把使用独立的抽牌过场。
+                      // 随心玩跨文档横推；模一把保留独立抽牌过场。
                       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
                         return;
                       if (mode.id === 'formal') return;
                       e.preventDefault();
+                      if (mode.id === 'party') {
+                        playgroundNavigate();
+                        return;
+                      }
                       if (mode.id === 'guess') {
                         guessNavigate();
                         return;
                       }
-                      enterMode(currentRandomArenaHash());
                     }}
                   >
                     <span className="play-classic-idx">

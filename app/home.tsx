@@ -22,11 +22,7 @@ import {
   type HomeEdition,
 } from '@/lib/home-edition';
 import { currentRatings } from '@/lib/ratings';
-// 随机入场与 #random 路由同源（占位感知 + 远端作品/题库），
-// 修正旧版只看内置种子、随机不到真实竞技场的口径不一致
-import { currentRandomArenaHash } from '@/lib/placeholder';
-import { currentPrompts } from '@/lib/prompts';
-import { enterArena } from '@/lib/works-gate';
+// 随心玩使用独立页面，保留首页及其他玩法自己的路由和样式。
 import {
   ArrowUpRight,
   ArrowRight,
@@ -98,10 +94,8 @@ export default function Home() {
   };
   const enterRandom = () => {
     if (leaving) return;
-    const hash = currentRandomArenaHash();
-    const prompt = currentPrompts().find((item) => `#arena/${item.id}` === hash);
-    if (!enterArena(hash, prompt?.name, prompt?.id)) return;
     setLeaving(true);
+    window.location.assign('/playground.html');
   };
   if (edition === 'new')
     return (
@@ -208,7 +202,7 @@ export default function Home() {
                 <ArrowUpRight size={20} />
               </a>
               <span className="lobby-entry-note">
-                {t('进入玩法菜单：正式测评、娱乐测评或特别赛。')}
+                {t('进入玩法菜单：随心玩、模一把或正式测评。')}
               </span>
             </div>
             <div className="lobby-format-switch" aria-label={t('预览作品类型')}>

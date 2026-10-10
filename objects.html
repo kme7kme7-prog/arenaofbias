@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <script src="/playground-entry-boot.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2efe7">
+  <title>3D 小展台 · Arena of Bias</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/app/playground/fonts.css">
+  <link rel="stylesheet" href="/app/playground/object-stage.css">
+  <script type="module" src="/app/playground/object-stage.mjs"></script>
+</head>
+<body data-phase="arriving">
+  <div class="stage-entry-cover" aria-hidden="true"><p class="stage-entry-title">拆开看看，<br>哪件<span class="handword">合你心意<svg viewBox="0 0 170 18" aria-hidden="true"><path d="M5 10Q73 1 161 8M26 15Q109 9 143 13"/></svg></span>？</p></div>
+  <svg class="asset-defs" aria-hidden="true"><defs>
+    <linearGradient id="plinth-top" x2="0" y2="1"><stop stop-color="#f9f7ed"/><stop offset="1" stop-color="#dcded0"/></linearGradient>
+    <linearGradient id="plinth-edge" x2="0" y2="1"><stop stop-color="#e5e6d9"/><stop offset="1" stop-color="#c7ccba"/></linearGradient>
+  </defs></svg>
+  <header class="site-header">
+    <a class="brand" href="/#play" aria-label="返回玩法菜单"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>ARENA <span class="brand-light">OF BIAS</span></a>
+    <div class="header-right"><a class="room-link" href="/playground.html#text">文字题目 ↗</a><span class="draft-label">随心玩</span><button class="help-button" id="help" aria-label="玩法提示" aria-expanded="false" aria-controls="help-card">怎么玩 <span>?</span></button>
+      <aside class="help-card" id="help-card" hidden><b>不用懂 3D，凭眼缘就好。</b><ol><li><span>↔</span>拖一拖，换个角度</li><li><span>⤢</span>拿近一点，自由看看</li><li><span>♡</span>留一件喜欢的，再揭晓作者</li></ol><button id="close-help">知道了 ↗</button></aside>
+    </div>
+  </header>
+  <main>
+    <section class="scene-heading">
+      <h1 class="sr-only">3D 小展台</h1>
+      <div class="delivery-strip"><span class="delivery-title" id="topic-title">机械键盘</span><span class="delivery-status" id="delivery-status" role="status">两件作品，正在装箱</span></div>
+      <div class="collection-tabs" role="group" aria-label="选择展示主题"><button data-topic="keyboards" aria-pressed="true"><span>01</span>机械键盘</button><button data-topic="lamps" aria-pressed="false"><span>02</span>桌面台灯</button><button id="topics-toggle" aria-haspopup="dialog">全部题目 ↗</button></div>
+    </section>
+    <section class="showroom" aria-label="两件可以拖动查看的 3D 作品">
+      <div class="table-surface" aria-hidden="true"></div>
+      <div class="exhibits" id="exhibits"></div>
+      <div class="between-mark" aria-hidden="true"><span>凭</span><span>眼</span><span>缘</span></div>
+    </section>
+    <div class="stage-dock"><div class="stage-feedback"><div class="scene-footer">
+      <div class="guide" id="guide"><span class="drag-icon" aria-hidden="true">↔</span><span id="guide-text">展台准备中…</span><button id="skip-load" hidden>换一组 ↗</button><button id="dismiss-guide" aria-label="收起操作提示" hidden>×</button></div>
+      <button class="tie-button" id="tie" disabled>两个都喜欢 <span>♡</span></button>
+    </div>
+    <section class="result" id="result" hidden aria-live="polite"><span class="receipt-stamp" aria-hidden="true">已签收</span><div><h2 id="result-title"></h2></div></section>
+    </div>
+    <footer class="page-footer"><button id="replay" disabled><span aria-hidden="true">↻</span> 再拆一次</button></footer>
+    <nav class="round-actions" aria-label="继续看作品"><button id="next" disabled>下一题 <span aria-hidden="true">↗</span></button><button id="continue" class="continue-button" disabled>本题继续 <span aria-hidden="true">→</span></button></nav>
+    </div>
+  </main>
+  <div class="focus-backdrop" id="focus-backdrop" hidden></div>
+  <div class="sr-only" id="announcement" role="status" aria-live="polite"></div>
+  <dialog class="topic-picker" id="topic-picker" aria-labelledby="picker-title">
+    <div class="picker-heading"><h2 id="picker-title">拆哪一箱？</h2><button id="close-picker" aria-label="关闭题目选择">×</button></div>
+    <input id="topic-search" type="search" placeholder="找一道题" aria-label="搜索 3D 题目">
+    <div id="topic-list" class="topic-list"></div>
+    <p id="topic-empty" hidden>没有找到这道题。</p>
+  </dialog>
+  <template id="exhibit-template">
+    <article class="exhibit" data-ready="false">
+      <div class="case-wrap">
+        <svg class="base" viewBox="0 0 600 480" preserveAspectRatio="none" aria-hidden="true"><ellipse class="ground-shadow" cx="299" cy="442" rx="257" ry="21"/><path class="base-top" d="M22 399L81 351H580L522 405Z"/><path class="base-front" d="M22 399L522 405V428L22 423Z"/><path class="base-side" d="M522 405L580 351V376L522 428Z"/><path class="base-seam" d="M22 404L522 410L580 357"/></svg>
+        <svg class="glass glass-back" viewBox="0 0 600 480" preserveAspectRatio="none" aria-hidden="true"><path class="back-edge" d="M82 353V15H578V353"/><path class="roof" d="M25 64L82 15H578L521 64Z"/><path class="side-glass" d="M521 64L578 15V353L521 402Z"/></svg>
+        <div class="scene-window" aria-hidden="true"></div>
+        <div class="work-window"><div class="frame-mount"></div></div>
+        <svg class="glass glass-front" viewBox="0 0 600 480" preserveAspectRatio="none" aria-hidden="true"><path class="front-outline" d="M25 64H521V402H25ZM25 64L82 15M521 402L578 353"/><path class="glass-glint" d="M31 70H505M31 71V382M513 80V382M546 71L568 51M546 84L568 64"/><path class="glass-soft-glint" d="M70 77L32 125M91 77L32 150"/></svg>
+        <div class="case-number" aria-hidden="true"></div>
+        <div class="parcel-contact" aria-hidden="true"></div>
+        <div class="parcel">
+          <div class="parcel-volume">
+            <div class="carton-face carton-back" aria-hidden="true"></div>
+            <div class="carton-face carton-left" aria-hidden="true"></div>
+            <div class="carton-face carton-right" aria-hidden="true"><span class="carton-side-mark">↑ ↑</span></div>
+            <div class="carton-face carton-roof" aria-hidden="true"><i class="carton-top-seam"></i><i class="carton-top-tape"></i></div>
+            <div class="carton-face carton-front">
+              <span class="parcel-letter" aria-hidden="true">A</span>
+              <span class="parcel-arrows" aria-hidden="true">↑ ↑<i></i></span>
+              <div class="parcel-card"><span class="parcel-card-heading">给你的桌面</span><strong class="parcel-topic">机械键盘</strong><div class="parcel-barcode" aria-hidden="true"></div><div class="load-state" role="status"><i></i><span class="load-text">正在装箱</span></div><button class="retry-button" hidden>重新加载 ↻</button></div>
+              <div class="parcel-seal" aria-hidden="true"><span>小心拆封</span><i>↓</i></div>
+              <i class="carton-cut-edge" aria-hidden="true"></i>
+            </div>
+            <div class="carton-lining" aria-hidden="true"></div>
+            <div class="carton-rim carton-rim-front" aria-hidden="true"></div>
+            <div class="carton-rim carton-rim-back" aria-hidden="true"></div>
+            <div class="carton-rim carton-rim-left" aria-hidden="true"></div>
+            <div class="carton-rim carton-rim-right" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="drag-cue" hidden aria-hidden="true"><svg viewBox="0 0 100 42"><path d="M6 18c20-12 65-12 87 0m-7-8 7 8-10 4"/><path class="cue-hand" d="M43 35V19c0-5 6-5 6 0v8-4c0-4 5-4 5 0 0-3 5-3 5 1 2-2 6-1 5 3l-3 12H49l-9-10c-2-3-6-1-3 2l6 4"/></svg><span>拖一拖，换个角度</span></div>
+        <span class="picked-sticker" aria-hidden="true"><b>✓</b>就它了</span>
+      </div>
+      <div class="object-toolbar"><div class="object-identity"><span class="identity-mark"><span class="side-label"></span><img class="model-icon" alt="" hidden><span class="model-monogram" hidden></span></span><span class="identity-copy"><span class="model-name">匿名作品</span><small class="identity-note">选择后揭晓作者</small></span></div><div class="object-tools"><button class="reset-view" disabled aria-label="恢复初始角度" title="恢复初始角度"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9a8 8 0 1 1 0 6M4 3v6h6"/></svg></button><button class="focus-view" disabled aria-label="拿近看看" title="拿近看看"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5m6 0h5v5M4 15v5h5m6 0h5v-5"/></svg></button></div></div>
+      <button class="choose-button" disabled><span>这件合我心意</span><span class="choice-arrow" aria-hidden="true">↗</span></button>
+    </article>
+  </template>
+</body>
+</html>

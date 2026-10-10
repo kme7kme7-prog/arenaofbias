@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/postcss';
 import { defineConfig } from 'vite';
 
-// VPS 版本：前端两个入口——主站（index.html → src/main.tsx）与管理后台
-//（admin.html → src/admin.tsx）。同仓库双应用（决策 040）：独立入口独立构建，
-// 共享 lib/ 与 /api。后端是 server/index.js（Express + SQLite），同一端口下
+// 主站、管理后台、截图页及随心玩使用独立 HTML 入口，共享 lib/ 与 /api。
+// 后端是 server/index.js（Express + SQLite），同一端口下
 // 托管构建产物。开发模式下由 Vite 起 5173 并代理 /api 到 3000；
 // 与别的本地项目撞端口时可用 VITE_PORT / PORT 整体平移（默认值不变）。
 const apiTarget = `http://127.0.0.1:${process.env.PORT || 3000}`;
@@ -68,6 +67,8 @@ export default defineConfig({
         index: fileURLToPath(new URL('index.html', import.meta.url)),
         admin: fileURLToPath(new URL('admin.html', import.meta.url)),
         capture: fileURLToPath(new URL('capture.html', import.meta.url)),
+        playground: fileURLToPath(new URL('playground.html', import.meta.url)),
+        objects: fileURLToPath(new URL('objects.html', import.meta.url)),
       },
     },
   },

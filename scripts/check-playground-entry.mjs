@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { chromium } from 'playwright-core';
+
+const base = process.argv[2] || 'http://127.0.0.1:5452';
+const out = 'output/playground/entry';
+await mkdir(out, { recursive: true });
+const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const page = await browser.newPage({ viewport: { width: 1920, height: 880 } });
+const checks = [], errors = [];
+const check = (value, name) => { assert.ok(value, name); checks.push(name); };
+page.on('pageerror', error => errors.push(error.message));
+try {
+  await page.goto(`${base}/#play`);
+  let unblock;
+  const block = new Promise(resolve => { unblock = resolve; });
+  await page.route('**/assets/playground-*.js', async route => {
+    const response = await route.fetch();
+    await block;
+    await route.fulfill({ response });
+  });
+  const destination = page.waitForURL('**/playground.html', { waitUntil: 'commit' });
+  await page.getByRole('link', { name: /随心玩/ }).click();
+  check(await page.locator('.play-entry-wipe i').count() === 3, 'click immediately starts three solid colour sheets');
+  check(await page.locator('.play-entry-wipe').getAttribute('data-phase') === 'closing', 'menu cover closes before navigation');
+  await destination;
+  await page.waitForFunction(() => document.documentElement.dataset.playEntry === 'covered');
+  check(await page.evaluate(() => document.documentElement.dataset.playEntry === 'covered'), 'destination is covered before its module is ready');
+  check(await page.evaluate(() => getComputedStyle(document.documentElement, '::after').backgroundColor === 'rgb(238, 233, 220)'), 'slow module retains an opaque first-paint cover');
+  unblock();
+  await page.getByRole('link', { name: '返回玩法菜单', exact: true }).waitFor();
+  await page.waitForFunction(() => !window.PlaygroundEntry?.active);
+  check(await page.locator('.play-entry-wipe').count() === 0, 'cover opens and clears after the hub mounts');
+  await page.screenshot({ path: `${out}/hub.png` });
+  await page.getByRole('link', { name: '返回玩法菜单', exact: true }).click();
+  await page.waitForURL('**/#play');
+  await page.getByRole('link', { name: /随心玩/ }).waitFor();
+  await page.waitForFunction(() => !window.PlaygroundEntry?.active);
+  check(await page.evaluate(() => !document.documentElement.hasAttribute('data-playground')), 'brand returns to the actual main menu without leaked layout');
+  await page.getByRole('link', { name: /随心玩/ }).evaluate(link => { link.click(); link.click(); });
+  check(await page.locator('.play-entry-wipe').count() === 1, 'rapid repeat clicks keep one transition owner');
+  await page.waitForURL('**/playground.html');
+  await page.waitForFunction(() => !window.PlaygroundEntry?.active);
+  await page.getByRole('link', { name: /文字题目.*一句话/ }).click();
+  await page.locator('.pg-story').first().waitFor();
+  await page.getByRole('link', { name: '返回玩法菜单', exact: true }).click();
+  await page.waitForURL('**/#play');
+  await page.waitForFunction(() => !window.PlaygroundEntry?.active);
+  check(await page.getByRole('link', { name: /随心玩/ }).count() === 1, 'text directory brand also returns to menu');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByRole('link', { name: /随心玩/ }).click();
+  await page.waitForURL('**/playground.html');
+  await page.waitForFunction(() => !window.PlaygroundEntry?.active);
+  check(await page.locator('.play-entry-wipe').count() === 0, 'reduced motion still completes document handoff');
+  await page.goto(`${base}/playground.html#home`);
+  check(await page.evaluate(() => !document.documentElement.hasAttribute('data-play-entry')), 'direct entry has no stale arrival cover');
+  check(errors.length === 0, 'no runtime errors');
+} finally {
+  await writeFile(`${out}/checks.json`, JSON.stringify({ checks, errors }, null, 2));
+  await browser.close();
+}
+console.log(`Entry: ${checks.length} checks passed`);

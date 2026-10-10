@@ -13,7 +13,7 @@ export function setTransitionTranslator(translator: (text: string) => string) {
 // Keep the low-level constructor independent for multi-instance review pages.
 export function navigationTransitionActive() {
   return !!document.querySelector(
-    '.game-transition, .page-wipe, .theme-curtain, .arena-shell.phase-transition, .arena-shell.shutter-exit',
+    '.game-transition, .page-wipe, .theme-curtain, .play-entry-wipe, html[data-play-entry], .arena-shell.phase-transition, .arena-shell.shutter-exit',
   );
 }
 
@@ -155,10 +155,16 @@ export function gameTransitionTiming(kind: GameTransitionKind, hold = 650) {
   };
 }
 
+export type GameTransition = { layer: HTMLElement; timing: { covered: number; exitStart: number; duration: number }; seek: (time: number) => void; play: () => void; pause: () => void; dispose: () => void };
+let transitionFactory: ((kind: GameTransitionKind, options: GameTransitionOptions) => GameTransition) | null = null;
+/** An isolated entry may register its navigation; the main site keeps its own tracks. */
+export function setTransitionFactory(factory: typeof transitionFactory) { transitionFactory = factory; }
+
 export function createGameTransition(
   kind: GameTransitionKind,
   options: GameTransitionOptions = {},
-) {
+): GameTransition {
+  if (transitionFactory) return transitionFactory(kind, options);
   const timing = gameTransitionTiming(kind, options.hold);
   const layer = document.createElement('div');
   layer.className = `game-transition gt-${kind}${options.parent ? ' gt-contained' : ''}`;

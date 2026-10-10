@@ -1,0 +1,10 @@
+[
+  { "id": "q-5ebd7c84dff7cd8f", "name": "三句话卖橘子", "label": "偏见小卖部", "note": "同一个橘子，谁的话让你想买？", "skin": "orange", "mark": "三句话" },
+  { "id": "008", "name": "深夜聊天", "label": "02:30", "note": "聊到相遇和分别，哪句回复更懂你？", "skin": "chat", "mark": "还没睡？" },
+  { "id": "q-a71a7e7e4bcaadc7", "name": "弱智吧问答", "label": "今日热帖", "note": "不太正经的问题，不太正经的回复。", "skin": "forum", "mark": "回帖见" },
+  { "id": "013", "name": "小红帽", "label": "森林里的另一个版本", "note": "同样四个人物，重写小红帽的故事。", "skin": "forest", "mark": "小红帽" },
+  { "id": "q-1b9d4f59c2d7b31e", "name": "不说爱的告白", "label": "未寄出的告白", "note": "不说爱，也不说喜欢，怎么让你明白？", "skin": "letter", "mark": "致你" },
+  { "id": "q-200d4b7f9c69b79c", "name": "三种文风", "label": "十八楼", "note": "电梯坏了，用三种文风写爬楼上班。", "skin": "channels", "mark": "18" },
+  { "id": "q-b23ef619e82dec65", "name": "停电", "label": "暗处翻书", "note": "300 字停电故事，结尾要反转。", "skin": "blackout", "mark": "停电" },
+  { "id": "q-bfea3f9d2135205c", "name": "等待", "label": "候场故事", "note": "200 字写等待，结尾要反转。", "skin": "waiting", "mark": "等一个\n意外" }
+]
