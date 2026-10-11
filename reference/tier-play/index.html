@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>野榜制造 · Arena of Bias</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/demo-fonts.css" />
+    <link rel="stylesheet" href="/fonts/lxgw-wenkai-lite-1.7.0/regular.css" />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.mjs"></script>
+  </head>
+  <body>
+    <div class="desk" data-entered="false">
+      <header class="masthead">
+        <a
+          href="http://127.0.0.1:5456/#play"
+          class="brand"
+          aria-label="返回玩法菜单"
+          ><span class="brand-mark" aria-hidden="true"
+            ><i></i><i></i><i></i></span
+          ><span>ARENA OF BIAS</span></a
+        >
+        <span class="edition">野榜制造 <span>／ 本地试玩</span></span>
+        <button id="theme" class="quiet" aria-label="切换为暗色">
+          ◐ <span>纸面</span>
+        </button>
+      </header>
+      <main class="game">
+        <div class="intro">
+          <div class="topic-heading">
+            <h1 class="topic" id="topic">营造法式</h1>
+            <button id="show-prompt" hidden>题目全文 ↗</button>
+          </div>
+          <p id="topic-context" hidden></p>
+          <button id="change-topic" class="quiet" disabled>⤨ 换个题目</button>
+        </div>
+        <section
+          class="ranking"
+          aria-label="从夯到拉的排行榜"
+          id="ranking"
+        ></section>
+        <section class="shelf" aria-label="待排作品">
+          <div class="shelf-label">
+            <h2 id="shelf-title">候场区</h2>
+            <p id="shelf-note">八件作品，尚未署名。</p>
+            <span class="shelf-count" id="count">00 / 08</span
+            ><span class="shelf-paging"
+              ><button id="shelf-prev" aria-label="向前翻看候场作品">←</button
+              ><button id="shelf-next" aria-label="向后翻看候场作品">
+                →
+              </button></span
+            >
+          </div>
+          <div class="shelf-tray dropzone" id="tray" data-zone="tray">
+            <p class="empty-tray">正在准备作品…</p>
+          </div>
+        </section>
+      </main>
+      <footer class="actions">
+        <p id="status">喜欢的就往上放。</p>
+        <div class="action-buttons">
+          <button class="quiet" id="undo" disabled>↶ 撤销</button
+          ><button class="quiet" id="restart">重新排</button
+          ><button id="export" class="secondary" hidden>分享榜单 ↗</button
+          ><button id="reveal" class="primary" disabled>
+            <span>揭晓模型</span><span aria-hidden="true">↗</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+    <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
+    <dialog id="prompt-dialog" aria-labelledby="prompt-title">
+      <div class="viewer-top">
+        <h2 id="prompt-title">这一题</h2>
+        <button id="close-prompt" class="icon-button" aria-label="关闭题目">
+          ×
+        </button>
+      </div>
+      <p id="prompt-body"></p>
+    </dialog>
+    <dialog id="viewer" aria-labelledby="viewer-title">
+      <div class="viewer-top">
+        <div>
+          <span class="work-letter" id="viewer-letter">A</span>
+          <h2 id="viewer-title">匿名作品</h2>
+        </div>
+        <button id="close-viewer" class="icon-button" aria-label="关闭放大">
+          ×
+        </button>
+      </div>
+      <div class="scene-frame" id="scene">
+        <img id="scene-poster" alt="" />
+        <div id="frame-mount"></div>
+        <article id="text-reader" hidden>
+          <header id="text-context"></header>
+          <div id="text-story"></div>
+        </article>
+        <div id="load-state">
+          <span class="loading-line"></span>
+          <p id="load-text">把作品拿近一点…</p>
+          <button class="secondary" id="retry" hidden>重新加载</button>
+        </div>
+      </div>
+      <div class="viewer-bottom">
+        <span id="viewer-hint">拖动旋转 · 滚轮缩放</span>
+        <div id="quick-tiers" aria-label="把当前作品放入档位"></div>
+        <button id="reset-view" class="quiet" disabled>↶ 复位视角</button>
+      </div>
+      <div class="viewer-nav">
+        <button id="prev-work" aria-label="查看上一件作品">←</button
+        ><span id="viewer-index"></span
+        ><button id="next-work" aria-label="查看下一件作品">→</button>
+      </div>
+    </dialog>
+    <dialog id="confirm-reset" aria-labelledby="reset-title">
+      <h2 id="reset-title">重新排这一组？</h2>
+      <p>清空档位，这组作品重新回到候场区。</p>
+      <div>
+        <button class="secondary" id="keep-board">保留这张</button
+        ><button class="primary" id="clear-board">重新排</button>
+      </div>
+    </dialog>
+  </body>
+</html>

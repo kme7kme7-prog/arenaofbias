@@ -54,6 +54,7 @@ export default function PlayMenu() {
       localize: (element: HTMLElement) => localizeMenu(element, language),
       navigate: (id: string, href: string) => {
         if (id === 'party') playgroundNavigate();
+        else if (id === 'tierlist') playgroundNavigate('/tier.html');
         else if (id === 'guess') guessNavigate();
         else if (id === 'formal') window.location.assign(href);
       },

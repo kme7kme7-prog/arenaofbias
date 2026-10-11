@@ -71,6 +71,7 @@ export default defineConfig({
         capture: fileURLToPath(new URL('capture.html', import.meta.url)),
         playground: fileURLToPath(new URL('playground.html', import.meta.url)),
         objects: fileURLToPath(new URL('objects.html', import.meta.url)),
+        tier: fileURLToPath(new URL('tier.html', import.meta.url)),
       },
     },
   },

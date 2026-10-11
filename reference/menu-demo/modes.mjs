@@ -51,6 +51,8 @@ const catalog = [
   {
     id: 'tierlist',
     name: '野榜制造',
+    href: '/tier.html',
+    cta: '开始排榜',
     title: ['野榜', '制造'],
     short: '拖拽排榜，最后揭晓',
     color: '#ad6b52',

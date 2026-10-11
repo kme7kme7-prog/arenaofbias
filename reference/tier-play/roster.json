@@ -1,0 +1,15 @@
+{
+  "topic": "营造法式",
+  "promptId": "004",
+  "instruction": "同一道题，八件中式古建。按你的眼缘，从夯排到拉。",
+  "workIds": [
+    "dp-004-astra-pro",
+    "dp-004-opus-5.5-high",
+    "dp-004-gemini-3.8-flash",
+    "dp-004-deepseek-v4.1-flash",
+    "dp-004-glm-5.3",
+    "dp-004-hy3",
+    "dp-004-kimi-k3",
+    "dp-004-minimax-m3"
+  ]
+}

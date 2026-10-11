@@ -239,3 +239,10 @@ game 的 `npm run build` 会自动读取仓库内的 `.env.production`；发布�
 - 远端先在独立暂存目录构建，复核计划中的文件哈希未变化，再备份将覆盖的源码、构建文件与 SQLite 在线一致性快照；保留旧哈希 assets，最后替换三个入口 HTML。后端或共享 lib 内容变化才重启 PM2；仅换行差异、前端及文档同步不重启。
 - 部署后逐文件核对源码哈希、三个入口及其引用资源响应，并检查 PM2。失败恢复本轮覆盖的代码与构建文件，绝不自动回退真库。备份在 `/www/wwwroot/arenaofbias-deploy-backups/aob-deploy-时间-提交号/`。
 - 脚本复用已安装的 `node_modules`；发现 package.json 的 dependencies/devDependencies 改变即中止，依赖升级须另行安排安装。不会自动删除远端多余源码；涉及删除/重命名时需单独核对旧文件引用。这是现有站点的同步流程，不是空机初始化脚本。
+
+### 野榜独立入口与验证
+
+- tier.html → app/tier/entry.mjs / catalog.mjs，复用 reference/tier-play 的交互、状态与样式；Vite单独构建，与原玩法路由隔离。
+- 题目范围由 topics.json 固定，作品来自 /api/playground/works 与 /api/prompts，揭晓重查公开目录；无业务写接口、无本地源数据兜底。public/tier/posters 保存88份真实截图的WebP，来源/对应关系随目录记录。
+- playground-entry-boot.js 在文档边界保留色块遮挡，题库和缩略图准备后才打开；品牌反向横推回/#play。3D仅挂一个跨源沙箱iframe，核对窗口/Origin，等最终work-ready、真实rendered和camera-ready才撤加载层。
+- npm run build:check 后运行 node scripts/validate-tier-entry.mjs；该脚本用只读公开题库快照及受控场景夹具检查入口/返回、纸墨与减少动态、文字、揭晓、导图、下架和空目录。公网真实3D需另行验收。

@@ -9,6 +9,7 @@ const copy = Object.fromEntries(
 匿名比较，认真选一票|Compare blind. Cast your vote.
 跟着线索，猜 AI 模型|Follow the clues. Guess the model.
 野榜制造|Wild Rankings
+开始排榜|Start ranking
 拖拽排榜，最后揭晓|Rank the works. Reveal the names.
 四个 AI 写 bot 打坦克|Four AIs. Four tank bots.
 十二个 AI 玩狼人杀|Twelve AIs play Werewolf.

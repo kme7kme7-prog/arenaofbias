@@ -1,0 +1,312 @@
+[
+  {
+    "id": "keyboards",
+    "promptId": "010",
+    "name": "机械键盘",
+    "kind": "scene",
+    "workIds": [
+      "dp-010-astra-pro",
+      "dp-010-claude-opus-5.5-max",
+      "up-vbcc7i9d",
+      "dp-010-deepseek-v4.1-flash",
+      "up-kddmb41d",
+      "dp-010-kimi-k3-max",
+      "dp-010-gpt-5.6-luna-max",
+      "dp-010-gpt-5.6-sol-max"
+    ]
+  },
+  {
+    "id": "lamps",
+    "promptId": "021",
+    "name": "桌面台灯",
+    "kind": "scene",
+    "workIds": [
+      "dp-021-claude-opus-5.5-max",
+      "dp-021-deepseek-v4.1-flash",
+      "up-hxyx0zet",
+      "up-zvql4b0u",
+      "dp-021-glm-5.3-flash-max",
+      "dp-021-gpt-5.6-luna-max",
+      "dp-021-gpt-5.6-sol-max",
+      "dp-021-gpt-5.6-terra-max"
+    ]
+  },
+  {
+    "id": "004",
+    "promptId": "004",
+    "name": "营造法式",
+    "kind": "scene",
+    "workIds": [
+      "dp-004-astra-pro",
+      "dp-004-opus-5.5-high",
+      "dp-004-gemini-3.8-flash",
+      "dp-004-deepseek-v4.1-flash",
+      "dp-004-glm-5.3",
+      "dp-004-hy3",
+      "dp-004-kimi-k3",
+      "dp-004-minimax-m3"
+    ]
+  },
+  {
+    "id": "007",
+    "promptId": "007",
+    "name": "事件视界",
+    "kind": "scene",
+    "workIds": [
+      "dp-007-claude-opus-5.5-max",
+      "007-gemini-3.8-flash-0qoeh",
+      "007-deepseek-v4.1-flash-e0910",
+      "007-glm-5.3",
+      "007-hy3",
+      "007-kimi-k3",
+      "007-minimax-m3",
+      "dp-007-gemini-4.x-high"
+    ]
+  },
+  {
+    "id": "005",
+    "promptId": "005",
+    "name": "飞瀑穿云",
+    "kind": "scene",
+    "workIds": [
+      "dp-005-claude-opus-5.5-max",
+      "005-gemini-3.8-flash-0qoeh",
+      "005-deepseek-v4.1-flash-e0910",
+      "005-glm-5.3",
+      "005-hy3",
+      "005-kimi-k3",
+      "005-minimax-m3",
+      "dp-005-gemini-4.x-high"
+    ]
+  },
+  {
+    "id": "009",
+    "promptId": "009",
+    "name": "桌面微缩铁路小镇",
+    "kind": "scene",
+    "workIds": [
+      "dp-009-astra-pro",
+      "dp-009-claude-opus-5.5-max-zip",
+      "dp-009-gemini-3.8-flash",
+      "dp-009-deepseek-v4.1-flash",
+      "dp-009-glm-5.3",
+      "dp-009-hy3",
+      "dp-009-kimi-k3-max",
+      "dp-009-minimax-m3"
+    ]
+  },
+  {
+    "id": "018",
+    "promptId": "018",
+    "name": "飞尘工地",
+    "kind": "scene",
+    "workIds": [
+      "dp-018-claude-opus-5.5-max",
+      "dp-018-gemini-3.8-flash-max",
+      "dp-018-glm-5.3-max",
+      "up-0us8284f",
+      "dp-018-glm-5.3-flash-arena",
+      "dp-018-gpt-6-luna-max-arena",
+      "dp-018-claude-opus-5-high-arena",
+      "dp-018-qwen3.8-27b-arena"
+    ]
+  },
+  {
+    "id": "027",
+    "promptId": "027",
+    "name": "篝火营地",
+    "kind": "scene",
+    "workIds": [
+      "dp-027-claude-opus-5.5-max",
+      "dp-027-deepseek-v4.1-flash",
+      "dp-027-gemini-4.x-high",
+      "dp-027-gemini-3.1-pro",
+      "dp-027-gemini-3.7-flash",
+      "dp-027-glm-5.3-flash-max",
+      "dp-027-mimo-v2.6-flash",
+      "dp-027-mimo-v2.6-pro"
+    ]
+  },
+  {
+    "id": "q-0e1c04d1e7b7a531",
+    "promptId": "q-0e1c04d1e7b7a531",
+    "name": "湖上四境",
+    "kind": "scene",
+    "workIds": [
+      "up-e2qvbuxf",
+      "up-0gq7eyrd",
+      "up-flkpcobu",
+      "up-si05f7hn",
+      "up-ok2fpah4",
+      "up-kwrcjuuw",
+      "up-0ff3f0wg",
+      "up-vv7a57nq"
+    ]
+  },
+  {
+    "id": "q-d61106403bd11c9c",
+    "promptId": "q-d61106403bd11c9c",
+    "name": "雪山牧场",
+    "kind": "scene",
+    "workIds": [
+      "up-x571yy4j",
+      "up-9c4kf346",
+      "up-s5ia1ipu",
+      "up-j17v2pp3",
+      "up-kraeig3j",
+      "up-ciwg8x36",
+      "up-vd3zh910",
+      "up-55sp0qjq"
+    ]
+  },
+  {
+    "id": "q-f51f3f9cca233da0",
+    "promptId": "q-f51f3f9cca233da0",
+    "name": "小岛昏沉幻境",
+    "kind": "scene",
+    "workIds": [
+      "up-u9q5r3gf",
+      "up-c2e93xkh",
+      "up-1izee6n1",
+      "up-cfokt7nh",
+      "up-b3l7z90n",
+      "up-aznvio18",
+      "up-pu1h2ezh",
+      "up-25oqn697"
+    ]
+  },
+  {
+    "id": "q-5ebd7c84dff7cd8f",
+    "promptId": "q-5ebd7c84dff7cd8f",
+    "name": "三句话卖橘子",
+    "kind": "text",
+    "skin": "orange",
+    "context": "青绿、干巴、个头小，却甜而多汁、品种稀有还卖得贵。用三句话，让你愿意买这颗橘子。",
+    "workIds": [
+      "up-y11bhlgk",
+      "up-zjd3z94i",
+      "up-0pbefk04",
+      "up-j1rvazc9",
+      "up-my2e0c5d",
+      "up-btjczrzv",
+      "up-v25nen9f",
+      "up-z0mxosia"
+    ]
+  },
+  {
+    "id": "008",
+    "promptId": "008",
+    "name": "深夜聊天",
+    "kind": "text",
+    "skin": "chat",
+    "context": "聊到相遇和分别，哪句回复更懂你？",
+    "workIds": [
+      "008-gemini-3.8-flash",
+      "008-deepseek-v4.1-flash",
+      "008-glm-5.3",
+      "008-minimax-m3",
+      "008-glm-5.3-flash",
+      "008-qwen3.8-max",
+      "008-gpt-6-astra"
+    ]
+  },
+  {
+    "id": "q-a71a7e7e4bcaadc7",
+    "promptId": "q-a71a7e7e4bcaadc7",
+    "name": "弱智吧问答",
+    "kind": "text",
+    "skin": "forum",
+    "context": "不太正经的问题，不太正经的回复。",
+    "workIds": [
+      "up-m1f2e14r",
+      "up-9rqzqr7h",
+      "up-ybcrp0oi",
+      "up-9r0frqx0",
+      "up-l8b3sc7k",
+      "up-kkw4giea",
+      "up-xzzagq2l",
+      "up-4lk9lnuw"
+    ]
+  },
+  {
+    "id": "013",
+    "promptId": "013",
+    "name": "小红帽",
+    "kind": "text",
+    "skin": "forest",
+    "context": "小红帽、外婆、狼、猎人，人设不变。把熟悉的童话，写成一个不同的完整故事。",
+    "workIds": [
+      "up-x91pmv9e",
+      "up-j42t6byq",
+      "up-ypf5gyi3",
+      "up-r70803y0",
+      "up-zf03utba",
+      "up-cv385r7w",
+      "up-3e5was2s",
+      "up-25za98l7"
+    ]
+  },
+  {
+    "id": "q-1b9d4f59c2d7b31e",
+    "promptId": "q-1b9d4f59c2d7b31e",
+    "name": "不说爱的告白",
+    "kind": "text",
+    "skin": "letter",
+    "context": "向暗恋三年的大学同学告白。不能说「爱」「喜欢」「心」「想你」，只用细节，让对方读懂。",
+    "workIds": [
+      "up-fsmp95mf",
+      "up-rvhczbnk",
+      "up-jecw08du",
+      "up-roal3t9g",
+      "up-lon9fajn",
+      "up-33egzuv2",
+      "up-v68bbpte",
+      "up-snjxs9pe"
+    ]
+  },
+  {
+    "id": "q-200d4b7f9c69b79c",
+    "promptId": "q-200d4b7f9c69b79c",
+    "name": "三种文风",
+    "kind": "text",
+    "skin": "channels",
+    "context": "早高峰，电梯坏了，所有人爬十八楼。分别用张爱玲、王家卫和业主群大妈的口吻来写。",
+    "workIds": [
+      "up-z2rnfyjh",
+      "up-4f8p9jl2",
+      "up-rsgpib36",
+      "up-a14ece9d",
+      "up-231qu1hs",
+      "up-0bevvqq8",
+      "up-chf12cad",
+      "up-a3ifsrlm"
+    ]
+  },
+  {
+    "id": "q-b23ef619e82dec65",
+    "promptId": "q-b23ef619e82dec65",
+    "name": "停电",
+    "kind": "text",
+    "skin": "blackout",
+    "context": "写一个不超过 300 字的「停电」故事。最后一句反转，让你回头重新理解前文。",
+    "workIds": ["up-ytycdc4y", "up-1b9fawxf", "up-pec2f6kp", "up-x7ho4obc"]
+  },
+  {
+    "id": "q-bfea3f9d2135205c",
+    "promptId": "q-bfea3f9d2135205c",
+    "name": "等待",
+    "kind": "text",
+    "skin": "waiting",
+    "context": "写一个不超过 200 字的「等待」故事。最后一句反转，而且前面必须埋有伏笔。",
+    "workIds": [
+      "up-dyk6baxd",
+      "up-vx3zx1jp",
+      "up-brrvcfin",
+      "up-0ijunqa4",
+      "up-rukerurm",
+      "up-t1a2gows",
+      "up-82uuxiht",
+      "up-r295yr52"
+    ]
+  }
+]

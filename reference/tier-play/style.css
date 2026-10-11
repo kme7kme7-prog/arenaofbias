@@ -1,0 +1,2491 @@
+:root {
+  --paper: #f2f0e7;
+  --panel: #f9f7ef;
+  --ink: #354438;
+  --muted: #7b8173;
+  --line: #d1d3c4;
+  --accent: #ad583d;
+  --green: #425c45;
+  --shadow: #33442c24;
+  --rim-top: #fffdf5;
+  --rim-right: #d6d4c5;
+  --rim-bottom: #dfddcf;
+  --rim-left: #e6e3d5;
+  color-scheme: light;
+}
+:root[data-theme='ink'] {
+  --paper: #202823;
+  --panel: #29322c;
+  --ink: #ecebdb;
+  --muted: #a5b09e;
+  --line: #465044;
+  --accent: #e3a17e;
+  --green: #b9c8a5;
+  --shadow: #0007;
+  --rim-top: #687262;
+  --rim-right: #394237;
+  --rim-bottom: #444e40;
+  --rim-left: #57614f;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font:
+    15px 'MiSans',
+    system-ui,
+    sans-serif;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button {
+  border: 0;
+  background: none;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button:focus-visible,
+a:focus-visible,
+.work-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+[hidden] {
+  display: none !important;
+}
+svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+p,
+h1,
+h2 {
+  margin: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+.desk {
+  width: min(100%, 1600px);
+  height: 100dvh;
+  max-height: 1180px;
+  margin: auto;
+  padding: 18px clamp(20px, 3vw, 56px) 12px;
+  display: grid;
+  grid-template-rows: 52px minmax(0, 1fr) 76px;
+  gap: 12px;
+}
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+  gap: 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 17px;
+  letter-spacing: 0.045em;
+}
+.brand-mark {
+  width: 31px;
+  display: grid;
+  gap: 3px;
+  transform: skewY(-11deg) skewX(-12deg);
+}
+.brand-mark i {
+  display: block;
+  height: 7px;
+  background: #819878;
+}
+.brand-mark i:nth-child(2) {
+  background: #bf8964;
+  transform: translateX(-4px);
+}
+.edition {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+.edition span {
+  color: var(--muted);
+  margin-left: 9px;
+  font-size: 11px;
+}
+.quiet {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+.quiet:not(:disabled):hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+#theme {
+  border: 1px solid var(--line);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+.game {
+  display: grid;
+  grid-template-rows: 100px minmax(0, 1fr) 174px;
+  gap: 16px;
+  min-height: 0;
+}
+.intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+h1 {
+  font-size: clamp(32px, 2.7vw, 52px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.25;
+}
+h1 em {
+  color: var(--accent);
+  font-style: normal;
+}
+.instructions {
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+  margin-right: 4px;
+}
+.instructions p {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.instructions span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.instructions svg {
+  width: 16px;
+  height: 16px;
+}
+.ranking {
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  min-height: 0;
+}
+.tier-row {
+  --tier: #b76a52;
+  --tier-ink: #fff9ec;
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  min-height: 0;
+  border: 1px solid var(--line);
+  position: relative;
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+}
+.tier-row[data-tier='1'] {
+  --tier: #c99a60;
+  --tier-ink: #3d362b;
+}
+.tier-row[data-tier='2'] {
+  --tier: #d3c887;
+  --tier-ink: #484835;
+}
+.tier-row[data-tier='3'] {
+  --tier: #a9b798;
+  --tier-ink: #344437;
+}
+.tier-row[data-tier='4'] {
+  --tier: #93aaa8;
+  --tier-ink: #2d4647;
+}
+.tier-label {
+  background: var(--tier);
+  color: var(--tier-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: clamp(22px, 1.5vw, 30px);
+  letter-spacing: 0.02em;
+  margin: -1px;
+}
+.tier-label:disabled {
+  opacity: 1;
+}
+.tier-row:has(.is-over) {
+  border-color: var(--tier);
+}
+.row-cards {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  position: relative;
+}
+.dropzone {
+  transition:
+    background 0.16s,
+    box-shadow 0.16s;
+}
+.dropzone.is-over {
+  background: color-mix(in srgb, var(--tier, var(--green)) 13%, var(--panel));
+  box-shadow: inset 0 0 0 2px var(--tier, var(--green));
+}
+.drop-hint {
+  color: var(--muted);
+  font-size: 13px;
+  pointer-events: none;
+  margin: auto;
+  opacity: 0.65;
+  letter-spacing: 0.1em;
+}
+.work-card {
+  position: relative;
+  flex: none;
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  outline: 0;
+  transition: filter 0.15s;
+  min-width: 0;
+}
+.work-card:active {
+  cursor: grabbing;
+}
+.work-card.is-selected .mini-frame {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.work-card.is-dragging {
+  opacity: 0.2;
+}
+.mini-frame {
+  position: relative;
+  border: 5px solid;
+  border-color: var(--rim-top) var(--rim-right) var(--rim-bottom)
+    var(--rim-left);
+  outline: 1px solid color-mix(in srgb, var(--line) 90%, var(--ink));
+  background: var(--paper);
+  box-shadow:
+    0 2px 0 var(--line),
+    0 8px 10px -7px var(--shadow);
+  overflow: hidden;
+  aspect-ratio: 4/3;
+}
+.mini-frame:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 1px 4px #0002;
+  pointer-events: none;
+}
+.mini-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+.card-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 2px 0;
+  font-size: 11px;
+  height: 24px;
+  min-width: 0;
+}
+.card-letter {
+  font:
+    italic 17px Georgia,
+    serif;
+  color: var(--accent);
+  flex: none;
+}
+.card-name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.card-zoom {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 27px;
+  height: 27px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+  z-index: 1;
+  cursor: zoom-in;
+}
+.card-zoom svg {
+  width: 15px;
+  height: 15px;
+}
+.work-card:hover .card-zoom,
+.work-card:focus-within .card-zoom {
+  opacity: 1;
+}
+.card-zoom:hover {
+  background: var(--panel);
+}
+.row-cards .work-card {
+  height: 100%;
+  width: clamp(90px, 8vw, 145px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 21px;
+}
+.row-cards .mini-frame {
+  height: 100%;
+  width: 100%;
+  aspect-ratio: auto;
+  border-width: 3px;
+}
+.row-cards .card-label {
+  height: 21px;
+  padding-top: 3px;
+  font-size: 11px;
+}
+.row-cards .card-zoom {
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+}
+.shelf {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  min-height: 0;
+  padding-top: 6px;
+}
+.shelf-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-right: 16px;
+  gap: 10px;
+}
+.shelf-label h2 {
+  font-size: 16px;
+  font-weight: 500;
+}
+.shelf-label p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 80px;
+}
+.shelf-count {
+  font:
+    18px Georgia,
+    serif;
+  color: var(--muted);
+  margin-top: 6px;
+  letter-spacing: 0.1em;
+}
+.shelf-tray {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px 18px;
+  min-width: 0;
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--line) 37%, transparent),
+    transparent 55%
+  );
+  border-bottom: 2px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.shelf-tray .work-card {
+  width: calc((100% - 112px) /8);
+  max-width: 174px;
+  min-width: 94px;
+  flex-shrink: 0;
+}
+.shelf-tray .card-name {
+  color: var(--muted);
+  font-size: 11px;
+}
+.empty-tray {
+  margin: auto;
+  color: var(--muted);
+  font-size: 16px;
+  font-family: 'LXGW WenKai Lite', serif;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  gap: 20px;
+}
+.actions > p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.primary,
+.secondary {
+  min-height: 44px;
+  padding: 11px 23px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+.primary {
+  background: var(--green);
+  color: var(--paper);
+  border-color: var(--green);
+}
+.primary:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+.secondary {
+  background: var(--panel);
+}
+#reveal {
+  min-width: 198px;
+}
+#reveal > span:last-child {
+  font-size: 23px;
+  line-height: 1;
+}
+.drag-ghost {
+  position: fixed !important;
+  z-index: 9999;
+  pointer-events: none;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 16px 12px #0003);
+  opacity: 1 !important;
+}
+.drag-ghost .card-zoom {
+  display: none;
+}
+.drag-ghost .mini-frame {
+  aspect-ratio: 4/3;
+  height: auto;
+}
+.drag-ghost .card-label {
+  background: var(--panel);
+  padding: 6px;
+  height: auto;
+}
+.drag-active {
+  cursor: grabbing;
+}
+.drag-active * {
+  cursor: grabbing !important;
+}
+.insert-before:before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+dialog {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 20px;
+  max-width: calc(100vw - 28px);
+  box-shadow: 0 24px 90px #0004;
+}
+dialog::backdrop {
+  background: #1a261fcc;
+  backdrop-filter: blur(9px);
+}
+#viewer {
+  width: min(1280px, 92vw);
+  height: min(880px, 93dvh);
+  max-height: 93dvh;
+  overflow: hidden;
+  grid-template-rows: 46px minmax(0, 1fr) 52px 30px;
+  gap: 10px;
+}
+#viewer[open] {
+  display: grid;
+  animation: viewer-in 0.26s ease-out;
+}
+.viewer-top,
+.viewer-top > div {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.viewer-top {
+  justify-content: space-between;
+}
+.viewer-top h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.work-letter {
+  font:
+    italic 30px Georgia,
+    serif;
+  color: var(--accent);
+}
+.icon-button {
+  font:
+    30px Georgia,
+    serif;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.scene-frame {
+  position: relative;
+  min-height: 0;
+  border: 9px solid;
+  border-color: var(--rim-top) var(--rim-right) var(--rim-bottom)
+    var(--rim-left);
+  outline: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 3px 0 var(--line);
+}
+#scene-poster,
+#frame-mount,
+#frame-mount iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+#scene-poster {
+  object-fit: contain;
+}
+#frame-mount {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+#scene[data-ready='true'] #frame-mount {
+  opacity: 1;
+}
+#scene[data-ready='true'] #scene-poster {
+  visibility: hidden;
+}
+#load-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 13px;
+  background: color-mix(in srgb, var(--paper) 66%, transparent);
+  backdrop-filter: blur(3px);
+}
+#load-text {
+  font-size: 13px;
+}
+#scene[data-ready='true'] #load-state {
+  display: none;
+}
+.loading-line {
+  width: 70px;
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.loading-line:after {
+  content: '';
+  display: block;
+  height: 2px;
+  width: 28px;
+  background: var(--accent);
+  animation: loading 1s ease-in-out infinite;
+}
+.viewer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+#quick-tiers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#quick-tiers button {
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 12px;
+  color: var(--ink);
+}
+#quick-tiers button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+}
+.viewer-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.viewer-nav button {
+  font-size: 20px;
+  width: 50px;
+}
+.viewer-nav button:hover {
+  color: var(--accent);
+}
+#confirm-reset {
+  max-width: 420px;
+  padding: 32px;
+}
+#confirm-reset h2 {
+  font-size: 23px;
+  font-weight: 500;
+}
+#confirm-reset p {
+  margin: 18px 0 30px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+#confirm-reset > div {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+body[data-revealed='true'] .work-card {
+  cursor: default;
+}
+body[data-revealed='true'] .card-name {
+  font-size: 11px;
+  color: var(--ink);
+}
+body[data-revealed='true'] #headline em {
+  color: var(--green);
+}
+.desk[data-entered='false'] .game {
+  opacity: 0;
+}
+.desk[data-entered='true'] .ranking {
+  animation: viewer-in 0.45s ease-out;
+}
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes loading {
+  0% {
+    transform: translateX(-28px);
+  }
+  100% {
+    transform: translateX(70px);
+  }
+}
+@media (min-width: 2100px) and (min-height: 1000px) {
+  .desk {
+    padding-top: 30px;
+  }
+  .game {
+    grid-template-rows: 125px minmax(0, 1fr) 210px;
+    gap: 22px;
+  }
+  .row-cards .work-card {
+    width: 160px;
+  }
+  .row-cards {
+    gap: 14px;
+    padding: 8px 18px;
+  }
+  .shelf-tray .work-card {
+    max-width: 180px;
+  }
+  .shelf-tray {
+    gap: 18px;
+    padding-inline: 18px;
+  }
+  .instructions p {
+    font-size: 17px;
+  }
+  .card-label {
+    font-size: 12px;
+  }
+}
+@media (max-height: 760px) and (min-width: 801px) {
+  .desk {
+    padding-top: 10px;
+    grid-template-rows: 44px minmax(0, 1fr) 54px;
+    gap: 8px;
+  }
+  .game {
+    grid-template-rows: 76px minmax(0, 1fr) 132px;
+    gap: 10px;
+  }
+  h1 {
+    font-size: 36px;
+  }
+  .ranking {
+    gap: 5px;
+  }
+  .row-cards {
+    padding: 4px 12px;
+    gap: 8px;
+  }
+  .shelf-tray .work-card {
+    max-width: 116px;
+  }
+  .row-cards .work-card {
+    width: 100px;
+  }
+  .shelf-tray {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+  .tier-row,
+  .shelf {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .card-label {
+    font-size: 10px;
+  }
+  .shelf-label p {
+    display: none;
+  }
+  .shelf-count {
+    font-size: 15px;
+  }
+  .tier-label {
+    font-size: 22px;
+  }
+  .primary,
+  .secondary {
+    min-height: 40px;
+    padding: 8px 18px;
+  }
+}
+@media (max-width: 1100px) {
+  .brand {
+    font-size: 14px;
+  }
+  .edition span {
+    display: none;
+  }
+  .instructions p {
+    max-width: 240px;
+    line-height: 1.6;
+    font-size: 13px;
+  }
+  .desk {
+    padding-inline: 22px;
+  }
+  .shelf-tray {
+    gap: 11px;
+  }
+  .row-cards {
+    gap: 8px;
+  }
+  .row-cards .work-card {
+    width: 104px;
+  }
+  .row-cards .card-name {
+    max-width: 75px;
+  }
+}
+@media (max-width: 800px) {
+  .desk {
+    height: 100dvh;
+    min-height: 660px;
+    padding: 8px 14px;
+    grid-template-rows: 44px minmax(0, 1fr) 92px;
+    gap: 8px;
+  }
+  .brand {
+    font-size: 12px;
+    gap: 10px;
+  }
+  .brand-mark {
+    width: 23px;
+    gap: 2px;
+  }
+  .brand-mark i {
+    height: 5px;
+  }
+  .edition {
+    display: none;
+  }
+  .masthead {
+    padding-bottom: 8px;
+  }
+  .game {
+    grid-template-rows: 92px minmax(280px, 1fr) 136px;
+    gap: 10px;
+  }
+  .intro {
+    gap: 10px;
+    align-items: center;
+  }
+  .eyebrow {
+    margin-bottom: 5px;
+    font-size: 10px;
+  }
+  h1 {
+    font-size: 28px;
+  }
+  .instructions {
+    border: 0;
+    padding: 0;
+    align-self: flex-end;
+    margin-bottom: 15px;
+  }
+  .instructions p {
+    display: none;
+  }
+  .instructions span {
+    font-size: 10px;
+    max-width: 94px;
+    line-height: 1.8;
+    display: block;
+  }
+  .instructions svg {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+  }
+  .tier-row {
+    grid-template-columns: 57px minmax(0, 1fr);
+  }
+  .tier-label {
+    font-size: 18px;
+  }
+  .ranking {
+    gap: 5px;
+  }
+  .row-cards {
+    gap: 7px;
+    padding: 4px 8px;
+  }
+  .row-cards .work-card {
+    width: 91px;
+    min-height: 0;
+  }
+  .card-zoom {
+    opacity: 1;
+    width: 25px;
+    height: 25px;
+    right: 5px;
+    top: 5px;
+  }
+  .row-cards .card-zoom {
+    width: 22px;
+    height: 22px;
+  }
+  .shelf {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .shelf-label {
+    flex-direction: row;
+    padding: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .shelf-label h2 {
+    font-size: 12px;
+  }
+  .shelf-label p {
+    display: none;
+  }
+  .shelf-count {
+    margin: 0;
+    font-size: 12px;
+  }
+  .shelf-tray {
+    padding: 3px 4px 9px;
+    gap: 11px;
+    flex: 1;
+  }
+  .shelf-tray .work-card {
+    min-width: 104px;
+    width: 104px;
+  }
+  .shelf-tray .card-name {
+    display: none;
+  }
+  .shelf-tray .card-label {
+    padding-top: 2px;
+    height: 19px;
+  }
+  .shelf-tray .mini-frame {
+    border-width: 4px;
+  }
+  .drop-hint {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .actions {
+    flex-wrap: wrap;
+    gap: 2px;
+    padding-top: 7px;
+    align-content: space-between;
+  }
+  .actions > p {
+    width: 100%;
+    font-size: 11px;
+  }
+  .action-buttons {
+    width: 100%;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .quiet {
+    font-size: 12px;
+    padding: 8px;
+  }
+  #reveal {
+    min-width: 132px;
+    gap: 16px;
+  }
+  .primary,
+  .secondary {
+    min-height: 39px;
+    padding: 9px 14px;
+    font-size: 12px;
+  }
+  #export {
+    margin-left: auto;
+  }
+  #viewer {
+    height: 92dvh;
+    width: 96vw;
+    padding: 12px;
+    grid-template-rows: 42px minmax(0, 1fr) 82px 28px;
+    gap: 9px;
+  }
+  .viewer-bottom {
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+  }
+  .viewer-bottom > span {
+    font-size: 10px;
+  }
+  #quick-tiers {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  #quick-tiers button {
+    padding: 8px 12px;
+  }
+  .viewer-top h2 {
+    font-size: 14px;
+  }
+  .scene-frame {
+    border-width: 6px;
+  }
+  .empty-tray {
+    font-size: 13px;
+  }
+  body[data-revealed='true'] .actions .quiet {
+    font-size: 11px;
+    padding: 6px;
+  }
+  body[data-revealed='true'] #reveal {
+    display: none;
+  }
+}
+.sr-only {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+.desk {
+  grid-template-columns: minmax(0, 1fr);
+}
+.game,
+.shelf,
+.intro {
+  min-width: 0;
+}
+.tier-label {
+  padding: 0;
+}
+.shelf-paging {
+  display: none;
+}
+#scene[data-ready='true'] #scene-poster {
+  visibility: visible;
+}
+#scene[data-live='true'] #scene-poster {
+  visibility: hidden;
+}
+.row-cards .work-card {
+  width: 185px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.row-cards .mini-frame {
+  height: 100%;
+  width: auto;
+  aspect-ratio: 4/3;
+  flex: none;
+}
+.row-cards .card-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  height: auto;
+  padding: 0;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.row-cards .card-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  line-height: 1.3;
+  max-height: 3.9em;
+  max-width: 100%;
+}
+.row-cards .card-letter {
+  font-size: 19px;
+}
+.row-cards .card-zoom {
+  right: auto;
+  left: 4px;
+}
+@media (max-width: 1100px), (max-height: 760px) {
+  .row-cards .work-card {
+    width: 143px;
+    gap: 7px;
+  }
+}
+@media (max-width: 800px) {
+  .row-cards .work-card {
+    width: 180px;
+    gap: 8px;
+    touch-action: pan-x;
+  }
+  .shelf-tray .work-card {
+    touch-action: pan-x;
+  }
+  .row-cards .card-name {
+    font-size: 10px;
+  }
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 11px;
+  }
+  .row-cards .card-letter {
+    font-size: 18px;
+  }
+  .shelf-paging {
+    display: flex;
+    gap: 6px;
+  }
+  .shelf-paging button {
+    width: 30px;
+    height: 25px;
+    border: 1px solid var(--line);
+  }
+  .shelf-count {
+    margin-left: auto;
+  }
+  .shelf-label {
+    gap: 12px;
+  }
+  body[data-revealed='true'] .instructions {
+    display: none;
+  }
+}
+/* Sorting and reveal share geometry; only the contents of each card turn over. */
+.game {
+  grid-template-rows: 28px minmax(0, 1fr) 174px;
+  gap: 12px;
+}
+.intro .topic {
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.actions > p,
+.actions .quiet {
+  font-size: 14px;
+}
+.actions .primary,
+.actions .secondary {
+  min-height: 48px;
+  font-size: 16px;
+}
+.ranking {
+  gap: 7px;
+  border: 0;
+}
+.tier-row {
+  grid-template-columns: 108px minmax(0, 1fr);
+  border: 1px solid var(--line);
+}
+.tier-label {
+  margin: 0;
+  border-right: 0;
+  font-size: clamp(22px, 1.5vw, 30px);
+  font-weight: 600;
+}
+.row-cards {
+  gap: 8px;
+  padding: 4px 6px;
+}
+.shelf {
+  grid-template-columns: 108px minmax(0, 1fr);
+}
+.shelf-tray {
+  min-height: 0;
+  padding: 4px 8px 7px;
+  overflow-y: hidden;
+}
+.shelf-tray .work-card {
+  display: grid;
+  height: auto;
+  width: calc((100% - 112px) / 8);
+  min-width: 94px;
+  max-width: 145px;
+  aspect-ratio: auto;
+  grid-template-rows: auto 20px;
+  gap: 3px;
+}
+.shelf-tray .mini-frame {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-width: 3px;
+}
+.shelf-tray .card-label {
+  height: 20px;
+  padding: 0;
+}
+.model-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  pointer-events: none;
+}
+.model-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: auto;
+  height: 84%;
+  max-width: 84%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  padding: 0;
+  color-scheme: light;
+}
+.row-cards .work-card {
+  display: grid;
+  height: min(100%, 80px);
+  width: auto;
+  aspect-ratio: 1;
+  grid-template-rows: minmax(0, 1fr) 24px;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid #e0e1d9;
+  border-radius: 4px;
+  background: #fffefa;
+  box-shadow: 0 2px 5px var(--shadow);
+}
+.row-cards .mini-frame {
+  height: 100%;
+  width: 100%;
+  aspect-ratio: auto;
+  border-width: 3px;
+}
+.row-cards .card-label {
+  width: 100%;
+  height: 24px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.row-cards .card-letter {
+  font-size: 14px;
+}
+.row-cards .card-name,
+body[data-revealed='true'] .row-cards .card-name {
+  color: #354438;
+  font-size: 10px;
+  line-height: 12px;
+  white-space: normal;
+  text-align: center;
+  max-height: none;
+  max-width: 100%;
+}
+.row-cards .card-zoom {
+  left: auto;
+  right: 4px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+}
+body[data-revealed='true'] .row-cards .work-card {
+  cursor: pointer;
+}
+.row-cards .work-card:hover {
+  border-color: var(--accent);
+}
+@media (min-width: 2100px) and (min-height: 1000px) {
+  .desk {
+    width: min(100%, 1720px);
+    grid-template-rows: 52px minmax(0, 1fr) 84px;
+  }
+  .game {
+    grid-template-rows: 32px minmax(0, 1fr) 190px;
+    gap: 16px;
+  }
+  .intro .topic {
+    font-size: 18px;
+  }
+  .tier-row,
+  .shelf {
+    grid-template-columns: 128px minmax(0, 1fr);
+  }
+  .shelf-tray .work-card {
+    max-width: 170px;
+  }
+  .row-cards .work-card {
+    height: min(100%, 96px);
+  }
+  .row-cards .card-name,
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 11px;
+    line-height: 12px;
+  }
+}
+@media (max-width: 1100px), (max-height: 850px) {
+  .game {
+    grid-template-rows: 28px minmax(0, 1fr) 112px;
+    gap: 12px;
+  }
+  .row-cards .work-card {
+    grid-template-rows: minmax(0, 1fr) 24px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .row-cards .card-label {
+    height: 24px;
+  }
+  .row-cards .card-letter {
+    font-size: 14px;
+  }
+  .row-cards .card-name,
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 10px;
+    line-height: 12px;
+  }
+  .row-cards {
+    padding: 4px 6px;
+    gap: 6px;
+  }
+  .shelf-tray .work-card {
+    max-width: 106px;
+  }
+}
+@media (max-height: 760px) and (min-width: 801px) {
+  .game {
+    grid-template-rows: 24px minmax(0, 1fr) 76px;
+    gap: 8px;
+  }
+  .intro h1 {
+    font-size: 32px;
+  }
+  .tier-label {
+    font-size: 28px;
+  }
+  .row-cards {
+    padding: 3px;
+  }
+  .ranking {
+    gap: 3px;
+  }
+  .row-cards .work-card {
+    padding: 3px;
+  }
+  .shelf-tray .work-card {
+    max-width: 76px;
+    min-width: 72px;
+  }
+  .row-cards .card-name,
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 10px;
+    line-height: 12px;
+  }
+  .shelf-label {
+    gap: 5px;
+  }
+  .shelf-count {
+    margin-top: 0;
+  }
+}
+@media (max-width: 800px) {
+  .game {
+    grid-template-rows: 28px minmax(280px, 1fr) 132px;
+    gap: 10px;
+  }
+  .intro h1 {
+    font-size: 28px;
+  }
+  .tier-row {
+    grid-template-columns: 57px minmax(0, 1fr);
+  }
+  .tier-label {
+    font-size: 18px;
+  }
+  .shelf {
+    padding-top: 0;
+  }
+  .actions > p {
+    font-size: 11px;
+  }
+  .actions .quiet {
+    font-size: 12px;
+  }
+  .actions .primary,
+  .actions .secondary {
+    min-height: 44px;
+    font-size: 13px;
+  }
+}
+/* The board keeps its compact geometry; only the frequently viewed shelf grows. */
+.game {
+  grid-template-rows: 28px minmax(0, 1fr) 206px;
+}
+#change-topic {
+  padding: 4px 12px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.shelf-tray {
+  gap: 14px;
+  padding: 4px 8px 10px;
+  scroll-snap-type: x proximity;
+  align-items: stretch;
+}
+.shelf-tray .work-card {
+  width: 194px;
+  min-width: 194px;
+  max-width: none;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 36px;
+  gap: 6px;
+  scroll-snap-align: start;
+}
+.shelf-tray .mini-frame {
+  min-height: 0;
+  aspect-ratio: auto;
+}
+.shelf-tray .card-label {
+  height: 36px;
+  padding-right: 86px;
+  padding-top: 0;
+  gap: 6px;
+}
+.shelf-tray .card-letter {
+  font-size: 23px;
+}
+.shelf-tray .card-name {
+  font-size: 12px;
+}
+.card-zoom {
+  opacity: 1;
+}
+.row-cards .card-zoom span {
+  display: none;
+}
+.shelf-tray .card-zoom {
+  top: auto;
+  right: 0;
+  bottom: 2px;
+  width: 82px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  background: var(--panel);
+}
+.shelf-paging {
+  display: flex;
+  gap: 6px;
+}
+.shelf-paging button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  font-size: 18px;
+}
+.text-card .mini-frame {
+  border-width: 1px;
+  border-color: var(--line);
+  background: var(--panel);
+}
+.text-excerpt {
+  margin: 0;
+  padding: 14px;
+  font:
+    14px/1.7 'LXGW WenKai Lite',
+    serif;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.text-card .mini-frame:after {
+  background: linear-gradient(transparent 60%, var(--panel));
+  box-shadow: none;
+}
+.row-cards .text-excerpt {
+  padding: 5px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.text-card .mini-frame {
+  box-shadow:
+    2px 3px 0 var(--rim-bottom),
+    0 5px 10px -6px var(--shadow);
+}
+body[data-skin='chat'] .text-excerpt {
+  font-family: 'MiSans', sans-serif;
+  font-size: 12px;
+}
+body[data-skin='forum'] .text-card .mini-frame {
+  border-top: 3px solid #6c878d;
+}
+#viewer[open] {
+  animation: none;
+  transform-origin: center;
+}
+#viewer[data-kind='text'] {
+  width: min(960px, 94vw);
+}
+#viewer[data-kind='text'][data-length='short'] {
+  height: min(540px, 90dvh);
+}
+#viewer[data-length='short'] #text-reader {
+  display: flex;
+  flex-direction: column;
+}
+#viewer[data-length='short'] #text-story {
+  margin: auto;
+  width: 100%;
+  font-size: 24px;
+}
+#viewer::backdrop {
+  animation: backdrop-in 0.24s ease-out;
+}
+#viewer[data-closing='true'] #load-state {
+  display: none;
+}
+#scene[data-kind='text'] {
+  border-width: 1px;
+  border-color: var(--line);
+  box-shadow: 2px 3px 0 var(--rim-bottom);
+}
+#scene[data-kind='text'] > #scene-poster,
+#scene[data-kind='text'] > #frame-mount,
+#scene[data-kind='text'] > #load-state {
+  display: none;
+}
+#text-reader {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  padding: 32px clamp(22px, 4vw, 64px) 48px;
+}
+#text-context {
+  max-width: 740px;
+  margin: 0 auto 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+#text-story {
+  max-width: 740px;
+  margin: auto;
+  font:
+    20px/1.9 'LXGW WenKai Lite',
+    serif;
+  overflow-wrap: anywhere;
+}
+#text-story p {
+  margin: 0 0 1.25em;
+  white-space: pre-wrap;
+}
+#text-story p:last-child {
+  margin-bottom: 0;
+}
+#text-story .story-heading {
+  font-weight: 600;
+  font-size: 23px;
+}
+#scene[data-skin='chat'] #text-context {
+  max-width: 600px;
+  margin-left: auto;
+  padding: 16px 22px;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--green) 16%, var(--panel));
+  color: var(--ink);
+  font-size: 18px;
+}
+#scene[data-skin='chat'] #text-story {
+  max-width: 650px;
+  font:
+    17px/1.85 'MiSans',
+    sans-serif;
+}
+#scene[data-skin='chat'] #text-story p {
+  width: 92%;
+  padding: 16px 22px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+#scene[data-skin='forum'] #text-context {
+  color: #6c878d;
+  font:
+    19px/1.75 'MiSans',
+    sans-serif;
+}
+#scene[data-skin='letter'] #text-story {
+  line-height: 2.15;
+}
+.viewer-nav button {
+  width: 76px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+}
+#quick-tiers button {
+  min-height: 40px;
+  font-size: 14px;
+}
+@keyframes backdrop-in {
+  from {
+    background: #1a261f00;
+    backdrop-filter: blur(0);
+  }
+  to {
+    background: #1a261fcc;
+    backdrop-filter: blur(9px);
+  }
+}
+@media (min-width: 2100px) and (min-height: 1000px) {
+  .game {
+    grid-template-rows: 32px minmax(0, 1fr) 238px;
+  }
+  .shelf-tray .work-card {
+    width: 230px;
+    min-width: 230px;
+    max-width: none;
+  }
+  .text-excerpt {
+    font-size: 16px;
+    padding: 18px;
+  }
+  #viewer {
+    width: min(1500px, 92vw);
+    height: min(1020px, 93dvh);
+  }
+  #viewer[data-kind='text'] {
+    width: 1050px;
+  }
+  #text-story {
+    font-size: 22px;
+  }
+}
+@media (max-height: 850px) and (min-width: 801px) {
+  .game {
+    grid-template-rows: 28px minmax(0, 1fr) 168px;
+    gap: 10px;
+  }
+  .shelf-tray .work-card {
+    width: 166px;
+    min-width: 166px;
+    max-width: none;
+  }
+  .text-excerpt {
+    font-size: 13px;
+    padding: 10px;
+  }
+}
+@media (max-height: 660px) and (min-width: 801px) {
+  .game {
+    grid-template-rows: 28px minmax(0, 1fr) 140px;
+    gap: 8px;
+  }
+  .shelf-tray .work-card {
+    width: 144px;
+    min-width: 144px;
+  }
+  .shelf-tray .card-name {
+    display: none;
+  }
+  .shelf-label {
+    gap: 5px;
+  }
+  .shelf-label p {
+    display: none;
+  }
+  .row-cards .work-card {
+    grid-template-rows: minmax(0, 1fr) 20px;
+    padding: 2px;
+  }
+  .row-cards .card-label {
+    height: 20px;
+    padding-top: 0;
+  }
+  .row-cards .card-name,
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 8px;
+    line-height: 10px;
+  }
+  body[data-revealed='false'] .row-cards .card-name {
+    display: none;
+  }
+  #text-reader {
+    padding-top: 20px;
+  }
+}
+@media (max-width: 800px) {
+  .game {
+    grid-template-rows: 32px minmax(240px, 1fr) 174px;
+    gap: 10px;
+  }
+  .intro .topic {
+    font-size: 14px;
+  }
+  #change-topic {
+    font-size: 12px;
+    padding-inline: 8px;
+  }
+  .shelf-tray .work-card {
+    width: 166px;
+    min-width: 166px;
+    max-width: none;
+  }
+  .shelf-tray {
+    padding-left: 4px;
+  }
+  .shelf-label {
+    padding-right: 8px;
+    gap: 6px;
+  }
+  .shelf-label p {
+    display: none;
+  }
+  .shelf-label h2 {
+    font-size: 13px;
+  }
+  .shelf-paging {
+    gap: 3px;
+  }
+  .shelf-paging button {
+    width: 26px;
+  }
+  .shelf-count {
+    font-size: 14px;
+    margin-top: 0;
+  }
+  #viewer {
+    padding: 12px;
+    grid-template-rows: 40px minmax(0, 1fr) 68px 34px;
+    gap: 8px;
+  }
+  .viewer-bottom {
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+  }
+  #viewer-hint {
+    font-size: 11px;
+  }
+  #reset-view {
+    position: absolute;
+    top: 15px;
+    right: 60px;
+    font-size: 11px;
+    padding: 8px 4px;
+  }
+  .viewer-top h2 {
+    font-size: 14px;
+    max-width: 190px;
+  }
+  .viewer-top > div {
+    gap: 8px;
+  }
+  #text-reader {
+    padding: 22px 18px 32px;
+  }
+  #text-context {
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+  #text-story {
+    font-size: 18px;
+    line-height: 1.9;
+  }
+  #viewer[data-length='short'] #text-story {
+    font-size: 20px;
+  }
+  #scene[data-skin='chat'] #text-story {
+    font-size: 16px;
+  }
+  #scene[data-skin='chat'] #text-story p {
+    width: 100%;
+    padding: 12px 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The board owns the height. Anonymous faces use the entire tile, not a thumbnail slot. */
+.desk {
+  --tray-height: 122px;
+  --topic-height: 32px;
+}
+body[data-kind='text'] .desk {
+  --topic-height: 62px;
+}
+.game {
+  grid-template-rows: var(--topic-height) minmax(0, 1fr) var(--tray-height);
+  gap: 10px;
+}
+.intro {
+  gap: 24px;
+  min-width: 0;
+}
+.topic-heading {
+  flex: none;
+  display: grid;
+  gap: 3px;
+}
+.intro .topic {
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+#topic-context {
+  flex: 1;
+  max-width: 900px;
+  font-size: 16px;
+  line-height: 1.6;
+  text-wrap: pretty;
+  color: var(--ink);
+  padding-left: 22px;
+  border-left: 2px solid var(--line);
+}
+#show-prompt {
+  width: fit-content;
+  padding: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+#show-prompt:hover {
+  color: var(--accent);
+}
+#change-topic {
+  margin-left: auto;
+  flex: none;
+}
+.ranking {
+  gap: 4px;
+}
+.tier-row,
+.shelf {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+.tier-label {
+  font-size: 26px;
+}
+.row-cards {
+  padding: 4px 7px;
+  gap: 7px;
+}
+.row-cards .work-card {
+  height: min(100%, 112px);
+  width: auto;
+  min-width: 0;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  background: var(--panel);
+  border: 0;
+  border-radius: 2px;
+}
+.row-cards .mini-frame {
+  width: 100%;
+  height: 100%;
+  border-width: 3px;
+}
+.row-cards .card-label,
+.shelf-tray .card-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: auto;
+  bottom: auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 1px;
+  background: var(--panel);
+  box-shadow: 0 1px 3px var(--shadow);
+  pointer-events: none;
+}
+.row-cards .card-letter,
+.shelf-tray .card-letter {
+  font:
+    italic 16px Georgia,
+    serif;
+  color: var(--accent);
+}
+body[data-revealed='false'] .work-card .card-name {
+  display: none;
+}
+.row-cards .card-zoom,
+.shelf-tray .card-zoom {
+  top: 4px;
+  right: 4px;
+  left: auto;
+  bottom: auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  opacity: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.row-cards .card-zoom span,
+.shelf-tray .card-zoom span {
+  display: none;
+}
+.work-card:hover .card-zoom,
+.work-card:focus-within .card-zoom {
+  opacity: 1;
+}
+.work-card .mini-frame {
+  transition:
+    outline-color 0.15s,
+    box-shadow 0.15s;
+}
+.work-card:hover .mini-frame {
+  outline: 1px solid var(--accent);
+  box-shadow: 0 3px 9px var(--shadow);
+}
+.shelf {
+  padding: 6px 0 0;
+}
+.shelf-label {
+  gap: 6px;
+  padding-right: 8px;
+}
+.shelf-label h2 {
+  font-size: 14px;
+}
+.shelf-count {
+  font-size: 14px;
+  margin: 0;
+}
+.shelf-paging {
+  gap: 5px;
+}
+.shelf-paging button {
+  width: 28px;
+  height: 26px;
+  font-size: 17px;
+}
+.shelf-tray {
+  align-items: center;
+  padding: 4px 7px 8px;
+  gap: 10px;
+}
+.shelf-tray .work-card {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+.shelf-tray .mini-frame {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-width: 3px;
+}
+body[data-revealed='true'] .row-cards .work-card {
+  grid-template-rows: minmax(0, 1fr) 26px;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 6px;
+  background: #fffefa;
+  box-shadow: 0 2px 5px var(--shadow);
+}
+body[data-revealed='true'] .row-cards .card-label {
+  position: static;
+  width: 100%;
+  height: 26px;
+  background: none;
+  box-shadow: none;
+  display: flex;
+}
+body[data-revealed='true'] .row-cards .card-name {
+  display: block;
+  color: #354438;
+  font-size: 10px;
+  line-height: 12px;
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: normal;
+}
+/* Paper slips are excerpts, with the shared question always outside the answer cards. */
+.text-card .mini-frame {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  outline: 0;
+}
+body[data-skin] .text-card .mini-frame:after {
+  background: linear-gradient(transparent 70%, var(--panel));
+}
+.excerpt-kind {
+  display: block;
+  height: 29px;
+  padding: 7px 5px 0 32px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+.row-cards .text-excerpt,
+.shelf-tray .text-excerpt,
+body[data-skin='chat'] .text-excerpt {
+  padding: 2px 9px 9px;
+  font:
+    13px/1.65 'LXGW WenKai Lite',
+    serif;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shelf-tray .text-card {
+  aspect-ratio: 1.45;
+}
+body[data-skin='chat'] .text-card .mini-frame {
+  background: color-mix(in srgb, var(--green) 6%, var(--panel));
+}
+body[data-skin='chat'] .text-excerpt {
+  font-family: 'MiSans', sans-serif;
+  font-size: 12px;
+}
+body[data-skin='letter'] .text-card .mini-frame {
+  background: color-mix(in srgb, var(--accent) 4%, var(--panel));
+}
+body[data-skin='forest'] .text-card .mini-frame {
+  border-left: 3px solid var(--green);
+}
+#prompt-dialog {
+  width: min(720px, 92vw);
+  max-height: 86dvh;
+  padding: 24px 30px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+#prompt-dialog::backdrop {
+  background: #18241b60;
+  backdrop-filter: blur(4px);
+}
+#prompt-title {
+  font-size: 22px;
+  font-weight: 500;
+}
+#prompt-body {
+  margin-top: 24px;
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.9;
+}
+@media (min-width: 2100px) and (min-height: 1000px) {
+  .desk {
+    --tray-height: 150px;
+    max-height: 1180px;
+  }
+  body[data-kind='text'] .desk {
+    --topic-height: 72px;
+  }
+  .tier-row,
+  .shelf {
+    grid-template-columns: 108px minmax(0, 1fr);
+  }
+  .row-cards .work-card {
+    height: min(100%, 138px);
+  }
+  .row-cards .card-letter,
+  .shelf-tray .card-letter {
+    font-size: 18px;
+  }
+  .row-cards .text-excerpt,
+  .shelf-tray .text-excerpt {
+    font-size: 15px;
+  }
+  #topic-context {
+    font-size: 19px;
+  }
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 12px;
+    line-height: 13px;
+  }
+}
+@media (max-height: 760px) and (min-width: 801px) {
+  .desk {
+    --tray-height: 104px;
+  }
+  body[data-kind='text'] .desk {
+    --topic-height: 58px;
+  }
+  .row-cards {
+    padding: 3px 6px;
+  }
+  .row-cards .work-card {
+    height: 100%;
+  }
+  .tier-row,
+  .shelf {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .tier-label {
+    font-size: 25px;
+  }
+  #topic-context {
+    font-size: 14px;
+  }
+  .intro {
+    gap: 18px;
+  }
+  .actions .primary,
+  .actions .secondary {
+    min-height: 44px;
+  }
+}
+@media (max-height: 650px) and (min-width: 801px) {
+  .desk {
+    --tray-height: 90px;
+  }
+  body[data-revealed='true'] .row-cards .work-card {
+    padding: 3px;
+    grid-template-rows: minmax(0, 1fr) 24px;
+  }
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 9px;
+    line-height: 11px;
+  }
+}
+@media (max-width: 800px) {
+  .desk {
+    --tray-height: 126px;
+    --topic-height: 32px;
+  }
+  body[data-kind='text'] .desk {
+    --topic-height: 112px;
+  }
+  .game {
+    grid-template-rows: var(--topic-height) minmax(0, 1fr) var(--tray-height);
+    gap: 8px;
+  }
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+  .topic-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .intro .topic {
+    font-size: 15px;
+  }
+  #show-prompt {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  #change-topic {
+    grid-row: 1;
+    grid-column: 2;
+    min-height: 28px;
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  #topic-context {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    line-height: 1.65;
+    padding-left: 9px;
+  }
+  .tier-row {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  .tier-label {
+    font-size: 17px;
+  }
+  .row-cards {
+    padding: 4px;
+    gap: 6px;
+  }
+  .row-cards .work-card {
+    height: 100%;
+  }
+  .shelf {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    gap: 4px;
+  }
+  .shelf-label {
+    flex-direction: row;
+    gap: 8px;
+    padding: 0;
+  }
+  .shelf-label h2 {
+    font-size: 12px;
+  }
+  .shelf-paging button {
+    height: 23px;
+  }
+  .shelf-tray {
+    padding: 3px 4px 6px;
+  }
+  .row-cards .text-excerpt {
+    font-size: 11px;
+    padding: 0 5px;
+  }
+  .excerpt-kind {
+    font-size: 9px;
+    height: 27px;
+    padding-left: 28px;
+  }
+  .row-cards .card-label {
+    width: 20px;
+    height: 20px;
+  }
+  #prompt-dialog {
+    padding: 16px;
+  }
+}
+
+/* Desktop: a full-height board and a two-column waiting rack share the same work area. */
+@media (min-width: 801px) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: var(--topic-height) minmax(0, 1fr);
+    gap: 12px 22px;
+  }
+  .intro {
+    grid-column: 1 / -1;
+  }
+  .ranking {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .shelf {
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 30px minmax(0, 1fr);
+    gap: 8px;
+    padding: 0;
+    min-width: 0;
+  }
+  .shelf-label {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+  }
+  .shelf-count {
+    margin-left: auto;
+    font-size: 13px;
+  }
+  .shelf-paging {
+    display: none;
+  }
+  .shelf-tray {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding: 2px 2px 5px;
+    align-items: start;
+    align-content: start;
+    background: none;
+    border-bottom: 0;
+    overflow: auto;
+  }
+  .shelf-tray .work-card {
+    width: 100%;
+    min-width: 0;
+    height: min(100%, 132px);
+    max-height: none;
+    aspect-ratio: auto;
+  }
+  .shelf-tray .empty-tray {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    align-self: center;
+    text-align: center;
+    line-height: 2;
+    padding: 20px;
+  }
+  .row-cards .work-card {
+    height: min(100%, 132px);
+    aspect-ratio: 4 / 3;
+  }
+  .row-cards .text-card {
+    aspect-ratio: 1.9;
+  }
+  .row-cards .text-excerpt {
+    font-size: 14px;
+    padding: 3px 10px 8px;
+    line-height: 1.6;
+  }
+  .row-cards .excerpt-kind {
+    font-size: 11px;
+  }
+  body[data-revealed='true'] .row-cards .work-card {
+    grid-template-rows: minmax(0, 1fr) 26px;
+    padding: 5px 8px;
+  }
+  body[data-revealed='true'] .row-cards .card-name {
+    font-size: 11px;
+    line-height: 13px;
+  }
+  .shelf-tray .text-excerpt {
+    padding: 3px 10px 8px;
+    font-size: 14px;
+  }
+}
+@media (min-width: 2100px) and (min-height: 1000px) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) 440px;
+    gap: 14px 28px;
+  }
+  .row-cards .work-card {
+    height: min(100%, 150px);
+  }
+  .shelf-tray .work-card {
+    height: min(100%, 165px);
+  }
+  .shelf-tray .text-excerpt,
+  .row-cards .text-excerpt {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+}
+@media (min-width: 801px) and (max-width: 1150px) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 10px 14px;
+  }
+  .tier-row {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+  .tier-label {
+    font-size: 22px;
+  }
+}
+@media (min-width: 801px) and (max-height: 760px) {
+  #topic-context {
+    font-size: 16px;
+  }
+}
+@media (min-width: 801px) {
+  .shelf-label p {
+    display: none;
+  }
+  .shelf-tray {
+    max-height: 560px;
+    height: 100%;
+    align-self: start;
+  }
+  .shelf-tray .work-card {
+    height: 100%;
+  }
+  body[data-skin='chat'] .text-excerpt {
+    font-size: 14px;
+  }
+}
+@media (max-width: 800px) {
+  .row-cards .text-card {
+    aspect-ratio: 2;
+  }
+  .row-cards .text-excerpt {
+    font-size: 12px;
+  }
+}
+.row-cards .card-zoom,
+.shelf-tray .card-zoom {
+  color: var(--ink);
+}
+
+/* Keep the revealed faces square and pack them with a small, even gutter. */
+body[data-revealed='true'] .row-cards .work-card {
+  isolation: isolate;
+  container-type: size;
+  aspect-ratio: 1;
+  background: transparent;
+  box-shadow: none;
+  padding: 11px 0;
+}
+body[data-revealed='true'] .row-cards .work-card::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  height: calc(100% - 12px);
+  width: auto;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 6px;
+  background: #fffefa;
+  box-shadow: 0 2px 5px var(--shadow);
+}
+body[data-revealed='true'] .row-cards .model-face,
+body[data-revealed='true'] .row-cards .card-label {
+  width: calc(100cqh - 6px);
+  justify-self: center;
+}
+body[data-revealed='true'] .row-cards .card-name {
+  font-size: clamp(8px, 15cqh, 11px);
+  line-height: 12px;
+}
+@media (max-width: 800px) {
+  body[data-revealed='true'] .row-cards .work-card {
+    padding: 10px 0;
+  }
+  body[data-revealed='true'] .row-cards .work-card::before {
+    top: 5px;
+    height: calc(100% - 10px);
+  }
+}
