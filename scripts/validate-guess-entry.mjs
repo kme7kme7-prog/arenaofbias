@@ -8,8 +8,9 @@ import { chromium } from 'playwright-core';
 
 const source = await readFile(new URL('../lib/game-transitions.ts', import.meta.url), 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`;
+const moduleUrl = '/__transition-review.js';
 const app = express();
+app.get(moduleUrl, (_req, res) => res.type('application/javascript').send(compiled));
 app.use(express.static(fileURLToPath(new URL('../dist/', import.meta.url))));
 const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -40,7 +41,8 @@ try {
       ? { dayKey: '2026-10-01', dayNumber: 1, attributes: ['vendor', 'released', 'openWeights', 'contextK', 'modalities', 'reasoning', 'priceTier'], models: [] }
       : { user: null, prompts: [], works: [] } }));
     await page.goto(`http://127.0.0.1:${server.address().port}/#play`);
-    await page.locator('a[href="#guess"]').click();
+    await page.locator('.slot[data-mode="guess"]').click();
+    await page.locator('#mode-feature .enter-play').click();
     await page.waitForURL('**/#guess');
     await page.waitForFunction(() => !document.querySelector('.game-transition'));
     if (reducedMotion === 'no-preference') {

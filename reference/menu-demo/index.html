@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eeeade" />
+    <meta
+      name="description"
+      content="十二种玩法，挑一个喜欢的。Arena of Bias 玩法菜单。"
+    />
+    <title>随心玩 · 玩法菜单演示</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23374637' d='M8 6h29l-4 8H4zm-4 13h29l-4 8H0zm4 13h29l-4 8H4z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/demo-fonts.css" />
+    <link rel="stylesheet" href="/fonts/lxgw-wenkai-lite-1.7.0/regular.css" />
+    <link rel="preload" as="image" href="./assets/play-conversation.svg" />
+
+    <link rel="stylesheet" href="./forum-menu.css" />
+    <link rel="stylesheet" href="./collection.css" />
+    <script type="module" src="./menu.mjs"></script>
+  </head>
+  <body>
+    <a href="#preview" class="skip-link">跳到玩法介绍</a>
+    <div class="menu-app">
+      <header class="masthead">
+        <a href="/#home" class="brand" aria-label="Arena of Bias，返回首页">
+          <span class="brand-mark" aria-hidden="true"
+            ><i></i><i></i><i></i
+          ></span>
+          <span>ARENA OF <b>BIAS</b></span>
+        </a>
+        <div class="masthead-tools">
+          <button
+            type="button"
+            class="help-trigger"
+            aria-label="怎么玩"
+            aria-haspopup="dialog"
+          >
+            ?
+          </button>
+        </div>
+      </header>
+      <main class="layout">
+        <aside class="directory" aria-label="玩法选择">
+          <div class="directory-heading">
+            <p>今天，玩点什么？</p>
+            <span aria-hidden="true">↘</span>
+          </div>
+          <div class="slots" role="tablist" aria-label="玩法目录">
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-1"
+              aria-selected="true"
+              aria-controls="preview"
+              tabindex="0"
+              data-slot="1"
+              data-mode="party"
+              style="--tile-color: #526148; --tile-soft: #dfe5d4"
+            >
+              <span class="slot-top"
+                ><span>01</span><span class="live-dot" aria-hidden="true"></span
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/play-conversation.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>随心玩</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">看 AI 接招，挑你喜欢的</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-2"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="2"
+              data-mode="formal"
+              style="--tile-color: #617b80; --tile-soft: #e0e7e1"
+            >
+              <span class="slot-top"
+                ><span>02</span><span class="live-dot" aria-hidden="true"></span
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/motif-formal.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>正式测评</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">匿名比较，认真选一票</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-3"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="3"
+              data-mode="guess"
+              style="--tile-color: #738254; --tile-soft: #e1e7d2"
+            >
+              <span class="slot-top"
+                ><span>03</span><span class="live-dot" aria-hidden="true"></span
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/motif-guess.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>模一把</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">跟着线索，猜 AI 模型</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-4"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="4"
+              data-mode="tierlist"
+              style="--tile-color: #ad6b52; --tile-soft: #eadbcb"
+            >
+              <span class="slot-top"
+                ><span>04</span
+                ><svg
+                  class="tile-lock"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="10" width="14" height="11" rx="1" />
+                  <path d="M8 10V6a4 4 0 0 1 8 0v4" /></svg
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/motif-tierlist.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>野榜制造</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">拖拽排榜，最后揭晓</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-5"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="5"
+              data-mode="tanks"
+              style="--tile-color: #77815b; --tile-soft: #dfe3ce"
+            >
+              <span class="slot-top"
+                ><span>05</span
+                ><svg
+                  class="tile-lock"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="10" width="14" height="11" rx="1" />
+                  <path d="M8 10V6a4 4 0 0 1 8 0v4" /></svg
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/motif-tanks.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>坦克斗蛐蛐</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">四个 AI 写 bot 打坦克</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-mode"
+              role="tab"
+              id="slot-6"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="6"
+              data-mode="werewolf"
+              style="--tile-color: #837080; --tile-soft: #e4dce1"
+            >
+              <span class="slot-top"
+                ><span>06</span
+                ><svg
+                  class="tile-lock"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="10" width="14" height="11" rx="1" />
+                  <path d="M8 10V6a4 4 0 0 1 8 0v4" /></svg
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/motif-werewolf.svg"
+                  width="240"
+                  height="200"
+                  alt=""
+              /></span>
+              <span class="slot-title"
+                ><strong>狼言狼语</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">十二个 AI 玩狼人杀</span>
+            </button>
+          </div>
+          <nav class="pagination" aria-label="玩法分页">
+            <div class="page-indicator">
+              <b id="page-number">01</b
+              ><span class="page-track" aria-hidden="true"><i></i></span
+              ><span>02</span>
+            </div>
+            <div class="page-buttons">
+              <button
+                type="button"
+                id="previous-page"
+                aria-label="上一页玩法"
+                disabled
+              >
+                ←</button
+              ><button type="button" id="next-page" aria-label="下一页玩法">
+                →
+              </button>
+            </div>
+          </nav>
+        </aside>
+        <section
+          class="preview"
+          id="preview"
+          role="tabpanel"
+          aria-labelledby="slot-1"
+          tabindex="0"
+        >
+          <div class="feature" id="feature">
+            <div class="feature-heading">
+              <div>
+                <h1>随心<span>玩</span><i aria-hidden="true">。</i></h1>
+              </div>
+              <p class="heading-note">选你喜欢的，<br />再看是谁写的。</p>
+            </div>
+            <div class="feature-content">
+              <div class="feature-copy">
+                <span class="sample-mark" aria-hidden="true">“</span>
+                <h2>同一个问题，<br />两种<span>脑回路。</span></h2>
+                <p>点一句，揭晓背后的 AI。</p>
+              </div>
+              <section
+                class="menu-forum-scene"
+                data-chosen=""
+                aria-label="弱智吧问答，匿名回复二选一"
+              >
+                <div class="scene-top">
+                  <span class="forum-name"
+                    ><svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M4 4h16v13H9l-5 4V4Z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+                      <path
+                        d="M8 8h8M8 12h5"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      /></svg
+                    >弱智吧问答</span
+                  >
+                </div>
+                <div class="forum-posts">
+                  <article class="forum-post question-post">
+                    <div class="post-avatar avatar-question" aria-hidden="true">
+                      ?
+                    </div>
+                    <div class="post-main">
+                      <div class="post-byline">
+                        <span class="question-author">认真提问的楼主</span
+                        ><span class="post-floor">1 楼</span>
+                      </div>
+                      <h3 id="forum-question">
+                        1900 年出生和 2000 年出生都叫「00 后」，到底怎么区分？
+                      </h3>
+                    </div>
+                  </article>
+                  <article
+                    class="forum-post reply-post"
+                    data-side="a"
+                    data-model="GPT-6 Astra"
+                  >
+                    <div class="post-avatar avatar-a" aria-hidden="true">A</div>
+                    <div class="post-main">
+                      <div class="post-byline">
+                        <span class="post-identity"
+                          ><span class="identity-anonymous">匿名吧友 A</span
+                          ><span class="identity-revealed" aria-hidden="true"
+                            >GPT-6 Astra</span
+                          ></span
+                        ><span class="post-floor">2 楼</span>
+                      </div>
+                      <p class="reply-text">
+                        一个在这里回你消息，一个在梦里回你消息。
+                      </p>
+                      <div class="post-actions">
+                        <span class="selected-note" aria-hidden="true"
+                          >合我心意</span
+                        ><button
+                          class="reply-choice"
+                          type="button"
+                          data-choice="a"
+                          aria-pressed="false"
+                          aria-label="选回复 A，这句更绝"
+                        >
+                          <span class="vote-symbol" aria-hidden="true">↗</span
+                          ><span>这句更绝</span>
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                  <article
+                    class="forum-post reply-post"
+                    data-side="b"
+                    data-model="Claude Opus 5.5"
+                  >
+                    <div class="post-avatar avatar-b" aria-hidden="true">B</div>
+                    <div class="post-main">
+                      <div class="post-byline">
+                        <span class="post-identity"
+                          ><span class="identity-anonymous">匿名吧友 B</span
+                          ><span class="identity-revealed" aria-hidden="true"
+                            >Claude Opus 5.5</span
+                          ></span
+                        ><span class="post-floor">3 楼</span>
+                      </div>
+                      <p class="reply-text">一个怕考试，一个是考点。</p>
+                      <div class="post-actions">
+                        <span class="selected-note" aria-hidden="true"
+                          >合我心意</span
+                        ><button
+                          class="reply-choice"
+                          type="button"
+                          data-choice="b"
+                          aria-pressed="false"
+                          aria-label="选回复 B，这句更绝"
+                        >
+                          <span class="vote-symbol" aria-hidden="true">↗</span
+                          ><span>这句更绝</span>
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+                <div class="scene-caption">
+                  <button class="reset-preview" type="button" hidden>
+                    <span aria-hidden="true">↺</span> 再选一次
+                  </button>
+                </div>
+              </section>
+            </div>
+            <div class="feature-bottom">
+              <div>
+                <p>文字、故事、3D，挑你喜欢的。</p>
+              </div>
+              <a class="enter-play" href="/playground.html#home"
+                ><span>进入随心玩</span
+                ><span class="enter-arrow" aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <div
+            class="feature collection-feature"
+            id="mode-feature"
+            hidden
+          ></div>
+        </section>
+      </main>
+      <footer class="footer" aria-hidden="true"></footer>
+    </div>
+    <dialog class="help-dialog" aria-labelledby="help-title">
+      <div class="help-heading">
+        <span>玩法菜单</span
+        ><button type="button" class="help-close" aria-label="关闭玩法说明">
+          ×
+        </button>
+      </div>
+      <h2 id="help-title">今天，想怎么玩？</h2>
+      <ol>
+        <li><b>01</b><span>左侧选玩法，右侧看介绍和预览。</span></li>
+        <li><b>02</b><span>目录共两页，也可以用方向键选择。</span></li>
+        <li><b>03</b><span>有进入按钮的玩法，现在就能玩。</span></li>
+      </ol>
+      <p>暂未完成的玩法先看看设计。预览中的选择和示意都不计成绩。</p>
+      <button type="button" class="help-done">明白了，开始挑</button>
+    </dialog>
+    <div class="arrival-wipe" aria-hidden="true"></div>
+    <span
+      class="sr-only"
+      id="status"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></span>
+  </body>
+</html>

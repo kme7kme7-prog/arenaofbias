@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eeeade" />
+    <meta
+      name="description"
+      content="看两份 AI 作品，选你更喜欢的。随心玩菜单演示。"
+    />
+    <title>随心玩 · 玩法菜单演示</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23374637' d='M8 6h29l-4 8H4zm-4 13h29l-4 8H0zm4 13h29l-4 8H4z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/demo-fonts.css" />
+    <link rel="stylesheet" href="/fonts/lxgw-wenkai-lite-1.7.0/regular.css" />
+    <link rel="preload" as="image" href="./assets/letter-cover.png" />
+
+    <link rel="stylesheet" href="./letter-menu.css" />
+    <script type="module" src="./letters-menu.mjs"></script>
+  </head>
+  <body>
+    <a href="#preview" class="skip-link">跳到玩法介绍</a>
+    <div class="menu-app">
+      <header class="masthead">
+        <a href="/#home" class="brand" aria-label="Arena of Bias，返回首页">
+          <span class="brand-mark" aria-hidden="true"
+            ><i></i><i></i><i></i
+          ></span>
+          <span>ARENA OF <b>BIAS</b></span>
+        </a>
+        <span class="masthead-center">你的偏爱，自成一派。</span>
+        <div class="masthead-tools">
+          <span class="edition">菜单样张 / 02</span
+          ><button
+            type="button"
+            class="help-trigger"
+            aria-label="怎么玩"
+            aria-haspopup="dialog"
+          >
+            ?
+          </button>
+        </div>
+      </header>
+      <main class="layout">
+        <aside class="directory" aria-label="玩法选择">
+          <div class="directory-heading">
+            <p>今天，玩点什么？</p>
+            <span aria-hidden="true">↘</span>
+          </div>
+          <div class="slots" role="tablist" aria-label="玩法目录">
+            <button
+              type="button"
+              class="slot slot-live"
+              role="tab"
+              id="slot-1"
+              aria-selected="true"
+              aria-controls="preview"
+              tabindex="0"
+              data-slot="1"
+            >
+              <span class="slot-top"
+                ><span>01</span
+                ><span class="live-dot" aria-label="可以玩"></span
+              ></span>
+              <span class="slot-picture"
+                ><img
+                  src="./assets/letter-cover.png"
+                  alt=""
+                  width="480"
+                  height="440"
+              /></span>
+              <span class="slot-title"
+                ><strong>随心玩</strong
+                ><span class="slot-arrow" aria-hidden="true">↗</span></span
+              >
+              <span class="slot-description">匿名二选一</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-empty"
+              role="tab"
+              id="slot-2"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="2"
+            >
+              <span class="slot-top">02</span
+              ><span class="empty-cross" aria-hidden="true">+</span
+              ><span class="slot-empty-label">待入场</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-empty"
+              role="tab"
+              id="slot-3"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="3"
+            >
+              <span class="slot-top">03</span
+              ><span class="empty-cross" aria-hidden="true">+</span
+              ><span class="slot-empty-label">待入场</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-empty"
+              role="tab"
+              id="slot-4"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="4"
+            >
+              <span class="slot-top">04</span
+              ><span class="empty-cross" aria-hidden="true">+</span
+              ><span class="slot-empty-label">待入场</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-empty"
+              role="tab"
+              id="slot-5"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="5"
+            >
+              <span class="slot-top">05</span
+              ><span class="empty-cross" aria-hidden="true">+</span
+              ><span class="slot-empty-label">待入场</span>
+            </button>
+            <button
+              type="button"
+              class="slot slot-empty"
+              role="tab"
+              id="slot-6"
+              aria-selected="false"
+              aria-controls="preview"
+              tabindex="-1"
+              data-slot="6"
+            >
+              <span class="slot-top">06</span
+              ><span class="empty-cross" aria-hidden="true">+</span
+              ><span class="slot-empty-label">待入场</span>
+            </button>
+          </div>
+          <nav class="pagination" aria-label="玩法分页">
+            <div class="page-indicator">
+              <b id="page-number">01</b
+              ><span class="page-track" aria-hidden="true"><i></i></span
+              ><span>02</span>
+            </div>
+            <div class="page-buttons">
+              <button
+                type="button"
+                id="previous-page"
+                aria-label="上一页玩法"
+                disabled
+              >
+                ←</button
+              ><button type="button" id="next-page" aria-label="下一页玩法">
+                →
+              </button>
+            </div>
+          </nav>
+        </aside>
+        <section
+          class="preview"
+          id="preview"
+          role="tabpanel"
+          aria-labelledby="slot-1"
+          tabindex="0"
+        >
+          <div class="feature" id="feature">
+            <div class="feature-copy">
+              <div class="feature-heading">
+                <span class="eyebrow">凭直觉 · 二选一</span>
+                <h1>随心<span>玩</span><i aria-hidden="true">。</i></h1>
+              </div>
+              <div class="feature-description">
+                <p class="feature-intro">同一道题，<br />两份匿名回答。</p>
+                <p class="feature-explanation">
+                  选更打动你的那份，<br />再揭晓背后的 AI。
+                </p>
+              </div>
+              <div class="feature-bottom">
+                <p>没有标准答案，你喜欢就好。</p>
+                <a class="enter-play" href="/playground.html#home"
+                  ><span>进入随心玩</span
+                  ><span class="enter-arrow" aria-hidden="true">↗</span></a
+                >
+                <span class="play-formats">文字 · 3D 作品</span>
+              </div>
+            </div>
+            <div
+              class="play-scene"
+              data-kind="words"
+              data-chosen=""
+              aria-label="随心玩预览，试选一封信"
+            >
+              <div class="scene-top">
+                <div class="scene-title">
+                  <span class="scene-topic" id="scene-topic"
+                    >不说爱的告白 · 节选</span
+                  >
+                  <h2 id="scene-question">不说“爱”，写一段告白。</h2>
+                </div>
+                <div class="scene-switch" role="group" aria-label="预览内容">
+                  <button type="button" data-kind="words" aria-pressed="true">
+                    读故事</button
+                  ><button
+                    type="button"
+                    data-kind="objects"
+                    aria-pressed="false"
+                  >
+                    看作品
+                  </button>
+                </div>
+              </div>
+              <div class="cards" id="cards">
+                <button
+                  type="button"
+                  class="work-card work-a"
+                  data-choice="a"
+                  aria-label="试选来信 A"
+                >
+                  <span class="work-visual">
+                    <img
+                      class="work-image"
+                      src="./assets/temple-a.png"
+                      alt="暖色晨光中的青瓦古寺建筑群"
+                      width="1400"
+                      height="1050"
+                      hidden
+                    />
+                    <span class="letter-sample"
+                      ><span class="letter-top"
+                        ><span class="letter-greeting">致你</span
+                        ><b class="letter-index" aria-hidden="true">A</b></span
+                      ><span class="letter-body"
+                        >我总在周三下午提前十分钟到图书馆，替你占靠窗的座位</span
+                      ><span class="letter-ellipsis" aria-label="节选省略"
+                        >···</span
+                      ><span class="letter-end"
+                        >如果你愿意，<br />往我这边靠近一点。</span
+                      ></span
+                    >
+                    <span class="chosen-seal" aria-hidden="true"
+                      >合我<br />心意</span
+                    >
+                  </span>
+                  <span class="work-caption"
+                    ><b class="work-side">A</b
+                    ><span class="work-identity"
+                      ><span class="identity-anonymous">—— 署名暂隐</span
+                      ><span class="identity-revealed"></span></span
+                    ><span class="choice-icon" aria-hidden="true">↗</span></span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="work-card work-b"
+                  data-choice="b"
+                  aria-label="试选来信 B"
+                >
+                  <span class="work-visual">
+                    <img
+                      class="work-image"
+                      src="./assets/temple-b.png"
+                      alt="落日天空下的红墙金顶古建筑群"
+                      width="1280"
+                      height="720"
+                      hidden
+                    />
+                    <span class="letter-sample"
+                      ><span class="letter-top"
+                        ><span class="letter-greeting">致你</span
+                        ><b class="letter-index" aria-hidden="true">B</b></span
+                      ><span class="letter-body"
+                        >还记得大一那场雨吗？我没带伞，你分了我一半。</span
+                      ><span class="letter-ellipsis" aria-label="节选省略"
+                        >···</span
+                      ><span class="letter-end"
+                        >不知道以后的路，<br />我们还能不能并肩走一段？</span
+                      ></span
+                    >
+                    <span class="chosen-seal" aria-hidden="true"
+                      >合我<br />心意</span
+                    >
+                  </span>
+                  <span class="work-caption"
+                    ><b class="work-side">B</b
+                    ><span class="work-identity"
+                      ><span class="identity-anonymous">—— 署名暂隐</span
+                      ><span class="identity-revealed"></span></span
+                    ><span class="choice-icon" aria-hidden="true">↗</span></span
+                  >
+                </button>
+              </div>
+              <div class="scene-caption">
+                <span class="preview-label">试选一下</span>
+                <p id="scene-hint">哪封信，让你想回一句？</p>
+                <button class="reset-preview" type="button" hidden>
+                  <span aria-hidden="true">↺</span> 再看一次
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="blank-feature" id="blank-feature" hidden>
+            <span class="blank-code"
+              >PLAY / <span id="blank-number">02</span></span
+            >
+            <div class="blank-center">
+              <span class="blank-symbol" aria-hidden="true">＋</span>
+              <h2>这一格，先留白。</h2>
+              <p>玩法准备中</p>
+              <button type="button" id="back-to-play">
+                先玩「随心玩」 <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+            <span class="blank-foot">TO BE CONTINUED</span>
+          </div>
+        </section>
+      </main>
+      <footer class="footer">
+        <span>好奇心入场，标准答案退场。</span
+        ><span
+          >ARENA OF BIAS
+          <span class="footer-dot" aria-hidden="true">·</span> PLAY YOUR
+          WAY</span
+        >
+      </footer>
+    </div>
+    <dialog class="help-dialog" aria-labelledby="help-title">
+      <div class="help-heading">
+        <span>随心玩</span
+        ><button type="button" class="help-close" aria-label="关闭玩法说明">
+          ×
+        </button>
+      </div>
+      <h2 id="help-title">你的喜欢，就是理由。</h2>
+      <ol>
+        <li><b>01</b><span>同一道题，两份匿名作品。</span></li>
+        <li><b>02</b><span>读一读、看一看，选合你心意的。</span></li>
+        <li><b>03</b><span>选择之后，揭晓背后的 AI。</span></li>
+      </ol>
+      <p>预览里的选择不计票。进入随心玩，可以继续看更多作品。</p>
+      <button type="button" class="help-done">明白了，开始挑</button>
+    </dialog>
+    <div class="arrival-wipe" aria-hidden="true"></div>
+    <span
+      class="sr-only"
+      id="status"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></span>
+  </body>
+</html>

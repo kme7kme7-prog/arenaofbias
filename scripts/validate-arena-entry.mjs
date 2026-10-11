@@ -42,7 +42,7 @@ try {
       }
       requestAnimationFrame(sample);
     }, theme);
-    const works = (layout ? ['005', '006'] : ['005']).flatMap(promptId => ['a', 'b'].map(side => ({ id: promptId === '005' ? `entry-${side}` : `layout-${side}`, promptId, modelId: side,
+    const works = (layout ? ['005', '006'] : ['005']).flatMap(promptId => ['a', 'b', ...Array.from({ length: 8 }, (_, i) => String(i))].map(side => ({ id: promptId === '005' ? `entry-${side}` : `layout-${side}`, promptId, modelId: side,
       modelName: side, title: side, isDemo: 0,
       content: JSON.stringify({ kind: 'html', src: `/entry/${promptId}-${side}.html`, sandboxed: true,
         ...(promptId === '006' ? { framing: { width: 1280, height: 720 } } : {}) }) })));
@@ -60,13 +60,13 @@ try {
       await page.goto(`http://127.0.0.1:${server.address().port}/#arena/005`);
       await page.waitForSelector('.phase-voting');
       for (const destination of ['006', '005']) {
-        const start = await page.locator('.work-viewport').first().evaluate(node => node.clientHeight);
+        const start = await page.locator('.work-viewport').first().evaluate(node => node.getBoundingClientRect().height);
         await page.evaluate(() => { window.__layoutFrames = []; });
         await page.getByRole('button', { name: '换个题库继续', exact: true }).click();
         await page.waitForURL(`**/#arena/${destination}`);
         await page.waitForSelector('.phase-voting');
         await page.waitForFunction(() => !document.querySelector('.gt-match'));
-        const end = await page.locator('.work-viewport').first().evaluate(node => node.clientHeight);
+        const end = await page.locator('.work-viewport').first().evaluate(node => node.getBoundingClientRect().height);
         assert.ok(await page.locator('.work-viewport').evaluateAll(nodes => nodes.every(node => !node.style.height && !node.style.transition)),
           'completed stretch must restore native responsive sizing');
         const frames = await page.evaluate(() => window.__layoutFrames);

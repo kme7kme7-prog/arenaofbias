@@ -494,6 +494,49 @@ export const messages: Record<string, string> = {
   '看作品，凭直觉选。做出选择之后才揭晓模型身份。':
     'Judge the works, then discover the models behind them.',
   鹈鹕大乱斗: 'Pelican Rumble',
+  随心玩: 'Play Your Way',
+  '转一转作品，读一段故事。挑喜欢的，再看看是谁做的。':
+    'Explore a creation or read a story. Pick your favorite, then discover who made it.',
+  野榜制造机: 'Wild Tier List',
+  '挑个玩法。': 'Pick your game.',
+  '玩法目录': 'Game selection',
+  '玩法目录分页': 'Game selection pages',
+  '第 {page} 页，共 2 页': 'Page {page} of 2',
+  '上一页玩法': 'Previous games',
+  '下一页玩法': 'More games',
+  '开始玩': 'Start playing',
+  '主题特别赛': 'Themed matchups',
+  '拖拽排榜 · 最后揭晓': 'Rank, then reveal',
+  '四个 AI · 同场乱斗': 'Four AIs, one arena',
+  '十二人局 · 身份与策略': '12 players · Hidden roles',
+  '一张照片 · 猜遍世界': 'One photo, anywhere on Earth',
+  '训练 bot · 争夺领地': 'Train a bot. Take the map.',
+  '多场博弈 · 一笔总账': 'Many games, one score',
+  '两位辩手 · 几轮交锋': 'Two voices, several rounds',
+  '修补漏洞 · 攻守夺旗': 'Defend, attack, capture',
+  '匿名作品从夯到拉，随你拖着排。最后揭晓模型，看看你的野榜有多离谱。':
+    'Drag anonymous creations from top tier to bottom. Reveal the models and see how wild your ranking is.',
+  坦克斗蛐蛐: 'Tank Bot Rumble',
+  '四个 AI 各写一个 bot，四辆坦克同场乱斗。你只管看谁能活到最后。':
+    'Four AIs write four bots. Four tanks enter the same arena. Watch who survives.',
+  狼言狼语: 'Werewolf Whispers',
+  '十二个 AI 玩狼人杀，盘逻辑、藏身份，甚至给对手的提示词下套。':
+    'Twelve AIs play Werewolf: reason, bluff, and even try prompt injection on their rivals.',
+  图里是哪儿: 'Where Is This?',
+  '给 AI 一张照片，猜地点、猜国家，甚至猜是哪一年。看看它认不认路。':
+    'Give AI a photo. Can it guess the place, the country, or even the year?',
+  将军对垒: 'Battle of Generals',
+  'AI 各自训练自己的 bot，再上场争地盘。看看谁的策略能打到最后。':
+    'AIs train their own bots, then fight for territory. Whose strategy lasts until the end?',
+  算计联赛: 'Scheming League',
+  '多个 AI 连玩几种博弈，只带走分数和私人记忆。结盟、骗人、翻脸，都得算账。':
+    'AIs play a series of strategy games, carrying only scores and private memories. Every alliance, lie, and betrayal has a cost.',
+  谁更有理: 'Who Has a Point?',
+  '两个 AI 来回辩上几轮，看看谁讲得通，谁只是在嘴硬。':
+    'Two AIs debate for several rounds. Who makes sense, and who is just being stubborn?',
+  补洞夺旗: 'Patch & Capture',
+  '修好自己的漏洞网站，再攻进对手的容器夺旗。守得住、攻得进，才能拿高分。':
+    'Patch your vulnerable site, then attack rival containers for flags. Score through both defense and offense.',
   '常驻特别赛 · 独立榜单': 'Special event · Separate leaderboard',
   '轮换主题的特别对局，单独成页、独立成榜，不混入主榜。':
     'Themed matchups with their own page and leaderboard.',

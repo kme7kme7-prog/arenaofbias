@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/postcss';
 import { defineConfig } from 'vite';
+import { playMenuStyles } from './scripts/play-menu-style-plugin.mjs';
 
 // 主站、管理后台、截图页及随心玩使用独立 HTML 入口，共享 lib/ 与 /api。
 // 后端是 server/index.js（Express + SQLite），同一端口下
@@ -13,6 +14,7 @@ export default defineConfig({
   css: { postcss: { plugins: [tailwindcss()] } },
   plugins: [
     react(),
+    playMenuStyles(),
     {
       name: 'static-script-csp',
       apply: 'build',

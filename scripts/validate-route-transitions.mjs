@@ -19,6 +19,8 @@ try {
       localStorage.setItem('aob-theme', theme);
       localStorage.setItem('arena-language', 'zh');
       localStorage.setItem('aob-beta-notice', 'v3');
+      localStorage.setItem('aob-arena-tour', 'off');
+      localStorage.setItem('aob-test-pair', JSON.stringify({ promptId: '005', a: 'entry-a', b: 'entry-b', at: Date.now() }));
       window.__routeFrames = [];
       const sample = () => {
         const layer = document.querySelector('.game-transition');
@@ -48,19 +50,24 @@ try {
         return route.fulfill({ json: { scope: query.get('scope'), category: query.get('category'), board, allBoard: board,
           radar: { profiles: { a: [60, 50, 40, 50, 60, 50], b: [40, 50, 60, 50, 40, 50] }, average: [50, 50, 50, 50, 50, 50] }, scopedPromptCount: 1 } });
       }
-      const json = endpoint === '/api/works' ? { works: ['a', 'b'].map(side => ({
-        id: `005-${side}`, promptId: '005', modelId: side, modelName: side, title: side, isDemo: 0,
-        content: JSON.stringify({ kind: 'html', html: '<!doctype html><body>Ready</body>' }),
+      const json = endpoint === '/api/works' ? { works: ['a', 'b', ...Array.from({ length: 8 }, (_, i) => String(i))].map(side => ({
+        id: `entry-${side}`, promptId: '005', modelId: side, modelName: side, title: side, isDemo: 0,
+        content: JSON.stringify({ kind: 'html', src: `/entry/005-${side}.html`, sandboxed: true }),
       })) } : endpoint === '/api/prompts' ? { prompts: [{ id: '005', kind: 'web', name: '回场验证', prompt: '验证', code: 'RETURN' }] }
         : endpoint === '/api/auth/me' ? { user: null } : {};
       return route.fulfill({ json });
     });
+    await page.route('**/entry/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><body>Ready<script data-aob-probe>setTimeout(()=>parent.postMessage("aob:work-ready","*"),300)</script>' }));
     for (const source of ['#play', '#arena/005']) {
-      await page.goto(`http://127.0.0.1:${server.address().port}/${source}`);
-      if (source.startsWith('#arena')) await page.waitForSelector('.phase-voting');
+      // A full document per source re-arms the one-shot test pair and its fixture state.
+      await page.goto(`http://127.0.0.1:${server.address().port}/?route-check=${encodeURIComponent(source)}${source}`);
+      if (source.startsWith('#arena')) await page.waitForSelector('.phase-voting').catch(async error => {
+        console.error('Route fixture diagnostics:', await page.locator('body').innerText(), errors);
+        throw error;
+      });
       await page.evaluate(() => { window.__routeFrames = []; });
       await page.getByRole('link', { name: '回到首页', exact: true }).click();
-      await page.waitForURL('**/#home');
+      await page.waitForURL(url => url.hash === '#home');
       await page.waitForFunction(() => !document.querySelector('.game-transition'));
       await page.locator('.next-home').waitFor();
       const frames = await page.evaluate(() => window.__routeFrames);
@@ -75,7 +82,7 @@ try {
     }
     await page.evaluate(() => { window.__routeFrames = []; });
     await page.getByRole('link', { name: '偏好榜', exact: true }).click();
-    await page.waitForURL('**/#rank');
+    await page.waitForURL(url => url.hash === '#rank');
     await page.waitForFunction(() => !document.querySelector('.game-transition'));
     if (loadedBoard) assert.equal(await page.locator('.rank-row').count(), 2);
     const frames = await page.evaluate(() => window.__routeFrames);
@@ -88,7 +95,7 @@ try {
     }
     await page.evaluate(() => { window.__routeFrames = []; });
     await page.getByRole('link', { name: '回到首页', exact: true }).click();
-    await page.waitForURL('**/#home');
+    await page.waitForURL(url => url.hash === '#home');
     await page.waitForFunction(() => !document.querySelector('.game-transition'));
     if (reducedMotion === 'no-preference') {
       const back = await page.evaluate(() => window.__routeFrames);

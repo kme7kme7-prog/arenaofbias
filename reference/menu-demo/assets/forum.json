@@ -1,0 +1,20 @@
+{
+  "source": ".local/text-themes-review/works.json",
+  "promptId": "q-a71a7e7e4bcaadc7",
+  "originalPrompt": "怎么区分00后1900出生的是00后，2000出生的也是00后，我该怎么区分？",
+  "displayQuestion": "1900 年出生和 2000 年出生都叫「00 后」，到底怎么区分？",
+  "works": [
+    {
+      "workId": "up-7e3fqzpy",
+      "modelId": "gpt-6-astra",
+      "modelName": "GPT-6 Astra",
+      "text": "一个在这里回你消息，一个在梦里回你消息。"
+    },
+    {
+      "workId": "up-m1f2e14r",
+      "modelId": "claude-opus-5.5",
+      "modelName": "Claude Opus 5.5",
+      "text": "一个怕考试，一个是考点。"
+    }
+  ]
+}

@@ -23,3 +23,9 @@
 ## 遗留物与发布
 
 5452/5453实际共享处理器只读预演保留；旧5446及5450进程、原型/jianmo资料不清理。截图/日志为忽略生成物。根HANDOFF记录具体限制；发布计划与白名单见docs/playground-integration.md。线上后端先发布所需模块，前端使用生产API从固定main归档构建，静态show1-dist切换并保留旧hashed资产供已打开页面。生产数据库、数据包、配置、Gallery和总入口不改；线上验证与备份路径写本地发布证据。
+
+## 发布补记（2026-10-11，本地收尾）
+
+用户明确批准增量保留策略。Show1 44e2e3f与后台260ae05已推送main，后端基线3629a9ed仅增量装5文件/保留50运行文件，marker与公网使用透明组合版本。Linux119/0、337/337；固定归档npm ci/typecheck/生产构建、1061文件SHA和4公开入口字节通过，旧8hashed资源保留。公网Edge14项及home/letter/objects目视通过，无pageerror或偏好计票写入；既有访问统计保持。
+
+schema41、integrity ok/外键0；9698票变9699正常线上新增，1381works/308users保持。后台备份/root/aob-show1-playground-20261011-260ae05/backup，静态前版show1-dist.prev-44e2e3f保留；原Gallery/总入口、配置和数据包未改。源码两仓各一条英文提交，本发布补记不另提交/强推；最终证据在Show1 .local/playground-release/和output/playground/release/。

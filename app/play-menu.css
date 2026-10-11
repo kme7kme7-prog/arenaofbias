@@ -1,0 +1,236 @@
+@import url('/fonts/lxgw-wenkai-lite-1.7.0/regular.css');
+
+/* Menu-only scale override keeps the approved 100% layout independent of the legacy .8 site scale. */
+html[data-play-menu] {
+  zoom: 1;
+}
+html[data-play-menu] body,
+html[data-play-menu] #root {
+  min-height: 100svh;
+}
+.play-collection .collection-content {
+  display: contents;
+}
+.play-collection .menu-app {
+  height: calc(100svh - 48px);
+  min-height: 510px;
+  grid-template-rows: 74px minmax(0, 1fr) auto;
+}
+.play-collection .masthead-tools {
+  gap: 12px;
+}
+.play-collection .legal-footer {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+  border-color: var(--line);
+}
+.play-collection + .site-share-footer {
+  height: 48px;
+  min-height: 0;
+  padding: 3px 3%;
+  background: #f0eee4;
+  font-size: 11px;
+  border: 0;
+}
+.play-collection + .site-share-footer .share-trigger {
+  min-height: 32px;
+  padding-block: 5px;
+  font-size: 11px;
+}
+.play-collection :is(.language-switch, .theme-toggle, .account-entry) {
+  font-size: 12px;
+}
+.play-collection .masthead .theme-toggle button {
+  min-height: 34px;
+}
+.play-collection .masthead button {
+  letter-spacing: 0;
+}
+.play-collection .masthead .help-trigger {
+  font-size: 23px;
+}
+
+/* Ink keeps each preview as a paper exhibit while the surrounding menu becomes dark. */
+[data-theme='ink'] .play-collection {
+  --paper: #222a26;
+  --ink: #e2e4d5;
+  --muted: #aab5a5;
+  --line: #d9decc2c;
+  --accent: #d29c77;
+  background: var(--paper);
+  color: var(--ink);
+}
+[data-theme='ink'] .play-collection .slot-mode {
+  background: #e1e6d50a;
+  color: #dfe4d7;
+}
+[data-theme='ink'] .play-collection .slot-mode[aria-selected='true'] {
+  background: #3b493c;
+  border-color: #a8b89b;
+  box-shadow: 0 0 0 1px #a8b89b;
+}
+[data-theme='ink'] .play-collection .slot-description {
+  color: #afbca7;
+}
+[data-theme='ink'] .play-collection .slot-picture {
+  background: #e0e4d310;
+  border-radius: 3px;
+}
+[data-theme='ink']
+  .play-collection
+  :is(
+    .heading-note,
+    .feature-copy h2,
+    .feature-copy h2 > span,
+    .feature-copy > p,
+    .feature-bottom p,
+    .mode-scene-head,
+    .mode-scene-foot,
+    .scene-action,
+    .forum-name,
+    .pagination,
+    .mode-unavailable
+  ) {
+  color: #b5c3ac;
+}
+[data-theme='ink'] .play-collection .feature-heading h1 > span,
+[data-theme='ink'] .play-collection .feature-heading h1 > i {
+  color: #d2a481;
+}
+[data-theme='ink'] .play-collection .mode-scene {
+  color: #354336;
+}
+[data-theme='ink'] .play-collection .forum-posts {
+  color: #354336;
+}
+[data-theme='ink'] .play-collection .event-mystery {
+  color: #d6b584;
+}
+[data-theme='ink'] .play-collection + .site-share-footer {
+  background: #222a26;
+}
+[data-theme='ink'] .play-collection .help-dialog {
+  background: #29352d;
+  color: #e2e4d5;
+}
+
+.play-collection[data-language='en'] .slot-title strong {
+  white-space: normal;
+  font-size: 17px;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+.play-collection[data-language='en'] .slot-description {
+  font-size: 10px;
+}
+.play-collection[data-language='en'] .feature h1 {
+  font-size: clamp(48px, 4.1vw, 80px);
+  line-height: 1.05;
+}
+.play-collection[data-language='en'] .heading-note {
+  white-space: normal;
+  max-width: 14em;
+}
+.play-collection[data-language='en'] .feature-copy h2 {
+  white-space: normal;
+  font-size: 27px;
+}
+.play-collection[data-language='en'] .mode-scene-head {
+  font-size: 12px;
+}
+.play-collection[data-language='en'] .mode-scene-foot {
+  font-size: 11px;
+}
+@media (min-width: 901px) and (max-height: 700px) {
+  .play-collection .menu-app {
+    grid-template-rows: 56px minmax(0, 1fr) auto;
+  }
+  .play-collection .layout {
+    padding-block: 15px;
+  }
+  .play-collection .legal-footer {
+    font-size: 8px;
+    padding-block: 6px;
+  }
+  .play-collection[data-language='en'] .slot-title strong {
+    font-size: 14px;
+  }
+  .play-collection[data-language='en'] .slot-description {
+    font-size: 9px;
+  }
+}
+@media (max-width: 900px) {
+  .play-collection .menu-app {
+    height: auto;
+    min-height: calc(100svh - 48px);
+    grid-template-rows: 70px 1fr auto;
+  }
+  .play-collection .legal-footer {
+    padding-block: 16px;
+  }
+}
+@media (max-width: 600px) {
+  .play-collection .menu-app {
+    grid-template-rows: 60px 1fr auto;
+  }
+  .play-collection .brand {
+    font-size: 11px;
+    gap: 4px;
+    letter-spacing: 0;
+  }
+  .play-collection .brand-mark {
+    transform: scale(0.65) skewY(-10deg);
+    width: 23px;
+  }
+  .play-collection .masthead-tools {
+    gap: 5px;
+  }
+  .play-collection
+    .masthead
+    :is(.language-switch, .theme-toggle-main, .account-entry) {
+    width: 27px;
+    min-height: 30px;
+    height: 30px;
+    padding: 5px;
+  }
+  .play-collection
+    .masthead
+    :is(.language-switch, .theme-toggle-main, .account-entry)
+    > span:not(.theme-gauge) {
+    display: none;
+  }
+  .play-collection .masthead .theme-toggle-options {
+    display: block;
+    width: 17px;
+    min-width: 17px;
+    padding: 0;
+    min-height: 30px;
+  }
+  .play-collection .masthead .help-trigger {
+    width: 25px;
+    height: 25px;
+    font-size: 17px;
+  }
+  .play-collection[data-language='en'] .slot-title strong {
+    font-size: 13px;
+  }
+  .play-collection[data-language='en'] .slot-description {
+    font-size: 9px;
+  }
+  .play-collection[data-language='en'] .feature h1 {
+    font-size: 34px;
+  }
+  .play-collection[data-language='en'] .heading-note {
+    font-size: 11px;
+  }
+  .play-collection[data-language='en'] .mode-scene-head {
+    font-size: 10px;
+  }
+  .play-collection[data-language='en'] .mode-scene-foot,
+  .play-collection[data-language='en'] .scene-action {
+    font-size: 9px;
+  }
+}

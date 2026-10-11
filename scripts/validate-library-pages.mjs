@@ -42,10 +42,12 @@ try {
     await page.waitForURL('https://gallery.arenaofbias.icu/#/');
     await page.goto(`${origin}#play`);
     const footer = await page.locator('.legal-footer').boundingBox();
-    assert.ok(Math.abs(footer.y + footer.height - 1080) <= 1, 'menu footer reaches viewport bottom');
+    const menu = await page.locator('.play-collection .layout').boundingBox();
+    assert.ok(footer.y >= menu.y + menu.height - 1, 'menu footer follows the game selector');
     await page.screenshot({ path: `output/library-pages/menu-${theme}-${width}.png` });
-    const formal = page.locator('a.play-classic-item').filter({ hasText: '正式测评' });
-    assert.match(await formal.textContent(), /将跳转到展览馆/);
+    await page.locator('.slot[data-mode=formal]').click();
+    const formal = page.locator('#mode-feature .enter-play');
+    assert.match(await page.locator('#mode-feature .feature-bottom').textContent(), /前往展览馆/);
     await formal.click();
     await page.waitForURL('https://gallery.arenaofbias.icu/#/arena');
     await page.goto(`${origin}#prompts`);

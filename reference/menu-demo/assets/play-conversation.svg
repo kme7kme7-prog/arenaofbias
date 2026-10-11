@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="200" viewBox="0 0 240 200" fill="none">
+  <ellipse cx="122" cy="178" rx="88" ry="9" fill="#64765b" opacity=".1"/>
+  <g transform="rotate(8 156 77)">
+    <path d="M84 31H219V121H191L175 140V121H84Z" fill="#3e5653" opacity=".13" transform="translate(0 5)"/>
+    <path d="M84 31H219V121H191L175 140V121H84Z" fill="#647e83"/>
+    <path d="M92 40H210" stroke="#e9ede3" stroke-opacity=".2"/>
+    <text x="155" y="100" text-anchor="middle" fill="#f5f0dd" font-family="Georgia,serif" font-size="68" font-style="italic">!</text>
+    <text x="199" y="113" fill="#eef0df" font-family="Georgia,serif" font-size="17" font-style="italic">B</text>
+  </g>
+  <g transform="rotate(-9 88 120)">
+    <path d="M17 74H154V158H50L31 179V158H17Z" fill="#627157" opacity=".16" transform="translate(1 4)"/>
+    <path d="M17 74H154V158H50L31 179V158H17Z" fill="#faf7e8" stroke="#d1d5bc"/>
+    <text x="84" y="143" text-anchor="middle" fill="#a75e42" font-family="Georgia,serif" font-size="66">?</text>
+    <text x="28" y="150" fill="#839174" font-family="Georgia,serif" font-size="17" font-style="italic">A</text>
+  </g>
+  <path d="M47 33L46 48M29 41L37 49M68 38L60 48" stroke="#a77650" stroke-width="2" stroke-linecap="round"/>
+</svg>

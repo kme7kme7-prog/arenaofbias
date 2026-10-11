@@ -1,0 +1,23 @@
+{
+  "source": ".local/text-themes-review/works.json",
+  "works": [
+    {
+      "workId": "up-aze181hz",
+      "promptId": "q-1b9d4f59c2d7b31e",
+      "modelId": "gpt-5.6-luna",
+      "modelName": "GPT-5.6 Luna",
+      "paragraphs": [
+        "我总在周三下午提前十分钟到图书馆，替你占靠窗的座位；下雨时，伞总会自然地往你那边偏。大学三年，很多习惯都和你有关。毕业照还没拍，站位我已经留在你旁边——如果你愿意，往我这边靠近一点。"
+      ]
+    },
+    {
+      "workId": "up-0zccjcwb",
+      "promptId": "q-1b9d4f59c2d7b31e",
+      "modelId": "mimo-v2.6-pro",
+      "modelName": "MiMo V2.6 Pro",
+      "paragraphs": [
+        "还记得大一那场雨吗？我没带伞，你分了我一半。从那天起，这把伞下的方寸天地，似乎就成了我唯一的方向。一千多个日夜过去了，我视线里的焦点，始终是那个在图书馆窗边的你。不知道以后的路，我们还能不能并肩走一段？"
+      ]
+    }
+  ]
+}

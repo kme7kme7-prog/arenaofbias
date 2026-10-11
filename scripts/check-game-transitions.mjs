@@ -124,7 +124,20 @@ for (const theme of ['paper', 'ink']) for (const kind of ['push', 'frame', 'band
     assert.match(tracks[0].frames.at(-1).transform, /translateX\(102%\)/);
     assert.equal(tracks.length, 1, 'classic push uses a single continuous material track');
   }
-  if (kind === 'frame') {
+  if (kind === 'frame' && theme === 'paper') {
+    const sheet = run.layer.children.find(n => n.className === 'gt-sheet');
+    assert.ok(sheet, 'paper restores the observation file as one leaving sheet');
+    assert.equal(copy.children.length, 0, 'paper must not duplicate the archive title');
+    assert.equal(sheet.children.find(n => n.className === 'gt-lattice').children.length, 4);
+    assert.equal(sheet.children.find(n => n.className === 'gt-mark').children.filter(n => n.className.startsWith('gt-corner ')).length, 4);
+    const veil = tracks.find(t => t.owner === 'gt-veil');
+    assert.equal(veil.options.duration, run.timing.covered);
+    assert.equal(veil.frames.at(-1).transform, 'translateY(0)');
+    const exit = tracks.find(t => t.owner === 'gt-sheet');
+    assert.equal(exit.options.delay, run.timing.exitStart);
+    assert.equal(exit.frames.at(-1).transform, 'translateY(-101%)');
+    assert.ok(sheet.children.some(n => n.className === 'gt-copy'), 'all copy leaves with the sheet');
+  } else if (kind === 'frame') {
     assert.ok(material.children.some(n => n.className === 'gt-material-corners'),
       'frame border must travel inside its sheet, never float over the page');
   }
@@ -139,7 +152,7 @@ for (const theme of ['paper', 'ink']) for (const kind of ['push', 'frame', 'band
     if (copyDescendants.includes(track.owner)) assert.ok(['gt-static-rule', 'gt-deal-clue'].includes(track.owner), 'only a small line / numeral can move');
   }
   const plates = tracks.filter(t => /gt-material-(plate|leaf)/.test(t.owner));
-  assert.equal(plates.length, kind === 'deal' ? 0 : kind === 'match' ? 2 : 1);
+  assert.equal(plates.length, kind === 'deal' || (kind === 'frame' && theme === 'paper') ? 0 : kind === 'match' ? 2 : 1);
   if (kind === 'deal') {
     const shell = run.layer.children.find(n => n.className === 'gt-deal-shell');
     assert.ok(shell, 'historical entry must fly in as a complete mystery card');

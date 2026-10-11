@@ -372,6 +372,40 @@ export function createGameTransition(
       timing.covered,
       dwell + 150,
     );
+  } else if (kind === 'frame' && !ink) {
+    // Paper keeps the original observation-file entrance; ink keeps its material sweep.
+    const sheet = el('gt-sheet');
+    const veil = el('gt-veil', sheet);
+    move(veil, 'translateY(101%)', 'translateY(0)', 0, timing.covered);
+    const lattice = el('gt-lattice', sheet);
+    for (let i = 0; i < 4; i++) {
+      const echo = el('gt-echo', lattice);
+      move(echo, `rotate(-12deg) scale(${.65 + i * .18})`, `rotate(0deg) scale(${1.1 + i * .38})`, 500 + i * 75, 1300);
+    }
+    track(lattice, [{ opacity: 0 }, { opacity: 1 }], 800, 500, 'linear');
+    const mark = el('gt-mark', sheet);
+    for (let i = 0; i < 4; i++) {
+      const corner = el(`gt-corner gt-corner-${i}`, mark);
+      move(corner, `translate(${i % 2 ? 35 : -35}px,${i < 2 ? -35 : 35}px)`, 'translate(0,0)', i * 65, 650);
+    }
+    el('gt-index', mark, 'A / B');
+    el('gt-registration', mark, '+');
+    move(mark, 'rotate(-9deg) scale(1.3)', 'rotate(0deg) scale(1)', 0, 900);
+    track(mark, [{ opacity: 0 }, { opacity: 1 }], 0, 260, 'linear');
+    const archiveCopy = el('gt-copy', sheet);
+    const headline = el('gt-headline', archiveCopy);
+    el('gt-kicker', archiveCopy, 'OBSERVATION FILE   /   001');
+    const wordmark = el('gt-wordmark', headline, title);
+    move(wordmark, 'translateY(115%)', 'translateY(0)', 300, 480);
+    el('gt-caption', archiveCopy, '偏好正在归档  /  YOUR INSTINCT IS THE EVIDENCE');
+    const signal = el('gt-signal', archiveCopy);
+    for (let i = 0; i < 19; i++) {
+      const bar = el('gt-signal-bar', signal);
+      bar.style.height = i % 3 === 0 ? '12px' : '5px';
+    }
+    track(archiveCopy, [{ opacity: 0 }, { opacity: 1 }], 280, 220, 'linear');
+    move(archiveCopy, 'translateY(14px)', 'translateY(0)', 280, 550);
+    move(sheet, 'translateY(0)', 'translateY(-101%)', timing.exitStart, 650);
   } else if (kind === 'match') {
     for (const [i, side] of ['upper', 'lower'].entries()) {
       const leaf = el(`gt-match-leaf gt-match-${side} gt-material-leaf`);
@@ -401,7 +435,7 @@ export function createGameTransition(
     el('gt-reading-mark', copy, readingScene === 'letter' ? '致你' : readingScene === 'blackout' ? '夜读' : '翻开下一页');
     if (options.title) el('gt-static-title', copy, options.title);
     el('gt-match-holdnote', copy, '正在准备正文');
-  } else if (kind !== 'push' && kind !== 'deal') {
+  } else if (kind !== 'push' && kind !== 'deal' && !(kind === 'frame' && !ink)) {
   const note = kind === 'match' ? 'NEXT / ARENA OF BIAS' : 'ARENA OF BIAS / TRUST YOUR INSTINCT';
   el('gt-static-kicker', copy, note);
   el('gt-static-title', copy, title);
