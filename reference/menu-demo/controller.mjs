@@ -30,7 +30,11 @@ export function mountMenu(root, options = {}) {
   let page = 0;
   let choice = '';
   let leaving = false;
-  const remembered = [1, 7];
+  const pageCount = Math.ceil(MODES.length / tabs.length);
+  const remembered = Array.from(
+    { length: pageCount },
+    (_, index) => index * tabs.length + 1,
+  );
   let currentMode = '';
   let pickedCard = '';
 
@@ -98,13 +102,24 @@ export function mountMenu(root, options = {}) {
   }
 
   function renderPage(next, focus = true) {
-    if (next < 0 || next > 1) return;
+    if (next < 0 || next >= pageCount) return;
     page = next;
+    directory.dataset.singleRow = String(
+      MODES.length - page * tabs.length <= 3,
+    );
     tabs.forEach((tab, index) => {
       const number = page * 6 + index + 1;
       tab.dataset.slot = String(number);
       tab.id = `slot-${number}`;
       const mode = MODES[number - 1];
+      tab.hidden = !mode;
+      if (!mode) {
+        tab.replaceChildren();
+        tab.removeAttribute('data-mode');
+        tab.setAttribute('aria-selected', 'false');
+        tab.tabIndex = -1;
+        return;
+      }
       tab.className = 'slot slot-mode';
       tab.dataset.mode = mode.id;
       tab.style.setProperty('--tile-color', mode.color);
@@ -119,9 +134,11 @@ export function mountMenu(root, options = {}) {
       );
     });
     $('#page-number').textContent = String(page + 1).padStart(2, '0');
+    $('#page-total').textContent = String(pageCount).padStart(2, '0');
+    $('.page-track i').style.width = `${100 / pageCount}%`;
     $('.page-track i').style.transform = `translateX(${page * 100}%)`;
     $('#previous-page').disabled = page === 0;
-    $('#next-page').disabled = page === 1;
+    $('#next-page').disabled = page === pageCount - 1;
     selectSlot(remembered[page], focus);
   }
 
@@ -133,15 +150,17 @@ export function mountMenu(root, options = {}) {
     const tab = event.target.closest('[role=tab]');
     if (!tab) return;
     const index = tabs.indexOf(tab);
+    const count = Math.min(tabs.length, MODES.length - page * tabs.length);
     const columns =
       getComputedStyle(directory).gridTemplateColumns.split(' ').length;
     let next;
-    if (event.key === 'ArrowRight') next = (index + 1) % 6;
-    if (event.key === 'ArrowLeft') next = (index + 5) % 6;
-    if (event.key === 'ArrowDown') next = (index + columns) % 6;
-    if (event.key === 'ArrowUp') next = (index + 6 - columns) % 6;
+    if (event.key === 'ArrowRight') next = (index + 1) % count;
+    if (event.key === 'ArrowLeft') next = (index + count - 1) % count;
+    if (event.key === 'ArrowDown') next = (index + columns) % count;
+    if (event.key === 'ArrowUp')
+      next = (index + count - (columns % count)) % count;
     if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = 5;
+    if (event.key === 'End') next = count - 1;
     if (next !== undefined) {
       event.preventDefault();
       selectSlot(page * 6 + next + 1, true);

@@ -103,6 +103,9 @@ html[data-play-menu] #root {
 [data-theme='ink'] .play-collection .mode-scene {
   color: #354336;
 }
+[data-theme='ink'] .play-collection .progress-rail i {
+  background: #d2a481;
+}
 [data-theme='ink'] .play-collection .forum-posts {
   color: #354336;
 }

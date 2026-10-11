@@ -154,9 +154,9 @@ try {
   await page.goto(url);
   await settled(page);
   const unique = new Set();
-  for (const pageNumber of [1, 2]) {
-    if (pageNumber === 2) await page.locator('#next-page').click();
-    for (const tab of await page.getByRole('tab').all()) {
+  for (const pageNumber of [1, 2, 3]) {
+    if (pageNumber > 1) await page.locator('#next-page').click();
+    for (const tab of await page.locator('.slot:not([hidden])').all()) {
       const number = Number(await tab.getAttribute('data-slot'));
       const mode = MODES[number - 1];
       unique.add(number);
@@ -191,11 +191,12 @@ try {
         );
     }
   }
-  check(unique.size === 12, '12 designed modes across two pages');
+  check(unique.size === 13, '13 designed modes across three pages');
   check(
-    MODES.filter((mode) => !mode.locked).length === 3,
-    '3 available games, 9 previews',
+    MODES.filter((mode) => !mode.locked).length === 4,
+    '4 available games, 9 previews',
   );
+  await page.locator('#previous-page').click();
   await page.locator('#previous-page').click();
   check(
     (await page.locator('#slot-6').getAttribute('aria-selected')) === 'true',
@@ -241,7 +242,8 @@ try {
     .click();
   await settled(page);
   check(
-    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) === 'a',
+    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) ===
+      'a',
     'A choice updates selected state',
   );
   check(
@@ -272,7 +274,8 @@ try {
   await page.screenshot({ path: output + '/chosen.png', fullPage: true });
   await page.locator('[data-choice=b]').click();
   check(
-    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) === 'b',
+    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) ===
+      'b',
     'switch choice to B',
   );
   check(
@@ -285,7 +288,8 @@ try {
   await page.getByRole('button', { name: /再选一次/ }).click();
   await settled(page);
   check(
-    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) === '',
+    (await page.locator('.menu-forum-scene').getAttribute('data-chosen')) ===
+      '',
     'reset restores anonymous preview',
   );
   await page.setViewportSize({ width: 390, height: 844 });
@@ -340,17 +344,19 @@ try {
           width: document.documentElement.scrollWidth,
           height: document.documentElement.scrollHeight,
           images: [...document.images].every((image) => image.naturalWidth > 0),
-          navFits: [...document.querySelectorAll('.slot')].every((slot) => {
-            const title = slot.querySelector('.slot-title');
-            const picture = slot.querySelector('.slot-picture');
-            const description = slot.querySelector('.slot-description');
-            return (
-              slot.scrollHeight <= slot.clientHeight + 1 &&
-              title.scrollWidth <= title.clientWidth + 1 &&
-              rect(picture).bottom <= rect(title).top + 2 &&
-              rect(title).bottom <= rect(description).top + 2
-            );
-          }),
+          navFits: [...document.querySelectorAll('.slot:not([hidden])')].every(
+            (slot) => {
+              const title = slot.querySelector('.slot-title');
+              const picture = slot.querySelector('.slot-picture');
+              const description = slot.querySelector('.slot-description');
+              return (
+                slot.scrollHeight <= slot.clientHeight + 1 &&
+                title.scrollWidth <= title.clientWidth + 1 &&
+                rect(picture).bottom <= rect(title).top + 2 &&
+                rect(title).bottom <= rect(description).top + 2
+              );
+            },
+          ),
           headerFits:
             h1.scrollWidth <= h1.clientWidth + 1 &&
             rect(h1).right <= rect(note).left + 1,

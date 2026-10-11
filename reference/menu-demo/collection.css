@@ -1,4 +1,136 @@
 /* The approved paper layout is shared. Each game keeps its own visual language. */
+.slot[hidden] {
+  display: none;
+}
+@media (max-width: 600px) {
+  .slots[data-single-row='true'] {
+    grid-template-rows: 145px;
+  }
+}
+.mode-progress {
+  flex: 0 0 clamp(160px, 15vw, 245px);
+  color: var(--ink);
+  padding: 2px 0;
+}
+.progress-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 12px;
+}
+.progress-caption b {
+  font-size: 23px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.progress-rail {
+  height: 5px;
+  margin: 7px 0 6px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-rail i {
+  display: block;
+  height: 100%;
+  background: var(--mode-color);
+  border-radius: inherit;
+}
+.progress-note {
+  font-size: 10px;
+  opacity: 0.65;
+}
+.mode-progress.is-unknown .progress-rail {
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0 5px,
+    color-mix(in srgb, var(--ink) 14%, transparent) 5px 8px
+  );
+}
+.jury-file {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr 1fr auto;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #bbae9360;
+  background: #f7f3e8;
+  box-shadow: 5px 5px 0 #9b805113;
+}
+.jury-order,
+.jury-file article header,
+.jury-verdict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: #88754f;
+}
+.jury-order {
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #bbae933d;
+}
+.jury-file article {
+  padding: 12px 14px;
+  background: #eee9dc;
+  min-height: 0;
+}
+.jury-file .jury-appeal {
+  background: #e4e8df;
+}
+.jury-file article p {
+  margin: 8px 0 0;
+  font-size: clamp(13px, 1.1vw, 19px);
+  line-height: 1.6;
+  color: #354336;
+}
+.jury-file article small {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #64715b;
+}
+.jury-verdict {
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.jury-verdict > span:first-child {
+  margin-right: auto;
+}
+@media (min-width: 901px) and (max-height: 780px) {
+  .jury-file {
+    padding: 10px;
+    gap: 6px;
+  }
+  .jury-file article {
+    padding: 7px 10px;
+  }
+  .jury-file article p {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .jury-file article small {
+    margin-top: 3px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .mode-progress {
+    flex-basis: 150px;
+  }
+  .jury-file {
+    padding: 12px;
+  }
+  .jury-file article p {
+    font-size: 14px;
+  }
+}
 .slot-mode {
   background: #f5f2e740;
 }
@@ -1716,6 +1848,20 @@
 }
 
 /* The event is deliberately undecided; the menu does not invent its rules. */
-.event-mystery { display: grid; align-content: center; justify-items: center; gap: 16px; border: 1px dashed #a6814860; color: var(--mode-color); }
-.event-mystery > span { font: italic clamp(100px, 22cqw, 210px)/1 Georgia, serif; }
-.event-mystery > p { margin: 0; font: 18px var(--serif); }
+.event-mystery {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  border: 1px dashed #a6814860;
+  color: var(--mode-color);
+}
+.event-mystery > span {
+  font:
+    italic clamp(100px, 22cqw, 210px)/1 Georgia,
+    serif;
+}
+.event-mystery > p {
+  margin: 0;
+  font: 18px var(--serif);
+}

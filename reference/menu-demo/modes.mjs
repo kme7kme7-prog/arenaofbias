@@ -64,6 +64,7 @@ const catalog = [
   },
   {
     id: 'tanks',
+    progress: 90,
     name: '坦克斗蛐蛐',
     title: ['坦克', '斗蛐蛐'],
     short: '四个 AI 写 bot 打坦克',
@@ -76,6 +77,7 @@ const catalog = [
   },
   {
     id: 'werewolf',
+    progress: 50,
     name: '狼言狼语',
     title: ['狼言', '狼语'],
     short: '十二个 AI 玩狼人杀',
@@ -88,6 +90,7 @@ const catalog = [
   },
   {
     id: 'geoguess',
+    progress: 60,
     name: '图里是哪儿',
     title: ['图里', '是哪儿'],
     short: '给 AI 看图，猜地点年份',
@@ -100,6 +103,7 @@ const catalog = [
   },
   {
     id: 'generals',
+    progress: 80,
     name: '将军对垒',
     title: ['将军', '对垒'],
     short: 'AI 训练 bot，攻城夺地',
@@ -112,6 +116,7 @@ const catalog = [
   },
   {
     id: 'league',
+    progress: 70,
     name: '算计联赛',
     title: ['算计', '联赛'],
     short: '多 AI 跨游戏博弈联赛',
@@ -124,6 +129,7 @@ const catalog = [
   },
   {
     id: 'debate',
+    progress: 60,
     name: '谁更有理',
     title: ['谁更', '有理'],
     short: '两个 AI 辩论，来回交锋',
@@ -136,6 +142,7 @@ const catalog = [
   },
   {
     id: 'ctf',
+    progress: 30,
     name: '补洞夺旗',
     title: ['补洞', '夺旗'],
     short: '修自己的网站，攻对手',
@@ -145,6 +152,19 @@ const catalog = [
     lead: ['一边补洞，', '一边找破绽。'],
     desc: 'AI 各自维护容器里的漏洞网站。修补防线，再进攻对手夺旗得分。',
     foot: '守得住，攻得进，才算赢。',
+  },
+  {
+    id: 'reviewjury',
+    name: '差评陪审团',
+    title: ['差评', '陪审团'],
+    short: 'AI 审申诉，差评留不留',
+    color: '#9b8051',
+    soft: '#e8dfcd',
+    progress: 10,
+    note: ['一条差评，', '两边都有话说。'],
+    lead: ['这条差评，', '该不该撤？'],
+    desc: '差评原文、商家回复、申诉理由和订单信息一起交给 AI。看看它会怎么判，又会被什么离谱理由说服。',
+    foot: '听完双方，再看 AI 怎么作决定。',
   },
 ];
 const order = [
@@ -160,6 +180,7 @@ const order = [
   'debate',
   'event',
   'ctf',
+  'reviewjury',
 ];
 export const MODES = order
   .map((id) => {
@@ -283,6 +304,16 @@ function ctf() {
     ${tail('点补丁，看看防线怎么补上。')}`;
 }
 
+function reviewjury() {
+  return `${head('一份申诉，听听双方', '虚构案例')}
+    <div class="jury-file">
+      <div class="jury-order"><span>订单信息</span><b>一份微辣炒饭</b><span>已送达 · 备注：不要葱</span></div>
+      <article class="jury-review"><header><span>差评原文</span><span aria-label="一星">★ ☆ ☆ ☆ ☆</span></header><p>备注不要葱，结果一盒都是葱。老板是不是把炒饭当配菜了？</p></article>
+      <article class="jury-appeal"><header><span>商家回复与申诉</span><span>申请撤销</span></header><p>那不是葱，是我们对春天的理解。</p><small>申诉理由：顾客与本店存在审美分歧，不应影响评分。</small></article>
+      <div class="jury-verdict"><span>交给 AI 陪审员</span><b>保留差评</b><span aria-hidden="true">/</span><b>撤销差评</b></div>
+    </div>${tail('虚构材料，展示玩法；等待 AI 入席。')}`;
+}
+
 export const scenes = {
   formal,
   event,
@@ -295,11 +326,22 @@ export const scenes = {
   league,
   debate,
   ctf,
+  reviewjury,
 };
+
+function developmentProgress(mode) {
+  const unknown = mode.id === 'event';
+  if (!unknown && mode.progress === undefined) return '';
+  return `<div class="mode-progress${unknown ? ' is-unknown' : ''}" ${unknown ? 'aria-label="开发进度未知"' : `role="progressbar" aria-label="开发进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mode.progress}"`}>
+    <div class="progress-caption"><span>开发进度</span><b>${unknown ? '？' : mode.progress}%</b></div>
+    <div class="progress-rail" aria-hidden="true"><i style="width:${unknown ? 0 : mode.progress}%"></i></div>
+    <span class="progress-note">暂未完成</span>
+  </div>`;
+}
 
 export function renderMode(mode) {
   return `<div class="feature-heading"><div><h1>${mode.title[0]}<span>${mode.title[1]}</span><i aria-hidden="true">。</i></h1></div><p class="heading-note">${mode.note.join('<br>')}</p></div>
     <div class="feature-content"><div class="feature-copy"><span class="sample-mark" aria-hidden="true">“</span><h2>${mode.lead[0]}<br><span>${mode.lead[1]}</span></h2><p>${mode.desc}</p></div>
     <section class="mode-scene scene-${mode.id}" aria-label="${mode.name}玩法预览">${scenes[mode.id]()}</section></div>
-    <div class="feature-bottom"><div><p>${mode.foot}</p></div>${mode.locked ? '<span class="mode-unavailable"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="1"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></svg>暂未完成</span>' : `<a class="enter-play" href="${mode.href}"><span>${mode.cta}</span><span class="enter-arrow" aria-hidden="true">↗</span></a>`}</div>`;
+    <div class="feature-bottom"><div><p>${mode.foot}</p></div>${mode.locked ? developmentProgress(mode) || '<span class="mode-unavailable"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="1"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></svg>暂未完成</span>' : `<a class="enter-play" href="${mode.href}"><span>${mode.cta}</span><span class="enter-arrow" aria-hidden="true">↗</span></a>`}</div>`;
 }

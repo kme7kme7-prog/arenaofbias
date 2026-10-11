@@ -19,4 +19,6 @@ Work screenshots used by the formal-review preview; earlier letter samples remai
 - `geo-kawaguchi.jpg`: [Fuji Kawaguchi 357.JPG](https://commons.wikimedia.org/wiki/File:Fuji_Kawaguchi_357.JPG), photographed by Marion & Christoph Aistleitner on 19 January 2014. Mount Fuji viewed above Lake Kawaguchi, Japan. Wikimedia Commons identifies this work as [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The local 1280px thumbnail is unmodified; the country, location and year reveal use this source metadata. The source link is also visible below the photo.
 - The guess clues, tier cards, tank positions, werewolf identities, territory map, private notebook, debate lines and patch controls are illustrative menu content. They are labeled as examples and are not attributed to an AI model, real score, real match or real security event.
 
-The approved twelve-mode menu is shared with the local main-site `#play` route. Previews do not submit votes. Three existing destinations remain available; the other nine modes are unfinished previews. This integration has not been deployed.
+The approved thirteen-mode menu is shared with the main-site `#play` route. Previews do not submit votes. Four existing destinations remain available; the other nine modes are unfinished previews. See the root HANDOFF.md for the release status.
+
+- `motif-reviewjury.svg`: Original code-drawn paper case file and gavel motif added on 2026-10-12. Review jury text is a fictional illustrative appeal, not a real Meituan case or AI verdict.

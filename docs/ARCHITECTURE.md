@@ -26,8 +26,8 @@
 | `app/prompt-library.tsx` | 提示词库：目录/单题档案、搜索筛选、键盘选题；library.css 供预览页与首页公共片段 |
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页 |
 | `app/ranking.tsx` | 偏好榜 `#rank`：三赛道 tab、Elo 排行、模型档案卡（主题色染头部，决策 017） |
-| `app/play-menu.tsx` / `app/play-menu.css` / `app/play-menu-locale.ts` | 十二玩法纸面菜单 `#play`：React 保留账号/主题/语言/法律控件，共享 DOM 控制器负责目录与预览；离开时清理监听和菜单独立缩放 |
-| `reference/menu-demo/{index.html,modes.mjs,controller.mjs,forum-menu.css,collection.css}` | 已认可设计的共用模板、目录、预览交互与样式；`menu.mjs` 为独立 demo 挂载入口。三项可进入、九项未完成，预览不记成绩 |
+| `app/play-menu.tsx` / `app/play-menu.css` / `app/play-menu-locale.ts` | 十三玩法纸面菜单 `#play`：React 保留账号/主题/语言/法律控件，共享 DOM 控制器负责目录与预览；离开时清理监听和菜单独立缩放 |
+| `reference/menu-demo/{index.html,modes.mjs,controller.mjs,forum-menu.css,collection.css}` | 已认可设计的共用模板、目录、预览交互与样式；`menu.mjs` 为独立 demo 挂载入口。四项可进入、九项未完成，预览不记成绩 |
 | `scripts/play-menu-style-plugin.mjs` | Vite 虚拟样式将共用 CSS 限定在 `.play-collection`；图案/照片经 Vite 资产导入，正式构建不依赖 `/reference/` 静态路由 |
 | `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位） |
 | `app/guess.tsx` + `guess.css` | 模一把玩法页 `#guess`（057-065）：选择屏（每日+三档练习）、搜索补全（全库、不按池过滤）、七属性反馈表、揭晓条、分享、战绩；视觉维护见文件头「美化接手须知」 |

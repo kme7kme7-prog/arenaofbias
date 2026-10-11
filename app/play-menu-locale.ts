@@ -33,7 +33,32 @@ const copy = Object.fromEntries(
 进入随心玩|Play Your Way
 今天，想怎么玩？|How will you play?
 左侧选玩法，右侧看介绍和预览。|Choose a mode on the left. Explore it on the right.
-目录共两页，也可以用方向键选择。|Two pages to explore. Arrow keys work too.
+目录共三页，也可以用方向键选择。|Three pages to explore. Arrow keys work too.
+开发进度|Development
+开发进度未知|Development progress unknown
+AI 审申诉，差评留不留|AI reviews appeals. Keep the review?
+一条差评，|One bad review.
+两边都有话说。|Two sides to hear.
+这条差评，|This bad review:
+该不该撤？|should it stay?
+差评原文、商家回复、申诉理由和订单信息一起交给 AI。看看它会怎么判，又会被什么离谱理由说服。|Give AI the review, the merchant's reply, appeal and order details. See its verdict and what absurd reasons might persuade it.
+听完双方，再看 AI 怎么作决定。|Hear both sides. See what AI decides.
+一份申诉，听听双方|One appeal. Hear both sides.
+虚构案例|Fictional case
+订单信息|Order details
+一份微辣炒饭|One mildly spicy fried rice
+已送达 · 备注：不要葱|Delivered · Note: no scallions
+差评原文|Customer review
+一星|One star
+备注不要葱，结果一盒都是葱。老板是不是把炒饭当配菜了？|I asked for no scallions. The box was full of them. Is the rice just a side dish?
+商家回复与申诉|Merchant's reply and appeal
+申请撤销|Removal requested
+那不是葱，是我们对春天的理解。|Those are not scallions. That is our interpretation of spring.
+申诉理由：顾客与本店存在审美分歧，不应影响评分。|Appeal: a difference in aesthetics should not affect our rating.
+交给 AI 陪审员|Let AI decide
+保留差评|Keep review
+撤销差评|Remove review
+虚构材料，展示玩法；等待 AI 入席。|Illustrative materials. Waiting for the AI jury.
 有进入按钮的玩法，现在就能玩。|Modes with an entry button are ready to play.
 暂未完成的玩法先看看设计。预览中的选择和示意都不计成绩。|Other modes are previews. Preview interactions do not count toward scores.
 明白了，开始挑|Got it
@@ -242,6 +267,7 @@ const titles: Record<string, [string, string]> = {
   debate: ['Who Has ', 'a Point?'],
   event: ['Pelican ', 'Rumble'],
   ctf: ['Patch & ', 'Capture'],
+  reviewjury: ['Review ', 'Jury'],
 };
 for (const mode of MODES) copy[mode.name] = titles[mode.id].join('');
 

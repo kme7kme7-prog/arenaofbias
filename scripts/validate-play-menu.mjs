@@ -41,7 +41,10 @@ await context.route('**/api/**', (route) => {
             : {};
   return route.fulfill({
     json: body,
-    headers: { 'Access-Control-Allow-Origin': '*' },
+    headers: {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
+    },
   });
 });
 await context.route('https://gallery.arenaofbias.icu/**', (route) =>
@@ -65,11 +68,15 @@ async function settled() {
 }
 async function select(id) {
   const mode = MODES.find((m) => m.id === id);
-  const desiredPage = mode.number > 6 ? '02' : '01';
-  if ((await page.locator('#page-number').textContent()) !== desiredPage)
+  const desiredPage = Math.floor((mode.number - 1) / 6) + 1;
+  while (
+    Number(await page.locator('#page-number').textContent()) !== desiredPage
+  ) {
+    const current = Number(await page.locator('#page-number').textContent());
     await page
-      .locator(desiredPage === '02' ? '#next-page' : '#previous-page')
+      .locator(current < desiredPage ? '#next-page' : '#previous-page')
       .click();
+  }
   await page.locator(`.slot[data-mode=${id}]`).click();
   await settled();
 }
@@ -97,7 +104,7 @@ async function untranslated() {
 try {
   check(
     MODES.map((m) => m.id).join(',') ===
-      'party,formal,guess,tierlist,tanks,werewolf,geoguess,generals,league,debate,event,ctf',
+      'party,formal,guess,tierlist,tanks,werewolf,geoguess,generals,league,debate,event,ctf,reviewjury',
     'Requested order preserved',
   );
   for (const [width, height, language, theme] of [
@@ -185,6 +192,37 @@ try {
           locked: !active.querySelector('.enter-play'),
         };
       });
+      if (mode.progress !== undefined || mode.id === 'event') {
+        const meter = page.locator('.mode-progress');
+        check(await meter.isVisible(), `${mode.id}: static progress visible`);
+        check(
+          (await meter.locator('b').textContent()) ===
+            `${mode.id === 'event' ? '？' : mode.progress}%`,
+          `${mode.id}: requested percentage`,
+        );
+        if (mode.progress !== undefined) {
+          check(
+            (await meter.getAttribute('aria-valuenow')) ===
+              String(mode.progress),
+            `${mode.id}: accessible percentage`,
+          );
+          check(
+            await meter
+              .locator('.progress-rail')
+              .evaluate(
+                (rail, progress) =>
+                  Math.abs(
+                    (rail.firstElementChild.getBoundingClientRect().width /
+                      rail.getBoundingClientRect().width) *
+                      100 -
+                      progress,
+                  ) < 0.5,
+                mode.progress,
+              ),
+            `${mode.id}: accurate fill`,
+          );
+        }
+      }
       const label = `${width}/${language}/${mode.id}`;
       layouts.push({ label, ...geometry });
       check(
@@ -240,6 +278,33 @@ try {
   check(
     (await page.locator('#preview').getAttribute('data-mode')) === 'geoguess',
     'Paging moves focus to second page',
+  );
+  await page.keyboard.press('PageDown');
+  check(
+    (await page.locator('#preview').getAttribute('data-mode')) === 'reviewjury',
+    'Third page selects review jury',
+  );
+  check(
+    (await page.getByRole('tab').count()) === 1,
+    'Third page has one accessible tab',
+  );
+  check(
+    await page.locator('#next-page').isDisabled(),
+    'Third page is last page',
+  );
+  for (const key of ['End', 'ArrowRight', 'ArrowUp', 'Home']) {
+    await page.keyboard.press(key);
+    check(
+      await page
+        .locator('#slot-13')
+        .evaluate((e) => e === document.activeElement),
+      `Sparse page ${key} keeps valid focus`,
+    );
+  }
+  await page.keyboard.press('PageUp');
+  check(
+    (await page.locator('#preview').getAttribute('data-mode')) === 'geoguess',
+    'Return from third page restores prior selection',
   );
   await select('event');
   check(
