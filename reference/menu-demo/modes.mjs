@@ -64,7 +64,8 @@ const catalog = [
   },
   {
     id: 'tanks',
-    progress: 90,
+    href: '/tanks.html',
+    cta: '开始乱斗',
     name: '坦克斗蛐蛐',
     title: ['坦克', '斗蛐蛐'],
     short: '四个 AI 写 bot 打坦克',

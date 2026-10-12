@@ -27,7 +27,9 @@
 | `app/prompt-preview.tsx` | 无可比较结果提示词的预览页 |
 | `app/ranking.tsx` | 偏好榜 `#rank`：三赛道 tab、Elo 排行、模型档案卡（主题色染头部，决策 017） |
 | `app/play-menu.tsx` / `app/play-menu.css` / `app/play-menu-locale.ts` | 十三玩法纸面菜单 `#play`：React 保留账号/主题/语言/法律控件，共享 DOM 控制器负责目录与预览；离开时清理监听和菜单独立缩放 |
-| `reference/menu-demo/{index.html,modes.mjs,controller.mjs,forum-menu.css,collection.css}` | 已认可设计的共用模板、目录、预览交互与样式；`menu.mjs` 为独立 demo 挂载入口。四项可进入、九项未完成，预览不记成绩 |
+| `reference/menu-demo/{index.html,modes.mjs,controller.mjs,forum-menu.css,collection.css}` | 已认可设计的共用模板、目录、预览交互与样式；`menu.mjs` 为独立 demo 挂载入口。五项可进入、八项未完成，预览不记成绩 |
+| `tanks.html` / `app/tanks/` | 坦克斗蛐蛐独立页面：七份登记程序任选四个可信 bot Worker 先算后播；Canvas 布阵、地图画笔与回放。菜单横推沿用原脚本，原始程序哈希与引擎来源见 `provenance.json`，运行边界见目录 README |
+| `scripts/check-tanks.mjs` / `scripts/validate-tanks.mjs` | 默认地图与原引擎回放一致性、实验配置/取消/回放校验；构建后的真实四 bot 对局、纸墨尺寸、触屏编辑、回放文件和进出过场 |
 | `scripts/play-menu-style-plugin.mjs` | Vite 虚拟样式将共用 CSS 限定在 `.play-collection`；图案/照片经 Vite 资产导入，正式构建不依赖 `/reference/` 静态路由 |
 | `app/event.tsx` | 特别赛「鹈鹕大乱斗」独立页 `#event`（占位） |
 | `app/guess.tsx` + `guess.css` | 模一把玩法页 `#guess`（057-065）：选择屏（每日+三档练习）、搜索补全（全库、不按池过滤）、七属性反馈表、揭晓条、分享、战绩；视觉维护见文件头「美化接手须知」 |

@@ -28,7 +28,8 @@
     "build/**",
     "dist/**",
     "coverage/**",
-    "data/**"
+    "data/**",
+    "app/tanks/bots/**"
   ],
   "rules": {
     "no-array-constructor": "error",

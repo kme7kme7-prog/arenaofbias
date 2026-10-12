@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>坦克战斗观感对照</title>
+  <style>
+    body {
+      margin: 0;
+      background: #efede2;
+      color: #344438;
+      font: 14px system-ui;
+      padding: 24px;
+    }
+    main {
+      max-width: 800px;
+      margin: auto;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    nav {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+    button,
+    input,
+    select {
+      font: inherit;
+      padding: 7px;
+    }
+    canvas {
+      width: min(75vh, 100%);
+      display: block;
+      margin: auto;
+      border: 1px solid #8b9680;
+    }
+    #seek {
+      flex: 1;
+    }
+    p {
+      color: #687464;
+      line-height: 1.8;
+    }
+    small {
+      display: block;
+      margin-top: 12px;
+    }
+  </style>
+  <main>
+    <h1>坦克战斗 · 观感对照</h1>
+    <p>
+      打开已保存的真实对局，逐帧检查弹道、命中与击毁。这里不运行选手、不修改比赛结果。
+    </p>
+    <input type="file" id="file" accept=".json" />
+    <nav>
+      <button id="play">播放</button
+      ><input
+        type="range"
+        id="seek"
+        min="0"
+        max="1"
+        step=".01"
+        value="0"
+      /><output id="time">0.0</output
+      ><select id="speed">
+        <option value=".25">¼速</option>
+        <option value="1" selected>原速</option>
+        <option value="2">2倍</option>
+      </select>
+    </nav>
+    <nav>
+      <label><input type="checkbox" id="raw" />原始离散帧</label
+      ><label><input type="checkbox" id="quiet" />减少动态</label
+      ><label><input type="checkbox" id="ink" />墨色</label>
+    </nav>
+    <canvas id="board"></canvas
+    ><small
+      >原始帧仅用于对照轨迹与状态；粒子和镜头反馈按同一回放时间采样。</small
+    >
+  </main>
+  <script type="module">
+    import { createRenderer } from '/app/tanks/render.mjs';
+    import { prepareEffects, recentEffects } from '/app/tanks/presentation.mjs';
+    import { readColors } from '/app/tanks/workbench.mjs';
+    import { validateBrawlReplay } from '/app/tanks/engine/runner/brawl-replay.js';
+    const $ = (s) => document.querySelector(s),
+      renderer = createRenderer($('#board'));
+    let replay = null,
+      effects = [],
+      time = 0,
+      playing = false,
+      last = 0;
+    $('#file').onchange = async (e) => {
+      try {
+        replay = validateBrawlReplay(
+          JSON.parse(await e.target.files[0].text()),
+        );
+        effects = prepareEffects(replay);
+        time = 0;
+        playing = false;
+        $('#seek').max = replay.frames.length - 1;
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+    $('#play').onclick = () => (playing = !playing);
+    $('#seek').oninput = (e) => {
+      time = Number(e.target.value);
+      playing = false;
+    };
+    function loop(t) {
+      const dt = Math.min(0.1, (t - last) / 1000);
+      last = t;
+      if (replay) {
+        if (playing)
+          time = Math.min(
+            replay.frames.length - 1,
+            time + dt * 10 * Number($('#speed').value),
+          );
+        const i = Math.floor(time),
+          raw = $('#raw').checked;
+        renderer.draw(replay.frames[i], {
+          next: raw ? null : replay.frames[i + 1],
+          blend: raw ? 0 : time - i,
+          events: raw ? [] : recentEffects(effects, time),
+          reduced: $('#quiet').checked,
+          colors: Object.values(readColors(replay.meta.website?.colors)),
+          theme: $('#ink').checked ? 'ink' : 'paper',
+        });
+        $('#seek').value = time;
+        $('#time').textContent = (time / 10).toFixed(2) + 's';
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</html>

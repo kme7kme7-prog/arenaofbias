@@ -72,6 +72,7 @@ export default defineConfig({
         playground: fileURLToPath(new URL('playground.html', import.meta.url)),
         objects: fileURLToPath(new URL('objects.html', import.meta.url)),
         tier: fileURLToPath(new URL('tier.html', import.meta.url)),
+        tanks: fileURLToPath(new URL('tanks.html', import.meta.url)),
       },
     },
   },

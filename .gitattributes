@@ -1,0 +1,2 @@
+# Registered competition sources keep their original bytes.
+app/tanks/bots/*.js -text

@@ -193,8 +193,8 @@ try {
   }
   check(unique.size === 13, '13 designed modes across three pages');
   check(
-    MODES.filter((mode) => !mode.locked).length === 4,
-    '4 available games, 9 previews',
+    MODES.filter((mode) => !mode.locked).length === 5,
+    '5 available games, 8 previews',
   );
   await page.locator('#previous-page').click();
   await page.locator('#previous-page').click();

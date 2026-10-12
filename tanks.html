@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f1efe5" />
+    <title>坦克斗蛐蛐 · Arena of Bias</title>
+    <link rel="icon" href="/favicon.svg" />
+    <script>
+      try {
+        const t = localStorage.getItem('aob-theme');
+        document.documentElement.dataset.theme =
+          t === 'ink' ||
+          (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+            ? 'ink'
+            : 'paper';
+      } catch {}
+    </script>
+    <script src="/playground-entry-boot.js"></script>
+    <link rel="stylesheet" href="/app/playground/fonts.css" />
+    <link rel="stylesheet" href="/app/tanks/style.css" />
+    <script type="module" src="/app/tanks/app.mjs"></script>
+  </head>
+  <body data-state="setup">
+    <div class="tank-app">
+      <header class="masthead">
+        <a class="brand" href="/#play" aria-label="返回玩法菜单"
+          ><span class="brand-mark" aria-hidden="true"
+            ><i></i><i></i><i></i></span
+          ><span>ARENA OF <b>BIAS</b></span></a
+        >
+        <span class="header-caption">代码落地，战场见。</span>
+        <div class="header-tools">
+          <button id="help" class="quiet" aria-label="新手引导">
+            新手引导 <span>?</span>
+          </button>
+          <button id="rules" class="quiet" aria-label="玩法规则">规则</button>
+          <button id="theme" class="quiet" aria-label="切换主题">
+            ◐ <span>纸面</span>
+          </button>
+        </div>
+      </header>
+      <main class="workspace">
+        <aside class="briefing">
+          <div class="title-block">
+            <span class="eyebrow">05 / TANK BRAWL</span>
+            <h1>坦克<br /><em>斗蛐蛐。</em></h1>
+            <p>四份代码，各凭本事。</p>
+          </div>
+          <div class="setup-tools">
+            <div class="section-heading">
+              <h2>挑一片战场</h2>
+              <span>01 — 03</span>
+            </div>
+            <div id="maps" class="maps" aria-label="选择地图"></div>
+            <p class="map-description" id="map-description"></p>
+            <button id="edit-map" class="edit-entry">
+              <span>▧ 自己画地图</span
+              ><span class="experimental-tag">实验功能</span>
+            </button>
+            <div class="editor" id="editor" hidden>
+              <div class="section-heading">
+                <h2>地形画笔 <span class="experimental-tag">实验功能</span></h2>
+                <button id="finish-edit" class="text-button">收起 ↑</button>
+              </div>
+              <div class="palette" id="palette" aria-label="地形画笔"></div>
+              <div class="editor-options">
+                <label
+                  >画笔
+                  <select id="brush" aria-label="画笔大小">
+                    <option value="1">1 × 1</option>
+                    <option value="2">2 × 2</option>
+                  </select></label
+                ><label><input type="checkbox" id="mirror" /> 四向对称</label>
+              </div>
+              <div class="editor-actions">
+                <button id="undo" aria-label="撤销上一步">↶ 撤销</button
+                ><button id="clear-map">清空地形</button>
+              </div>
+            </div>
+            <div class="setup-files">
+              <button
+                id="reset-all"
+                class="text-button"
+                title="恢复当前基底地图和出生位置，保留选手与颜色"
+              >
+                ↶ 撤销全部
+              </button>
+            </div>
+          </div>
+          <div class="match-story" id="match-story" hidden>
+            <div class="section-heading">
+              <h2>交锋记录</h2>
+              <span>FIELD NOTES</span>
+            </div>
+            <ol id="events"></ol>
+            <button id="back-setup" class="edit-entry">
+              <span>← 回到布阵桌</span>
+            </button>
+          </div>
+          <div class="briefing-foot">
+            <span class="tiny-square"></span>
+            <p>你来摆局，<br />看 AI 怎么破局。</p>
+            <span class="crosshair" aria-hidden="true">⌖</span>
+          </div>
+        </aside>
+        <section class="arena" aria-label="战场与回放">
+          <div class="arena-heading">
+            <div>
+              <span id="mode-badge" class="badge">标准地图</span>
+              <h2 id="map-title">十字猎场</h2>
+            </div>
+            <div class="clock">
+              <span id="phase">等待开场</span
+              ><strong id="clock">60<span>.0</span></strong>
+            </div>
+          </div>
+          <div class="board-space">
+            <div class="board-frame">
+              <span class="coordinate coord-top" aria-hidden="true"
+                >00 — — — — — — — — — — — — 26</span
+              ><span class="coordinate coord-side" aria-hidden="true">N ↑</span>
+              <canvas
+                id="board"
+                tabindex="0"
+                aria-label="坦克战场。布阵时拖动坦克；选中后用方向键移动，R 旋转。"
+              ></canvas>
+              <div class="empty-arena" id="empty-arena">
+                <span class="eyebrow">THE STAGE IS YOURS</span>
+                <h3>战场就位。<br />请选手入场。</h3>
+                <p>从坦克库挑四份代码，摆一场好戏。</p>
+                <button id="empty-library" class="primary">挑选选手 ↗</button>
+                <button id="empty-guide" class="text-button">
+                  第一次玩？带我走一遍 →
+                </button>
+              </div>
+              <div class="board-overlay" id="loading" hidden>
+                <div class="calculation">
+                  <span class="eyebrow">四方就绪 · 正在推演</span
+                  ><b>好戏，马上开场。</b>
+                  <div class="compute-track"><i id="compute-fill"></i></div>
+                  <p>
+                    <span id="compute-count">0 / 600</span
+                    ><span>计算完成后自动播放</span>
+                  </p>
+                  <button id="cancel" class="text-button">取消计算</button>
+                </div>
+              </div>
+              <div class="board-overlay" id="result" hidden>
+                <div class="result-sheet">
+                  <span class="eyebrow">本场落幕</span>
+                  <h2 id="winner"></h2>
+                  <p id="result-detail"></p>
+                  <div id="standings"></div>
+                  <div class="result-actions">
+                    <button id="replay" class="primary">再看一遍 ↻</button
+                    ><button id="close-result">查看战场</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="arena-bottom">
+            <div class="board-hint" id="board-hint">
+              <span>↖ 拖动坦克，安排开场位置</span
+              ><button id="reset-positions" class="text-button">
+                恢复四角
+              </button>
+            </div>
+            <div class="transport" id="transport" hidden>
+              <input
+                id="scrub"
+                type="range"
+                min="0"
+                max="599"
+                value="0"
+                aria-label="回放进度"
+              />
+              <div class="transport-row">
+                <button id="to-start" aria-label="回到开头">↤</button
+                ><button id="play" aria-label="暂停播放">Ⅱ</button
+                ><span id="time-read">00:00 / 01:00</span
+                ><select id="speed" aria-label="播放速度">
+                  <option value="0.5">0.5×</option>
+                  <option value="1" selected>1×</option>
+                  <option value="2">2×</option>
+                  <option value="4">4×</option></select
+                ><button id="save-replay" class="text-button">
+                  保存回放 ↓
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <aside class="roster-panel">
+          <div class="section-heading roster-heading">
+            <h2>本场选手</h2>
+            <button id="open-library" class="text-button">坦克库 ↗</button>
+          </div>
+          <div id="roster" class="roster"></div>
+          <div id="position-tools" class="position-tools">
+            <span id="selected-label">先从坦克库挑选选手</span
+            ><button id="rotate" aria-label="旋转选中坦克">↻ 转向</button>
+          </div>
+          <div class="round-controls">
+            <div class="seed-control">
+              <label for="seed">本局种子</label
+              ><input
+                id="seed"
+                type="number"
+                min="0"
+                max="4294967295"
+                value="2"
+              /><button id="random-seed" aria-label="随机种子">⤨</button>
+            </div>
+            <button id="shuffle" class="text-button">⤨ 打乱选手位置</button>
+          </div>
+          <div class="start-area">
+            <p class="round-note" id="round-note">
+              三条命 · 两格装甲 · 最多一分钟
+            </p>
+            <button id="start" class="start-button" disabled>
+              <span><small>READY WHEN YOU ARE</small><b>开始乱斗</b></span
+              ><span class="start-arrow">↗</span></button
+            ><button id="new-round" class="start-button" hidden>
+              <span><small>ONE MORE ROUND</small><b>再开一局</b></span
+              ><span class="start-arrow">↗</span>
+            </button>
+          </div>
+        </aside>
+      </main>
+      <footer class="foot">
+        <span id="status" role="status" aria-live="polite"
+          >先挑四位选手，再看它们各显本事。</span
+        >
+        <div>
+          <button id="sound" class="text-button" aria-pressed="false">
+            音效关</button
+          ><button id="open-replay" class="text-button">打开回放 ↑</button
+          ><input id="replay-file" type="file" accept=".json" hidden /><span
+            class="footer-mark"
+            >PLAY YOUR WAY</span
+          >
+        </div>
+      </footer>
+    </div>
+    <dialog
+      id="tank-library"
+      class="tank-library"
+      aria-labelledby="library-title"
+    >
+      <button id="close-library" class="dialog-close" aria-label="关闭坦克库">
+        ×
+      </button>
+      <span class="eyebrow">THE GARAGE / 坦克库</span>
+      <h2 id="library-title">挑位选手</h2>
+      <p class="library-intro">每辆坦克，都是一份 AI 写下的作战程序。</p>
+      <div class="library-search">
+        <input
+          id="library-search"
+          type="search"
+          placeholder="搜模型或坦克名称"
+          aria-label="搜索坦克库"
+        /><span id="library-count"></span>
+      </div>
+      <div id="library-list" class="library-list"></div>
+      <p id="library-empty" class="library-empty" hidden>
+        没有找到，换个名字试试。
+      </p>
+      <p id="library-error" role="status"></p>
+      <p class="library-foot">四个席位，各选一份不同的程序。</p>
+    </dialog>
+    <dialog
+      id="color-dialog"
+      class="color-dialog"
+      aria-labelledby="color-title"
+    >
+      <button id="close-colors" class="dialog-close" aria-label="关闭颜色选择">
+        ×
+      </button>
+      <span class="eyebrow">TEAM COLORS</span>
+      <h2 id="color-title"></h2>
+      <div id="color-options" class="color-options"></div>
+      <p class="color-note">选中已使用的颜色，会与那个席位交换。</p>
+    </dialog>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <button id="close-help" class="dialog-close" aria-label="关闭说明">
+        ×</button
+      ><span class="eyebrow">FIELD GUIDE / 玩法说明</span>
+      <h2 id="help-title">摆好战场，<br />剩下交给它们。</h2>
+      <p>
+        四个 AI
+        各自编写坦克程序。挑地图、排阵容，浏览器先算完整场，再播放这场真实对局。
+      </p>
+      <dl>
+        <dt>选人</dt>
+        <dd>
+          初始战场为空。从右侧坦克库挑满四名不同选手，再开始比赛；颜色可在各席位下方更换。
+        </dd>
+        <dt>布阵</dt>
+        <dd>
+          拖动坦克改变起点，点选后可以转向。手机也可以先点选手，再点战场放置；键盘方向键移动，R
+          转向。
+        </dd>
+        <dt>画地图</dt>
+        <dd>
+          砖墙可击碎，钢墙挡车挡弹，河道挡车不挡弹，草地能隐蔽。地图固定 26 ×
+          26，坦克占 2 ×
+          2。自己画地图是实验功能；撤销全部会恢复基底地图与出生位置，保留选手和颜色。
+        </dd>
+        <dt>观战</dt>
+        <dd>
+          三条命、两格装甲。20 秒开始缩圈，50 秒全场坦克雷达常亮，60
+          秒结算。到时存活优先，再比战绩；允许并列。
+        </dd>
+        <dt>回放</dt>
+        <dd>
+          空格播放或暂停，左右键单步。回放可保存在本机，重新打开无需再次计算。实验地图和出生位置一起保存。
+        </dd>
+      </dl>
+      <p class="help-note">
+        本页为本地娱乐对局。只运行内置选手，不调用模型；战绩不写入正式排名。浏览器单次决策预算
+        500ms，长时间无响应会终止该选手。
+      </p>
+    </dialog>
+  </body>
+</html>

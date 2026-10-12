@@ -1,0 +1,66 @@
+{
+  "source": "Tank / rules 2.6.0",
+  "copied": {
+    "core/brawl-maps.js": "d91a486fc381088b2d07ed8a768f33fdd5576240d9f9a054f87c880148f38a2d",
+    "core/brawl.js": "430939e50d8e6fefb06542c677ea4b773380ee24904d2f316e21500e4826a70f",
+    "core/constants.js": "29e7ce350372fe927511540a53ccd78482a542059d5759fea8989824dc1805be",
+    "core/judge.js": "c37cba6a35ab971fa6fb211c2daa337873f4838a995c7b212343846856621459",
+    "core/maps.js": "34276058a3c8ef9ebd447d2fa628a4f247bca01ed4820db6b642e2ce212793a2",
+    "core/prng.js": "ebf1a772c7bc251dda515bec2ab270365ae537c7623f00a42352b2946e2f7fd4",
+    "core/radar.js": "2d463a13459c97c8357e4950deefa6cfa03bb41fce827a1b0bd0d357b1754e99",
+    "core/showcase.js": "d611c04b8b3e128c5ef73b5b3fada5739e5757251460377b6d8c8a3a7b212080",
+    "core/sim.js": "7312e408591fed8e54164b16ca1d16adfa8571e527f75426754cbb4938509f23",
+    "runner/brawl-replay.js": "9c912db4e8819311a248a1180285f85580d5948a4935bb420bb62c4ecb6631e4",
+    "ui/brawl-audio.js": "a815b63f9db0f49d9ab01eeb7ecaacd664a269512a57bd2afae9c25d2b413c90"
+  },
+  "bots": [
+    {
+      "id": "harrier",
+      "name": "Harrier（红隼）",
+      "model": "GLM-5.3 Flash",
+      "sha256": "43f6aae50be24c7003ca49ff907352444590d224c0951a6a29c75cbf7668dae6"
+    },
+    {
+      "id": "tank26",
+      "name": "Tank26",
+      "model": "GPT-6 Luna",
+      "sha256": "5b76f11b393266e500af773ebc36045a1e96e38e5945eab2fdaacf2c6c94981f"
+    },
+    {
+      "id": "vector",
+      "name": "vector",
+      "model": "GPT-6.1 SOL",
+      "sha256": "82160baeb1f59be117d69678d2044e7d2dff3f70244c1ba66439ef257cf1d1bd"
+    },
+    {
+      "id": "astra-knife",
+      "name": "astra-knife",
+      "model": "GPT-6 Astra",
+      "sha256": "f9c8450ced7218049649c3e904ec788d5dae9eeec0b8db669846c9c3cfe6b9c8"
+    },
+    {
+      "id": "shrike-deepseek",
+      "name": "shrike（伯劳）",
+      "model": "DeepSeek V4.1 Flash",
+      "sha256": "9da22a988decdad1456b479afe739d1d6be71968dd13c04c57e8fc6ffec66065",
+      "origin": "Tank-参赛工作区-v2.6 / entries / shrike deepseekv4.1 flash",
+      "identitySource": "User-provided contestant label"
+    },
+    {
+      "id": "shrike26-glm",
+      "name": "伯劳 SHRIKE",
+      "model": "GLM-5.3",
+      "sha256": "d624af6e4f6b8937a959beb578147a3868ed427b4ca99727381a50ab17550af2",
+      "origin": "Tank-参赛工作区-v2.6 / entries / 伯劳 GLM5.3",
+      "identitySource": "User-provided contestant label"
+    },
+    {
+      "id": "kestrel-kimi",
+      "name": "kestrel",
+      "model": "Kimi K3",
+      "sha256": "6514daa2fd7ee107a4fb5cee6db3d14d591d9c809bae13e7ed4d79db1f04d1d3",
+      "origin": "Tank-参赛工作区-v2.6 / entries / kestrel Kimi K3",
+      "identitySource": "User-provided contestant label"
+    }
+  ]
+}
