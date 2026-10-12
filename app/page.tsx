@@ -1572,7 +1572,7 @@ export default function Arena({
           {nightChat && (playground ? <PlaygroundChatMasthead question={chatQuestion!} /> : <NightChatMasthead />)}
           {forum && <ForumPost question={prompt.prompt} />}
           {textTheme && <TextStageMasthead theme={textTheme} channel={readingChannel} onChannelChange={setReadingChannel} />}
-          {!orangeBoards && !nightChat && !forum && !textTheme && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
+          {!forum && !textTheme && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
             <AudienceVerdict
               key={state.run}
