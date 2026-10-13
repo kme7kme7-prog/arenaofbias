@@ -61,8 +61,14 @@ async function settled() {
     await Promise.all(
       [...document.images].map((i) => i.decode().catch(() => {})),
     );
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
     await Promise.all(
-      document.getAnimations().map((a) => a.finished.catch(() => {})),
+      document
+        .getAnimations()
+        .filter((a) => a.playState === 'running')
+        .map((a) => a.finished.catch(() => {})),
     );
   });
 }

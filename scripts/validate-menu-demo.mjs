@@ -28,8 +28,14 @@ async function settled(page) {
     await Promise.all(
       [...document.images].map((image) => image.decode().catch(() => {})),
     );
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
     await Promise.all(
-      document.getAnimations().map((motion) => motion.finished.catch(() => {})),
+      document
+        .getAnimations()
+        .filter((motion) => motion.playState === 'running')
+        .map((motion) => motion.finished.catch(() => {})),
     );
   });
 }
@@ -193,8 +199,10 @@ try {
   }
   check(unique.size === 13, '13 designed modes across three pages');
   check(
-    MODES.filter((mode) => !mode.locked).length === 5,
-    '5 available games, 8 previews',
+    ['party', 'formal', 'guess', 'tierlist', 'tanks'].every((id) =>
+      MODES.some((mode) => mode.id === id && !mode.locked),
+    ),
+    'existing available games remain open as the catalog grows',
   );
   await page.locator('#previous-page').click();
   await page.locator('#previous-page').click();
@@ -414,11 +422,18 @@ try {
   }
   await visitMode('guess');
   await page.locator('[data-action=guess]').click();
+  await page.waitForFunction(
+    () => document.querySelector('.scene-guess').dataset.playback === 'done',
+  );
   check(
     await page
       .locator('.scene-guess')
-      .evaluate((e) => e.classList.contains('is-demonstrating')),
-    'guess: reveals next sample clue',
+      .evaluate((e) =>
+        [...e.querySelectorAll('.clue-hidden .clue-cell')].every(
+          (cell) => getComputedStyle(cell).color !== 'rgba(0, 0, 0, 0)',
+        ),
+      ),
+    'guess: replay reveals the final sample row',
   );
   await visitMode('tierlist');
   await page.locator('[data-card=A]').focus();
@@ -435,12 +450,15 @@ try {
     'tier list: actual drag moves card',
   );
   await visitMode('tanks');
-  const tankBefore = await page.locator('.tank-a').boundingBox();
+  const tankFinal = await page.locator('.tank-a').boundingBox();
   await page.locator('[data-action=tanks]').click();
+  const tankBefore = await page.locator('.tank-a').boundingBox();
   await settled(page);
   check(
-    (await page.locator('.tank-a').boundingBox()).x > tankBefore.x,
-    'tanks: preview step moves tank',
+    (await page.locator('.tank-a').boundingBox()).x > tankBefore.x &&
+      Math.abs((await page.locator('.tank-a').boundingBox()).x - tankFinal.x) <
+        1,
+    'tanks: replay moves forward and keeps the same final pose',
   );
   await visitMode('werewolf');
   check(

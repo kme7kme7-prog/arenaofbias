@@ -1,4 +1,5 @@
 import { MODES, renderMode } from './modes.mjs';
+import { mountPreviewMotion } from './preview-motion.mjs';
 
 /**
  * Mount the reviewed menu in its own DOM island. The site supplies navigation,
@@ -37,6 +38,7 @@ export function mountMenu(root, options = {}) {
   );
   let currentMode = '';
   let pickedCard = '';
+  let previewMotion = null;
 
   function animate(element, frames, options = {}) {
     if (reduced.matches) return;
@@ -77,6 +79,8 @@ export function mountMenu(root, options = {}) {
     preview.style.setProperty('--mode-color', mode.color);
     preview.style.setProperty('--mode-soft', mode.soft);
     if (currentMode !== mode.id) {
+      previewMotion?.dispose();
+      previewMotion = null;
       if (!isParty) {
         modeFeature.innerHTML = renderMode(mode);
         resolveImages(modeFeature);
@@ -88,6 +92,11 @@ export function mountMenu(root, options = {}) {
         { transform: 'translateY(12px)' },
         { transform: 'translateY(0)' },
       ]);
+      if (!isParty)
+        previewMotion = mountPreviewMotion($('.mode-scene'), mode.id, {
+          reduced,
+          language: root.dataset.language,
+        });
     }
     if (options.history !== false) {
       const url = new URL(location.href);
@@ -259,10 +268,12 @@ export function mountMenu(root, options = {}) {
     event.preventDefault();
     if (leaving) return;
     if (options.navigate) {
+      previewMotion?.finish();
       options.navigate(currentMode, link.href);
       return;
     }
     leaving = true;
+    previewMotion?.finish();
     link.setAttribute('aria-busy', 'true');
     wipe.dataset.active = 'true';
     if (!reduced.matches) {
@@ -358,16 +369,14 @@ export function mountMenu(root, options = {}) {
     }
     const button = event.target.closest('[data-action]');
     if (!button) return;
+    if (previewMotion && ['guess', 'tanks'].includes(button.dataset.action)) {
+      previewMotion.play();
+      return;
+    }
     const stage = button.closest('.mode-scene');
     const active = stage.classList.toggle('is-demonstrating');
     button.setAttribute('aria-pressed', String(active));
     switch (button.dataset.action) {
-      case 'guess':
-        button.firstChild.textContent = active ? '再看一次' : '再猜一步';
-        break;
-      case 'tanks':
-        button.firstChild.textContent = active ? '回到开局' : '推进一拍';
-        break;
       case 'werewolf':
         $('.wolf-center strong').textContent = active ? '身份揭晓' : '天黑了';
         $('.wolf-center p').textContent = active
@@ -433,6 +442,7 @@ export function mountMenu(root, options = {}) {
 
   return () => {
     abort.abort();
+    previewMotion?.dispose();
     cancelMotion();
     dialog.close();
     restorePage();

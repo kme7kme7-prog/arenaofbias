@@ -41,6 +41,7 @@ function parsePromptRow(row: unknown): Prompt | null {
         typeof variant.label === 'string' && typeof variant.prompt === 'string',
     );
   }
+  if (Array.isArray(candidate.tags)) parsed.tags = candidate.tags.filter((tag): tag is string => typeof tag === 'string');
   // 六维权重（决策 093）：非法/缺失按「未配置」处理——不丢整行，重放时走均分兜底
   const weights = candidate.weights;
   if (

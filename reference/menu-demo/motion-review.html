@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>菜单自动演示 · 对照</title>
+  <style>
+    body {
+      margin: 0;
+      background: #eeeade;
+      color: #374637;
+      font: 14px system-ui;
+    }
+    nav {
+      height: 48px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding-inline: 20px;
+    }
+    button,
+    select {
+      font: inherit;
+      padding: 5px 12px;
+    }
+    iframe {
+      display: block;
+      width: 100%;
+      height: calc(100svh - 48px);
+      border: 0;
+    }
+  </style>
+  <nav>
+    <label
+      >玩法
+      <select id="mode">
+        <option value="tanks">坦克斗蛐蛐</option>
+        <option value="guess">模一把</option>
+      </select></label
+    >
+    <button id="replay">重播</button>
+    <button id="pause">暂停 / 继续</button>
+    <label>慢放 <input id="slow" type="checkbox" /></label>
+    <span>共用主页的真实预览，播放结束后保持落位</span>
+  </nav>
+  <iframe title="玩法菜单预览" src="./index.html?mode=tanks"></iframe>
+  <script type="module" src="./motion-review.mjs"></script>
+</html>

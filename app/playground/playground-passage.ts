@@ -1,5 +1,7 @@
 import type { GameTransitionKind, GameTransitionOptions } from '@/lib/game-transitions';
 import catalog from './playground-catalog.json';
+import { currentPrompts } from '@/lib/prompts';
+import { isForumPrompt } from '@/lib/forum-topics';
 import { prepareReaderBook } from './playground-book';
 import './playground-door.css';
 import './playground-passage.css';
@@ -29,9 +31,11 @@ const curve = (x1: number, y1: number, x2: number, y2: number) => (progress: num
 const closing = curve(.3, .65, .2, 1), opening = curve(.45, 0, .2, 1);
 
 function buildPassage(kind: GameTransitionKind, options: GameTransitionOptions, alreadyCovered: boolean, round: boolean) {
-  const item = catalog.find(entry => entry.id === options.index || entry.name === options.title);
+  const prompt = currentPrompts().find(entry => entry.id === options.index);
+  const item = catalog.find(entry => entry.id === options.index || entry.name === options.title ||
+    (entry.skin === 'forum' && isForumPrompt(prompt)));
   const skin = item?.skin ?? 'index', edition = editions[skin];
-  const target = item ? `#arena/${item.id}` : null;
+  const target = item ? `#arena/${options.index ?? item.id}` : null;
   const layer = document.createElement('div');
   layer.className = `game-transition pg-passage pg-door gt-${kind}`;
   Object.assign(layer.dataset, { skin, kind, phase: 'cover', mode: round ? 'round' : item ? 'entry' : 'index', passageId: String(++serial) });

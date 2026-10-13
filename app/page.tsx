@@ -108,6 +108,7 @@ import { preparePlaygroundReader } from '@/app/playground/playground-preparation
 import { coverReaderRound } from '@/app/playground/playground-passage';
 import playgroundCatalog from '@/app/playground/playground-catalog.json';
 import { ForumPost, ForumReply, ForumAvatar, FORUM_PROMPT_ID, FORUM_PROMPT_NAME } from '@/components/forum-thread';
+import { isForumPrompt, forumTopics, nextForumTopic } from '@/lib/forum-topics';
 import { TextStageMasthead, TextStageReply, useTextSceneTone, type ReadingChannel } from '@/components/text-stage';
 import { textPresentation, textIdentity, textTransitionScene } from '@/lib/text-presentations';
 import './conversation-arena.css';
@@ -597,7 +598,7 @@ export default function Arena({
   const nightChat = SKINS_ENABLED && !formal && !!chatQuestion &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
-  const forum = SKINS_ENABLED && !formal && prompt.id === FORUM_PROMPT_ID &&
+  const forum = SKINS_ENABLED && !formal && isForumPrompt(prompt) &&
     new URLSearchParams(window.location.search).get('presentation') !== 'classic' &&
     !!pair?.every(result => result.content.kind === 'text');
   const textTheme = SKINS_ENABLED && !formal && prompt.kind === 'text' && !orange && !nightChat && !forum &&
@@ -670,7 +671,9 @@ export default function Arena({
     refreshRatings(scope);
   }, [scope]);
   const pairCount = currentPairs(prompt.id, scope).length;
-  const hasOtherArena = currentPrompts().some(
+  const forumQuestions = forumTopics(currentPrompts(), id => currentPairs(id, scope).length > 0);
+  const forumPosition = forumQuestions.findIndex(item => item.id === prompt.id) + 1;
+  const hasOtherArena = (forum ? forumQuestions : currentPrompts()).some(
     (item) => item.id !== prompt.id && currentPairs(item.id, scope).length > 0,
   );
   const continueLock = useRef(false);
@@ -731,7 +734,8 @@ export default function Arena({
     if (((continueLock.current || worksLoading) && !worksStalled) || state.phase === 'transition') return;
     const available = playgroundCatalog.filter(item => currentPairs(item.id).length > 0);
     const nextText = available[(available.findIndex(item => item.id === prompt.id) + 1) % available.length];
-    const candidate = playground ? `#arena/${nextText?.id ?? prompt.id}` : currentRandomArenaHash(prompt.id, scope);
+    const candidate = forum ? `#arena/${nextForumTopic(prompt.id, forumQuestions)?.id ?? prompt.id}`
+      : playground ? `#arena/${nextText?.id ?? prompt.id}` : currentRandomArenaHash(prompt.id, scope);
     const next = formal ? candidate.replace('#arena/', '#formal/') : candidate;
     if (next === window.location.hash) {
       setSoloNotice(true);
@@ -1570,7 +1574,10 @@ export default function Arena({
         <div className="arena-stage" ref={stageRef}>
           {orange && (playground ? <PlaygroundOrange choice={state.choice} /> : <OrangeCounter choice={state.choice} boards={orangeBoards} />)}
           {nightChat && (playground ? <PlaygroundChatMasthead question={chatQuestion!} /> : <NightChatMasthead />)}
-          {forum && <ForumPost question={prompt.prompt} />}
+          {forum && <ForumPost question={prompt.prompt}
+            topicIndex={playground ? forumPosition : undefined}
+            topicTotal={playground ? forumQuestions.length : undefined}
+            answers={playground ? resultCount : undefined} />}
           {textTheme && <TextStageMasthead theme={textTheme} channel={readingChannel} onChannelChange={setReadingChannel} />}
           {!forum && !textTheme && (state.phase === 'locking' || state.phase === 'result') && state.choice && state.mode !== 'formal' &&
             (voteOutcome.state === 'saving' || voteOutcome.state === 'saved' || voteOutcome.state === 'dup') && (
@@ -1606,6 +1613,7 @@ export default function Arena({
                       <span className="model-identity">
                         {localize(revealed && !(playground && textTheme?.id === 'letter') ? round.models[index] : orange ? playground ? `文案 ${side.toUpperCase()}` : `卖家 ${side.toUpperCase()} · 匿名吆喝` : nightChat ? `联系人 ${side.toUpperCase()}` : forum ? `吧友 ${side.toUpperCase()}` : textTheme ? textIdentity(textTheme, side) : '未知模型')}
                       </span>
+                      {forum && playground && <span className="forum-floor-number">{index + 2} 楼</span>}
                     </div>
                     <span className="entry-number">
                       {localize(round.code)} / 0{index + 1}
@@ -1692,7 +1700,7 @@ export default function Arena({
                     </span>
                   </div>
                 </div>
-                {forum && <span className="forum-floor-number">{index + 2} 楼</span>}
+                {forum && !playground && <span className="forum-floor-number">{index + 2} 楼</span>}
                 <button
                   className={`vote-button vote-${side} ${
                     worksLoading && worksPendingBySide[side] ? 'is-pending' : ''
@@ -1927,7 +1935,7 @@ export default function Arena({
                   disabled={continueBlocked || !hasOtherArena}
                   aria-describedby={!hasOtherArena ? 'continue-note' : undefined}
                 >
-                  <span>{t(playground ? '下一题' : '换个题库继续')}</span>
+                  <span>{t(forum || playground ? '下一题' : '换个题库继续')}</span>
                   <ArrowUpRight size={17} />
                 </button>
                 <button
@@ -1937,7 +1945,7 @@ export default function Arena({
                   disabled={continueBlocked}
                   aria-describedby={pairCount === 1 ? 'continue-note' : undefined}
                 >
-                  <span>{t(playground ? '本题继续' : '同一题库继续')}</span>
+                  <span>{t(forum ? '同题库下一题' : playground ? '本题继续' : '同一题库继续')}</span>
                   <ArrowRight size={17} />
                 </button>
               </fieldset>

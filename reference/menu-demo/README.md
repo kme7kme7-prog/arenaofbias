@@ -50,6 +50,12 @@ node scripts/validate-library-pages.mjs
 
 `validate-play-menu` 检查实际构建后的主站：布局、中英文、纸面/墨色、控件及现有目的页往返，证据 `output/play-menu-integration/`。后端和展览馆使用桩数据，不启动真实比赛或提交真实投票。
 
+## 选中后的自动演示（2026-10-13）
+
+坦克与模一把选中后自动播放一段约2秒的本地示意，结束后原位停住，按钮可重播。坦克按地图空地走位、开火并击中砖墙；线索按行逐格翻出。动画与右侧入场重叠开始，重复点击当前标签不重置；切换玩法和退出时取消，滚出视野／后台暂停，减少动态直接显示结束画面。其他玩法的操作保持。
+
+时间轴在 `preview-motion.mjs`，由共用 `controller.mjs` 管理生命周期；不运行真实对局，不请求模型，不写成绩。`motion-review.html` 使用同一份预览，提供暂停、慢放和重播。`node scripts/check-menu-preview-motion.mjs` 验证路径、弹道时序、逐格揭示、最终落位、取消／重播、窄屏、减少动态和暂停恢复，证据在 `output/menu-preview-motion/`。
+
 ## 保留对照
 
 扩展前已认可版本：`.local/menu-demo-approved-forum-20261011/`。信纸版仍在 [letters.html](letters.html)，使用独立 `letter-menu.css` 与 `letters-menu.mjs`；更早备份保持。

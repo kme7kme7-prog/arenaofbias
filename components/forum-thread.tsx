@@ -2,8 +2,7 @@ import { useState } from 'react';
 import type { ModelResult, Side } from '@/lib/arena';
 import presentation from '@/lib/forum-presentation.json';
 
-export const FORUM_PROMPT_ID = presentation.promptId;
-export const FORUM_PROMPT_NAME = presentation.title;
+export { FORUM_PROMPT_ID, FORUM_PROMPT_NAME } from '@/lib/forum-topics';
 const brands: Record<string, { name: string; logo: string }> = presentation.models;
 
 export function ForumAvatar({ side, modelId, revealed = false }: { side?: Side; modelId?: string; revealed?: boolean }) {
@@ -24,7 +23,7 @@ export function ForumAvatar({ side, modelId, revealed = false }: { side?: Side; 
   </span>;
 }
 
-export function ForumPost({ question }: { question: string }) {
+export function ForumPost({ question, topicIndex, topicTotal, answers }: { question: string; topicIndex?: number; topicTotal?: number; answers?: number }) {
   return <>
     <div className="forum-board">
       <div className="forum-masthead">
@@ -32,9 +31,10 @@ export function ForumPost({ question }: { question: string }) {
           <span className="forum-board-icon" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><path d="M12 15H52V43H29L18 51V43H12Z" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" /><path d="M23 25H41M23 33H35" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg></span>
           <strong>弱智吧</strong>
         </div>
+        {topicIndex !== undefined && <span className="forum-topic-position">第 <strong>{topicIndex}</strong> / {topicTotal} 题</span>}
         <a className="forum-back" href="#prompts">返回题库 <span aria-hidden="true">›</span></a>
       </div>
-      <div className="forum-thread-bar"><span className="forum-active-tab">看帖</span><span className="forum-reply-count">2 条回复</span></div>
+      <div className="forum-thread-bar"><span className="forum-active-tab">看帖</span><span className="forum-reply-count">{answers !== undefined ? `本题 ${answers} 条回答 · 本轮展示 2 条` : '2 条回复'}</span></div>
     </div>
     <article className="forum-op">
       <div className="forum-op-profile"><ForumAvatar /><span className="forum-op-name">楼主</span></div>

@@ -1,5 +1,7 @@
 # Forum model avatars
 
+Additional registry mappings on 2026-10-13 reuse the original `seed.ico`, `inclusionai.jpg` and `longcat.svg` from arenaofbias-data/assets/brands. `huawei.svg` is an unmodified copy of https://www.huawei.com/-/media/htemplate-home/1.0.1.20251205144752/components/assets/img/favicon-logo.svg. Claude Fable and Haiku reuse the Claude mark. These additions are used by the entertainment forum only.
+
 Unmodified copies of Gallery's brand marks, used only for the local entertainment forum reveal. Model-to-brand mappings come from arenaofbias-data/gallery.json at 338f871812738aa9945b04a955a53cecec3bd099. These are brand identifiers, not original artwork or endorsements.
 
 | Local file | Brand / models | Official source page | Exact asset URL |

@@ -99,6 +99,7 @@ export type Prompt = {
   code: string;
   name: string;
   prompt: string;
+  tags?: string[];
   promptVariants?: { id: string; label: string; prompt: string }[];
   commentary: string;
   detail: string;

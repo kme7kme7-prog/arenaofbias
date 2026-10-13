@@ -2,6 +2,30 @@
   "promptId": "q-a71a7e7e4bcaadc7",
   "title": "弱智吧问答",
   "models": {
+    "openpangu-2.0-pro": {
+      "logo": "/forum-brands/huawei.svg",
+      "name": "Huawei"
+    },
+    "claude-fable-5.1": {
+      "logo": "/forum-brands/claude.png",
+      "name": "Claude"
+    },
+    "claude-haiku-5.5": {
+      "logo": "/forum-brands/claude.png",
+      "name": "Claude"
+    },
+    "seed-2.1-turbo": {
+      "logo": "/forum-brands/seed.ico",
+      "name": "Doubao"
+    },
+    "dots3-note": {
+      "logo": "/forum-brands/inclusionai.jpg",
+      "name": "inclusionAI"
+    },
+    "longcat-2.5": {
+      "logo": "/forum-brands/longcat.svg",
+      "name": "LongCat"
+    },
     "gpt-6-astra": {
       "logo": "/forum-brands/openai.svg",
       "name": "OpenAI"

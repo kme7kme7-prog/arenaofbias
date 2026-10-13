@@ -5,6 +5,7 @@ import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '
 import { configureWorksCatalog, getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 import { currentPairs } from '@/lib/placeholder';
 import type { Prompt } from '@/lib/arena';
+import { isForumPrompt, forumTopics, FORUM_PROMPT_ID } from '@/lib/forum-topics';
 import { loadRatings } from '@/lib/ratings';
 import { initTheme, setThemeScene } from '@/lib/theme';
 import { bandsNavigate, navigationTransitionActive, setTransitionFactory } from '@/lib/game-transitions';
@@ -110,7 +111,7 @@ function Header({ section }: { section: 'home' | 'text' | 'scene' }) {
 function ReaderHeader({ prompt }: { prompt?: Prompt }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.close(); }, [prompt?.id]);
-  const title = catalog.find(item => item.id === prompt?.id)?.name ?? '文字题目';
+  const title = catalog.find(item => item.id === prompt?.id || (item.skin === 'forum' && isForumPrompt(prompt)))?.name ?? '文字题目';
   return <><header className="pg-reader-header">
     <a className="pg-reader-back" href="#text" onClick={openIndex('#text')}><span aria-hidden="true">←</span> 文字目录</a>
     <h1>{title}</h1>
@@ -181,7 +182,9 @@ function TextLibrary({ available }: { available: Set<string> }) {
     // Touch and keyboard activation start the module alongside the closing doors.
     void loadArena().catch(() => { if (live.current) setFailure(true); });
     try {
-      enterArena(`#arena/${id}`, catalog.find(item => item.id === id)?.name);
+      const topics = id === FORUM_PROMPT_ID ? forumTopics(currentPrompts(), topicId => currentPairs(topicId).length > 0) : [];
+      const target = topics.find(topic => topic.id === id)?.id ?? topics[0]?.id ?? id;
+      enterArena(`#arena/${target}`, catalog.find(item => item.id === id)?.name);
     } catch { setFailure(true); }
     finally { opening.current = false; if (live.current) setPending(null); }
   }
@@ -214,7 +217,8 @@ function Playground() {
   const section = sceneId ? 'scene' : ['#text', '#prompts'].includes(route) ? 'text' : 'home';
   const ready = works.status === 'ready' && works.source === 'remote' && prompts.status === 'ready' && prompts.source === 'remote';
   const renderId = sceneId;
-  const prompt = ready && renderId ? currentPrompts().find(item => item.id === renderId && catalog.some(entry => entry.id === renderId)) : undefined;
+  const prompt = ready && renderId ? currentPrompts().find(item => item.id === renderId &&
+    (isForumPrompt(item) || catalog.some(entry => entry.id === renderId))) : undefined;
   useEffect(() => { void loadWorks(); void loadPrompts(); }, []);
   useLayoutEffect(settlePlaygroundEntry, []);
   const pageTitle = (section === 'scene' && prompt?.name) || (section === 'text' ? '文字题目' : '随心玩');
@@ -228,6 +232,9 @@ function Playground() {
     if (sceneId && ready && (!prompt || !currentPairs(sceneId).length)) releaseWorksGate();
   }, [sceneId, ready, prompt]);
   const available = new Set(ready ? catalog.filter(item => currentPairs(item.id).length > 0).map(item => item.id) : []);
+  const forumReady = forumTopics(currentPrompts(), id => currentPairs(id).length > 0);
+  const forumEntry = catalog.find(item => item.skin === 'forum')!;
+  if (ready && forumReady.length) available.add(forumEntry.id);
   return <>{section === 'scene' ? <ReaderHeader prompt={prompt} /> : <Header section={section} />}{section === 'home' ? <Home /> : section === 'text' ? <TextLibrary available={available} /> : null}
     {ready && prompt && currentPairs(prompt.id).length ? <div className="pg-scene-host" data-preparing={section !== 'scene' ? '' : undefined} inert={section !== 'scene'} aria-hidden={section !== 'scene' || undefined}><SceneBoundary key={prompt.id}><Suspense fallback={<output className="pg-notice">正在打开这段故事…</output>}><Arena key={prompt.id} prompt={prompt} playground /></Suspense></SceneBoundary></div> : section === 'scene' ? <output className="pg-notice">{works.status === 'loading' || prompts.status === 'loading' ? '正在取出故事…' : <>故事暂时没有准备好。<a href="#text">返回选题</a><button onClick={() => location.reload()}>重新加载</button></>}</output> : null}</>;
 }
