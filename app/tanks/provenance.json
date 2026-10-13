@@ -61,6 +61,30 @@
       "sha256": "6514daa2fd7ee107a4fb5cee6db3d14d591d9c809bae13e7ed4d79db1f04d1d3",
       "origin": "Tank-参赛工作区-v2.6 / entries / kestrel Kimi K3",
       "identitySource": "User-provided contestant label"
+    },
+    {
+      "id": "sidecut-grok",
+      "name": "sidecut",
+      "model": "Grok 4.7",
+      "sha256": "0e831971281aaa608808ff99ae5151f46f9b71549b9d070b01f31893f9c09106",
+      "origin": "entries/sidecut",
+      "identitySource": "Author model and final file declared in strategy.md"
+    },
+    {
+      "id": "ghostline-haiku",
+      "name": "ghostline",
+      "model": "Claude Haiku 5.5",
+      "sha256": "f18a2ff2d643b58b95dfa8d88f7cbfa4fadfe89c77cd001b5c3d143fa92b15bf",
+      "origin": "claude.zip / Haiku 5.5 / entries/ghostline",
+      "identitySource": "Author model and final file declared in strategy.md"
+    },
+    {
+      "id": "parallax-opus",
+      "name": "Parallax（视差）",
+      "model": "Claude Opus 5.5",
+      "sha256": "1167cc72b2b03b16e6017552b6f3d3d1db797bb82b308d71eb0bb2a19787fe19",
+      "origin": "claude.zip / Opus 5.5 / entries/parallax",
+      "identitySource": "Author model and final file declared in strategy.md"
     }
   ]
 }

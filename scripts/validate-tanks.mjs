@@ -509,41 +509,40 @@ try {
       await page.locator(`[data-bot="${id}"]`).click();
     }
   };
-  const incoming = [
-    'shrike-deepseek',
-    'shrike26-glm',
-    'kestrel-kimi',
-    'harrier',
-  ];
-  await selectRoster(incoming);
-  for (const map of ['crossroads', 'islands', 'ruins']) {
-    await page.locator(`[data-map="${map}"]`).click();
-    const r = await runRound(`incoming-${map}`);
-    check(
-      JSON.stringify(r.meta.website.entrants.map((e) => e.id)) ===
-        JSON.stringify(incoming),
-      `${map}: three new programs and their stable identities`,
-    );
-    await page.locator('#board').focus();
-    await page.keyboard.press('End');
-    await page.locator('#result').waitFor({ state: 'visible' });
-    const expected = r.ranking.map((row) =>
-      modelFor(r.meta.website.entrants[r.meta.seatSlots[row.id]]),
-    );
-    check(
-      JSON.stringify(
-        await page.locator('.standing > span:nth-child(2)').allTextContents(),
-      ) === JSON.stringify(expected),
-      `${map}: incoming result model names`,
-    );
-    check(
-      (await page.locator('#winner').textContent()).includes(
-        modelFor(r.meta.website.entrants[r.meta.seatSlots[r.winners[0]]]),
-      ),
-      `${map}: winner uses model name`,
-    );
-    await page.locator('#close-result').click();
-    await page.locator('#back-setup').click();
+  for (const incoming of [
+    ['shrike-deepseek', 'shrike26-glm', 'kestrel-kimi', 'harrier'],
+    ['sidecut-grok', 'ghostline-haiku', 'parallax-opus', 'harrier'],
+  ]) {
+    await selectRoster(incoming);
+    for (const map of ['crossroads', 'islands', 'ruins']) {
+      await page.locator(`[data-map="${map}"]`).click();
+      const r = await runRound(`incoming-${map}`);
+      check(
+        JSON.stringify(r.meta.website.entrants.map((e) => e.id)) ===
+          JSON.stringify(incoming),
+        `${map}: three new programs and their stable identities`,
+      );
+      await page.locator('#board').focus();
+      await page.keyboard.press('End');
+      await page.locator('#result').waitFor({ state: 'visible' });
+      const expected = r.ranking.map((row) =>
+        modelFor(r.meta.website.entrants[r.meta.seatSlots[row.id]]),
+      );
+      check(
+        JSON.stringify(
+          await page.locator('.standing > span:nth-child(2)').allTextContents(),
+        ) === JSON.stringify(expected),
+        `${map}: incoming result model names`,
+      );
+      check(
+        (await page.locator('#winner').textContent()).includes(
+          modelFor(r.meta.website.entrants[r.meta.seatSlots[r.winners[0]]]),
+        ),
+        `${map}: winner uses model name`,
+      );
+      await page.locator('#close-result').click();
+      await page.locator('#back-setup').click();
+    }
   }
   await selectRoster(['harrier', 'tank26', 'vector', 'astra-knife']);
   await page.locator('#start').click();

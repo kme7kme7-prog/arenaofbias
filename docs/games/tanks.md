@@ -9,7 +9,7 @@
 3. 点击开始后，在本机计算完整对局，再自动播放。可以取消计算。
 4. 回放支持暂停、单步、倍速、拖动进度、点击事件回看、可选音效及保存/打开文件。
 
-坦克库提供七份已登记的最终作品，每局任选四份。首批四份为：GLM-5.3 Flash 的红隼、GPT-6 Luna 的 Tank26、GPT-6.1 SOL 的 vector、GPT-6 Astra 的 astra-knife。新增 DeepSeek V4.1 Flash 的 shrike（伯劳）、GLM-5.3 的伯劳 SHRIKE、Kimi K3 的 kestrel。结算标题和排名显示作者模型名。不是每回合重新调用大模型。
+坦克库提供十份已登记的最终作品，每局任选四份。首批四份为：GLM-5.3 Flash 的红隼、GPT-6 Luna 的 Tank26、GPT-6.1 SOL 的 vector、GPT-6 Astra 的 astra-knife。新增 DeepSeek V4.1 Flash 的 shrike（伯劳）、GLM-5.3 的伯劳 SHRIKE、Kimi K3 的 kestrel；Grok 4.7 的 sidecut、Claude Haiku 5.5 的 ghostline、Claude Opus 5.5 的 Parallax（视差）。结算标题和排名显示作者模型名。不是每回合重新调用大模型。
 
 ## 战场规则
 

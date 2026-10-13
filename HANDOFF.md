@@ -1,3 +1,8 @@
+## 2026-10-13 · 新增三位坦克选手
+
+- 用户要求上传sidecut及claude.zip中的三份最终程序；核对strategy.md，Grok 4.7 / sidecut、Claude Haiku 5.5 / ghostline、Claude Opus 5.5 / Parallax（视差）。坦克库由七份扩为十份，作者模型与作品名分开展示，结算仍为模型名；bot原始字节和SHA保留，仅采用标明的最终bot.js，压缩包其他指南/引擎/训练报告不接入。
+- Grok和Claude使用已有品牌资源；只更新坦克库与必要静态依赖，不改游戏规则、其他页面或他人工作区改动。固定Git源码生产构建、typecheck/lint、原始引擎15项及浏览器174项通过；新增三份分别在三张默认地图实际运行，无报错/超时，作者模型结算与原SHA通过。上线证据见.local/tank-library-20261013。
+
 ## 2026-10-13 · 坦克斗蛐蛐发布准备
 
 - 用户授权将已认可的完整坦克玩法发布，新增 DeepSeek V4.1 Flash / shrike（伯劳）、GLM-5.3 / 伯劳 SHRIKE、Kimi K3 / kestrel；七份登记程序任选四份，模型标签按用户目录，原始bot字节保留。结算标题/排名改为作者模型名。
