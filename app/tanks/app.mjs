@@ -94,13 +94,41 @@ function identity(id) {
   const known = ROSTER.find(
     (r) => r.id === record?.id && r.sha256 === record?.sha256,
   );
-  return (
-    known || {
-      name: replay.names?.[id] || `选手 ${id}`,
-      model: '导入回放',
-      logo: null,
-    }
-  );
+  return known
+    ? {
+        ...known,
+        reasoningEffort: ['medium', 'high', 'max'].includes(
+          record.reasoningEffort,
+        )
+          ? record.reasoningEffort
+          : known.reasoningEffort,
+      }
+    : {
+        name: replay.names?.[id] || `选手 ${id}`,
+        model: '导入回放',
+        logo: null,
+      };
+}
+function appendEffort(container, entry) {
+  if (!['medium', 'high', 'max'].includes(entry?.reasoningEffort)) return;
+  const badge = document.createElement('span');
+  badge.className = 'reasoning-badge';
+  badge.textContent = entry.reasoningEffort;
+  badge.title = `生成此坦克时的思考强度：${entry.reasoningEffort}`;
+  badge.setAttribute('aria-label', `思考强度 ${entry.reasoningEffort}`);
+  container.append(badge);
+}
+function workMeta(entry, showName = true) {
+  const meta = document.createElement('span');
+  meta.className = 'work-meta';
+  if (showName) {
+    const name = document.createElement('span');
+    name.className = 'work-name';
+    name.textContent = entry?.name || '从坦克库加入';
+    meta.append(name);
+  }
+  appendEffort(meta, entry);
+  return meta;
 }
 function readConfig(value) {
   if (
@@ -236,11 +264,9 @@ function renderRoster() {
     plus.hidden = !!r;
     const text = document.createElement('span');
     text.className = 'entrant-copy';
-    const model = document.createElement('strong'),
-      name = document.createElement('span');
+    const model = document.createElement('strong');
     model.textContent = r?.model || '挑选选手';
-    name.textContent = r?.name || '从坦克库加入';
-    text.append(model, name);
+    text.append(model, workMeta(r));
     const letter = document.createElement('span');
     letter.className = 'entrant-letter';
     letter.textContent = id;
@@ -324,7 +350,7 @@ function renderLibrary() {
   $('#library-title').textContent = `给 ${librarySeat} 席挑位选手`;
   const q = $('#library-search').value.trim().toLowerCase();
   const entries = ROSTER.filter((r) =>
-    `${r.name} ${r.model}`.toLowerCase().includes(q),
+    `${r.name} ${r.model} ${r.reasoningEffort}`.toLowerCase().includes(q),
   );
   $('#library-count').textContent = `${entries.length} 份坦克程序`;
   $('#library-list').replaceChildren();
@@ -342,11 +368,9 @@ function renderLibrary() {
     else img.hidden = true;
     const copy = document.createElement('span');
     copy.className = 'library-copy';
-    const model = document.createElement('strong'),
-      name = document.createElement('span');
+    const model = document.createElement('strong');
     model.textContent = r.model;
-    name.textContent = r.name;
-    copy.append(model, name);
+    copy.append(model, workMeta(r));
     const action = document.createElement('span');
     action.className = 'library-action';
     action.textContent = used ? `已在 ${used} 席` : '入场 ↗';
@@ -845,11 +869,12 @@ async function start() {
       decisionBudgetMs: DECISION_BUDGET,
       label: captured.name,
       colors: clone(captured.colors),
-      entrants: chosen.map(({ id, name, model, sha256 }) => ({
+      entrants: chosen.map(({ id, name, model, sha256, reasoningEffort }) => ({
         id,
         name,
         model,
         sha256,
+        reasoningEffort,
       })),
     };
     install(r);
@@ -962,8 +987,11 @@ function toggle() {
   syncPlay();
 }
 function showResult() {
+  const winnerModels = [
+    ...new Set(replay.winners.map((id) => identity(id).model)),
+  ];
   $('#winner').textContent = replay.winners.length
-    ? replay.winners.map((id) => identity(id).model).join('、') +
+    ? winnerModels.join('、') +
       (replay.winners.length > 1 ? ' 并列获胜' : ' 获胜')
     : '本场无有效胜者';
   $('#result-detail').textContent =
@@ -976,7 +1004,14 @@ function showResult() {
       name = document.createElement('span'),
       score = document.createElement('small');
     place.textContent = String(row.rank).padStart(2, '0');
-    name.textContent = identity(row.id).model;
+    const entry = identity(row.id),
+      model = document.createElement('span');
+    model.className = 'standing-model';
+    model.textContent = entry.model;
+    const sharedModel =
+      replay.ranking.filter((other) => identity(other.id).model === entry.model)
+        .length > 1;
+    name.append(model, workMeta(entry, sharedModel));
     name.style.color = seatColors()[sides.indexOf(row.id)];
     score.textContent = ['error', 'timeout'].includes(row.status)
       ? row.status === 'timeout'

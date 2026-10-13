@@ -169,7 +169,10 @@ await test('known stock stage is still valid for editing', () => {
   validateStage({ map: loadBrawlMap('islands'), spawns: BRAWL_SPAWNS });
 });
 await test('garage supports empty seats and a catalog larger than the match', () => {
-  const roster = Array.from({ length: 12 }, (_, i) => ({ id: `bot-${i}` }));
+  const roster = Array.from({ length: 12 }, (_, i) => ({
+    id: `bot-${i}`,
+    model: 'Same author model',
+  }));
   assert.deepEqual(readSeats({ A: null, B: null, C: null, D: null }, roster), {
     A: null,
     B: null,

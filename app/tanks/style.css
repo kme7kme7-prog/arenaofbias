@@ -772,6 +772,11 @@ body[data-state='watch'] #board {
   box-shadow: 5px 6px 0 var(--shadow);
   border: 1px solid var(--line);
   animation: sheet-in 0.35s ease-out;
+  max-height: 100%;
+  overflow: auto;
+}
+#result {
+  grid-template-rows: minmax(0, 1fr);
 }
 .result-sheet > h2 {
   font-size: 26px;
@@ -797,6 +802,36 @@ body[data-state='watch'] #board {
 .standing small {
   color: var(--muted);
   font-size: 10px;
+}
+.standing-model {
+  display: block;
+}
+.work-meta,
+.entrant-copy .work-meta,
+.library-copy .work-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+}
+.work-meta .work-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.work-meta .reasoning-badge {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font: 9px/1.4 monospace;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.standing .work-meta {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
 }
 .result-actions {
   display: flex;

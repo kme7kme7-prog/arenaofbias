@@ -37,3 +37,5 @@
 ## 模型与作品身份
 
 坦克库分别显示作者模型和坦克作品名。新增 DeepSeek V4.1 Flash / shrike（伯劳）、GLM-5.3 / 伯劳 SHRIKE、Kimi K3 / kestrel；作者模型以用户给定的参赛目录标签登记，策略说明中的代理自报身份不作为模型定名依据。来源目录与哈希保留在 provenance.json。战斗结束的获胜标题和排名行显示模型名，布阵与交锋记录仍保留作品名。
+
+- 作品身份以稳定id区分，作者模型可重复；每份登记包含reasoningEffort。现有astra-knife为medium、Tank26为max，新增iron-ambush / GPT-5.6 Luna、Rift Harvest / GPT-5.6 SOL、Parallax / GPT-6 Astra均为max，其余八份为high。标签记录生成作品时的思考强度，不改变比赛决策预算；坦克库/席位/结算显示并随回放保存。旧回放缺此字段时，已核实作品可用登记信息补齐。

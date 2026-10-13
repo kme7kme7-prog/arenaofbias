@@ -39,6 +39,15 @@ const check = (value, label) => {
   assert.ok(value, label);
   checks.push(label);
 };
+let sameModelFixture = false;
+await context.route('**/assets/*.js', async (route) => {
+  if (!sameModelFixture) return route.continue();
+  const response = await route.fetch();
+  await route.fulfill({
+    response,
+    body: (await response.text()).replaceAll('GPT-6.1 SOL', 'GPT-6 Astra'),
+  });
+});
 await context.route('**/api/**', (route) => {
   const p = new URL(route.request().url()).pathname;
   return route.fulfill({
@@ -429,9 +438,7 @@ try {
   await page.locator('#result').waitFor({ state: 'visible' });
   check((await page.locator('.standing').count()) === 4, 'four result rows');
   check(
-    JSON.stringify(
-      await page.locator('.standing > span:nth-child(2)').allTextContents(),
-    ) ===
+    JSON.stringify(await page.locator('.standing-model').allTextContents()) ===
       JSON.stringify(
         custom.ranking.map((row) =>
           modelFor(custom.meta.website.entrants[custom.meta.seatSlots[row.id]]),
@@ -512,6 +519,7 @@ try {
   for (const incoming of [
     ['shrike-deepseek', 'shrike26-glm', 'kestrel-kimi', 'harrier'],
     ['sidecut-grok', 'ghostline-haiku', 'parallax-opus', 'harrier'],
+    ['iron-ambush-luna56', 'rift-harvest-sol56', 'parallax-astra', 'astra-knife'],
   ]) {
     await selectRoster(incoming);
     for (const map of ['crossroads', 'islands', 'ruins']) {
@@ -520,7 +528,11 @@ try {
       check(
         JSON.stringify(r.meta.website.entrants.map((e) => e.id)) ===
           JSON.stringify(incoming),
-        `${map}: three new programs and their stable identities`,
+        `${map}: incoming programs and their stable identities`,
+      );
+      check(
+        r.meta.website.entrants.every((e) => e.reasoningEffort === registry.bots.find((b) => b.id === e.id).reasoningEffort),
+        `${map}: incoming work effort metadata`,
       );
       await page.locator('#board').focus();
       await page.keyboard.press('End');
@@ -530,7 +542,7 @@ try {
       );
       check(
         JSON.stringify(
-          await page.locator('.standing > span:nth-child(2)').allTextContents(),
+          await page.locator('.standing-model').allTextContents(),
         ) === JSON.stringify(expected),
         `${map}: incoming result model names`,
       );
@@ -663,6 +675,114 @@ try {
     'real touch input places selected tank',
   );
   await phone.close();
+  sameModelFixture = true;
+  await reset();
+  await page.setViewportSize({ width: 1520, height: 900 });
+  for (const id of ['astra-knife', 'vector', 'harrier', 'tank26']) {
+    await page.locator('#open-library').click();
+    await page.locator(`[data-bot="${id}"]`).click();
+  }
+  check(
+    (await page.locator('.entrant-copy strong').allTextContents()).filter(
+      (name) => name === 'GPT-6 Astra',
+    ).length === 2,
+    'two works from the same author model may occupy separate seats',
+  );
+  check(
+    (await page
+      .locator('.entrant[data-side=A] .reasoning-badge')
+      .textContent()) === 'medium' &&
+      (await page
+        .locator('.entrant[data-side=B] .reasoning-badge')
+        .textContent()) === 'high',
+    'thinking effort belongs to the work, not the shared author model',
+  );
+  await page.locator('#open-library').click();
+  check(
+    (await page.locator('[data-bot=astra-knife]').isDisabled()) &&
+      (await page.locator('[data-bot=vector]').isDisabled()),
+    'only the selected work IDs become unavailable',
+  );
+  await page.locator('#library-search').fill('max');
+  check(
+    (await page.locator('.library-card').count()) ===
+      registry.bots.filter((b) => b.reasoningEffort === 'max').length &&
+      (await page
+        .locator('[data-bot=tank26] .reasoning-badge')
+        .textContent()) === 'max',
+    'Luna work has max effort',
+  );
+  await page.locator('#library-search').fill('medium');
+  check(
+    (await page.locator('.library-card').count()) === 1,
+    'garage searches effort tags',
+  );
+  await page.screenshot({ path: `${out}/effort-medium-library.png` });
+  await page.locator('#close-library').click();
+  const sameModelReplay = await runRound('same-model-works');
+  check(
+    sameModelReplay.meta.website.entrants[0].reasoningEffort === 'medium' &&
+      sameModelReplay.meta.website.entrants[1].reasoningEffort === 'high',
+    'replay keeps per-work effort',
+  );
+  await page.locator('#board').focus();
+  await page.keyboard.press('End');
+  await page.locator('#result').waitFor({ state: 'visible' });
+  const duplicateRows = page.locator('.standing').filter({
+    has: page.locator('.standing-model', { hasText: 'GPT-6 Astra' }),
+  });
+  check(
+    (await duplicateRows.count()) === 2,
+    'settlement keeps both works for one author',
+  );
+  const duplicateNames = await duplicateRows
+    .locator('.work-name')
+    .allTextContents();
+  check(
+    duplicateNames.includes('astra-knife') && duplicateNames.includes('vector'),
+    'same-model settlement distinguishes work names',
+  );
+  check(
+    (await duplicateRows.locator('.reasoning-badge').allTextContents())
+      .sort()
+      .join(',') === 'high,medium',
+    'settlement shows separate thinking tags',
+  );
+  await page.locator('.result-sheet').evaluate(async (e) => {
+    await Promise.all(e.getAnimations().map((a) => a.finished.catch(() => {})));
+  });
+  await page.screenshot({ path: `${out}/same-model-result.png` });
+  await page
+    .locator('#replay-file')
+    .setInputFiles(`${out}/same-model-works.json`);
+  await page.locator('#board').focus();
+  await page.keyboard.press('End');
+  check(
+    (
+      await page.locator('.standing .reasoning-badge').allTextContents()
+    ).includes('medium'),
+    'effort survives saved replay import',
+  );
+  const legacyReplay = structuredClone(sameModelReplay);
+  legacyReplay.meta.website.entrants.forEach(
+    (entry) => delete entry.reasoningEffort,
+  );
+  await writeFile(
+    `${out}/legacy-effort-replay.json`,
+    JSON.stringify(legacyReplay),
+  );
+  await page
+    .locator('#replay-file')
+    .setInputFiles(`${out}/legacy-effort-replay.json`);
+  await page.locator('#board').focus();
+  await page.keyboard.press('End');
+  check(
+    (
+      await page.locator('.standing .reasoning-badge').allTextContents()
+    ).includes('medium'),
+    'old replays resolve registered work effort without breaking',
+  );
+  sameModelFixture = false;
   check(errors.length === 0, `no page errors: ${errors.join(';')}`);
   check(writes.length === 0, 'no business writes');
   check(failed.length === 0, `no failed requests: ${failed.join(';')}`);

@@ -18,25 +18,29 @@
       "id": "harrier",
       "name": "Harrier（红隼）",
       "model": "GLM-5.3 Flash",
-      "sha256": "43f6aae50be24c7003ca49ff907352444590d224c0951a6a29c75cbf7668dae6"
+      "sha256": "43f6aae50be24c7003ca49ff907352444590d224c0951a6a29c75cbf7668dae6",
+      "reasoningEffort": "high"
     },
     {
       "id": "tank26",
       "name": "Tank26",
       "model": "GPT-6 Luna",
-      "sha256": "5b76f11b393266e500af773ebc36045a1e96e38e5945eab2fdaacf2c6c94981f"
+      "sha256": "5b76f11b393266e500af773ebc36045a1e96e38e5945eab2fdaacf2c6c94981f",
+      "reasoningEffort": "max"
     },
     {
       "id": "vector",
       "name": "vector",
       "model": "GPT-6.1 SOL",
-      "sha256": "82160baeb1f59be117d69678d2044e7d2dff3f70244c1ba66439ef257cf1d1bd"
+      "sha256": "82160baeb1f59be117d69678d2044e7d2dff3f70244c1ba66439ef257cf1d1bd",
+      "reasoningEffort": "high"
     },
     {
       "id": "astra-knife",
       "name": "astra-knife",
       "model": "GPT-6 Astra",
-      "sha256": "f9c8450ced7218049649c3e904ec788d5dae9eeec0b8db669846c9c3cfe6b9c8"
+      "sha256": "f9c8450ced7218049649c3e904ec788d5dae9eeec0b8db669846c9c3cfe6b9c8",
+      "reasoningEffort": "medium"
     },
     {
       "id": "shrike-deepseek",
@@ -44,7 +48,8 @@
       "model": "DeepSeek V4.1 Flash",
       "sha256": "9da22a988decdad1456b479afe739d1d6be71968dd13c04c57e8fc6ffec66065",
       "origin": "Tank-参赛工作区-v2.6 / entries / shrike deepseekv4.1 flash",
-      "identitySource": "User-provided contestant label"
+      "identitySource": "User-provided contestant label",
+      "reasoningEffort": "high"
     },
     {
       "id": "shrike26-glm",
@@ -52,7 +57,8 @@
       "model": "GLM-5.3",
       "sha256": "d624af6e4f6b8937a959beb578147a3868ed427b4ca99727381a50ab17550af2",
       "origin": "Tank-参赛工作区-v2.6 / entries / 伯劳 GLM5.3",
-      "identitySource": "User-provided contestant label"
+      "identitySource": "User-provided contestant label",
+      "reasoningEffort": "high"
     },
     {
       "id": "kestrel-kimi",
@@ -60,7 +66,8 @@
       "model": "Kimi K3",
       "sha256": "6514daa2fd7ee107a4fb5cee6db3d14d591d9c809bae13e7ed4d79db1f04d1d3",
       "origin": "Tank-参赛工作区-v2.6 / entries / kestrel Kimi K3",
-      "identitySource": "User-provided contestant label"
+      "identitySource": "User-provided contestant label",
+      "reasoningEffort": "high"
     },
     {
       "id": "sidecut-grok",
@@ -68,7 +75,8 @@
       "model": "Grok 4.7",
       "sha256": "0e831971281aaa608808ff99ae5151f46f9b71549b9d070b01f31893f9c09106",
       "origin": "entries/sidecut",
-      "identitySource": "Author model and final file declared in strategy.md"
+      "identitySource": "Author model and final file declared in strategy.md",
+      "reasoningEffort": "high"
     },
     {
       "id": "ghostline-haiku",
@@ -76,7 +84,8 @@
       "model": "Claude Haiku 5.5",
       "sha256": "f18a2ff2d643b58b95dfa8d88f7cbfa4fadfe89c77cd001b5c3d143fa92b15bf",
       "origin": "claude.zip / Haiku 5.5 / entries/ghostline",
-      "identitySource": "Author model and final file declared in strategy.md"
+      "identitySource": "Author model and final file declared in strategy.md",
+      "reasoningEffort": "high"
     },
     {
       "id": "parallax-opus",
@@ -84,7 +93,35 @@
       "model": "Claude Opus 5.5",
       "sha256": "1167cc72b2b03b16e6017552b6f3d3d1db797bb82b308d71eb0bb2a19787fe19",
       "origin": "claude.zip / Opus 5.5 / entries/parallax",
-      "identitySource": "Author model and final file declared in strategy.md"
+      "identitySource": "Author model and final file declared in strategy.md",
+      "reasoningEffort": "high"
+    },
+    {
+      "id": "iron-ambush-luna56",
+      "name": "iron-ambush",
+      "model": "GPT-5.6 Luna",
+      "sha256": "175a221e88a0f40fe4b9e0bc6ed8f602ae35b437e86b6b3e7dc4974b84fe761e",
+      "origin": "C:\\Users\\hyc\\Desktop\\Temp2\\ASTRA\\LUNA\\5.6 luna\\entries\\iron-ambush\\bot.js",
+      "identitySource": "User-provided model label; final bot.js declared in strategy.md",
+      "reasoningEffort": "max"
+    },
+    {
+      "id": "rift-harvest-sol56",
+      "name": "Rift Harvest（裂隙收割者）",
+      "model": "GPT-5.6 SOL",
+      "sha256": "75f9bf20c4af4894bd90ca70c1a10edd5c1934d9dff24bdac6e8c0e411557338",
+      "origin": "C:\\Users\\hyc\\Desktop\\Temp2\\ASTRA\\LUNA\\5.6 sol\\entries\\rift-harvest\\bot.js",
+      "identitySource": "User-provided model label; final bot.js declared in strategy.md",
+      "reasoningEffort": "max"
+    },
+    {
+      "id": "parallax-astra",
+      "name": "Parallax",
+      "model": "GPT-6 Astra",
+      "sha256": "21431b3dcd34be399b5e57bb099a196920060e7b1624d5dd87a0fd7adcd32b89",
+      "origin": "Astra.zip / Astra/entries/parallax/bot.js",
+      "identitySource": "User-provided model label; final bot.js declared in strategy.md",
+      "reasoningEffort": "max"
     }
   ]
 }
