@@ -7,7 +7,7 @@ const originalDir = new URL('../app/tanks/bots/', import.meta.url);
 const portDir = new URL('../app/tanks/royale/bots/', import.meta.url);
 const originals = readdirSync(originalDir).filter((name) => name.endsWith('.js')).sort();
 const ports = readdirSync(portDir).filter((name) => name.endsWith('.js')).sort();
-const migrated = new Set(['apex-warden-spark.js', 'astra-knife.js', 'ghostline-haiku.js', 'harrier.js', 'iron-ambush-luna56.js', 'kestrel-kimi.js', 'ocelot-mimo.js', 'parallax-astra.js', 'parallax-opus.js', 'peregrine-step5.js', 'polaris-gemini38.js', 'raptor-openpangu.js', 'redline-minimax31.js', 'rift-harvest-sol56.js', 'shrike-deepseek.js', 'shrike26-glm.js', 'sidecut-grok.js', 'tank26.js', 'vector.js', 'viper-longcat.js', 'vortex-minimax.js']);
+const migrated = new Set(['apex-warden-spark.js', 'astra-knife.js', 'ghostline-haiku.js', 'harrier.js', 'iron-ambush-luna56.js', 'kestrel-kimi.js', 'kestrel-fable.js', 'ocelot-mimo.js', 'parallax-astra.js', 'parallax-opus.js', 'peregrine-step5.js', 'polaris-gemini38.js', 'raptor-openpangu.js', 'redline-minimax31.js', 'rift-harvest-sol56.js', 'shrike-deepseek.js', 'shrike26-glm.js', 'sidecut-grok.js', 'tank26.js', 'vector.js', 'viper-longcat.js', 'vortex-minimax.js']);
 const hash = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 const failures = [];
 for (const name of originals) {
@@ -17,7 +17,7 @@ for (const name of originals) {
   }
 }
 for (const name of ports) if (!originals.includes(name)) failures.push(`unregistered Royale source: ${name}`);
-if (originals.length !== 21) failures.push(`expected 21 original bots, found ${originals.length}`);
+if (originals.length !== 22) failures.push(`expected 22 original bots, found ${originals.length}`);
 
 function sampleState(size, tick = 0, royale = false) {
   const ids = royale ? ['A', 'B', 'P27', 'P28'] : ['A', 'B', 'C', 'D'];
@@ -204,5 +204,5 @@ if (failures.length) {
   console.error(failures.join('\n'));
   process.exitCode = 1;
 } else {
-  console.log(`Royale source boundary verified: ${originals.length} bots; twenty-one ports match legacy decisions at eight 26x26 ticks and match across 18 persistent complex-map ticks, and pass engine-backed P27/27-opponent 42x42/58x58 checks through the empty ring, including test-only catch-to-throw runs.`);
+  console.log(`Royale source boundary verified: ${originals.length} bots; twenty-two ports match legacy decisions at eight 26x26 ticks and match across 18 persistent complex-map ticks, and pass engine-backed P27/27-opponent 42x42/58x58 checks through the empty ring, including test-only catch-to-throw runs.`);
 }

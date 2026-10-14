@@ -194,6 +194,15 @@
       "sha256": "ddbaaf3e1f5bc1dcf7ec72509764bd606b35c2ff73a0a6f7a62fea3d16d4042d",
       "origin": "step5-zcode-high.zip / entries/peregrine/bot.js",
       "identitySource": "Final bot.js and author declared in strategy.md; Step effort from supplied archive label"
+    },
+    {
+      "id": "kestrel-fable",
+      "name": "kestrel（红隼）",
+      "model": "Claude Fable 5.1",
+      "reasoningEffort": "high",
+      "sha256": "40cd26bfdf5a467cbf998c60ad56763b19d710cc05b0af7cd56d6ae1445d3b46",
+      "origin": "Tank-参赛工作区-v2.6 fable5.1.rar / entries/kestrel/bot.js",
+      "identitySource": "User model/effort; final source and tank name confirmed in strategy.md"
     }
   ]
 }
