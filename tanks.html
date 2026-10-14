@@ -15,11 +15,14 @@
             ? 'ink'
             : 'paper';
       } catch {}
+      if (new URLSearchParams(location.search).get('mode') === 'royale')
+        document.documentElement.dataset.tankMode = 'royale';
     </script>
+    <style>html[data-tank-mode='royale'] .tank-app { display: none; }</style>
     <script src="/playground-entry-boot.js"></script>
     <link rel="stylesheet" href="/app/playground/fonts.css" />
     <link rel="stylesheet" href="/app/tanks/style.css" />
-    <script type="module" src="/app/tanks/app.mjs"></script>
+    <script type="module" src="/app/tanks/entry.mjs"></script>
   </head>
   <body data-state="setup">
     <div class="tank-app">

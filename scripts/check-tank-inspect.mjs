@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { createInspectState, hitTank, sampleTank, survivalRows } from '../app/tanks/inspect-state.mjs';
+const s = createInspectState();
+const initial = createInspectState();assert(initial.collapsed);initial.hover('A',0);assert(initial.collapsed);initial.select('B',1000);assert(initial.collapsed);
+s.hover('A',0);s.hover(null,10);s.tick(2700);assert.equal(s.id,'A');s.tick(2801);assert.equal(s.id,null);
+s.hover('A',3000);s.hover('B',3100);assert.equal(s.id,'A');s.hover('B',3700);assert.equal(s.id,'B');
+s.select('A',4000);s.hover('B',5000);s.tick(9000);assert.equal(s.id,'A');assert(s.pinned);
+s.close();s.hover('A',9100);assert.equal(s.id,null);s.hover(null,9200);s.hover('A',9300);assert.equal(s.id,'A');
+s.tick(12000,true);s.tick(14000);assert.equal(s.id,'A');s.tick(15000);assert.equal(s.id,null);
+const tank={id:'A',x:2,y:2,lives:2,onField:1};
+assert.equal(sampleTank(tank,{...tank,x:3},.5).x,2.5);
+assert.equal(sampleTank(tank,{...tank,x:30,lives:1},.5).x,2);
+assert.equal(hitTank([tank],{x:1.8,y:3},.3),'A');assert.equal(hitTank([{...tank,onField:0}],{x:3,y:3},.3),null);
+const frame={tanks:{A:{lives:0},B:{lives:0},C:{lives:1}},scores:{A:{eliminatedAt:20,kills:3},B:{eliminatedAt:10,kills:8},C:{eliminatedAt:null,kills:0}}};
+assert.deepEqual(survivalRows(frame,['A','B','C']).map(r=>r.id),['C','A','B']);
+frame.tanks.C.lives=0;frame.scores.C.eliminatedAt=20;
+assert.deepEqual(survivalRows(frame,['A','B','C']).map(r=>r.rank),[1,1,3]);
+console.log('Tank inspection: hover grace, switch dwell, pin, dismissal, panel hold, hit testing, respawn and survival order passed.');

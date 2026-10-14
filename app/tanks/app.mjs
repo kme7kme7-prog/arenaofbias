@@ -27,6 +27,8 @@ import {
   setSeatColor,
 } from './workbench.mjs';
 import { createTour } from './tour.mjs';
+import { createTankInspector } from './inspect.mjs';
+import { sampleTank } from './inspect-state.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const clone = (value) => structuredClone(value);
@@ -67,6 +69,7 @@ let lastTime = 0,
 const undo = [],
   renderer = createRenderer($('#board')),
   audio = createBrawlAudio();
+const inspector = createTankInspector({ canvas: $('#board') });
 const intents = {
   advance: '向前推进',
   flank: '侧翼转移',
@@ -275,6 +278,7 @@ function renderRoster() {
     choose.addEventListener('click', () => {
       if (phase === 'computing') return;
       selected = id;
+      if (phase === 'watch') inspector.select(id);
       if (!r) {
         openLibrary(id);
         return;
@@ -909,6 +913,7 @@ function install(value) {
     )
       throw Error('回放中的选手信息不完整。');
   }
+  inspector.reset();
   replay = value;
   visualEffects = prepareEffects(replay);
   phase = 'watch';
@@ -1073,6 +1078,7 @@ function hud() {
   else $('#result').hidden = true;
 }
 function backToSetup() {
+  inspector.reset();
   playing = false;
   phase = 'setup';
   editing = false;
@@ -1291,15 +1297,23 @@ function loop(time) {
       hud();
       lastHud = frameIndex;
     }
+    const current = replay.frames[frameIndex], nextFrame = replay.frames[frameIndex + 1];
+    inspector.update(sides.map((id, i) => {
+      const t = current.tanks[id], sc = current.scores[id], entry = identity(id);
+      return { ...sampleTank(t, nextFrame?.tanks[id], fraction), id, model: entry.model, name: entry.name, logo: entry.logo, effort: entry.reasoningEffort, color: seatColors()[i], kills: sc.kills, damage: sc.damage,
+        status: sc.status === 'error' ? '运行异常' : sc.status === 'timeout' ? '决策超时' : !t.lives ? '已淘汰' : !t.onField ? `${(t.respawnTicks / 10).toFixed(1)} 秒后复活` : intents[t.intent] || '正在交战' };
+    }), 26, $('#result').hidden);
     renderer.draw(replay.frames[frameIndex], {
       next: replay.frames[frameIndex + 1],
       blend: fraction,
+      inspected: inspector.id,
       events: recentEffects(visualEffects, frameIndex + fraction),
       reduced: motion.matches,
       colors: seatColors(),
       theme,
     });
-  } else if (preview)
+  } else if (preview) {
+    inspector.update([], 26, false);
     renderer.draw(preview, {
       theme,
       colors: seatColors(),
@@ -1308,6 +1322,7 @@ function loop(time) {
       hover,
       ghost,
     });
+  }
   raf = requestAnimationFrame(loop);
 }
 document.addEventListener('visibilitychange', () => {

@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-CN" data-theme="paper"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>坦克信息卡动效对照</title>
+<link rel="stylesheet" href="/app/tanks/style.css">
+<style>body{padding:24px}header{display:flex;gap:16px;align-items:center;flex-wrap:wrap}main{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}.review-stage{height:430px;position:relative;border:1px solid var(--line);background:var(--soft)}canvas{width:100%;height:100%;display:block}.instant *{transition:none!important;animation:none!important}h2{font-size:16px;font-weight:500}@media(max-width:700px){main{grid-template-columns:1fr}}</style>
+<header><h1>坦克信息卡</h1><button id="theme">切换纸墨</button><span>鼠标扫过坦克，或点选固定；卡片可收起。</span></header>
+<main><section><h2>无过渡对照</h2><div class="review-stage instant"><canvas id="a"></canvas></div></section><section><h2>当前过渡</h2><div class="review-stage"><canvas id="b"></canvas></div></section></main>
+<script type="module">
+import {createTankInspector} from '/app/tanks/inspect.mjs';
+const panels=[...document.querySelectorAll('canvas')].map(canvas=>({canvas,inspector:createTankInspector({canvas})}));
+document.querySelector('#theme').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='ink'?'paper':'ink';};
+function frame(time){for(const {canvas,inspector} of panels){const ctx=canvas.getContext('2d');canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;
+const x=3+(time/150%15),items=[{id:'A',x,y:4,onField:1,model:'模型 A',name:'快速移动样例',effort:'high',lives:2,hp:2,kills:3,damage:7,color:'#bd674b',status:'正在交战'},{id:'B',x:13,y:14,onField:1,model:'模型 B',name:'静止样例',lives:1,hp:1,kills:2,damage:5,color:'#518ba2',status:'护盾'}];
+for(const t of items){ctx.fillStyle=t.color;ctx.fillRect(t.x/26*canvas.width,t.y/26*canvas.height,2/26*canvas.width,2/26*canvas.height);ctx.fillText(t.id,(t.x+1)/26*canvas.width,(t.y-.5)/26*canvas.height);}inspector.update(items,26);}requestAnimationFrame(frame);}requestAnimationFrame(frame);
+</script></html>

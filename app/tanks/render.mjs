@@ -446,6 +446,7 @@ export function createRenderer(canvas) {
         theme = 'paper',
         editing = false,
         selected = null,
+        inspected = null,
         hover = null,
         ghost = null,
         colors = COLORS,
@@ -522,7 +523,7 @@ export function createRenderer(canvas) {
           frame.tanks[id],
           next?.tanks[id],
           blend,
-          editing && selected === id,
+          (editing && selected === id) || inspected === id,
           ghost?.id === id,
         );
       for (const b of sampleProjectiles(frame, next, blend)) {

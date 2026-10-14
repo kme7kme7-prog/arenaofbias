@@ -1,0 +1,6 @@
+.tank-mode-switch { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); margin-top: 20px; font-size: 13px; }
+.tank-mode-switch > * { padding: 12px 8px; text-align: center; }
+.tank-mode-switch [aria-current] { background: var(--soft); color: var(--muted); }
+.tank-mode-switch a { border-left: 1px solid var(--line); color: var(--accent); transition: background .2s ease; }
+.tank-mode-switch a:hover { background: var(--panel); }
+.tank-mode-switch a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
