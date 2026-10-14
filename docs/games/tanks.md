@@ -31,4 +31,4 @@
 
 ## 2026-10-14 新增作品
 
-新增LongCat-2.5-Preview / Viper（蝰蛇）、MiniMax M3 / vortex、Gemini 3.8 Flash / Polaris（北极星）、openpangu-2.0-pro / Raptor（猛禽）、MiMo V2.6 Pro / Ocelot（豹猫）、spark / Apex Warden。Polaris思考强度为high，其余五份为default；压缩包名称不覆盖用户明确的强度。raptor不登记为DeepSeek，gemini4argon-spark.js的作者模型名称为spark。default同样是每作品标签并保存在回放。
+新增LongCat-2.5-Preview / Viper（蝰蛇）、MiniMax M3 / vortex、Gemini 3.8 Flash / Polaris（北极星）、OpenPangu 2.0 Pro / Raptor（猛禽）、MiMo V2.6 Pro / Ocelot（豹猫）、Gemini 4 Argon / Apex Warden。Polaris思考强度为high，其余五份为default；压缩包名称不覆盖用户明确的强度。raptor不登记为DeepSeek，gemini4argon-spark.js的作者模型名称为Gemini 4 Argon，坦克名为Apex Warden。default同样是每作品标签并保存在回放。

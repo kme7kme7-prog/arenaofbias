@@ -1003,3 +1003,8 @@
 - 用户明确raptor为openpangu-2.0-pro，不能沿用目录/策略自报DeepSeek；gemini4argon-spark.js作者模型名使用spark。Ocelot依据策略登记MiMo V2.6 Pro，另三份分别LongCat-2.5-Preview、MiniMax M3、Gemini 3.8 Flash。
 - 六份中仅Gemini 3.8 Flash / Polaris为high，其余五份default，包括名称带high的LongCat压缩包；default应作为作品标签显示并随回放保存。既有十三份作品强度不重写。
 - 本轮上传沿用已授权发布流程，独立增量发布坦克静态入口与依赖，保留其他页面/后端和并行未提交玩法；用户唯一署名无协作者。
+
+## 2026-10-14 · Gemini 4 Argon与OpenPangu最终名称纠正
+
+- 用户最终确认gemini4argon为模型名、坦克名仍为Apex Warden。展示规范为Gemini 4 Argon / Apex Warden，并将openpangu-2.0-pro规范显示为OpenPangu 2.0 Pro / Raptor。此条显式覆盖前条spark作者登记，不采用中途spark作为坦克名的更正。
+- 两作品强度仍default；源文件、原字节/SHA及稳定作品ID不变，兼容既有回放。按当前发布任务修正线上，仍仅用户署名，无协作者。

@@ -153,7 +153,7 @@
     {
       "id": "raptor-openpangu",
       "name": "Raptor（猛禽）",
-      "model": "openpangu-2.0-pro",
+      "model": "OpenPangu 2.0 Pro",
       "reasoningEffort": "default",
       "sha256": "4a881570a5411b8ec5690d4d98b12323c0ad08419cfd8aa8018fe99818b67840",
       "origin": "C:/Users/hyc/Documents/DeepSeek Harness/TEST1/Tank-参赛工作区-v2.6/entries/raptor/bot.js",
@@ -171,7 +171,7 @@
     {
       "id": "apex-warden-spark",
       "name": "Apex Warden",
-      "model": "spark",
+      "model": "Gemini 4 Argon",
       "reasoningEffort": "default",
       "sha256": "1cbdbfeb6251d9f626a13386f76deb12091823634eeb44adb48c1ee3943c4f00",
       "origin": "C:/Users/hyc/Downloads/gemini4argon-spark.js",

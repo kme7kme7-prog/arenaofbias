@@ -27,7 +27,7 @@ export const ROSTER = registry.bots.map((entry) => ({
             ? claude
             : entry.model.startsWith('Grok')
               ? '/forum-brands/xai.ico'
-              : entry.model.startsWith('Gemini') || entry.model === 'spark'
+              : entry.model.startsWith('Gemini')
                 ? google
                 : entry.model.startsWith('LongCat')
                   ? longcat
@@ -35,7 +35,7 @@ export const ROSTER = registry.bots.map((entry) => ({
                     ? minimax
                     : entry.model.startsWith('MiMo')
                       ? mimo
-                      : entry.model.startsWith('openpangu')
+                      : entry.model.startsWith('OpenPangu')
                         ? '/forum-brands/huawei.svg'
                         : null,
   source: () => sources[`./bots/${entry.id}.js`](),

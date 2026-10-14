@@ -1,3 +1,8 @@
+## 2026-10-14 · 坦克模型展示名纠正
+
+- 用户最终纠正gemini4argon为模型名，坦克名保持Apex Warden：规范显示Gemini 4 Argon / Apex Warden；raptor作者规范为OpenPangu 2.0 Pro。覆盖前轮spark作为作者的误解，spark仅保留在原输入文件名和稳定作品ID，不作为作者/坦克展示名。
+- 仅改登记元数据、品牌匹配及当前说明；两份均default，bot原始字节/SHA与作品ID保持，旧回放仍按ID/SHA识别。独立快照生产构建/typecheck/lint、引擎15项与浏览器272项通过；没有模型调用。只增量tanks.html和其脚本，其他入口与后端保持；推送/公网完成后补记。证据.local/tank-names-release-20261014/。
+
 ## 2026-10-14 · 六份坦克作品发布准备
 
 - 用户要求上传六份：LongCat-2.5-Preview / Viper（蝰蛇）、MiniMax M3 / vortex、Gemini 3.8 Flash / Polaris（北极星）、openpangu-2.0-pro / Raptor（猛禽）、MiMo V2.6 Pro / Ocelot（豹猫）、spark / Apex Warden。Polaris为high，其余五份default；raptor作者明确不是DeepSeek，spark按用户指定名称。只接入最终程序，源码原字节与SHA保留，库共19份。
