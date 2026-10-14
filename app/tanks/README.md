@@ -41,3 +41,5 @@
 - 作品身份以稳定id区分，作者模型可重复；每份登记包含reasoningEffort。现有astra-knife为medium、Tank26为max，新增iron-ambush / GPT-5.6 Luna、Rift Harvest / GPT-5.6 SOL、Parallax / GPT-6 Astra均为max，其余八份为high。标签记录生成作品时的思考强度，不改变比赛决策预算；坦克库/席位/结算显示并随回放保存。旧回放缺此字段时，已核实作品可用登记信息补齐。
 
 2026-10-14新增六份最终程序，库共19份。Gemini 3.8 Flash / Polaris为high，LongCat-2.5-Preview / Viper、MiniMax M3 / vortex、OpenPangu 2.0 Pro / Raptor、MiMo V2.6 Pro / Ocelot与Gemini 4 Argon / Apex Warden为default。default可展示/搜索，按作品随回放保存；Raptor作者按用户纠正排除DeepSeek自报，Gemini 4 Argon为模型名、Apex Warden为坦克名。原始程序字节/SHA保持不变。
+
+2026-10-14追加MiniMax M3.1 / redline（default）、Step 5 Preview / peregrine（游隼）（high），21份最终程序。原始字节/SHA保留，排除__MACOSX元数据。按用户要求未执行测试或比赛，仅完成必要生产打包与部署完整性核对；不宣称新程序运行通过。

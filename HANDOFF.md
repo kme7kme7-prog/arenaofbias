@@ -1,3 +1,9 @@
+## 2026-10-14 · MiniMax M3.1与Step 5作品直接上传
+
+- 用户要求直接上传、不测试。新增MiniMax M3.1 / redline（default）、Step 5 Preview / peregrine（游隼）（high，依压缩包标注），库共21份；策略声明的最终bot原始字节/SHA保留，__MACOSX元数据不接入。
+- 仅生产打包通过，未执行typecheck/lint、引擎测试、浏览器测试或对局，不宣称两程序运行成功。只增量坦克入口及必要hash依赖；线上完整性与保护文件哈希核对不作为玩法运行验收。源码基于7faa6b6，只叠加此次登记，不包含并行玩法。
+- 用户唯一署名无协作者，其他入口/后端/总入口和既有未提交文件保留。推送上线结果完成后补记，证据.local/tank-two-release-20261014/。
+
 ## 2026-10-14 · 坦克模型展示名纠正
 
 - 用户最终纠正gemini4argon为模型名，坦克名保持Apex Warden：规范显示Gemini 4 Argon / Apex Warden；raptor作者规范为OpenPangu 2.0 Pro。覆盖前轮spark作为作者的误解，spark仅保留在原输入文件名和稳定作品ID，不作为作者/坦克展示名。

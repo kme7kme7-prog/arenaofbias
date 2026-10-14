@@ -176,6 +176,24 @@
       "sha256": "1cbdbfeb6251d9f626a13386f76deb12091823634eeb44adb48c1ee3943c4f00",
       "origin": "C:/Users/hyc/Downloads/gemini4argon-spark.js",
       "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "redline-minimax31",
+      "name": "redline",
+      "model": "MiniMax M3.1",
+      "reasoningEffort": "default",
+      "sha256": "14cda3d7b86deab149e73c968549178689b8a05b99c791a84fd080351aa44702",
+      "origin": "MiniMax M3.1 Tank.zip / entries/redline/bot.js",
+      "identitySource": "Final bot.js and author declared in strategy.md; Step effort from supplied archive label"
+    },
+    {
+      "id": "peregrine-step5",
+      "name": "peregrine（游隼）",
+      "model": "Step 5 Preview",
+      "reasoningEffort": "high",
+      "sha256": "ddbaaf3e1f5bc1dcf7ec72509764bd606b35c2ff73a0a6f7a62fea3d16d4042d",
+      "origin": "step5-zcode-high.zip / entries/peregrine/bot.js",
+      "identitySource": "Final bot.js and author declared in strategy.md; Step effort from supplied archive label"
     }
   ]
 }

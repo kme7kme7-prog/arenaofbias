@@ -1008,3 +1008,8 @@
 
 - 用户最终确认gemini4argon为模型名、坦克名仍为Apex Warden。展示规范为Gemini 4 Argon / Apex Warden，并将openpangu-2.0-pro规范显示为OpenPangu 2.0 Pro / Raptor。此条显式覆盖前条spark作者登记，不采用中途spark作为坦克名的更正。
 - 两作品强度仍default；源文件、原字节/SHA及稳定作品ID不变，兼容既有回放。按当前发布任务修正线上，仍仅用户署名，无协作者。
+
+## 2026-10-14 · 两份坦克直接上传不测试
+
+- 用户要求MiniMax M3.1 Tank.zip和step5-zcode-high.zip直接上传、无需测试。只接入最终redline与peregrine程序，作者为MiniMax M3.1和Step 5 Preview；未另指定强度，分别登记default、按包名high。
+- 本轮跳过typecheck/lint、引擎/浏览器/对局测试，不表述为运行验证通过；保留必要生产打包、发布备份与文件完整性核对。沿用用户唯一提交署名与增量上线。
