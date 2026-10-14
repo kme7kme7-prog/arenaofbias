@@ -1772,7 +1772,7 @@ dialog dd {
 }
 .library-card {
   display: grid;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 40px minmax(0, 1fr);
   gap: 12px;
   text-align: left;
   padding: 18px;
@@ -1789,6 +1789,7 @@ dialog dd {
   border-radius: 5px;
 }
 .library-copy {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -2048,7 +2049,7 @@ dialog dd {
     gap: 8px;
   }
   .library-card {
-    grid-template-columns: 34px 1fr auto;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     gap: 11px;
     padding: 14px;
     min-height: 76px;
