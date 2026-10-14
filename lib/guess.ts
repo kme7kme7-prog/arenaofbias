@@ -238,11 +238,29 @@ export function resetGuessData() {
 
 // ── API ──
 
+const GUESS_REQUEST_TIMEOUT_MS = 12000;
+
+/** Keep the deadline active until JSON is read, including stalled response bodies. */
+async function guessRequest<T>(path: string, options?: RequestInit): Promise<T | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GUESS_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await apiFetch(path, { ...options, signal: controller.signal });
+    if (!response.ok) {
+      if (response.status === 404) throw new PracticeExpiredError();
+      if (response.status === 429) throw new RateLimitedError();
+      if (response.status === 409) throw new DailyChangedError();
+      return null;
+    }
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchToday(): Promise<TodayResponse | null> {
   try {
-    const response = await apiFetch('/api/guess/today');
-    if (!response.ok) return null;
-    return (await response.json()) as TodayResponse;
+    return await guessRequest<TodayResponse>('/api/guess/today');
   } catch {
     return null;
   }
@@ -276,18 +294,11 @@ export async function checkGuess(
   dayKey?: string,
 ): Promise<CheckResponse | null> {
   try {
-    const response = await apiFetch('/api/guess/check', {
+    return await guessRequest<CheckResponse>('/api/guess/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(gameId ? { guessId, final, gameId } : { guessId, final, dayKey }),
     });
-    if (!response.ok) {
-      if (response.status === 404) throw new PracticeExpiredError();
-      if (response.status === 429) throw new RateLimitedError();
-      if (response.status === 409) throw new DailyChangedError();
-      return null;
-    }
-    return (await response.json()) as CheckResponse;
   } catch (error) {
     if (
       error instanceof PracticeExpiredError ||
@@ -304,13 +315,12 @@ export async function startPractice(
   difficulty: GuessDifficulty,
 ): Promise<string | null> {
   try {
-    const response = await apiFetch('/api/guess/practice/start', {
+    const result = await guessRequest<{ gameId: string }>('/api/guess/practice/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ difficulty }),
     });
-    if (!response.ok) return null;
-    return ((await response.json()) as { gameId: string }).gameId;
+    return result?.gameId ?? null;
   } catch {
     return null;
   }

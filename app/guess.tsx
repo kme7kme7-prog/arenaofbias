@@ -38,6 +38,7 @@ import {
   Compass,
   Flame,
   Skull,
+  Users,
 } from 'lucide-react';
 import {
   checkGuess,
@@ -408,6 +409,10 @@ export default function GuessPage() {
     );
   }, [today, query, usedIds]);
 
+  const alreadyGuessed = candidates.length === 0 && searchGuessModels(
+    (session?.guesses ?? []).map(row => row.guess), query, 1,
+  ).length > 0;
+
   useEffect(() => {
     const list = listRef.current;
     const option = list?.children[
@@ -563,7 +568,8 @@ export default function GuessPage() {
     pendingRef.current = false;
     setPending(false);
     if (!result) {
-      setError(t('网络不给力，这把不算，再试一次。'));
+      setQuery(model.name);
+      setError(t('连接暂时失败，进度已保留，请再试一次。'));
       return;
     }
     const row: GuessRow = {
@@ -692,6 +698,7 @@ export default function GuessPage() {
       data-screen={mode === null || !session ? 'picker' : 'game'}
       data-finished={finished}
       data-revealing={Boolean(freshGuess)}
+      data-pending={pending}
     >
       <header className="guess-header">
         <a
@@ -798,6 +805,7 @@ export default function GuessPage() {
                 </button>
               );
             })()}
+            <a className="gf-entry" href="#guess-friends"><Users size={23} /><span><strong>{t('双人好友房')}</strong><small>{t('通过房间码邀请好友，进行双人对战。')}</small></span><ArrowUpRight size={21} /></a>
             <div className="guess-practice-heading">
               <h2>{t('练习模式')}</h2>
               <span>{t('随机出题 · 不限次数')}</span>
@@ -1063,6 +1071,7 @@ export default function GuessPage() {
                             : undefined
                         }
                         aria-label={t('输入要猜的模型名')}
+                        aria-describedby="guess-search-status"
                       />
                       <button
                         className="guess-submit"
@@ -1126,14 +1135,20 @@ export default function GuessPage() {
                         </ul>
                         {!candidates.length && (
                           <p className="guess-no-match">
-                            {t('没有找到这个模型，换个名字试试。')}
+                            {t(alreadyGuessed
+                              ? '匹配的模型已经猜过了，请换一个。'
+                              : '没有找到这个模型，换个名字试试。')}
                           </p>
                         )}
                       </div>
                     )}
                   </div>
                   <p className="guess-search-hint">
-                    <span>{t('支持模型名称搜索')}</span>
+                    <span id="guess-search-status" role="status">
+                      {t(alreadyGuessed
+                        ? '匹配的模型已经猜过了，请换一个。'
+                        : '支持模型名称搜索')}
+                    </span>
                     <span>
                       <CornerDownLeft size={12} />
                       {t('回车提交')}

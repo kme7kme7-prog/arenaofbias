@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>好友房 · 动效对照</title>
+  <link rel="stylesheet" href="/app/guess-friends.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font:
+        14px/1.5 system-ui,
+        sans-serif;
+      background: #e8ebe2;
+      color: #203126;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-bottom: 1px solid #a8b39b;
+    }
+    header h1 {
+      font-size: 16px;
+      margin: 0 16px 0 0;
+    }
+    header button,
+    header select {
+      padding: 8px 14px;
+      font: inherit;
+    }
+    header small {
+      color: #58684e;
+    }
+    main {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      padding: 24px;
+    }
+    article {
+      min-width: 0;
+    }
+    article > h2 {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .gf-page {
+      --guess-accent: #4f6544;
+      --guess-line: #b9c3af;
+      --on-signal: #fff;
+      --surface-101e18: #e8ebe2;
+      --surface-17271e: #f4f5ed;
+      --surface-29402c: #dbe3cf;
+      --surface-edf0df: #fafbf7;
+      --text-233222: #233222;
+      --text-edf0df: #edf0df;
+      --text-a5b4a4: #58684e;
+      --guess-hit: #b2c7a3;
+      --guess-near: #dbc989;
+      --guess-miss: #e0e1d7;
+      padding: 24px;
+      background: var(--surface-101e18);
+      border: 1px solid var(--guess-line);
+    }
+    body.ink .gf-page {
+      --guess-accent: #d9fb51;
+      --guess-line: #394c3b;
+      --on-signal: #17271e;
+      --surface-101e18: #101e18;
+      --surface-17271e: #17271e;
+      --surface-29402c: #29402c;
+      --text-a5b4a4: #a5b4a4;
+      --guess-miss: #34463d;
+      color: #edf0df;
+    }
+    .gf-page[data-gf-motion='off'] *,
+    .gf-page[data-gf-motion='off'] ::before,
+    .gf-page[data-gf-motion='off'] ::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    .gf-page[data-gf-motion='off'] .gf-curtain::after {
+      display: none;
+    }
+    .review-tiles {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    .review-tiles .gf-cell {
+      --gf-order: 0;
+    }
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <header>
+    <h1>好友房 · 动效对照</h1>
+    <select id="scene" aria-label="展示状态">
+      <option value="waiting">进入房间</option>
+      <option value="starting">开局倒计时</option>
+      <option value="playing">开始猜测</option>
+      <option value="result">回合结算</option>
+    </select>
+    <button id="replay">重播</button><button id="theme">切换主题</button>
+    <label><input id="reduce" type="checkbox" />关闭动画</label>
+    <small
+      >演示数据，不连接服务器；左侧保留原先无过渡的表现，右侧复用当前样式。</small
+    >
+  </header>
+  <main>
+    <article>
+      <h2>原行为 · 直接显示</h2>
+      <div id="before" class="gf-page" data-gf-motion="off"></div>
+    </article>
+    <article>
+      <h2>当前行为 · 短过渡</h2>
+      <div id="after" class="gf-page"></div>
+    </article>
+  </main>
+  <script type="module">
+    const scene = document.querySelector('#scene');
+    const cells = ['hit', 'near', 'hit', 'miss', 'hit', 'near', 'hit']
+      .map(
+        (state, i) =>
+          `<div class="gf-cell ${state}" style="--gf-order:${i}"><span>线索 ${i + 1}</span><small>✓</small></div>`,
+      )
+      .join('');
+    function render() {
+      const stage = scene.value;
+      const content =
+        stage === 'waiting'
+          ? '<section class="gf-waiting"><p class="gf-eyebrow">WAITING ROOM</p><h2>等待玩家准备</h2><p>双方准备后自动开始；每轮 8 次机会，先猜中得 1 分。</p><button class="gf-primary">准备</button></section>'
+          : `<div class="gf-round-stage"><div class="gf-round-bar"><span>第 1 轮</span><span>先得 2 分获胜</span><strong>${stage === 'starting' ? '3 秒后开始' : stage === 'playing' ? '02:00' : '6 秒后下一轮'}</strong></div>
+          ${stage === 'starting' ? '<p class="gf-countdown"><span>对局即将开始</span><b>3</b></p>' : ''}
+          ${stage === 'result' ? '<section class="gf-result gf-curtain"><div><small>本轮结果</small><h2>本轮获胜，获得 1 分</h2><p>正确答案：<b>示例模型</b></p></div></section>' : ''}
+          <section class="gf-own gf-curtain gf-play-surface" data-phase="${stage === 'playing' ? 'playing' : 'starting'}"><div class="gf-section-title"><h2>猜测记录</h2><span>剩余 7 次</span></div><div class="review-tiles">${cells}</div></section></div>`;
+      const markup = `<div class="gf-room gf-curtain"><div class="gf-room-bar"><div class="gf-room-code"><span>房间码</span><strong>ABCD2345</strong></div><span>普通</span></div><div class="gf-scoreboard">
+        <div class="gf-player is-me"><span class="gf-avatar">A</span><div><small>你</small><h2>玩家 A</h2><span>已准备</span></div><b class="gf-score">${stage === 'result' ? '1' : '0'}</b></div>
+        <div class="gf-player"><span class="gf-avatar">B</span><div><small>好友</small><h2>玩家 B</h2><span>已准备</span></div><b class="gf-score">0</b></div><span class="gf-versus">VS</span></div>${content}</div>`;
+      for (const id of ['before', 'after'])
+        document.getElementById(id).innerHTML = markup;
+    }
+    scene.onchange = render;
+    document.querySelector('#replay').onclick = render;
+    document.querySelector('#theme').onclick = () =>
+      document.body.classList.toggle('ink');
+    document.querySelector('#reduce').onchange = (e) => {
+      document.querySelector('#after').dataset.gfMotion = e.target.checked
+        ? 'off'
+        : 'on';
+      render();
+    };
+    render();
+  </script>
+</html>
