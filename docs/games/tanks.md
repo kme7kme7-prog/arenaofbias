@@ -9,7 +9,7 @@
 3. 点击开始后，在本机计算完整对局，再自动播放。可以取消计算。
 4. 回放支持暂停、单步、倍速、拖动进度、点击事件回看、可选音效及保存/打开文件。
 
-坦克库提供十三份已登记的最终作品，每局任选四份。首批四份为：GLM-5.3 Flash 的红隼、GPT-6 Luna 的 Tank26、GPT-6.1 SOL 的 vector、GPT-6 Astra 的 astra-knife。新增 DeepSeek V4.1 Flash 的 shrike（伯劳）、GLM-5.3 的伯劳 SHRIKE、Kimi K3 的 kestrel；Grok 4.7 的 sidecut、Claude Haiku 5.5 的 ghostline、Claude Opus 5.5 的 Parallax（视差）。结算标题和排名显示作者模型名。同一模型可以登记多个独立作品，并在同一局同时入场；去重按作品ID，不能重复选中同一份程序。同模型作品的结算附作品名以区分。每份作品标记创作时的思考强度，现有astra-knife为medium、Tank26为max，新增GPT-5.6 Luna的iron-ambush、GPT-5.6 SOL的Rift Harvest（裂隙收割者）和GPT-6 Astra的Parallax均为max，其余八份现有作品为high，标签随回放保存。不是每回合重新调用大模型。
+坦克库提供十九份已登记的最终作品，每局任选四份。首批四份为：GLM-5.3 Flash 的红隼、GPT-6 Luna 的 Tank26、GPT-6.1 SOL 的 vector、GPT-6 Astra 的 astra-knife。新增 DeepSeek V4.1 Flash 的 shrike（伯劳）、GLM-5.3 的伯劳 SHRIKE、Kimi K3 的 kestrel；Grok 4.7 的 sidecut、Claude Haiku 5.5 的 ghostline、Claude Opus 5.5 的 Parallax（视差）。结算标题和排名显示作者模型名。同一模型可以登记多个独立作品，并在同一局同时入场；去重按作品ID，不能重复选中同一份程序。同模型作品的结算附作品名以区分。每份作品标记创作时的思考强度，现有astra-knife为medium、Tank26为max，新增GPT-5.6 Luna的iron-ambush、GPT-5.6 SOL的Rift Harvest（裂隙收割者）和GPT-6 Astra的Parallax均为max，其余八份现有作品为high，标签随回放保存。不是每回合重新调用大模型。
 
 ## 战场规则
 
@@ -28,3 +28,7 @@
 “新手引导”逐步聚焦真实按钮并讲解操作，支持上一步、跳过和随时退出，不修改布置。自绘入口明确标为实验功能。
 
 程序来源、集成边界和验证命令见 `app/tanks/README.md`。暂不接受任意上传 bot，不实现对局服务、在线模型调用或成绩上报。
+
+## 2026-10-14 新增作品
+
+新增LongCat-2.5-Preview / Viper（蝰蛇）、MiniMax M3 / vortex、Gemini 3.8 Flash / Polaris（北极星）、openpangu-2.0-pro / Raptor（猛禽）、MiMo V2.6 Pro / Ocelot（豹猫）、spark / Apex Warden。Polaris思考强度为high，其余五份为default；压缩包名称不覆盖用户明确的强度。raptor不登记为DeepSeek，gemini4argon-spark.js的作者模型名称为spark。default同样是每作品标签并保存在回放。

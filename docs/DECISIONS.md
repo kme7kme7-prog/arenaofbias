@@ -997,3 +997,9 @@
 
 - 按用户目录模型标签登记GPT-5.6 Luna / iron-ambush、GPT-5.6 SOL / Rift Harvest、GPT-6 Astra / Parallax，三份reasoningEffort均为max。Astra旧medium作品与新max作品独立保留，不能覆盖或按模型名去重。
 - 本轮授权推送上线，并包含前轮多作品支持及思考强度标签；保留Tank26 max、astra-knife medium、其他八份high。仅增量发布坦克相关静态文件，不包含并行玩法；仅用户署名，不加协作者。
+
+## 2026-10-14 · 六份坦克的作者与思考强度
+
+- 用户明确raptor为openpangu-2.0-pro，不能沿用目录/策略自报DeepSeek；gemini4argon-spark.js作者模型名使用spark。Ocelot依据策略登记MiMo V2.6 Pro，另三份分别LongCat-2.5-Preview、MiniMax M3、Gemini 3.8 Flash。
+- 六份中仅Gemini 3.8 Flash / Polaris为high，其余五份default，包括名称带high的LongCat压缩包；default应作为作品标签显示并随回放保存。既有十三份作品强度不重写。
+- 本轮上传沿用已授权发布流程，独立增量发布坦克静态入口与依赖，保留其他页面/后端和并行未提交玩法；用户唯一署名无协作者。

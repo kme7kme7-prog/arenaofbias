@@ -520,11 +520,18 @@ try {
     ['shrike-deepseek', 'shrike26-glm', 'kestrel-kimi', 'harrier'],
     ['sidecut-grok', 'ghostline-haiku', 'parallax-opus', 'harrier'],
     ['iron-ambush-luna56', 'rift-harvest-sol56', 'parallax-astra', 'astra-knife'],
+    ['viper-longcat', 'vortex-minimax', 'polaris-gemini38', 'harrier'],
+    ['raptor-openpangu', 'ocelot-mimo', 'apex-warden-spark', 'harrier'],
   ]) {
     await selectRoster(incoming);
     for (const map of ['crossroads', 'islands', 'ruins']) {
       await page.locator(`[data-map="${map}"]`).click();
       const r = await runRound(`incoming-${map}`);
+      check(
+        JSON.stringify(await page.locator('.entrant .reasoning-badge').allTextContents()) ===
+          JSON.stringify(incoming.map((id) => registry.bots.find((b) => b.id === id).reasoningEffort)),
+        `${map}: entrant badges include default effort`,
+      );
       check(
         JSON.stringify(r.meta.website.entrants.map((e) => e.id)) ===
           JSON.stringify(incoming),
@@ -706,7 +713,9 @@ try {
   await page.locator('#library-search').fill('max');
   check(
     (await page.locator('.library-card').count()) ===
-      registry.bots.filter((b) => b.reasoningEffort === 'max').length &&
+      registry.bots.filter((b) =>
+        `${b.name} ${b.model} ${b.reasoningEffort}`.toLowerCase().includes('max'),
+      ).length &&
       (await page
         .locator('[data-bot=tank26] .reasoning-badge')
         .textContent()) === 'max',

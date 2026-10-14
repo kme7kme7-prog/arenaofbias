@@ -4,6 +4,10 @@ import zai from '../../reference/tier-play/assets/brands/zai.svg';
 import deepseek from '../../reference/tier-play/assets/brands/deepseek.ico';
 import kimi from '../../reference/tier-play/assets/brands/kimi.ico';
 import claude from '../../reference/tier-play/assets/brands/claude.png';
+import google from '../../reference/tier-play/assets/brands/google.png';
+import longcat from '../../reference/tier-play/assets/brands/longcat.svg';
+import minimax from '../../reference/tier-play/assets/brands/minimax.ico';
+import mimo from '../../reference/tier-play/assets/brands/mimo.png';
 const sources = import.meta.glob('./bots/*.js', {
   query: '?raw',
   import: 'default',
@@ -23,6 +27,16 @@ export const ROSTER = registry.bots.map((entry) => ({
             ? claude
             : entry.model.startsWith('Grok')
               ? '/forum-brands/xai.ico'
-              : null,
+              : entry.model.startsWith('Gemini') || entry.model === 'spark'
+                ? google
+                : entry.model.startsWith('LongCat')
+                  ? longcat
+                  : entry.model.startsWith('MiniMax')
+                    ? minimax
+                    : entry.model.startsWith('MiMo')
+                      ? mimo
+                      : entry.model.startsWith('openpangu')
+                        ? '/forum-brands/huawei.svg'
+                        : null,
   source: () => sources[`./bots/${entry.id}.js`](),
 }));

@@ -122,6 +122,60 @@
       "origin": "Astra.zip / Astra/entries/parallax/bot.js",
       "identitySource": "User-provided model label; final bot.js declared in strategy.md",
       "reasoningEffort": "max"
+    },
+    {
+      "id": "viper-longcat",
+      "name": "Viper（蝰蛇）",
+      "model": "LongCat-2.5-Preview",
+      "reasoningEffort": "default",
+      "sha256": "1e45219a1d86e07c5dbb4b09e9ddabc2d2de7eadd124d7d083e519e810fd8ee0",
+      "origin": "zcode-longcat-2.5-high.zip / entries/viper/bot.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "vortex-minimax",
+      "name": "vortex",
+      "model": "MiniMax M3",
+      "reasoningEffort": "default",
+      "sha256": "e160dafef7aaf95602ce3144dc137b9130a31e464688c1a12cb67815730f684f",
+      "origin": "minimaxm3.zip / entries/vortex/bot.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "polaris-gemini38",
+      "name": "Polaris（北极星）",
+      "model": "Gemini 3.8 Flash",
+      "reasoningEffort": "high",
+      "sha256": "2d9137e895055addb87bbc6650c974c3392681c70eeb64dc279b8dd3c0f7a7b9",
+      "origin": "3.8f-tank.zip / entries/polaris/bot.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "raptor-openpangu",
+      "name": "Raptor（猛禽）",
+      "model": "openpangu-2.0-pro",
+      "reasoningEffort": "default",
+      "sha256": "4a881570a5411b8ec5690d4d98b12323c0ad08419cfd8aa8018fe99818b67840",
+      "origin": "C:/Users/hyc/Documents/DeepSeek Harness/TEST1/Tank-参赛工作区-v2.6/entries/raptor/bot.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "ocelot-mimo",
+      "name": "Ocelot（豹猫）",
+      "model": "MiMo V2.6 Pro",
+      "reasoningEffort": "default",
+      "sha256": "a1bd9b64f0af71b45d1a191a8bc1e447ccd17e16acd5d0ce36eee2b0fe4c20d9",
+      "origin": "C:/Users/hyc/Documents/Temp/Tank-参赛工作区-v2.6/entries/ocelot/bot.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
+    },
+    {
+      "id": "apex-warden-spark",
+      "name": "Apex Warden",
+      "model": "spark",
+      "reasoningEffort": "default",
+      "sha256": "1cbdbfeb6251d9f626a13386f76deb12091823634eeb44adb48c1ee3943c4f00",
+      "origin": "C:/Users/hyc/Downloads/gemini4argon-spark.js",
+      "identitySource": "User labels override agent self-identification; final file from supplied entry"
     }
   ]
 }

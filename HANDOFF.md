@@ -1,3 +1,10 @@
+## 2026-10-14 · 六份坦克作品发布准备
+
+- 用户要求上传六份：LongCat-2.5-Preview / Viper（蝰蛇）、MiniMax M3 / vortex、Gemini 3.8 Flash / Polaris（北极星）、openpangu-2.0-pro / Raptor（猛禽）、MiMo V2.6 Pro / Ocelot（豹猫）、spark / Apex Warden。Polaris为high，其余五份default；raptor作者明确不是DeepSeek，spark按用户指定名称。只接入最终程序，源码原字节与SHA保留，库共19份。
+- default加入作品标签与回放识别，显示/搜索/结算沿用现有机制；复用既有品牌图标，未改bot、规则、预算、过场或成绩行为。固定a40f7f0快照只叠加坦克文件，保留并行玩法和文档遗留。
+- 生产构建/typecheck/lint、引擎15项、浏览器272项通过；六新程序三张默认图实际Worker对局无报错/超时，来源SHA、模型名、default/high标签、回放、纸墨/窄屏、旧回放、教程/取消、菜单横推均通过。没有调用模型；证据.local/tank-six-release-20261014/。
+- 用户授权按此前流程推送上线，仅用户署名无协作者。增量tanks.html及必要依赖，其他入口、后端与总入口保留；公网验证结果完成后补记。
+
 ## 2026-10-13 · 三份MAX坦克与思考强度发布准备
 
 - 用户授权上传并推送三个新作品：GPT-5.6 Luna / iron-ambush、GPT-5.6 SOL / Rift Harvest（裂隙收割者）、GPT-6 Astra / Parallax，均标为max。只取策略说明声明的最终bot.js，原始字节与SHA保留；匿名工具自报不覆盖用户给定的模型标签。坦克库扩为十三份，同模型不同作品按独立ID参赛，旧Astra medium作品保留。

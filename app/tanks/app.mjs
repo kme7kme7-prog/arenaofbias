@@ -97,7 +97,7 @@ function identity(id) {
   return known
     ? {
         ...known,
-        reasoningEffort: ['medium', 'high', 'max'].includes(
+        reasoningEffort: ['default', 'medium', 'high', 'max'].includes(
           record.reasoningEffort,
         )
           ? record.reasoningEffort
@@ -110,7 +110,7 @@ function identity(id) {
       };
 }
 function appendEffort(container, entry) {
-  if (!['medium', 'high', 'max'].includes(entry?.reasoningEffort)) return;
+  if (!['default', 'medium', 'high', 'max'].includes(entry?.reasoningEffort)) return;
   const badge = document.createElement('span');
   badge.className = 'reasoning-badge';
   badge.textContent = entry.reasoningEffort;
