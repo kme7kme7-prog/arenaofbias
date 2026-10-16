@@ -24,6 +24,7 @@ export type FriendPlayer = {
 export type FriendRoom = {
   code: string;
   version: number;
+  catalogVersion?: string | null;
   self: number;
   difficulty: GuessDifficulty;
   status:

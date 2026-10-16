@@ -256,6 +256,15 @@ function FriendGame() {
     return () => controller.abort();
   }, [retry, apply, refresh]);
   const roomCode = room?.code;
+  const catalogVersion = room?.catalogVersion;
+  useEffect(() => {
+    if (!catalogVersion) return;
+    const controller = new AbortController();
+    void friendRequest<{ models: GuessApiModel[] }>('catalog', undefined, controller.signal)
+      .then(catalog => { if (!controller.signal.aborted) setModels(catalog.models); })
+      .catch(() => { if (!controller.signal.aborted) setError(t('题库暂时无法更新，请刷新重试。')); });
+    return () => controller.abort();
+  }, [catalogVersion, roomCode, t]);
   useEffect(() => {
     if (!roomCode) return;
     const controller = new AbortController();

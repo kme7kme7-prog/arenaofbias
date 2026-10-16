@@ -40,20 +40,9 @@ const {
   VENDOR_REGION,
 } = logic;
 
-// ── 分池冻结（决策 079，081 改层叠语义）──
-// 钉住主数据集每档的专属槽位构成（difficulty === k；组算一槽，槽 id 排序后
-// sha256 前 16 位）。层叠池（≤k）由它推导——专属集合不变，池就不会变。
-// 改任何模型的 difficulty 都会让指纹断言失败——「重新分池」从靠人记住红线
-// 变成机器拦意外。有意的调整走 docs/games/guess.md「分池定稿」流程：
-// 用户拍板 → 改数据集 → 重算并更新这里的指纹 → DECISIONS.md 记一条。
-// 只覆盖主数据集（lib/guess-models.json）；后台增量条目走 sinceDay 契约，
-// 不进本指纹。本版指纹 = 2026-09-16 第一版映射（29 条退役入地狱 + 66 条新增）。
-const POOL_FINGERPRINTS = {
-  1: { slots: 40, hash: '2661a1ade90a0bb3' },
-  2: { slots: 33, hash: 'd17136db3a6b2d4f' },
-  3: { slots: 66, hash: '775d5c3cdf953475' },
-  4: { slots: 29, hash: '5001a15d88c8f56f' },
-};
+// 2026-10-16 用户批准重新分池。指纹覆盖每个版本的难度、出题/每日资格和槽位，
+// 避免只冻结组名而漏掉组内版本变更；新增或调整仍须更新映射与决策记录。
+const POOL_FINGERPRINT = '2f3c44ac5990141679feaf5643b2236d1c7b1dbf7680331e803585b5faaa8134';
 
 try {
   // ── 数据集完整性 ──
@@ -86,18 +75,25 @@ try {
     }
   });
 
-  await check('priceTier ∈ 0-4 或 null', () => {
+  await check('priceTier ∈ 0-5 或 null', () => {
     for (const m of GUESS_MODELS)
       assert.ok(
-        m.priceTier === null || (Number.isInteger(m.priceTier) && m.priceTier >= 0 && m.priceTier <= 4),
+        m.priceTier === null || (Number.isInteger(m.priceTier) && m.priceTier >= 0 && m.priceTier <= 5),
         `${m.name}: ${m.priceTier}`,
       );
   });
 
-  // ── 价格档（方案 A，2026-09-13 定稿）：priceOut=官方一手输出单价，
+  // ── 价格档：priceOut=经核验的 API 输出单价（允许历史价或托管价），
   //    档位由 PRICE_BAND_EDGES 划定，不依赖数据集字符串档 ──
-  await check('价格档：priceOut 与档位边界一一对应', () => {
+  await check('价格档：按报价派生或采用已登记的玩法档位', () => {
+    const raw = JSON.parse(readFileSync(new URL('../lib/guess-models.json', import.meta.url), 'utf8'));
+    const overrides = new Map(raw.models.flatMap(g => g.variants ?? [g]).filter(m => m.priceTierOverride !== undefined).map(m => [m.id, m.priceTierOverride]));
+    assert.deepEqual([...overrides], [['dots3-note-preview', 0]], '固定档位须有明确用户决定');
     for (const m of GUESS_MODELS) {
+      if (overrides.has(m.id)) {
+        assert.equal(m.priceTier, overrides.get(m.id), m.name);
+        continue;
+      }
       if (m.priceOut === null) {
         assert.equal(m.priceTier, null, `${m.name}: priceOut null 但档位非 null`);
         continue;
@@ -125,7 +121,7 @@ try {
   });
 
   await check('价格档：分布有区分度（free 污染不回归——任一档不超 60%）', () => {
-    const counts = [0, 0, 0, 0, 0];
+    const counts = Array(6).fill(0);
     let known = 0;
     for (const m of GUESS_MODELS) {
       if (m.priceTier === null) continue;
@@ -138,7 +134,7 @@ try {
       `最大档占比 ${(maxShare * 100).toFixed(0)}%，价格属性失去区分度: ${counts.join('/')}`,
     );
     // 五档文案齐备
-    assert.equal(PRICE_TIERS.length, 5);
+    assert.equal(PRICE_TIERS.length, 6);
   });
 
   await check('contextK 为正数或 null', () => {
@@ -150,7 +146,7 @@ try {
   });
 
   // ── 合并组（决策 061）：同线小版本并入一组，组占一个答案槽 ──
-  await check('合并组：variants ≥2、变体字段完整、难度只挂在组上', () => {
+  await check('合并组：variants ≥2、变体字段完整、可显式覆盖难度', () => {
     const raw = JSON.parse(
       readFileSync(new URL('../lib/guess-models.json', import.meta.url), 'utf8'),
     );
@@ -167,7 +163,7 @@ try {
         `${e.id} 组 difficulty=${e.difficulty}`,
       );
       for (const v of e.variants) {
-        assert.ok(!('difficulty' in v), `${e.id}/${v.id} 变体应继承组难度`);
+        assert.ok(GUESS_DIFFICULTIES.includes(v.difficulty ?? e.difficulty), `${e.id}/${v.id} 难度无效`);
         for (const f of ['id', 'name', 'org', 'year', 'month', 'openWeights', 'modality', 'reasoning'])
           assert.notEqual(v[f], undefined, `${e.id}/${v.id} 缺字段 ${f}`);
         assert.ok(!ids.has(v.id), `变体 id 重复: ${v.id}`);
@@ -177,16 +173,13 @@ try {
     assert.ok(groups > 0, '数据集应有合并组');
   });
 
-  await check('合并组：同组变体落入同一难度池（分池以组为单位）', () => {
-    const byGroup = new Map();
-    for (const m of GUESS_MODELS) {
-      if (!m.groupId) continue;
-      const g = byGroup.get(m.groupId) ?? new Set();
-      g.add(m.difficulty);
-      byGroup.set(m.groupId, g);
-    }
-    for (const [gid, ds] of byGroup)
-      assert.equal(ds.size, 1, `组 ${gid} 的难度被拆散到多个池`);
+  await check('合并组：简单只出代表版本，普通保留同组其他版本', () => {
+    const easy = poolForDifficulty(GUESS_MODELS, 1);
+    const common = poolForDifficulty(GUESS_MODELS, 2);
+    assert.ok(easy.some(m => m.id === 'kimi-k2-6'));
+    assert.ok(!easy.some(m => m.id === 'kimi-k2-5'));
+    assert.ok(common.some(m => m.id === 'kimi-k2-5'));
+    assert.equal(new Set(easy.map(m => m.groupId ?? m.id)).size, easy.length);
   });
 
   // ── 后台增量文件（data/guess-models-extra.json，存在才校验）──
@@ -236,7 +229,7 @@ try {
     for (let i = 0; i < idSets.length - 1; i++)
       for (const id of idSets[i])
         assert.ok(idSets[i + 1].has(id), `难度 ${i + 1} 池的 ${id} 不在难度 ${i + 2} 池里`);
-    assert.equal(idSets[3].size, GUESS_MODELS.length, '地狱池应是全库');
+    assert.equal(idSets[3].size, GUESS_MODELS.filter(m => m.answerEligible !== false).length, '地狱池应包含全部可出题模型');
     // 池大小单调不减
     for (let i = 0; i < pools.length - 1; i++)
       assert.ok(
@@ -257,30 +250,11 @@ try {
     );
   });
 
-  await check('分池冻结：各档专属槽位构成与 081 指纹一致', () => {
-    const slotOf = (m) => m.groupId ?? m.id;
-    const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0); // code-unit 序，与默认字符串排序一致
-    for (const d of GUESS_DIFFICULTIES) {
-      const slots = [
-        ...new Set(GUESS_MODELS.filter((m) => m.difficulty === d).map(slotOf)),
-      ].sort(cmp);
-      const hash = createHash('sha256')
-        .update(slots.join(','))
-        .digest('hex')
-        .slice(0, 16);
-      const frozen = POOL_FINGERPRINTS[d];
-      assert.ok(frozen, `难度 ${d} 缺少冻结指纹`);
-      assert.equal(
-        slots.length,
-        frozen.slots,
-        `难度 ${d} 专属槽数变了：${frozen.slots} → ${slots.length}（分池调整须走 081 定稿流程并更新指纹）`,
-      );
-      assert.equal(
-        hash,
-        frozen.hash,
-        `难度 ${d} 专属槽位构成变了（分池调整须走 081 定稿流程并更新指纹）`,
-      );
-    }
+  await check('分池冻结：版本难度、出题资格、每日精选与批准映射一致', () => {
+    const states = GUESS_MODELS.map(m => [m.id, m.difficulty, m.answerEligible, m.dailyEligible, m.groupId ?? m.id])
+      .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+    const hash = createHash('sha256').update(JSON.stringify(states)).digest('hex');
+    assert.equal(hash, POOL_FINGERPRINT, '分池调整须经用户确认并更新映射、指纹和决策记录');
   });
 
   await check('难度：各池答案派生确定、相邻两天不同题、十年全覆盖', () => {
@@ -506,10 +480,10 @@ try {
       variantSeen.add(a.id);
     }
     // 槽位（组算一槽）十年全覆盖
-    const slotTotal = new Set(GUESS_MODELS.map(slotOf)).size;
+    const slotTotal = new Set(GUESS_MODELS.filter(m => m.answerEligible !== false).map(slotOf)).size;
     assert.equal(slotCounts.size, slotTotal, `覆盖 ${slotCounts.size}/${slotTotal} 槽`);
     // 组内每个版本都至少被实例化过一次（两级散列确定性覆盖）
-    for (const m of GUESS_MODELS)
+    for (const m of GUESS_MODELS.filter(m => m.answerEligible !== false))
       assert.ok(variantSeen.has(m.id), `${m.name} 十年从未被实例化为答案`);
     const values = [...slotCounts.values()];
     // 命中次数阈值随槽数走（均值 3650/槽数，081 数据集扩到 168 槽后绝对阈值失效）：
@@ -810,7 +784,7 @@ try {
             id: extraId, name: 'ZZ Extra Contract', org: 'OpenAI', year: 2026,
             month: 9, openWeights: false, contextK: 128, modality: 'text',
             reasoning: false, priceOut: 5, popularity: 1, difficulty: 1,
-            sinceDay: tomorrow,
+            sinceDay: tomorrow, dailyEligible: true,
           },
         ],
       });

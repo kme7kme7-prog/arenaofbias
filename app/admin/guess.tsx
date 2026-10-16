@@ -34,6 +34,8 @@ type ModelRow = {
   vendor: string;
   released: string;
   difficulty: number;
+  answerEligible?: boolean;
+  dailyEligible?: boolean;
   extra: boolean;
 };
 
@@ -81,6 +83,7 @@ type FormState = {
   priceOut: string;
   openWeights: boolean;
   reasoning: boolean;
+  dailyEligible: boolean;
   modalities: string[];
 };
 
@@ -97,6 +100,7 @@ const EMPTY_FORM: FormState = {
   priceOut: '',
   openWeights: false,
   reasoning: false,
+  dailyEligible: false,
   modalities: [],
 };
 
@@ -170,11 +174,13 @@ export function AdminGuess() {
     if (contextK !== null && (!Number.isFinite(contextK) || contextK <= 0))
       return bad('上下文窗口须为正数（K token），未公开留空');
     if (priceOut !== null && (!Number.isFinite(priceOut) || priceOut < 0))
-      return bad('输出单价须为非负数（$/M），无一手价留空');
+      return bad('输出单价须为非负数（$/M），无可靠价格留空');
     if (!Number.isInteger(popularity) || popularity < 0 || popularity > 100)
       return bad('知名度须为 0-100 的整数');
     if (!orgKnown && !/^[A-Z]{2}$/.test(form.region.trim().toUpperCase()))
       return bad('新厂商需要登记两位地区码（如 CN/US/JP）');
+    if (form.dailyEligible && (Number(form.difficulty) > 2 || contextK === null || priceOut === null))
+      return bad('每日精选仅限线索完整的简单、普通模型');
     setBusy(true);
     setNotice('');
     apiFetch('/api/admin/guess/models', {
@@ -193,19 +199,22 @@ export function AdminGuess() {
         priceOut: form.priceOut === '' ? null : Number(form.priceOut),
         openWeights: form.openWeights,
         reasoning: form.reasoning,
+        dailyEligible: form.dailyEligible,
         modalities: ['text', ...form.modalities],
       }),
     })
       .then(async (response) => {
         const data = (await response.json().catch(() => ({}))) as {
           error?: string;
-          model?: { name: string };
+          model?: { name: string; answerEligible?: boolean; dailyEligible?: boolean };
         };
         if (!response.ok) throw new Error(data.error || '保存失败，稍后再试。');
         return data;
       })
       .then((data) => {
-        setNotice(`已追加「${data.model?.name ?? form.name}」，即时生效。`);
+        setNotice(`已追加「${data.model?.name ?? form.name}」。${data.model?.answerEligible === false
+          ? '仅供搜索，不自动出题（线索不完整或已有等价答案）。'
+          : data.model?.dailyEligible ? '可进入练习池；每日题从后续完整周期纳入。' : '可进入练习池，未加入每日精选。'}`);
         setForm(EMPTY_FORM);
         setShowForm(false);
         setError('');
@@ -385,7 +394,7 @@ export function AdminGuess() {
             {formError && <div className="admin-error">{formError}</div>}
             <p className="admin-note">
               只能追加到数据集末尾。保存后立即生效：马上可被猜、进练习池；每日题从
-              明天起才可能抽到它（当天与历史答案不变）。已有条目不可在此修改
+              从明天之后的下一题单周期开始参与每日出题；练习立即可用。已有条目不可在此修改
               （会重排历史答案）。字段口径与 lib/guess-models.json 一致；未公开的数值留空即「?」。
             </p>
             <div className="admin-form-grid">
@@ -455,7 +464,7 @@ export function AdminGuess() {
                 />
               </label>
               <label>
-                难度 *（层叠分池：值=最低出现档；每日池=简单+普通）
+                难度 *（最低出现档；每日题另行精选）
                 <select
                   value={form.difficulty}
                   onChange={(event) =>
@@ -490,7 +499,7 @@ export function AdminGuess() {
                 />
               </label>
               <label>
-                输出单价 $/M（无一手价留空）
+                输出单价 $/M（无可靠价格留空）
                 <input
                   type="number"
                   step="0.01"
@@ -500,6 +509,14 @@ export function AdminGuess() {
                 />
               </label>
             </div>
+            <label className="chk">
+              <input
+                type="checkbox"
+                checked={form.dailyEligible}
+                onChange={(event) => update({ dailyEligible: event.target.checked })}
+              />
+              加入每日精选（仅简单、普通，且线索完整）
+            </label>
             <label className="chk">
               <input
                 type="checkbox"
@@ -554,7 +571,7 @@ export function AdminGuess() {
               <th>名称</th>
               <th>厂商</th>
               <th>发布</th>
-              <th>难度</th>
+              <th>出题范围</th>
               <th>来源</th>
             </tr>
           </thead>
@@ -569,7 +586,7 @@ export function AdminGuess() {
                 </td>
                 <td>{m.vendor}</td>
                 <td className="muted">{m.released}</td>
-                <td>{POOL_LABEL[m.difficulty] ?? m.difficulty}</td>
+                <td>{m.answerEligible === false ? '仅供搜索' : `${POOL_LABEL[m.difficulty] ?? m.difficulty}${m.dailyEligible ? ' · 每日精选' : ''}`}</td>
                 <td>{m.extra ? <i className="admin-badge">后台追加</i> : '数据集'}</td>
               </tr>
             ))}

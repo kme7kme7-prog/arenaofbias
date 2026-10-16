@@ -2131,6 +2131,8 @@ const guessModule = await createJiti(import.meta.url)(
 );
 const {
   GUESS_MODELS: guessModels,
+  catalogRevision: guessCatalogRevision,
+  validateExtraModels: guessValidateExtra,
   ATTRIBUTE_KEYS: guessAttributeKeys,
   answerForDate: guessAnswerForDate,
   dayNumber: guessDayNumber,
@@ -2186,18 +2188,22 @@ const publicGuessModel = (m) => ({
   contextK: m.contextK,
   modalities: m.modalities,
   reasoning: m.reasoning,
-  // priceOut（官方一手输出单价 $/M）与 priceTier（代码内 PRICE_BAND_EDGES 划的档）
+  // priceOut（题库采用的 API 输出单价 $/M）与 priceTier（代码内 PRICE_BAND_EDGES 划的档）
   // 都下发：格子显示用档位，揭晓条展示具体价格
   priceOut: m.priceOut,
   priceTier: m.priceTier,
   // 难度分池标记下发，前端按所选难度过滤候选与搜索（答案仍只在服务端派生）
   difficulty: m.difficulty,
+  aliases: m.aliases,
+  answerEligible: m.answerEligible,
+  dailyEligible: m.dailyEligible,
 });
 
 app.get('/api/guess/today', (_req, res) => {
   try {
     res.set(noStore).json({
       dayKey: guessDayKeyOf(),
+      catalogVersion: guessCatalogRevision(),
       // dayNumber 给分享文案用（「模一把 #12」），epoch 见 lib/guess-logic.ts
       dayNumber: guessDayNumber(),
       attributes: guessAttributeKeys,
@@ -2217,6 +2223,8 @@ app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
   // 供前端揭晓。次数计数在客户端，这里不校验——多拿一次答案没有收益
   //（对局与战绩都不在服务端），不值得为它加状态。
   const guessId = typeof req.body?.guessId === 'string' ? req.body.guessId : '';
+  if (req.body?.catalogVersion !== undefined && req.body.catalogVersion !== guessCatalogRevision())
+    return res.status(409).set(noStore).json({ code: 'catalog-changed', error: '模型资料已更新，请重新载入题库。' });
   const final = req.body?.final === true;
   const guess = guessModelById.get(guessId) ?? resolveGuessByName(guessId);
   if (!guess)
@@ -2238,6 +2246,8 @@ app.post('/api/guess/check', limiterFor('guess'), (req, res) => {
         .json({ code: 'game-expired', error: '这局练习已过期，开一把新的吧' });
     answer = game.answer;
   } else {
+    if (req.body?.dayKey !== undefined && req.body.dayKey !== guessDayKeyOf())
+      return res.status(409).set(noStore).json({ code: 'daily-changed', error: '每日题已经更新，请重新载入。' });
     answer = guessAnswerForDate(new Date(), guessDailyPool(guessModels));
   }
   try {
@@ -2431,6 +2441,8 @@ app.get('/api/admin/guess/models', requireAdmin, (_req, res) => {
         vendor: m.vendor,
         released: m.released,
         difficulty: m.difficulty,
+        answerEligible: m.answerEligible,
+        dailyEligible: m.dailyEligible,
         extra: guessExtraIds.has(m.id),
       })),
     });
@@ -2482,7 +2494,7 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
     if (contextK !== null && (!Number.isFinite(contextK) || contextK <= 0))
       return bad('上下文窗口须为正数（K token），未公开留空');
     if (priceOut !== null && (!Number.isFinite(priceOut) || priceOut < 0))
-      return bad('输出单价须为非负数（$/M），无一手价留空');
+      return bad('输出单价须为非负数（$/M），无可靠价格留空');
     const popularity = Number(body.popularity);
     if (!Number.isInteger(popularity) || popularity < 0 || popularity > 100)
       return bad('知名度须为 0-100 的整数');
@@ -2515,6 +2527,7 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
       priceOut,
       popularity,
       difficulty,
+      dailyEligible: body.dailyEligible ?? false,
       // 追加次日起才参与每日题派生（answerForDate 的追加槽机制）：当天与
       // 历史答案不受影响，正在进行的对局不会被换答案；候选与练习池立即生效
       sinceDay: guessDayNumber() + 1,
@@ -2528,6 +2541,8 @@ app.post('/api/admin/guess/models', requireAdmin, (req, res) => {
     // 原子写（2026-09-15）：先写临时文件再改名——直接覆盖原文件时进程若在
     // 写入中途崩溃，文件损坏会让下次启动整体跳过，此前追加的模型全部失效
     const tmpPath = `${guessExtraPath}.tmp`;
+    try { guessValidateExtra({ models: [entry], vendorRegions: region ? { [org]: region } : {} }); }
+    catch (error) { return bad(error.message); }
     fs.writeFileSync(tmpPath, `${JSON.stringify(file, null, 2)}\n`);
     fs.renameSync(tmpPath, guessExtraPath);
     guessRegisterExtra({

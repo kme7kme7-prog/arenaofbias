@@ -1,5 +1,10 @@
 // Interface copy only. Prompts, submitted works, model names and comments retain their original text.
 export const messages: Record<string, string> = {
+  "题库资料已更新，本日未完成的对局已重置；累计战绩保留。": "The catalogue was updated. Today's unfinished game was reset; your total stats are preserved.",
+  "题库资料已更新，已重新载入本局；累计战绩保留。": "The catalogue was updated and this game was reloaded. Your total stats are preserved.",
+  "题库暂时无法更新，请刷新重试。": "The catalogue could not be updated. Please refresh and try again.",
+  "你猜的模型与答案七条线索完全相同，按等价答案计为猜中。": "Your model matches all seven clues, so it counts as a correct answer.",
+  "旗舰：$25–50/M；顶档：≥$50/M。七条线索完全相同的模型，猜中任一个都算赢。": "Premium: $25–50/M; Top tier: ≥$50/M. Any model matching all seven clues counts as a correct answer.",
   // Standard friend-room interface copy.
   "对局规则": "Match rules",
   "每轮时限": "Round limit",
@@ -966,10 +971,10 @@ export const messages: Record<string, string> = {
   '普通': 'Common',
   '困难': 'Hard',
   '地狱': 'Hell',
-  '热门模型专场，都叫得上名字': 'Only the household names.',
-  '热门与主流都在场，答案得绕点弯': 'Household and mainstream alike — takes some triangulating.',
-  '上面两档之外，经典与冷门也进场': 'Everything above, plus classics and deep cuts.',
-  '全库上阵，含只在这里出没的化石与传说': 'The whole vault — including fossils and legends that appear nowhere else.',
+  '常见系列的代表型号': 'Representative models from familiar families.',
+  '主流型号与经典模型': 'Mainstream models and familiar classics.',
+  '细分版本、参数规格与专门系列': 'Specialized versions, model sizes and additional families.',
+  '范围最广，包含较冷门的型号': 'The widest pool, including less familiar models.',
   '筹备中': 'Coming soon',
   '每天一道全世界同题；或者选个难度练习，随机出题不限次。':
     'One shared puzzle a day — or pick a difficulty and practice with random puzzles, no limits.',
@@ -978,8 +983,8 @@ export const messages: Record<string, string> = {
     'One puzzle for the whole world, drawn from the well-known and mainstream. Share your result.',
   '继续上次 · 已猜 {n} 次': 'Resume · {n} guesses in',
   '随机出题 · 不限次数': 'Random puzzles · Unlimited',
-  '每日一题只从简单与普通池出；练习不限次，战绩只记每日题。':
-    'The daily puzzle draws only from the Easy and Common pools. Practice is unlimited; only daily games count toward your record.',
+  '每日一题从简单和普通中精选；练习不限次，战绩只记每日题。':
+    'The daily puzzle uses a curated selection from Easy and Common. Practice is unlimited; only daily games count toward your record.',
   '练习模式': 'Practice',
   '随机出题': 'Random puzzle',
   '本局结束': 'Round over',
@@ -995,8 +1000,8 @@ export const messages: Record<string, string> = {
   '进行中 · 已猜 {n} 次': 'In progress · {n} guesses in',
   '今日战绩已记录': 'Today’s result logged',
   '今天还没玩': 'Not played yet',
-  '池子层叠放大：难度越高，越老越冷的模型越可能出现。':
-    'Pools stack upward: the higher the tier, the older and more obscure the models that can appear.',
+  '池子逐级扩大：难度越高，细分与冷门型号越多。':
+    'Pools expand with difficulty, adding specialized and less familiar models.',
   '返回选择模式': 'Back to mode select',
   '已复制 ✓': 'Copied ✓',
   '直接看答案': 'Reveal answer',
@@ -1065,7 +1070,7 @@ export const messages: Record<string, string> = {
   "场": "games",
   "次": "tries",
   "怎么玩": "How to play",
-  "价格按官方 API 输出单价分档；箭头指向答案更高或更低的方向。": "Price bands use official API output prices. Arrows indicate whether the answer is higher or lower.",
+  "价格按 API 输出单价分档；箭头指向答案更高或更低的方向。": "Price bands use API output prices. Arrows indicate whether the answer is higher or lower.",
   "图": "Image",
   "音": "Audio",
   "视": "Video",
@@ -1073,6 +1078,7 @@ export const messages: Record<string, string> = {
   "图+视": "Image+video",
   "图+音+视": "Image+audio+video",
   "旗舰": "Flagship",
+  "顶档": "Top tier",
   '每日谜题': 'Daily mystery',
   '七条线索，锁定一个名字。': 'Seven clues. One name to uncover.',
   '次机会': 'TRIES',

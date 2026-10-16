@@ -62,6 +62,11 @@ assert.equal(
   'invalid rows do not crash',
 );
 assert.equal(await withDailyLock(day, () => 42), 42);
+
+saveDailySession('2026-10-15', { guesses:[row], finished:false, revealed:false, answer:null }, 'old-catalog');
+assert.equal(loadDailySession('2026-10-15', GUESS_MODELS, 'new-catalog'), null, 'unfinished stale clues cannot mix with new metadata');
+markCounted('2026-10-15');
+assert.equal(loadDailySession('2026-10-15', GUESS_MODELS, 'new-catalog').finished, true, 'catalogue changes preserve completed-day lock');
 globalThis.localStorage.getItem = () => {
   throw new Error('blocked');
 };

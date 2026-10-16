@@ -1,7 +1,7 @@
 {
-  "version": 1,
-  "updatedAt": "2026-09-16",
-  "source": "models.dev snapshot 2026-09-13 + manual curation for classic models；2026-09-14 重构：近亲小版本合并为 variants 组（决策 061）；2026-09-16 层叠分池第一版映射（决策 081）：29 条退役入地狱、追加 66 条",
+  "version": 2,
+  "updatedAt": "2026-10-16",
+  "source": "models.dev snapshot 2026-09-13 + manual curation for classic models；2026-09-14 重构：近亲小版本合并为 variants 组（决策 061）；2026-09-16 层叠分池第一版映射（决策 081）：29 条退役入地狱、追加 66 条; 2026-10-16 verified corrections and deduplicated workbook additions; see docs/games/guess-catalog-review-20261016.json; 2026-10-16 sourced API price supplements (first-party, historical or hosted), see priceReview in the same audit; 2026-10-16 approved representative difficulty pools and curated daily selection",
   "models": [
     {
       "id": "glm-5-x",
@@ -13,10 +13,9 @@
       "contextK": 205,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 3.2,
       "popularity": 85,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "glm-5",
@@ -28,9 +27,9 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3.2,
-          "popularity": 43
+          "popularity": 43,
+          "dailyEligible": false
         },
         {
           "id": "glm-5-1",
@@ -42,9 +41,9 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 4.4,
-          "popularity": 53
+          "popularity": 53,
+          "dailyEligible": false
         },
         {
           "id": "glm-5-2",
@@ -56,9 +55,9 @@
           "contextK": 1049,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 4.4,
-          "popularity": 85
+          "popularity": 85,
+          "dailyEligible": true
         }
       ]
     },
@@ -72,10 +71,10 @@
       "contextK": 1311,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.6,
       "popularity": 82,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "deepseek-v4-pro",
@@ -87,10 +86,10 @@
       "contextK": 1050,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.87,
       "popularity": 72,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "kimi-k2-x",
@@ -102,10 +101,9 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 64,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "kimi-k2-5",
@@ -117,9 +115,9 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
-          "priceOut": null,
-          "popularity": 43
+          "priceOut": 3,
+          "popularity": 43,
+          "dailyEligible": true
         },
         {
           "id": "kimi-k2-6",
@@ -131,9 +129,10 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 4,
-          "popularity": 64
+          "popularity": 64,
+          "difficulty": 1,
+          "dailyEligible": true
         },
         {
           "id": "kimi-k2-7-code",
@@ -145,9 +144,9 @@
           "contextK": 271,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 4,
-          "popularity": 60
+          "popularity": 60,
+          "dailyEligible": false
         }
       ]
     },
@@ -161,10 +160,10 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 15,
       "popularity": 63,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "gpt-oss",
@@ -176,7 +175,6 @@
       "contextK": 131,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 54,
       "difficulty": 3,
@@ -189,11 +187,22 @@
           "month": 8,
           "openWeights": true,
           "contextK": 131,
-          "modality": "text+image",
+          "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
-          "priceOut": null,
-          "popularity": 54
+          "priceOut": 0.6,
+          "popularity": 54,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "modality",
+              "priceOut"
+            ],
+            "sources": [
+              "https://developers.openai.com/api/docs/models/gpt-oss-120b",
+              "https://console.groq.com/docs/models"
+            ]
+          },
+          "dailyEligible": false
         },
         {
           "id": "gpt-oss-20b",
@@ -205,9 +214,9 @@
           "contextK": 131,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
-          "priceOut": null,
-          "popularity": 33
+          "priceOut": 0.3,
+          "popularity": 33,
+          "dailyEligible": false
         }
       ]
     },
@@ -218,13 +227,22 @@
       "year": 2026,
       "month": 8,
       "openWeights": true,
-      "contextK": 1311,
+      "contextK": 1000,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.25,
       "popularity": 51,
-      "difficulty": 1
+      "difficulty": 1,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "glm-5-3",
@@ -233,13 +251,22 @@
       "year": 2026,
       "month": 8,
       "openWeights": true,
-      "contextK": 1311,
+      "contextK": 1000,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 4.4,
       "popularity": 48,
-      "difficulty": 1
+      "difficulty": 1,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "claude-sonnet-4-6",
@@ -251,10 +278,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 15,
       "popularity": 46,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "gpt-5-5",
@@ -266,10 +293,10 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 30,
       "popularity": 45,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "minimax-m2-x",
@@ -281,10 +308,9 @@
       "contextK": 1000,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 1.2,
       "popularity": 44,
-      "difficulty": 1,
+      "difficulty": 3,
       "variants": [
         {
           "id": "minimax-m2",
@@ -293,12 +319,22 @@
           "year": 2025,
           "month": 10,
           "openWeights": true,
-          "contextK": 1000,
+          "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.2,
-          "popularity": 18
+          "popularity": 18,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "contextK"
+            ],
+            "sources": [
+              "https://platform.minimax.io/docs/guides/text-generation"
+            ]
+          },
+          "difficulty": 2,
+          "dailyEligible": false
         },
         {
           "id": "minimax-m2-1",
@@ -310,9 +346,10 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.2,
-          "popularity": 23
+          "popularity": 23,
+          "difficulty": 2,
+          "dailyEligible": false
         },
         {
           "id": "minimax-m2-5",
@@ -321,12 +358,23 @@
           "year": 2026,
           "month": 2,
           "openWeights": true,
-          "contextK": 229,
-          "modality": "text+image",
+          "contextK": 205,
+          "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.2,
-          "popularity": 44
+          "popularity": 44,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "modality",
+              "contextK"
+            ],
+            "sources": [
+              "https://platform.minimax.io/docs/guides/text-generation"
+            ]
+          },
+          "difficulty": 2,
+          "dailyEligible": false
         },
         {
           "id": "minimax-m2-7",
@@ -335,12 +383,22 @@
           "year": 2026,
           "month": 3,
           "openWeights": true,
-          "contextK": 262,
+          "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.2,
-          "popularity": 42
+          "popularity": 42,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "contextK"
+            ],
+            "sources": [
+              "https://platform.minimax.io/docs/guides/text-generation"
+            ]
+          },
+          "difficulty": 1,
+          "dailyEligible": true
         },
         {
           "id": "minimax-m2-7-highspeed",
@@ -352,9 +410,9 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 2.4,
-          "popularity": 17
+          "popularity": 17,
+          "dailyEligible": false
         }
       ]
     },
@@ -365,13 +423,22 @@
       "year": 2026,
       "month": 6,
       "openWeights": true,
-      "contextK": 1049,
+      "contextK": 1000,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 1.2,
       "popularity": 44,
-      "difficulty": 1
+      "difficulty": 1,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://platform.minimax.io/docs/guides/text-generation"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "claude-opus-4-8",
@@ -383,10 +450,10 @@
       "contextK": 1049,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 25,
       "popularity": 43,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "gpt-5-4",
@@ -398,10 +465,10 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 15,
       "popularity": 42,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "claude-haiku-4-5",
@@ -413,10 +480,10 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 5,
       "popularity": 41,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "claude-opus-4-7",
@@ -428,10 +495,10 @@
       "contextK": 1049,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 25,
       "popularity": 41,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "claude-opus-4-x",
@@ -443,10 +510,9 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "high",
       "priceOut": 75,
       "popularity": 37,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "claude-opus-4-1",
@@ -458,9 +524,9 @@
           "contextK": 200,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "high",
           "priceOut": 75,
-          "popularity": 18
+          "popularity": 18,
+          "dailyEligible": false
         },
         {
           "id": "claude-opus-4-5",
@@ -472,9 +538,9 @@
           "contextK": 200,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "mid",
           "priceOut": 25,
-          "popularity": 30
+          "popularity": 30,
+          "dailyEligible": false
         },
         {
           "id": "claude-opus-4-6",
@@ -486,9 +552,9 @@
           "contextK": 1000,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "high",
           "priceOut": 25,
-          "popularity": 37
+          "popularity": 37,
+          "dailyEligible": false
         }
       ]
     },
@@ -502,10 +568,10 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 1.2,
       "popularity": 37,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "gpt-5-6-sol",
@@ -517,10 +583,10 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 20,
       "popularity": 37,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "claude-fable-5",
@@ -532,10 +598,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 50,
       "popularity": 36,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "gpt-5-x-mini",
@@ -547,10 +613,9 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 2,
       "popularity": 36,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "gpt-5-mini",
@@ -562,9 +627,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 2,
-          "popularity": 32
+          "popularity": 32,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-4-mini",
@@ -576,9 +641,10 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 4.5,
-          "popularity": 36
+          "popularity": 36,
+          "difficulty": 1,
+          "dailyEligible": true
         }
       ]
     },
@@ -592,10 +658,11 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 12,
       "popularity": 36,
-      "difficulty": 1
+      "difficulty": 2,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "glm-4-x",
@@ -607,7 +674,6 @@
       "contextK": 131,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 2.2,
       "popularity": 35,
       "difficulty": 2,
@@ -622,9 +688,9 @@
           "contextK": 131,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 2.2,
-          "popularity": 18
+          "popularity": 18,
+          "dailyEligible": false
         },
         {
           "id": "glm-4-6",
@@ -636,9 +702,9 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 2.2,
-          "popularity": 25
+          "popularity": 25,
+          "dailyEligible": false
         },
         {
           "id": "glm-4-7",
@@ -650,9 +716,9 @@
           "contextK": 205,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 2.2,
-          "popularity": 35
+          "popularity": 35,
+          "dailyEligible": true
         }
       ]
     },
@@ -666,10 +732,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 10,
       "popularity": 34,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-x-max",
@@ -681,10 +747,9 @@
       "contextK": 262,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 6,
       "popularity": 33,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "qwen3-max",
@@ -696,9 +761,9 @@
           "contextK": 262,
           "modality": "text",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 6,
-          "popularity": 21
+          "popularity": 21,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-7-max",
@@ -710,9 +775,9 @@
           "contextK": 1064,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 7.5,
-          "popularity": 33
+          "popularity": 33,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-8-max",
@@ -721,12 +786,22 @@
           "year": 2026,
           "month": 8,
           "openWeights": true,
-          "contextK": 1049,
+          "contextK": 1000,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 6,
-          "popularity": 30
+          "popularity": 30,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "contextK"
+            ],
+            "sources": [
+              "https://help.aliyun.com/zh/model-studio/qwen3-8-max"
+            ]
+          },
+          "difficulty": 1,
+          "dailyEligible": true
         }
       ]
     },
@@ -740,10 +815,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 15,
       "popularity": 32,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "gemini-2-5-flash",
@@ -752,13 +827,23 @@
       "year": 2025,
       "month": 6,
       "openWeights": false,
-      "contextK": 1066,
-      "modality": "text+image+video",
+      "contextK": 1049,
+      "modality": "text+image+audio+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 2.5,
       "popularity": 32,
-      "difficulty": 1
+      "difficulty": 2,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "modality",
+          "contextK"
+        ],
+        "sources": [
+          "https://ai.google.dev/gemini-api/docs/models"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "gemini-3-5-flash",
@@ -770,25 +855,36 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 9,
       "popularity": 32,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "llama-3-3-70b",
       "name": "Llama 3.3 70B",
       "org": "Meta",
       "year": 2024,
-      "month": 11,
+      "month": 12,
       "openWeights": true,
       "contextK": 131,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
+      "priceOut": 1.04,
       "popularity": 32,
-      "difficulty": 4
+      "difficulty": 3,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "month",
+          "priceOut"
+        ],
+        "sources": [
+          "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+          "https://www.together.ai/pricing"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "claude-opus-5",
@@ -800,10 +896,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 25,
       "popularity": 31,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "deepseek-v3-2",
@@ -813,12 +909,21 @@
       "month": 12,
       "openWeights": true,
       "contextK": 164,
-      "modality": "text+image",
+      "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.42,
       "popularity": 31,
-      "difficulty": 1
+      "difficulty": 2,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "modality"
+        ],
+        "sources": [
+          "https://huggingface.co/deepseek-ai/DeepSeek-V3.2"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "gpt-5-x-nano",
@@ -830,7 +935,6 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 0.4,
       "popularity": 31,
       "difficulty": 2,
@@ -845,9 +949,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 0.4,
-          "popularity": 27
+          "popularity": 27,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-4-nano",
@@ -859,9 +963,9 @@
           "contextK": 1048,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 1.25,
-          "popularity": 31
+          "popularity": 31,
+          "dailyEligible": true
         }
       ]
     },
@@ -875,10 +979,11 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 3.6,
       "popularity": 31,
-      "difficulty": 3
+      "difficulty": 3,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-x-plus",
@@ -890,10 +995,9 @@
       "contextK": 1000,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 2.4,
       "popularity": 31,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "qwen3-5-plus",
@@ -905,9 +1009,9 @@
           "contextK": 1000,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 2.4,
-          "popularity": 16
+          "popularity": 16,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-6-plus",
@@ -919,9 +1023,9 @@
           "contextK": 1000,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3,
-          "popularity": 28
+          "popularity": 28,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-7-plus",
@@ -933,9 +1037,10 @@
           "contextK": 1064,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3,
-          "popularity": 31
+          "popularity": 31,
+          "difficulty": 1,
+          "dailyEligible": true
         }
       ]
     },
@@ -949,10 +1054,9 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 2.4,
       "popularity": 31,
-      "difficulty": 2,
+      "difficulty": 3,
       "variants": [
         {
           "id": "qwen3-5-27b",
@@ -964,9 +1068,9 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 2.4,
-          "popularity": 14
+          "popularity": 14,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-6-27b",
@@ -978,9 +1082,9 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3.6,
-          "popularity": 25
+          "popularity": 25,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-8-27b",
@@ -992,9 +1096,9 @@
           "contextK": 1131,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
-          "priceOut": null,
-          "popularity": 31
+          "priceOut": 3,
+          "popularity": 31,
+          "dailyEligible": false
         }
       ]
     },
@@ -1005,13 +1109,23 @@
       "year": 2025,
       "month": 6,
       "openWeights": false,
-      "contextK": 1066,
-      "modality": "text+image+video",
+      "contextK": 1049,
+      "modality": "text+image+audio+video",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 10,
       "popularity": 30,
-      "difficulty": 1
+      "difficulty": 1,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "modality",
+          "contextK"
+        ],
+        "sources": [
+          "https://ai.google.dev/gemini-api/docs/models"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "gemini-3-1-pro-preview",
@@ -1023,10 +1137,10 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 12,
       "popularity": 30,
-      "difficulty": 1
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "gpt-5-x",
@@ -1038,10 +1152,9 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 10,
       "popularity": 30,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "gpt-5-1",
@@ -1053,9 +1166,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "mid",
           "priceOut": 10,
-          "popularity": 29
+          "popularity": 29,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-2",
@@ -1067,9 +1180,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 14,
-          "popularity": 30
+          "popularity": 30,
+          "dailyEligible": false
         }
       ]
     },
@@ -1083,10 +1196,10 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 10,
       "popularity": 29,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "gpt-5-x-codex",
@@ -1098,7 +1211,6 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 10,
       "popularity": 27,
       "difficulty": 2,
@@ -1113,9 +1225,10 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "mid",
           "priceOut": 10,
-          "popularity": 17
+          "popularity": 17,
+          "answerEligible": false,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-1-codex-mini",
@@ -1127,9 +1240,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 2,
-          "popularity": 16
+          "popularity": 16,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-2-codex",
@@ -1141,9 +1254,10 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "cheap",
-          "priceOut": null,
-          "popularity": 20
+          "priceOut": 14,
+          "popularity": 20,
+          "answerEligible": false,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-3-codex",
@@ -1155,9 +1269,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "mid",
           "priceOut": 14,
-          "popularity": 27
+          "popularity": 27,
+          "dailyEligible": true
         }
       ]
     },
@@ -1171,10 +1285,9 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 2.5,
       "popularity": 27,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "grok-4-3",
@@ -1186,9 +1299,9 @@
           "contextK": 1000,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "mid",
           "priceOut": 2.5,
-          "popularity": 27
+          "popularity": 27,
+          "dailyEligible": false
         },
         {
           "id": "grok-4-5",
@@ -1197,12 +1310,21 @@
           "year": 2026,
           "month": 7,
           "openWeights": false,
-          "contextK": 1000,
+          "contextK": 500,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 6,
-          "popularity": 26
+          "popularity": 26,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "contextK"
+            ],
+            "sources": [
+              "https://docs.x.ai/developers/pricing"
+            ]
+          },
+          "dailyEligible": false
         },
         {
           "id": "grok-4-6",
@@ -1211,12 +1333,21 @@
           "year": 2026,
           "month": 8,
           "openWeights": false,
-          "contextK": 524,
+          "contextK": 500,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 6,
-          "popularity": 27
+          "popularity": 27,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "contextK"
+            ],
+            "sources": [
+              "https://docs.x.ai/developers/pricing"
+            ]
+          },
+          "dailyEligible": false
         }
       ]
     },
@@ -1230,7 +1361,6 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.4,
       "popularity": 26,
       "difficulty": 2,
@@ -1245,9 +1375,9 @@
           "contextK": 1049,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 0.4,
-          "popularity": 22
+          "popularity": 22,
+          "dailyEligible": false
         },
         {
           "id": "gemini-3-1-flash-lite",
@@ -1259,9 +1389,9 @@
           "contextK": 1050,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.5,
-          "popularity": 26
+          "popularity": 26,
+          "dailyEligible": false
         },
         {
           "id": "gemini-3-5-flash-lite",
@@ -1273,9 +1403,10 @@
           "contextK": 1049,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 2.5,
-          "popularity": 23
+          "popularity": 23,
+          "answerEligible": false,
+          "dailyEligible": false
         }
       ]
     },
@@ -1289,10 +1420,10 @@
       "contextK": 1048,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "mid",
       "priceOut": 8,
       "popularity": 26,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "qwen3-x-35b-a3b",
@@ -1304,10 +1435,9 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 2,
       "popularity": 26,
-      "difficulty": 2,
+      "difficulty": 3,
       "variants": [
         {
           "id": "qwen3-5-35b-a3b",
@@ -1319,9 +1449,10 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "cheap",
           "priceOut": 2,
-          "popularity": 17
+          "popularity": 17,
+          "answerEligible": false,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-6-35b-a3b",
@@ -1333,9 +1464,9 @@
           "contextK": 262,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.485,
-          "popularity": 26
+          "popularity": 26,
+          "dailyEligible": false
         }
       ]
     },
@@ -1349,10 +1480,10 @@
       "contextK": 1050,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.87,
       "popularity": 25,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "deepseek-r1",
@@ -1364,10 +1495,10 @@
       "contextK": 164,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 2.19,
       "popularity": 24,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "mimo-v2-5",
@@ -1379,10 +1510,10 @@
       "contextK": 1050,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 0.28,
       "popularity": 24,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "claude-fable-5-1",
@@ -1394,10 +1525,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "high",
       "priceOut": 50,
       "popularity": 23,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "gemini-3-x-flash",
@@ -1409,10 +1540,9 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 3.75,
       "popularity": 23,
-      "difficulty": 1,
+      "difficulty": 2,
       "variants": [
         {
           "id": "gemini-3-6-flash",
@@ -1424,9 +1554,9 @@
           "contextK": 1049,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3.75,
-          "popularity": 23
+          "popularity": 23,
+          "dailyEligible": false
         },
         {
           "id": "gemini-3-7-flash",
@@ -1438,9 +1568,10 @@
           "contextK": 1049,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 3.75,
-          "popularity": 22
+          "popularity": 22,
+          "difficulty": 1,
+          "dailyEligible": true
         }
       ]
     },
@@ -1454,10 +1585,10 @@
       "contextK": 1049,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 3,
       "popularity": 23,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "gpt-4o",
@@ -1469,10 +1600,19 @@
       "contextK": 128,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "mid",
-      "priceOut": 15,
+      "priceOut": 10,
       "popularity": 21,
-      "difficulty": 2
+      "difficulty": 2,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "priceOut"
+        ],
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-4o"
+        ]
+      },
+      "dailyEligible": true
     },
     {
       "id": "gpt-4o-mini",
@@ -1484,10 +1624,10 @@
       "contextK": 128,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 0.6,
       "popularity": 21,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "qwen3-x-flash",
@@ -1499,7 +1639,6 @@
       "contextK": 1000,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 1.125,
       "popularity": 21,
       "difficulty": 2,
@@ -1514,9 +1653,9 @@
           "contextK": 1000,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 1.125,
-          "popularity": 21
+          "popularity": 21,
+          "dailyEligible": false
         },
         {
           "id": "qwen3-8-flash",
@@ -1528,9 +1667,9 @@
           "contextK": 1049,
           "modality": "text+image+video",
           "reasoning": true,
-          "priceTier": "free",
           "priceOut": 0.47,
-          "popularity": 21
+          "popularity": 21,
+          "dailyEligible": true
         }
       ]
     },
@@ -1544,10 +1683,10 @@
       "contextK": 1049,
       "modality": "text+image+audio",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 4.68,
       "popularity": 20,
-      "difficulty": 3
+      "difficulty": 3,
+      "dailyEligible": false
     },
     {
       "id": "kimi-k2-thinking",
@@ -1559,10 +1698,10 @@
       "contextK": 262,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 2.5,
       "popularity": 20,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "deepseek-v3-1",
@@ -1574,10 +1713,10 @@
       "contextK": 164,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "cheap",
       "priceOut": 1.68,
       "popularity": 19,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "gpt-6-astra",
@@ -1589,10 +1728,10 @@
       "contextK": 1050,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "high",
       "priceOut": 50,
       "popularity": 19,
-      "difficulty": 1
+      "difficulty": 1,
+      "dailyEligible": true
     },
     {
       "id": "gemini-3-8-flash",
@@ -1602,12 +1741,21 @@
       "month": 9,
       "openWeights": false,
       "contextK": 1049,
-      "modality": "text+image+video",
+      "modality": "text+image+audio+video",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 3.75,
       "popularity": 18,
-      "difficulty": 2
+      "difficulty": 2,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "modality"
+        ],
+        "sources": [
+          "https://ai.google.dev/gemini-api/docs/models"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "gpt-5-x-pro",
@@ -1619,7 +1767,6 @@
       "contextK": 400,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "high",
       "priceOut": 120,
       "popularity": 18,
       "difficulty": 2,
@@ -1634,9 +1781,9 @@
           "contextK": 400,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "high",
           "priceOut": 120,
-          "popularity": 14
+          "popularity": 14,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-4-pro",
@@ -1648,9 +1795,9 @@
           "contextK": 1050,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "premium",
           "priceOut": 180,
-          "popularity": 18
+          "popularity": 18,
+          "dailyEligible": false
         },
         {
           "id": "gpt-5-5-pro",
@@ -1662,9 +1809,9 @@
           "contextK": 1050,
           "modality": "text+image",
           "reasoning": true,
-          "priceTier": "premium",
           "priceOut": 180,
-          "popularity": 18
+          "popularity": 18,
+          "dailyEligible": true
         }
       ]
     },
@@ -1678,10 +1825,10 @@
       "contextK": 256,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 2,
       "popularity": 18,
-      "difficulty": 3
+      "difficulty": 3,
+      "dailyEligible": false
     },
     {
       "id": "o4-mini",
@@ -1693,10 +1840,10 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 4.4,
       "popularity": 18,
-      "difficulty": 3
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "deepseek-v3",
@@ -1708,10 +1855,10 @@
       "contextK": 164,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": 1.1,
       "popularity": 17,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "o3",
@@ -1723,10 +1870,10 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 8,
       "popularity": 17,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "qwen3-5-122b-a10b",
@@ -1738,10 +1885,11 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 3.2,
       "popularity": 17,
-      "difficulty": 3
+      "difficulty": 3,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "step-3-7-flash",
@@ -1753,10 +1901,10 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 1.11,
       "popularity": 16,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "glm-5v-turbo",
@@ -1768,10 +1916,10 @@
       "contextK": 203,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "free",
       "priceOut": 4,
       "popularity": 15,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "hy3",
@@ -1783,10 +1931,10 @@
       "contextK": 262,
       "modality": "text",
       "reasoning": true,
-      "priceTier": "free",
-      "priceOut": null,
+      "priceOut": 0.528,
       "popularity": 15,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-coder-plus",
@@ -1798,10 +1946,10 @@
       "contextK": 1049,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": 5,
       "popularity": 15,
-      "difficulty": 3
+      "difficulty": 3,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-vl-235b-a22b",
@@ -1813,10 +1961,10 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 2.8,
       "popularity": 15,
-      "difficulty": 3
+      "difficulty": 3,
+      "dailyEligible": false
     },
     {
       "id": "gpt-3",
@@ -1828,10 +1976,11 @@
       "contextK": 2,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "premium",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "gpt-4",
@@ -1843,10 +1992,10 @@
       "contextK": 8,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "premium",
       "priceOut": 60,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "gpt-4-turbo",
@@ -1858,10 +2007,10 @@
       "contextK": 128,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "high",
       "priceOut": 30,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "gpt-35-turbo",
@@ -1873,25 +2022,36 @@
       "contextK": 4,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 1.5,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "o1",
       "name": "o1",
       "org": "OpenAI",
       "year": 2024,
-      "month": 9,
+      "month": 12,
       "openWeights": false,
-      "contextK": 128,
-      "modality": "text",
+      "contextK": 200,
+      "modality": "text+image",
       "reasoning": true,
-      "priceTier": "premium",
       "priceOut": 60,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "month",
+          "contextK",
+          "modality"
+        ],
+        "sources": [
+          "https://developers.openai.com/api/docs/models/o1"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "claude-1",
@@ -1903,10 +2063,11 @@
       "contextK": null,
       "modality": "text",
       "reasoning": false,
-      "priceTier": null,
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "claude-2",
@@ -1918,25 +2079,34 @@
       "contextK": 100,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "high",
       "priceOut": 24,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "claude-3-opus",
       "name": "Claude 3 Opus",
       "org": "Anthropic",
       "year": 2024,
-      "month": 2,
+      "month": 3,
       "openWeights": false,
       "contextK": 200,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "premium",
       "priceOut": 75,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "month"
+        ],
+        "sources": [
+          "https://www.anthropic.com/news/claude-3-family"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "claude-3-x-sonnet",
@@ -1948,7 +2118,6 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "high",
       "priceOut": 15,
       "popularity": 0,
       "difficulty": 4,
@@ -1958,14 +2127,23 @@
           "name": "Claude 3 Sonnet",
           "org": "Anthropic",
           "year": 2024,
-          "month": 2,
+          "month": 3,
           "openWeights": false,
           "contextK": 200,
           "modality": "text+image",
           "reasoning": false,
-          "priceTier": "high",
           "priceOut": 15,
-          "popularity": 0
+          "popularity": 0,
+          "verification": {
+            "checkedAt": "2026-10-16",
+            "fields": [
+              "month"
+            ],
+            "sources": [
+              "https://www.anthropic.com/news/claude-3-family"
+            ]
+          },
+          "dailyEligible": false
         },
         {
           "id": "claude-35-sonnet",
@@ -1977,9 +2155,9 @@
           "contextK": 200,
           "modality": "text+image",
           "reasoning": false,
-          "priceTier": "high",
           "priceOut": 15,
-          "popularity": 0
+          "popularity": 0,
+          "dailyEligible": false
         }
       ]
     },
@@ -1993,7 +2171,6 @@
       "contextK": 200,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 1.25,
       "popularity": 0,
       "difficulty": 4,
@@ -2008,9 +2185,9 @@
           "contextK": 200,
           "modality": "text+image",
           "reasoning": false,
-          "priceTier": "cheap",
           "priceOut": 1.25,
-          "popularity": 0
+          "popularity": 0,
+          "dailyEligible": false
         },
         {
           "id": "claude-35-haiku",
@@ -2022,9 +2199,9 @@
           "contextK": 200,
           "modality": "text",
           "reasoning": false,
-          "priceTier": "cheap",
           "priceOut": 4,
-          "popularity": 0
+          "popularity": 0,
+          "dailyEligible": false
         }
       ]
     },
@@ -2038,10 +2215,10 @@
       "contextK": 32,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 0.5,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "gemini-15-pro",
@@ -2053,10 +2230,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "mid",
       "priceOut": 5,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "gemini-15-flash",
@@ -2068,10 +2245,10 @@
       "contextK": 1000,
       "modality": "text+image",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": 0.3,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "gemma",
@@ -2083,10 +2260,11 @@
       "contextK": 8,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "llama-2",
@@ -2098,10 +2276,10 @@
       "contextK": 4,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
+      "priceOut": 2.56,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "llama-3",
@@ -2113,10 +2291,11 @@
       "contextK": 8,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "code-llama",
@@ -2128,10 +2307,11 @@
       "contextK": 16,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "mistral-7b",
@@ -2143,10 +2323,10 @@
       "contextK": 8,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
-      "priceOut": null,
+      "priceOut": 0.2,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "dailyEligible": false
     },
     {
       "id": "mixtral-8x7b",
@@ -2158,10 +2338,11 @@
       "contextK": 32,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "vicuna",
@@ -2173,10 +2354,11 @@
       "contextK": 2,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "alpaca",
@@ -2188,10 +2370,11 @@
       "contextK": 2,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "phi-3",
@@ -2203,10 +2386,11 @@
       "contextK": 4,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "qwen-15",
@@ -2218,10 +2402,11 @@
       "contextK": 32,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "qwen2",
@@ -2233,10 +2418,11 @@
       "contextK": 128,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "glm-4",
@@ -2248,10 +2434,11 @@
       "contextK": 128,
       "modality": "text",
       "reasoning": false,
-      "priceTier": null,
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "ernie-bot",
@@ -2263,10 +2450,11 @@
       "contextK": null,
       "modality": "text",
       "reasoning": false,
-      "priceTier": null,
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "doubao",
@@ -2278,10 +2466,11 @@
       "contextK": 32,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "cheap",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "yi",
@@ -2293,10 +2482,11 @@
       "contextK": 4,
       "modality": "text",
       "reasoning": false,
-      "priceTier": "free",
       "priceOut": null,
       "popularity": 0,
-      "difficulty": 4
+      "difficulty": 4,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "doubao-seed-1-8",
@@ -2308,10 +2498,11 @@
       "contextK": null,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 2.16,
       "popularity": 30,
-      "difficulty": 2
+      "difficulty": 2,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "doubao-seed-2-0-pro",
@@ -2323,10 +2514,11 @@
       "contextK": null,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 2.2,
       "popularity": 38,
-      "difficulty": 1
+      "difficulty": 2,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "doubao-seed-2-1-pro",
@@ -2338,10 +2530,11 @@
       "contextK": null,
       "modality": "text+image",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 4.2,
       "popularity": 40,
-      "difficulty": 1
+      "difficulty": 2,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "hy4-preview",
@@ -2353,10 +2546,10 @@
       "contextK": 1024,
       "modality": "text",
       "reasoning": true,
-      "priceTier": null,
-      "priceOut": null,
+      "priceOut": 2.501,
       "popularity": 35,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "muse-spark-1-3",
@@ -2368,10 +2561,10 @@
       "contextK": 1024,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceTier": "mid",
       "priceOut": 4.25,
       "popularity": 40,
-      "difficulty": 2
+      "difficulty": 2,
+      "dailyEligible": true
     },
     {
       "id": "nemotron-3-ultra-550b-a55b",
@@ -2385,7 +2578,8 @@
       "reasoning": true,
       "priceOut": 3.125,
       "difficulty": 3,
-      "popularity": 34
+      "popularity": 34,
+      "dailyEligible": false
     },
     {
       "id": "laguna-s-2-1",
@@ -2399,7 +2593,8 @@
       "reasoning": true,
       "priceOut": 0.18,
       "difficulty": 3,
-      "popularity": 30
+      "popularity": 30,
+      "dailyEligible": false
     },
     {
       "id": "gemma-4-31b-it",
@@ -2411,9 +2606,10 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceOut": null,
+      "priceOut": 0.97,
       "difficulty": 3,
-      "popularity": 29
+      "popularity": 29,
+      "dailyEligible": false
     },
     {
       "id": "nemotron-3-5-lightning",
@@ -2427,7 +2623,8 @@
       "reasoning": true,
       "priceOut": 0.2,
       "difficulty": 3,
-      "popularity": 29
+      "popularity": 29,
+      "dailyEligible": false
     },
     {
       "id": "solar-pro4",
@@ -2441,7 +2638,8 @@
       "reasoning": true,
       "priceOut": 0.36,
       "difficulty": 3,
-      "popularity": 29
+      "popularity": 29,
+      "dailyEligible": false
     },
     {
       "id": "ling-3-0-flash-fin",
@@ -2455,7 +2653,8 @@
       "reasoning": true,
       "priceOut": 0.18,
       "difficulty": 3,
-      "popularity": 27
+      "popularity": 27,
+      "dailyEligible": false
     },
     {
       "id": "nemotron-3-super-120b-a12b",
@@ -2469,7 +2668,8 @@
       "reasoning": true,
       "priceOut": 0.45,
       "difficulty": 3,
-      "popularity": 26
+      "popularity": 26,
+      "dailyEligible": false
     },
     {
       "id": "gpt-4-1-mini",
@@ -2482,8 +2682,9 @@
       "modality": "text+image",
       "reasoning": false,
       "priceOut": 1.6,
-      "difficulty": 3,
-      "popularity": 25
+      "difficulty": 2,
+      "popularity": 25,
+      "dailyEligible": true
     },
     {
       "id": "deepseek-v4-1-flash",
@@ -2497,7 +2698,8 @@
       "reasoning": true,
       "priceOut": 0.6,
       "difficulty": 1,
-      "popularity": 24
+      "popularity": 24,
+      "dailyEligible": true
     },
     {
       "id": "qwen3-7-flash",
@@ -2511,7 +2713,8 @@
       "reasoning": true,
       "priceOut": 0.13,
       "difficulty": 2,
-      "popularity": 24
+      "popularity": 24,
+      "dailyEligible": false
     },
     {
       "id": "glm-4-7-flash",
@@ -2525,7 +2728,8 @@
       "reasoning": true,
       "priceOut": 0.4,
       "difficulty": 2,
-      "popularity": 23
+      "popularity": 23,
+      "dailyEligible": false
     },
     {
       "id": "mistral-nemo",
@@ -2533,13 +2737,26 @@
       "org": "Mistral",
       "year": 2024,
       "month": 7,
-      "openWeights": false,
+      "openWeights": true,
       "contextK": 128,
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.03,
       "difficulty": 3,
-      "popularity": 23
+      "popularity": 23,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "openWeights",
+          "priceOut"
+        ],
+        "sources": [
+          "https://mistral.ai/news/mistral-nemo/",
+          "https://docs.mistral.ai/models/mistral-nemo-12b-24-07",
+          "https://deepinfra.com/pricing"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "muse-spark-1-2-contributor",
@@ -2553,7 +2770,10 @@
       "reasoning": true,
       "priceOut": 0.2,
       "difficulty": 2,
-      "popularity": 22
+      "popularity": 22,
+      "answerEligible": false,
+      "curationNote": "Contributor access variant; no independent answer slot.",
+      "dailyEligible": false
     },
     {
       "id": "gpt-4-1-nano",
@@ -2567,7 +2787,8 @@
       "reasoning": false,
       "priceOut": 0.4,
       "difficulty": 3,
-      "popularity": 21
+      "popularity": 21,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-235b-a22b-instruct-2507",
@@ -2578,10 +2799,22 @@
       "openWeights": true,
       "contextK": 262,
       "modality": "text",
-      "reasoning": true,
-      "priceOut": null,
+      "reasoning": false,
+      "priceOut": 0.92,
       "difficulty": 3,
-      "popularity": 21
+      "popularity": 21,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "reasoning",
+          "priceOut"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507",
+          "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "qwen3-32b",
@@ -2595,7 +2828,8 @@
       "reasoning": true,
       "priceOut": 2.8,
       "difficulty": 3,
-      "popularity": 21
+      "popularity": 21,
+      "dailyEligible": false
     },
     {
       "id": "ling-3-0-flash",
@@ -2609,7 +2843,8 @@
       "reasoning": true,
       "priceOut": 0.063,
       "difficulty": 3,
-      "popularity": 21
+      "popularity": 21,
+      "dailyEligible": false
     },
     {
       "id": "laguna-xs-2-1",
@@ -2623,7 +2858,8 @@
       "reasoning": true,
       "priceOut": 0.12,
       "difficulty": 3,
-      "popularity": 21
+      "popularity": 21,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-5-9b",
@@ -2635,23 +2871,35 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceOut": null,
+      "priceOut": 0.25,
       "difficulty": 3,
-      "popularity": 20
+      "popularity": 20,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-coder-30b-a3b",
       "name": "Qwen3 Coder 30B A3B",
       "org": "Alibaba",
       "year": 2025,
-      "month": 4,
+      "month": 7,
       "openWeights": true,
       "contextK": 262,
       "modality": "text",
-      "reasoning": true,
+      "reasoning": false,
       "priceOut": 2.25,
       "difficulty": 3,
-      "popularity": 20
+      "popularity": 20,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "reasoning",
+          "month"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "qwen3-next-80b-a3b-instruct",
@@ -2661,11 +2909,22 @@
       "month": 9,
       "openWeights": true,
       "contextK": 262,
-      "modality": "text+image",
-      "reasoning": true,
+      "modality": "text",
+      "reasoning": false,
       "priceOut": 2,
       "difficulty": 3,
-      "popularity": 20
+      "popularity": 20,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "reasoning",
+          "modality"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "ling-3-0-flash-vl",
@@ -2679,7 +2938,8 @@
       "reasoning": true,
       "priceOut": 0.18,
       "difficulty": 3,
-      "popularity": 20
+      "popularity": 20,
+      "dailyEligible": false
     },
     {
       "id": "llama-3-1-8b-instruct",
@@ -2693,7 +2953,9 @@
       "reasoning": false,
       "priceOut": 0.08,
       "difficulty": 3,
-      "popularity": 20
+      "popularity": 20,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "muse-spark-1-2",
@@ -2707,7 +2969,8 @@
       "reasoning": true,
       "priceOut": 4.25,
       "difficulty": 2,
-      "popularity": 19
+      "popularity": 19,
+      "dailyEligible": false
     },
     {
       "id": "gemma-3-27b-it",
@@ -2721,7 +2984,8 @@
       "reasoning": false,
       "priceOut": 0.45,
       "difficulty": 3,
-      "popularity": 19
+      "popularity": 19,
+      "dailyEligible": false
     },
     {
       "id": "glm-5-turbo",
@@ -2735,7 +2999,8 @@
       "reasoning": true,
       "priceOut": 4,
       "difficulty": 2,
-      "popularity": 18
+      "popularity": 18,
+      "dailyEligible": false
     },
     {
       "id": "gemma-4-26b-a4b-it",
@@ -2747,23 +3012,36 @@
       "contextK": 262,
       "modality": "text+image+video",
       "reasoning": true,
-      "priceOut": null,
+      "priceOut": 0.34,
       "difficulty": 3,
-      "popularity": 18
+      "popularity": 18,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-coder-480b-a35b",
       "name": "Qwen3 Coder 480B A35B",
       "org": "Alibaba",
       "year": 2025,
-      "month": 4,
+      "month": 7,
       "openWeights": true,
       "contextK": 262,
       "modality": "text",
-      "reasoning": true,
+      "reasoning": false,
       "priceOut": 7.5,
       "difficulty": 3,
-      "popularity": 18
+      "popularity": 18,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "reasoning",
+          "month"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct"
+        ]
+      },
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-8-2-4t-a95b",
@@ -2777,7 +3055,8 @@
       "reasoning": true,
       "priceOut": 6,
       "difficulty": 3,
-      "popularity": 18
+      "popularity": 18,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-30b-a3b-instruct-2507",
@@ -2786,12 +3065,22 @@
       "year": 2025,
       "month": 7,
       "openWeights": true,
-      "contextK": 256,
+      "contextK": 262,
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.193,
       "difficulty": 3,
-      "popularity": 18
+      "popularity": 18,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "grok-4-20",
@@ -2800,12 +3089,22 @@
       "year": 2026,
       "month": 3,
       "openWeights": false,
-      "contextK": 1953,
+      "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
       "priceOut": 2.5,
       "difficulty": 3,
-      "popularity": 17
+      "popularity": 17,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://docs.x.ai/developers/pricing"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "nova-micro-v1",
@@ -2819,7 +3118,8 @@
       "reasoning": false,
       "priceOut": 0.14,
       "difficulty": 3,
-      "popularity": 17
+      "popularity": 17,
+      "dailyEligible": false
     },
     {
       "id": "muse-spark-1-1",
@@ -2833,7 +3133,8 @@
       "reasoning": true,
       "priceOut": 4.25,
       "difficulty": 2,
-      "popularity": 16
+      "popularity": 16,
+      "dailyEligible": false
     },
     {
       "id": "deepseek-v4-flash-vision-exp",
@@ -2847,7 +3148,8 @@
       "reasoning": true,
       "priceOut": 0.6,
       "difficulty": 3,
-      "popularity": 16
+      "popularity": 16,
+      "dailyEligible": false
     },
     {
       "id": "o3-mini",
@@ -2857,11 +3159,21 @@
       "month": 1,
       "openWeights": false,
       "contextK": 200,
-      "modality": "text+image",
+      "modality": "text",
       "reasoning": true,
       "priceOut": 4.4,
       "difficulty": 3,
-      "popularity": 16
+      "popularity": 16,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "modality"
+        ],
+        "sources": [
+          "https://developers.openai.com/api/docs/models/o3-mini"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "mistral-small-2603",
@@ -2869,13 +3181,23 @@
       "org": "Mistral",
       "year": 2026,
       "month": 3,
-      "openWeights": false,
+      "openWeights": true,
       "contextK": 256,
       "modality": "text+image",
       "reasoning": true,
       "priceOut": 0.6,
       "difficulty": 3,
-      "popularity": 16
+      "popularity": 16,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "openWeights"
+        ],
+        "sources": [
+          "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "qwen3-vl-32b-instruct",
@@ -2884,12 +3206,23 @@
       "year": 2025,
       "month": 10,
       "openWeights": true,
-      "contextK": 128,
-      "modality": "text+image",
+      "contextK": 262,
+      "modality": "text+image+video",
       "reasoning": false,
       "priceOut": 0.416,
       "difficulty": 3,
-      "popularity": 16
+      "popularity": 16,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK",
+          "modality"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-VL-32B-Instruct"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "glm-4-5-air",
@@ -2903,7 +3236,8 @@
       "reasoning": true,
       "priceOut": 1.1,
       "difficulty": 3,
-      "popularity": 15
+      "popularity": 15,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-coder-next",
@@ -2914,10 +3248,22 @@
       "openWeights": true,
       "contextK": 262,
       "modality": "text",
-      "reasoning": true,
-      "priceOut": null,
+      "reasoning": false,
+      "priceOut": 1.5,
       "difficulty": 3,
-      "popularity": 15
+      "popularity": 15,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "reasoning",
+          "priceOut"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-Coder-Next",
+          "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "muse-glimmer-30b",
@@ -2931,7 +3277,8 @@
       "reasoning": true,
       "priceOut": 1.5,
       "difficulty": 3,
-      "popularity": 15
+      "popularity": 15,
+      "dailyEligible": false
     },
     {
       "id": "nemotron-3-nano-30b-a3b",
@@ -2945,7 +3292,8 @@
       "reasoning": true,
       "priceOut": 0.2,
       "difficulty": 3,
-      "popularity": 15
+      "popularity": 15,
+      "dailyEligible": false
     },
     {
       "id": "gemma-3-12b-it",
@@ -2959,7 +3307,9 @@
       "reasoning": false,
       "priceOut": 0.15,
       "difficulty": 3,
-      "popularity": 15
+      "popularity": 15,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "mercury-2-5",
@@ -2973,7 +3323,8 @@
       "reasoning": true,
       "priceOut": 0.15,
       "difficulty": 3,
-      "popularity": 14
+      "popularity": 14,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-vl-8b-instruct",
@@ -2982,12 +3333,24 @@
       "year": 2025,
       "month": 10,
       "openWeights": true,
-      "contextK": 256,
-      "modality": "text+image",
+      "contextK": 262,
+      "modality": "text+image+video",
       "reasoning": false,
       "priceOut": 0.455,
       "difficulty": 3,
-      "popularity": 14
+      "popularity": 14,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK",
+          "modality"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct"
+        ]
+      },
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "mistral-small-24b-instruct-2501",
@@ -2995,13 +3358,23 @@
       "org": "Mistral",
       "year": 2025,
       "month": 1,
-      "openWeights": false,
+      "openWeights": true,
       "contextK": 32,
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.08,
       "difficulty": 3,
-      "popularity": 14
+      "popularity": 14,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "openWeights"
+        ],
+        "sources": [
+          "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "aion-3-0",
@@ -3014,8 +3387,9 @@
       "modality": "text",
       "reasoning": true,
       "priceOut": 6,
-      "difficulty": 3,
-      "popularity": 13
+      "difficulty": 4,
+      "popularity": 13,
+      "dailyEligible": false
     },
     {
       "id": "seed-2-0-mini",
@@ -3029,7 +3403,8 @@
       "reasoning": true,
       "priceOut": 0.4,
       "difficulty": 3,
-      "popularity": 13
+      "popularity": 13,
+      "dailyEligible": false
     },
     {
       "id": "mistral-large-2512",
@@ -3037,13 +3412,23 @@
       "org": "Mistral",
       "year": 2025,
       "month": 12,
-      "openWeights": false,
+      "openWeights": true,
       "contextK": 256,
       "modality": "text+image",
       "reasoning": false,
       "priceOut": 1.5,
       "difficulty": 3,
-      "popularity": 13
+      "popularity": 13,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "openWeights"
+        ],
+        "sources": [
+          "https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "qwen3-vl-30b-a3b-instruct",
@@ -3052,12 +3437,23 @@
       "year": 2025,
       "month": 10,
       "openWeights": true,
-      "contextK": 256,
-      "modality": "text+image",
+      "contextK": 262,
+      "modality": "text+image+video",
       "reasoning": false,
       "priceOut": 0.6,
       "difficulty": 3,
-      "popularity": 13
+      "popularity": 13,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK",
+          "modality"
+        ],
+        "sources": [
+          "https://huggingface.co/Qwen/Qwen3-VL-30B-A3B-Instruct"
+        ]
+      },
+      "dailyEligible": false
     },
     {
       "id": "deepseek-r1-0528",
@@ -3071,7 +3467,8 @@
       "reasoning": true,
       "priceOut": 2.15,
       "difficulty": 3,
-      "popularity": 13
+      "popularity": 13,
+      "dailyEligible": false
     },
     {
       "id": "longcat-2-0",
@@ -3085,7 +3482,8 @@
       "reasoning": true,
       "priceOut": 1.2,
       "difficulty": 2,
-      "popularity": 12
+      "popularity": 12,
+      "dailyEligible": false
     },
     {
       "id": "ministral-8b-2512",
@@ -3099,21 +3497,33 @@
       "reasoning": false,
       "priceOut": 0.15,
       "difficulty": 3,
-      "popularity": 11
+      "popularity": 11,
+      "dailyEligible": false
     },
     {
       "id": "qwen-2-5-7b-instruct",
       "name": "Qwen2.5 7B Instruct",
       "org": "Alibaba",
       "year": 2024,
-      "month": 10,
+      "month": 9,
       "openWeights": true,
       "contextK": 32,
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.2,
       "difficulty": 3,
-      "popularity": 11
+      "popularity": 11,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "month"
+        ],
+        "sources": [
+          "https://qwenlm.github.io/blog/qwen2.5/"
+        ]
+      },
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "l3-lunaris-8b",
@@ -3121,13 +3531,25 @@
       "org": "Sao10K",
       "year": 2024,
       "month": 8,
-      "openWeights": false,
+      "openWeights": true,
       "contextK": 8,
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.05,
       "difficulty": 3,
-      "popularity": 11
+      "popularity": 11,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "openWeights"
+        ],
+        "sources": [
+          "https://huggingface.co/Sao10K/L3-8B-Lunaris-v1"
+        ]
+      },
+      "answerEligible": false,
+      "curationNote": "Community fine-tune; retained for lookup, outside base-model draws.",
+      "dailyEligible": false
     },
     {
       "id": "granite-4-0-h-micro",
@@ -3140,8 +3562,9 @@
       "modality": "text",
       "reasoning": false,
       "priceOut": 0.112,
-      "difficulty": 3,
-      "popularity": 10
+      "difficulty": 4,
+      "popularity": 10,
+      "dailyEligible": false
     },
     {
       "id": "nova-lite-v1",
@@ -3155,7 +3578,8 @@
       "reasoning": false,
       "priceOut": 0.24,
       "difficulty": 3,
-      "popularity": 10
+      "popularity": 10,
+      "dailyEligible": false
     },
     {
       "id": "llama-3-1-70b-instruct",
@@ -3169,7 +3593,8 @@
       "reasoning": false,
       "priceOut": 0.4,
       "difficulty": 3,
-      "popularity": 10
+      "popularity": 10,
+      "dailyEligible": false
     },
     {
       "id": "mercury-2",
@@ -3183,7 +3608,8 @@
       "reasoning": true,
       "priceOut": 0.75,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "seed-1-6-flash",
@@ -3197,7 +3623,8 @@
       "reasoning": true,
       "priceOut": 0.3,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "ministral-14b-2512",
@@ -3211,7 +3638,9 @@
       "reasoning": false,
       "priceOut": 0.2,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "answerEligible": false,
+      "dailyEligible": false
     },
     {
       "id": "ministral-3b-2512",
@@ -3225,7 +3654,8 @@
       "reasoning": false,
       "priceOut": 0.1,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "qwen3-coder-flash",
@@ -3239,7 +3669,8 @@
       "reasoning": false,
       "priceOut": 0.975,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "mistral-medium-3-1",
@@ -3253,7 +3684,8 @@
       "reasoning": false,
       "priceOut": 2,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "qwen2-5-vl-72b-instruct",
@@ -3267,7 +3699,8 @@
       "reasoning": false,
       "priceOut": 1,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "qwen-2-5-72b-instruct",
@@ -3281,7 +3714,8 @@
       "reasoning": false,
       "priceOut": 0.4,
       "difficulty": 3,
-      "popularity": 9
+      "popularity": 9,
+      "dailyEligible": false
     },
     {
       "id": "grok-4-20-multi-agent",
@@ -3290,12 +3724,329 @@
       "year": 2026,
       "month": 3,
       "openWeights": false,
-      "contextK": 1953,
+      "contextK": 1000,
       "modality": "text+image",
       "reasoning": true,
       "priceOut": 2.5,
       "difficulty": 3,
-      "popularity": 8
+      "popularity": 8,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "fields": [
+          "contextK"
+        ],
+        "sources": [
+          "https://docs.x.ai/developers/pricing"
+        ]
+      },
+      "answerEligible": false,
+      "curationNote": "Multi-agent orchestration service, retained for lookup only.",
+      "dailyEligible": false
+    },
+    {
+      "id": "gpt-6-1-sol",
+      "name": "GPT-6.1 Sol",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+        ],
+        "notes": "Official model documentation; release month reconciled with the supplied workbook."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "gpt-6-sol",
+      "name": "GPT-6 Sol",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-6-sol"
+        ],
+        "notes": "Official model documentation; release month reconciled with the supplied workbook."
+      },
+      "answerEligible": false,
+      "dailyEligible": false
+    },
+    {
+      "id": "gpt-6-luna",
+      "name": "GPT-6 Luna",
+      "org": "OpenAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1050,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 0.5,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://developers.openai.com/api/docs/models/gpt-6-luna"
+        ],
+        "notes": "Official model documentation; release month reconciled with the supplied workbook."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "name": "Claude Sonnet 5.5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://platform.claude.com/docs/en/models/sonnet-5-5/overview"
+        ],
+        "notes": "Standard short-context text output price; Haiku price applies to input up to 100K."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "claude-opus-5-5",
+      "name": "Claude Opus 5.5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 20,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://platform.claude.com/docs/en/models/opus-5-5/overview"
+        ],
+        "notes": "Standard short-context text output price; Haiku price applies to input up to 100K."
+      },
+      "answerEligible": false,
+      "dailyEligible": false
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "name": "Claude Haiku 5.5",
+      "org": "Anthropic",
+      "year": 2026,
+      "month": 10,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 0.5,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
+        ],
+        "notes": "Standard short-context text output price; Haiku price applies to input up to 100K."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "gemini-4-argon",
+      "name": "Gemini 4 Argon",
+      "org": "Google",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 1049,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 10,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://ai.google.dev/gemini-api/docs/latest-model"
+        ],
+        "notes": "Current introductory output price through 2026-11-30; announced price from December is $20/M. Recheck before that date."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "grok-4-7",
+      "name": "Grok 4.7",
+      "org": "xAI",
+      "year": 2026,
+      "month": 9,
+      "openWeights": false,
+      "contextK": 500,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 6,
+      "popularity": 30,
+      "difficulty": 1,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://docs.x.ai/developers/models/grok-4.7"
+        ],
+        "notes": "Official model documentation; release month reconciled with the supplied workbook."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "mistral-large-4-preview",
+      "name": "Mistral Large 4 Preview",
+      "org": "Mistral",
+      "year": 2026,
+      "month": 10,
+      "openWeights": false,
+      "contextK": 1000,
+      "modality": "text+image",
+      "reasoning": true,
+      "priceOut": 4.18,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://docs.mistral.ai/models/mistral-large-4"
+        ],
+        "notes": "Published standard output price, excluding temporary half-price preview. Weights promised for later October do not count as released."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "mimo-v2-6-pro",
+      "name": "MiMo V2.6 Pro",
+      "org": "Xiaomi",
+      "year": 2026,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 1000,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 0.87,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL",
+          "https://intl.cloud.tencent.com/document/product/1300/78937"
+        ],
+        "notes": "Weights and modalities verified. Workbook currency conversions / estimated prices not used. Price now uses the verified Tencent hosted USD output rate; see priceReview in docs/games/guess-catalog-review-20261016.json."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "mimo-v2-6-flash",
+      "name": "MiMo V2.6 Flash",
+      "org": "Xiaomi",
+      "year": 2026,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 1000,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": 0.28,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-RL",
+          "https://intl.cloud.tencent.com/document/product/1300/78937"
+        ],
+        "notes": "Weights and modalities verified. Workbook currency conversions / estimated prices not used. Price now uses the verified Tencent hosted USD output rate; see priceReview in docs/games/guess-catalog-review-20261016.json."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "step-5-preview",
+      "name": "Step 5 Preview",
+      "org": "StepFun",
+      "year": 2026,
+      "month": 9,
+      "openWeights": true,
+      "contextK": 1000,
+      "modality": "text+image+video",
+      "reasoning": true,
+      "priceOut": 2.7,
+      "popularity": 30,
+      "difficulty": 2,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://huggingface.co/stepfun-ai/Step-5-Preview",
+          "https://intl.cloud.tencent.com/document/product/1300/78937"
+        ],
+        "notes": "Downloadable weights verified on 2026-10-16. API output price from secondary reporting not used."
+      },
+      "dailyEligible": true
+    },
+    {
+      "id": "dots3-note-preview",
+      "name": "dots3 note Preview",
+      "org": "RedNote",
+      "year": 2026,
+      "month": 8,
+      "openWeights": true,
+      "contextK": 524,
+      "modality": "text+image+audio+video",
+      "reasoning": true,
+      "priceOut": null,
+      "priceTierOverride": 0,
+      "popularity": 30,
+      "difficulty": 3,
+      "sinceDay": 34,
+      "verification": {
+        "checkedAt": "2026-10-16",
+        "sources": [
+          "https://huggingface.co/dots-studio/dots3-note-prev"
+        ],
+        "notes": "Native context is 524288 tokens; no verified first-party API price. User decision on 2026-10-16 pins the gameplay price tier to 0 (near-free), independent of future pricing."
+      },
+      "dailyEligible": false
     }
   ]
 }

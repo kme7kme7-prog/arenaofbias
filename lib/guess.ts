@@ -3,7 +3,7 @@
 // 本文件只管「状态怎么存、接口怎么调」，不含游戏规则。
 //
 // ── 双模式（2026-09-26：每日按浏览器续局，完成后当日锁定）──
-// 每日一题：全球同题，种子派生，只从简单+普通池出（困难与地狱不进每日）。
+// 每日一题：全球同题，种子派生，只从简单、普通的精选名单出。
 //   每次成功猜测立即保存；退出/刷新恢复，完成后只读。练习仍只在内存。
 //   战绩 guess-stats（场次/胜场/连胜/最少步数）只算每日题，一天只结算一次
 //   ——guess-settled:<dayKey> 标记防止反复进出刷战绩与重复上报。
@@ -26,11 +26,14 @@ export type GuessApiModel = {
   contextK: number | null;
   modalities: string[];
   reasoning: boolean;
-  /** 官方一手输出单价（$/M），null = 未公开。揭晓条展示用；格子里显示档位 */
+  /** 题库采用的 API 输出单价（$/M），null = 未知。揭晓条展示用；格子里显示档位 */
   priceOut: number | null;
   priceTier: number | null;
-  /** 难度分池：1 简单 / 2 标准 / 3 困难（练习模式按它分池；每日池=1+2） */
+  /** 最低出现档：1 简单 / 2 普通 / 3 困难 / 4 地狱；每日名单另行精选。 */
   difficulty: GuessDifficulty;
+  aliases?: string[];
+  answerEligible?: boolean;
+  dailyEligible?: boolean;
 };
 
 export type TodayResponse = {
@@ -38,6 +41,7 @@ export type TodayResponse = {
   dayNumber: number;
   attributes: AttributeKey[];
   models: GuessApiModel[];
+  catalogVersion?: string;
 };
 
 /** 一行已提交的猜测（前端渲染历史行用；guess 持全量模型信息做属性展示） */
@@ -124,9 +128,10 @@ export async function withDailyLock<T>(dayKey: string, action: () => Promise<T> 
 }
 
 /** 存模型 id 而非整份模型资料，恢复时以今日接口的模型列表为准。 */
-export function saveDailySession(dayKey: string, session: GuessSession) {
+export function saveDailySession(dayKey: string, session: GuessSession, catalogVersion?: string) {
   const raw = JSON.stringify({
     version: 1,
+    catalogVersion,
     guesses: session.guesses.map(row => ({
       guessId: row.guess.id, attributes: row.attributes, won: row.won,
     })),
@@ -138,7 +143,7 @@ export function saveDailySession(dayKey: string, session: GuessSession) {
   try { localStorage.setItem(dailyKey(dayKey), raw); } catch { /* 当前页面内仍锁定 */ }
 }
 
-export function loadDailySession(dayKey: string, models: GuessApiModel[]): GuessSession | null {
+export function loadDailySession(dayKey: string, models: GuessApiModel[], catalogVersion?: string): GuessSession | null {
   // 旧版只存结算标记：没有轨迹可恢复，也不能因此允许重开。
   const completed = (): GuessSession | null => wasCounted(dayKey)
     ? { guesses: [], finished: true, revealed: true, answer: null } : null;
@@ -148,6 +153,7 @@ export function loadDailySession(dayKey: string, models: GuessApiModel[]): Guess
     catch { raw = memoryDaily.get(dayKey); }
     if (!raw) return completed();
     const value = JSON.parse(raw);
+    if (catalogVersion && value.catalogVersion !== catalogVersion) return completed();
     if (value?.version !== 1 || !Array.isArray(value.guesses) || value.guesses.length > MAX_ATTEMPTS)
       return completed();
     const seen = new Set<string>();
@@ -170,6 +176,12 @@ export function loadDailySession(dayKey: string, models: GuessApiModel[]): Guess
       answer: finished ? models.find(model => model.id === value.answerId) ?? null : null,
     };
   } catch { return completed(); }
+}
+
+export function dailyCatalogChanged(dayKey: string, catalogVersion?: string): boolean {
+  if (!catalogVersion || wasCounted(dayKey)) return false;
+  const saved = readJson<{ catalogVersion?: string }>(dailyKey(dayKey));
+  return Boolean(saved && saved.catalogVersion !== catalogVersion);
 }
 
 export function loadStats(): GuessStats {
@@ -249,7 +261,11 @@ async function guessRequest<T>(path: string, options?: RequestInit): Promise<T |
     if (!response.ok) {
       if (response.status === 404) throw new PracticeExpiredError();
       if (response.status === 429) throw new RateLimitedError();
-      if (response.status === 409) throw new DailyChangedError();
+      if (response.status === 409) {
+        const body = await response.json();
+        if (body.code === 'catalog-changed') throw new CatalogChangedError();
+        throw new DailyChangedError();
+      }
       return null;
     }
     return (await response.json()) as T;
@@ -278,6 +294,7 @@ export type CheckResponse = {
 /** 练习局已过期（服务器重启清内存）的信号：404 + code=game-expired */
 export class PracticeExpiredError extends Error {}
 export class DailyChangedError extends Error {}
+export class CatalogChangedError extends Error {}
 
 /** 服务端限流（429）的信号：checkGuess 抛出，界面给「稍等几秒」的提示，
  *  不再与普通失败混在一起显示「网络不给力」 */
@@ -285,24 +302,26 @@ export class RateLimitedError extends Error {}
 
 /** 提交一次猜测；final=第 8 次（用尽），服务端会附带答案。
  *  每日一题不带 gameId（种子派生答案）；练习模式带 gameId（服务端持答案）。
- *  当前共享后端忽略 check 的 dayKey，409 分支仅兼容未来跨日拒绝；
- *  前端会先用 today 接口复核日期，不能据此宣称服务器已校验跨日提交。 */
+ *  共享后端校验 dayKey 与 catalogVersion，409 分别触发跨日或题库更新恢复；
+ *  前端也先用 today 接口复核日期，减少恰逢跨日时的无效提交。 */
 export async function checkGuess(
   guessId: string,
   final: boolean,
   gameId?: string,
   dayKey?: string,
+  catalogVersion?: string,
 ): Promise<CheckResponse | null> {
   try {
     return await guessRequest<CheckResponse>('/api/guess/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gameId ? { guessId, final, gameId } : { guessId, final, dayKey }),
+      body: JSON.stringify(gameId ? { guessId, final, gameId, catalogVersion } : { guessId, final, dayKey, catalogVersion }),
     });
   } catch (error) {
     if (
       error instanceof PracticeExpiredError ||
       error instanceof DailyChangedError ||
+      error instanceof CatalogChangedError ||
       error instanceof RateLimitedError
     )
       throw error;

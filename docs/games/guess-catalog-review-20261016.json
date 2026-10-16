@@ -1,0 +1,2573 @@
+{
+  "date": "2026-10-16",
+  "correctedModels": [
+    {
+      "id": "mistral-nemo",
+      "changes": {
+        "openWeights": {
+          "before": false,
+          "after": true
+        },
+        "priceOut": {
+          "before": 0.03,
+          "after": null
+        }
+      },
+      "source": "https://mistral.ai/news/mistral-nemo/",
+      "sources": [
+        "https://mistral.ai/news/mistral-nemo/",
+        "https://docs.mistral.ai/models/mistral-nemo-12b-24-07"
+      ]
+    },
+    {
+      "id": "mistral-small-24b-instruct-2501",
+      "changes": {
+        "openWeights": {
+          "before": false,
+          "after": true
+        }
+      },
+      "source": "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501"
+    },
+    {
+      "id": "mistral-small-2603",
+      "changes": {
+        "openWeights": {
+          "before": false,
+          "after": true
+        }
+      },
+      "source": "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603"
+    },
+    {
+      "id": "mistral-large-2512",
+      "changes": {
+        "openWeights": {
+          "before": false,
+          "after": true
+        }
+      },
+      "source": "https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512"
+    },
+    {
+      "id": "l3-lunaris-8b",
+      "changes": {
+        "openWeights": {
+          "before": false,
+          "after": true
+        }
+      },
+      "source": "https://huggingface.co/Sao10K/L3-8B-Lunaris-v1"
+    },
+    {
+      "id": "qwen3-235b-a22b-instruct-2507",
+      "changes": {
+        "reasoning": {
+          "before": true,
+          "after": false
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507"
+    },
+    {
+      "id": "qwen3-coder-30b-a3b",
+      "changes": {
+        "reasoning": {
+          "before": true,
+          "after": false
+        },
+        "month": {
+          "before": 4,
+          "after": 7
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    },
+    {
+      "id": "qwen3-coder-480b-a35b",
+      "changes": {
+        "reasoning": {
+          "before": true,
+          "after": false
+        },
+        "month": {
+          "before": 4,
+          "after": 7
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct"
+    },
+    {
+      "id": "qwen3-coder-next",
+      "changes": {
+        "reasoning": {
+          "before": true,
+          "after": false
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-Coder-Next"
+    },
+    {
+      "id": "qwen3-next-80b-a3b-instruct",
+      "changes": {
+        "reasoning": {
+          "before": true,
+          "after": false
+        },
+        "modality": {
+          "before": "text+image",
+          "after": "text"
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct"
+    },
+    {
+      "id": "claude-3-opus",
+      "changes": {
+        "month": {
+          "before": 2,
+          "after": 3
+        }
+      },
+      "source": "https://www.anthropic.com/news/claude-3-family"
+    },
+    {
+      "id": "claude-3-sonnet",
+      "changes": {
+        "month": {
+          "before": 2,
+          "after": 3
+        }
+      },
+      "source": "https://www.anthropic.com/news/claude-3-family"
+    },
+    {
+      "id": "llama-3-3-70b",
+      "changes": {
+        "month": {
+          "before": 11,
+          "after": 12
+        }
+      },
+      "source": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct"
+    },
+    {
+      "id": "qwen-2-5-7b-instruct",
+      "changes": {
+        "month": {
+          "before": 10,
+          "after": 9
+        }
+      },
+      "source": "https://qwenlm.github.io/blog/qwen2.5/"
+    },
+    {
+      "id": "gpt-oss-120b",
+      "changes": {
+        "modality": {
+          "before": "text+image",
+          "after": "text"
+        }
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-oss-120b"
+    },
+    {
+      "id": "o3-mini",
+      "changes": {
+        "modality": {
+          "before": "text+image",
+          "after": "text"
+        }
+      },
+      "source": "https://developers.openai.com/api/docs/models/o3-mini"
+    },
+    {
+      "id": "gemini-2-5-pro",
+      "changes": {
+        "modality": {
+          "before": "text+image+video",
+          "after": "text+image+audio+video"
+        },
+        "contextK": {
+          "before": 1066,
+          "after": 1049
+        }
+      },
+      "source": "https://ai.google.dev/gemini-api/docs/models"
+    },
+    {
+      "id": "gemini-2-5-flash",
+      "changes": {
+        "modality": {
+          "before": "text+image+video",
+          "after": "text+image+audio+video"
+        },
+        "contextK": {
+          "before": 1066,
+          "after": 1049
+        }
+      },
+      "source": "https://ai.google.dev/gemini-api/docs/models"
+    },
+    {
+      "id": "gemini-3-8-flash",
+      "changes": {
+        "modality": {
+          "before": "text+image+video",
+          "after": "text+image+audio+video"
+        }
+      },
+      "source": "https://ai.google.dev/gemini-api/docs/models"
+    },
+    {
+      "id": "qwen3-vl-32b-instruct",
+      "changes": {
+        "contextK": {
+          "before": 128,
+          "after": 262
+        },
+        "modality": {
+          "before": "text+image",
+          "after": "text+image+video"
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-VL-32B-Instruct"
+    },
+    {
+      "id": "qwen3-vl-8b-instruct",
+      "changes": {
+        "contextK": {
+          "before": 256,
+          "after": 262
+        },
+        "modality": {
+          "before": "text+image",
+          "after": "text+image+video"
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct"
+    },
+    {
+      "id": "qwen3-vl-30b-a3b-instruct",
+      "changes": {
+        "contextK": {
+          "before": 256,
+          "after": 262
+        },
+        "modality": {
+          "before": "text+image",
+          "after": "text+image+video"
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-VL-30B-A3B-Instruct"
+    },
+    {
+      "id": "qwen3-30b-a3b-instruct-2507",
+      "changes": {
+        "contextK": {
+          "before": 256,
+          "after": 262
+        }
+      },
+      "source": "https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507"
+    },
+    {
+      "id": "glm-5-3-flash",
+      "changes": {
+        "contextK": {
+          "before": 1311,
+          "after": 1000
+        }
+      },
+      "source": "https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash"
+    },
+    {
+      "id": "qwen3-8-max",
+      "changes": {
+        "contextK": {
+          "before": 1049,
+          "after": 1000
+        }
+      },
+      "source": "https://help.aliyun.com/zh/model-studio/qwen3-8-max"
+    },
+    {
+      "id": "grok-4-5",
+      "changes": {
+        "contextK": {
+          "before": 1000,
+          "after": 500
+        }
+      },
+      "source": "https://docs.x.ai/developers/pricing"
+    },
+    {
+      "id": "grok-4-6",
+      "changes": {
+        "contextK": {
+          "before": 524,
+          "after": 500
+        }
+      },
+      "source": "https://docs.x.ai/developers/pricing"
+    },
+    {
+      "id": "grok-4-20",
+      "changes": {
+        "contextK": {
+          "before": 1953,
+          "after": 1000
+        }
+      },
+      "source": "https://docs.x.ai/developers/pricing"
+    },
+    {
+      "id": "grok-4-20-multi-agent",
+      "changes": {
+        "contextK": {
+          "before": 1953,
+          "after": 1000
+        }
+      },
+      "source": "https://docs.x.ai/developers/pricing"
+    },
+    {
+      "id": "deepseek-v3-2",
+      "changes": {
+        "modality": {
+          "before": "text+image",
+          "after": "text"
+        }
+      },
+      "source": "https://huggingface.co/deepseek-ai/DeepSeek-V3.2"
+    },
+    {
+      "id": "minimax-m2-5",
+      "changes": {
+        "modality": {
+          "before": "text+image",
+          "after": "text"
+        },
+        "contextK": {
+          "before": 229,
+          "after": 205
+        }
+      },
+      "source": "https://platform.minimax.io/docs/guides/text-generation",
+      "sources": [
+        "https://platform.minimax.io/docs/guides/text-generation"
+      ]
+    },
+    {
+      "id": "gpt-4o",
+      "changes": {
+        "priceOut": {
+          "before": 15,
+          "after": 10
+        }
+      },
+      "source": "https://developers.openai.com/api/docs/models/gpt-4o"
+    },
+    {
+      "id": "o1",
+      "changes": {
+        "month": {
+          "before": 9,
+          "after": 12
+        },
+        "contextK": {
+          "before": 128,
+          "after": 200
+        },
+        "modality": {
+          "before": "text",
+          "after": "text+image"
+        }
+      },
+      "source": "https://developers.openai.com/api/docs/models/o1"
+    },
+    {
+      "id": "glm-5-3",
+      "changes": {
+        "contextK": {
+          "before": 1311,
+          "after": 1000
+        }
+      },
+      "source": "https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3"
+    },
+    {
+      "id": "minimax-m2",
+      "changes": {
+        "contextK": {
+          "before": 1000,
+          "after": 205
+        }
+      },
+      "source": "https://platform.minimax.io/docs/guides/text-generation"
+    },
+    {
+      "id": "minimax-m2-7",
+      "changes": {
+        "contextK": {
+          "before": 262,
+          "after": 205
+        }
+      },
+      "source": "https://platform.minimax.io/docs/guides/text-generation"
+    },
+    {
+      "id": "minimax-m3",
+      "changes": {
+        "contextK": {
+          "before": 1049,
+          "after": 1000
+        }
+      },
+      "source": "https://platform.minimax.io/docs/guides/text-generation"
+    }
+  ],
+  "addedModels": [
+    "gpt-6-1-sol",
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "claude-sonnet-5-5",
+    "claude-opus-5-5",
+    "claude-haiku-5-5",
+    "gemini-4-argon",
+    "grok-4-7",
+    "mistral-large-4-preview",
+    "mimo-v2-6-pro",
+    "mimo-v2-6-flash",
+    "step-5-preview",
+    "dots3-note-preview"
+  ],
+  "lookupOnly": [
+    "grok-4-20-multi-agent",
+    "muse-spark-1-2-contributor",
+    "l3-lunaris-8b"
+  ],
+  "policy": {
+    "context": "K means 1000 tokens, rounded; use supported window, not input+output sums or extrapolated settings",
+    "price": "USD per million text output tokens. Prefer first-party standard short-context rates; when absent use a documented historical official or named hosted rate. Exclude free quotas, :free mirrors, subscriptions and hourly deployment costs. No UI reference label. Unknown without reliable model-specific evidence remains null.",
+    "weights": "Downloadable weights, not an announcement to release later.",
+    "verification": "Field-specific corrections, not a claim that every legacy field has been fully reverified."
+  },
+  "deferredWorkbookEntries": [
+    {
+      "name": "Muse Wonder / WonderFull",
+      "reason": "Separate API and subscription variants; do not copy one price/context to both. Need complete first-party specifications."
+    },
+    {
+      "name": "LongCat 2.5 Preview",
+      "reason": "API pricing verified separately, downloadable weights status not established; do not guess the boolean clue."
+    },
+    {
+      "name": "Qwen3.8 Omni Flash",
+      "reason": "Workbook cites Qwen3 Omni Flash (a different version); claimed 128K is estimated."
+    },
+    {
+      "name": "Gemini 3.8 Live / Extended Thinking",
+      "reason": "Realtime service variants; context and per-modality prices in workbook estimated."
+    },
+    {
+      "name": "Qwen3.8 Max 0902",
+      "reason": "Base Max already present; avoid introducing dated snapshot as extra answer without version-specific clue distinction."
+    },
+    {
+      "name": "Fable 5.1 / Mythos 5.1",
+      "reason": "Fable already present; restricted-access Mythos not added as another automatically drawn answer."
+    },
+    {
+      "name": "Qwen3.8 Flash Next",
+      "reason": "Flash already present; Next is separate open-weight variant, needs complete first-party reconciliation."
+    }
+  ],
+  "followUpFacts": [
+    "The priceReview follow-up supersedes earlier null-price corrections where a sourced hosted or historical rate is now accepted. Existing correctedModels before/after entries are preserved as an audit trail.",
+    "Only enumerated price fields were checked in this follow-up; retained prices and other legacy fields are not claimed to have been reverified."
+  ],
+  "priceReview": {
+    "date": "2026-10-16",
+    "unit": "USD per million text output tokens",
+    "authorization": "User approved sourced hosted or historical official reference prices without a visible reference label.",
+    "selection": "Use a fixed named provider / region and standard text output rate for each model. This is not a market-minimum comparison. Keep exact source values for deterministic tiering, not an inferred parameter-count estimate.",
+    "previousUnknownCount": 35,
+    "filledCount": 19,
+    "remainingUnknownCount": 16,
+    "dailyAndCommonPoolUnknownCount": 0,
+    "corrections": [
+      {
+        "id": "hy3",
+        "before": null,
+        "after": 0.528,
+        "priceTier": 1,
+        "sourceType": "first-party",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "Hy3, international USD list price, Singapore",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "hy4-preview",
+        "before": null,
+        "after": 2.501,
+        "priceTier": 2,
+        "sourceType": "first-party",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "Hy4 Preview, international USD list price, Singapore",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "qwen3-8-27b",
+        "before": null,
+        "after": 3,
+        "priceTier": 2,
+        "sourceType": "first-party",
+        "provider": "Alibaba Cloud",
+        "source": "https://www.alibabacloud.com/help/en/model-studio/qwen3-8-27b",
+        "basis": "Qwen3.8 27B, Singapore standard output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "qwen3-235b-a22b-instruct-2507",
+        "before": null,
+        "after": 0.92,
+        "priceTier": 1,
+        "sourceType": "first-party",
+        "provider": "Alibaba Cloud",
+        "source": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "basis": "Qwen3-235B-A22B-Instruct-2507, Singapore non-thinking output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "qwen3-coder-next",
+        "before": null,
+        "after": 1.5,
+        "priceTier": 1,
+        "sourceType": "first-party",
+        "provider": "Alibaba Cloud",
+        "source": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "basis": "Qwen3-Coder-Next, Singapore standard input length <=32K; not long-context or batch pricing",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "gpt-5-2-codex",
+        "before": null,
+        "after": 14,
+        "priceTier": 3,
+        "sourceType": "historical-first-party",
+        "provider": "OpenAI",
+        "source": "https://developers.openai.com/api/docs/models/gpt-5.2-codex",
+        "basis": "GPT-5.2 Codex model page lists $14 output; deprecated model, historical price not availability claim",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "kimi-k2-5",
+        "before": null,
+        "after": 3,
+        "priceTier": 2,
+        "sourceType": "hosted",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "Kimi K2.5 standard hosted output price; not a claim about Moonshot direct API pricing",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "mimo-v2-6-pro",
+        "before": null,
+        "after": 0.87,
+        "priceTier": 1,
+        "sourceType": "hosted",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "MiMo V2.6 Pro standard hosted output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "mimo-v2-6-flash",
+        "before": null,
+        "after": 0.28,
+        "priceTier": 0,
+        "sourceType": "hosted",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "MiMo V2.6 Flash standard hosted output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "step-5-preview",
+        "before": null,
+        "after": 2.7,
+        "priceTier": 2,
+        "sourceType": "hosted",
+        "provider": "Tencent",
+        "source": "https://intl.cloud.tencent.com/document/product/1300/78937",
+        "basis": "Step 5 Preview standard hosted output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "gpt-oss-120b",
+        "before": null,
+        "after": 0.6,
+        "priceTier": 1,
+        "sourceType": "hosted",
+        "provider": "Groq",
+        "source": "https://console.groq.com/docs/models",
+        "basis": "openai/gpt-oss-120b standard output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "gpt-oss-20b",
+        "before": null,
+        "after": 0.3,
+        "priceTier": 0,
+        "sourceType": "hosted",
+        "provider": "Groq",
+        "source": "https://console.groq.com/docs/models",
+        "basis": "openai/gpt-oss-20b standard output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "gemma-4-31b-it",
+        "before": null,
+        "after": 0.97,
+        "priceTier": 1,
+        "sourceType": "hosted",
+        "provider": "Together AI",
+        "source": "https://www.together.ai/pricing",
+        "basis": "Gemma 4 31B IT standard serverless output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "qwen3-5-9b",
+        "before": null,
+        "after": 0.25,
+        "priceTier": 0,
+        "sourceType": "hosted",
+        "provider": "Together AI",
+        "source": "https://www.together.ai/pricing",
+        "basis": "Qwen3.5 9B standard serverless output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "llama-3-3-70b",
+        "before": null,
+        "after": 1.04,
+        "priceTier": 1,
+        "sourceType": "hosted",
+        "provider": "Together AI",
+        "source": "https://www.together.ai/pricing",
+        "basis": "Llama 3.3 70B Instruct standard serverless output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "gemma-4-26b-a4b-it",
+        "before": null,
+        "after": 0.34,
+        "priceTier": 0,
+        "sourceType": "hosted",
+        "provider": "DeepInfra",
+        "source": "https://deepinfra.com/pricing",
+        "basis": "Gemma 4 26B A4B IT standard output price",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "mistral-nemo",
+        "before": null,
+        "after": 0.03,
+        "priceTier": 0,
+        "sourceType": "hosted",
+        "provider": "DeepInfra",
+        "source": "https://deepinfra.com/pricing",
+        "basis": "Mistral Nemo standard output price; restored under the newly approved hosted-price policy",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "llama-2",
+        "before": null,
+        "after": 2.56,
+        "priceTier": 2,
+        "sourceType": "hosted",
+        "provider": "AWS Bedrock",
+        "source": "https://aws.amazon.com/bedrock/pricing/",
+        "basis": "Llama 2 Chat 70B output price in US East (N. Virginia) / US West (Oregon); Instruct/Chat serving reference for the classic 70B model",
+        "checkedAt": "2026-10-16"
+      },
+      {
+        "id": "mistral-7b",
+        "before": null,
+        "after": 0.2,
+        "priceTier": 0,
+        "sourceType": "historical-hosted",
+        "provider": "AWS Bedrock",
+        "source": "https://aws.amazon.com/bedrock/pricing/",
+        "basis": "Mistral 7B Instruct on-demand worked billing example: $0.0002 per 1000 output tokens = $0.20/M; not a current availability claim",
+        "checkedAt": "2026-10-16"
+      }
+    ],
+    "remainingUnknown": [
+      {
+        "id": "gpt-3",
+        "name": "GPT-3 175B",
+        "reason": "Legacy Davinci/175B version and historical output tariff need exact matching; no verified matching source in this review."
+      },
+      {
+        "id": "claude-1",
+        "name": "Claude 1",
+        "reason": "No verified Claude 1-specific output tariff; Claude Instant and Claude 2 prices are not substitutes."
+      },
+      {
+        "id": "gemma",
+        "name": "Gemma 7B",
+        "reason": "No verified matching Gemma 7B hosted rate; newer Gemma generations are different models."
+      },
+      {
+        "id": "llama-3",
+        "name": "Llama 3 70B",
+        "reason": "No verified matching original Llama 3 70B tariff; do not reuse Llama 3.1/3.3 prices."
+      },
+      {
+        "id": "code-llama",
+        "name": "Code Llama 34B",
+        "reason": "No verified Code Llama 34B hosted output tariff."
+      },
+      {
+        "id": "mixtral-8x7b",
+        "name": "Mixtral 8x7B",
+        "reason": "No verified matching Mixtral 8x7B hosted output tariff."
+      },
+      {
+        "id": "vicuna",
+        "name": "Vicuna 13B",
+        "reason": "No verified Vicuna 13B version-specific output tariff."
+      },
+      {
+        "id": "alpaca",
+        "name": "Alpaca 7B",
+        "reason": "No verified Alpaca 7B per-token hosted tariff."
+      },
+      {
+        "id": "phi-3",
+        "name": "Phi-3",
+        "reason": "Catalogue label lacks precise size/serving version; do not substitute another Phi version."
+      },
+      {
+        "id": "qwen-15",
+        "name": "Qwen1.5 72B",
+        "reason": "No verified Qwen1.5 72B tariff; later Qwen versions are not substitutes."
+      },
+      {
+        "id": "qwen2",
+        "name": "Qwen2 72B",
+        "reason": "No verified text Qwen2 72B tariff; Qwen2-VL pricing is not equivalent."
+      },
+      {
+        "id": "glm-4",
+        "name": "GLM-4",
+        "reason": "Need a rate tied to the catalogue legacy GLM-4 version, not later dated or Flash/Plus variants."
+      },
+      {
+        "id": "ernie-bot",
+        "name": "ERNIE Bot",
+        "reason": "Product label does not identify a single billable model/SKU."
+      },
+      {
+        "id": "doubao",
+        "name": "Doubao Pro",
+        "reason": "Need the legacy Doubao Pro 32K SKU and dated tariff; do not borrow current Seed prices."
+      },
+      {
+        "id": "yi",
+        "name": "Yi 34B",
+        "reason": "No verified original Yi 34B hosted tariff."
+      },
+      {
+        "id": "dots3-note-preview",
+        "name": "dots3 note Preview",
+        "reason": "No verified model-specific official or hosted output price found."
+      }
+    ]
+  },
+  "gameplayPriceOverrides": [
+    {
+      "id": "dots3-note-preview",
+      "priceTier": 0,
+      "label": "近免费",
+      "decidedAt": "2026-10-16",
+      "basis": "Explicit user decision: currently free to use; retain near-free gameplay band even if pricing changes later.",
+      "priceOut": null,
+      "notes": "No exact per-token API quote asserted. priceReview.remainingUnknown records missing sourced numeric quotes; unknown gameplay price clues now total 15, all in difficulty 4."
+    }
+  ],
+  "difficultyReview": {
+    "date": "2026-10-16",
+    "policy": "保留所有可搜索型号；四档层叠，仅完整线索的代表型号自动出题；每日从简单和普通单独精选；旧房间沿用目录快照。",
+    "changes": [
+      {
+        "id": "glm-5",
+        "name": "GLM-5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "glm-5-1",
+        "name": "GLM-5.1",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "glm-5-2",
+        "name": "GLM-5.2",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "deepseek-v4-flash",
+        "name": "DeepSeek V4 Flash",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "kimi-k2-5",
+        "name": "Kimi K2.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "kimi-k2-7-code",
+        "name": "Kimi K2.7 Code",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "minimax-m2",
+        "name": "MiniMax-M2",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "minimax-m2-1",
+        "name": "MiniMax-M2.1",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "minimax-m2-5",
+        "name": "MiniMax-M2.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "minimax-m2-7-highspeed",
+        "name": "MiniMax-M2.7 Highspeed",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "claude-opus-4-8",
+        "name": "Claude Opus 4.8",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "gpt-5-4",
+        "name": "GPT-5.4",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "claude-haiku-4-5",
+        "name": "Claude Haiku 4.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "claude-opus-4-7",
+        "name": "Claude Opus 4.7",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-opus-4-1",
+        "name": "Claude Opus 4.1",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-opus-4-5",
+        "name": "Claude Opus 4.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-opus-4-6",
+        "name": "Claude Opus 4.6",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-6-luna",
+        "name": "GPT-5.6 Luna",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-6-sol",
+        "name": "GPT-5.6 Sol",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-fable-5",
+        "name": "Claude Fable 5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-mini",
+        "name": "GPT-5 Mini",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-6-terra",
+        "name": "GPT-5.6 Terra",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gpt-5-6-sol"
+      },
+      {
+        "id": "glm-4-5",
+        "name": "GLM-4.5",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "glm-4-6",
+        "name": "GLM-4.6",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "qwen3-max",
+        "name": "Qwen3 Max",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "qwen3-7-max",
+        "name": "Qwen3.7 Max",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "claude-sonnet-4-5",
+        "name": "Claude Sonnet 4.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gemini-2-5-flash",
+        "name": "Gemini 2.5 Flash",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "gemini-3-5-flash",
+        "name": "Gemini 3.5 Flash",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "llama-3-3-70b",
+        "name": "Llama 3.3 70B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "deepseek-v3-2",
+        "name": "DeepSeek V3.2",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "gpt-5-nano",
+        "name": "GPT-5 Nano",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "qwen3-5-397b-a17b",
+        "name": "Qwen3.5 397B A17B",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen3-5-27b"
+      },
+      {
+        "id": "qwen3-5-plus",
+        "name": "Qwen3.5 Plus",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "qwen3-6-plus",
+        "name": "Qwen3.6 Plus",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "qwen3-5-27b",
+        "name": "Qwen3.5 27B",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "qwen3-6-27b",
+        "name": "Qwen3.6 27B",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "qwen3-8-27b",
+        "name": "Qwen3.8 27B",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "gemini-3-1-pro-preview",
+        "name": "Gemini 3.1 Pro Preview",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "同系列非代表版本进入普通档；每日精选"
+      },
+      {
+        "id": "gpt-5-1",
+        "name": "GPT-5.1",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-2",
+        "name": "GPT-5.2",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gpt-5-1-codex",
+        "name": "GPT-5.1 Codex",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gpt-5-1"
+      },
+      {
+        "id": "gpt-5-1-codex-mini",
+        "name": "GPT-5.1 Codex Mini",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gpt-5-2-codex",
+        "name": "GPT-5.2 Codex",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gpt-5-2"
+      },
+      {
+        "id": "grok-4-3",
+        "name": "Grok 4.3",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "grok-4-5",
+        "name": "Grok 4.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "grok-4-6",
+        "name": "Grok 4.6",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gemini-2-5-flash-lite",
+        "name": "Gemini 2.5 Flash-Lite",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gemini-3-1-flash-lite",
+        "name": "Gemini 3.1 Flash Lite",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gemini-3-5-flash-lite",
+        "name": "Gemini 3.5 Flash Lite",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gemini-3-6-flash"
+      },
+      {
+        "id": "qwen3-5-35b-a3b",
+        "name": "Qwen3.5 35B A3B",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen3-5-27b"
+      },
+      {
+        "id": "qwen3-6-35b-a3b",
+        "name": "Qwen3.6 35B A3B",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "参数量或速度细分进入困难档"
+      },
+      {
+        "id": "mimo-v2-5-pro",
+        "name": "MiMo-V2.5-Pro",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "mimo-v2-5",
+        "name": "MiMo-V2.5",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gemini-3-6-flash",
+        "name": "Gemini 3.6 Flash",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "同系列非代表版本进入普通档"
+      },
+      {
+        "id": "gemini-3-flash-preview",
+        "name": "Gemini 3 Flash Preview",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "qwen3-6-flash",
+        "name": "Qwen3.6 Flash",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "deepseek-v3-1",
+        "name": "DeepSeek V3.1",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gemini-3-8-flash",
+        "name": "Gemini 3.8 Flash",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gpt-5-pro",
+        "name": "GPT-5 Pro",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gpt-5-4-pro",
+        "name": "GPT-5.4 Pro",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "o4-mini",
+        "name": "o4-mini",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "常见或经典型号进入普通档；每日精选"
+      },
+      {
+        "id": "deepseek-v3",
+        "name": "DeepSeek V3",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "qwen3-5-122b-a10b",
+        "name": "Qwen3.5 122B A10B",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen3-5-27b"
+      },
+      {
+        "id": "step-3-7-flash",
+        "name": "Step 3.7 Flash",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "glm-5v-turbo",
+        "name": "GLM-5V Turbo",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "hy3",
+        "name": "Hy3",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gpt-3",
+        "name": "GPT-3 175B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "gpt-4",
+        "name": "GPT-4",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "常见或经典型号进入普通档；每日精选"
+      },
+      {
+        "id": "gpt-35-turbo",
+        "name": "GPT-3.5 Turbo",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "常见或经典型号进入普通档；每日精选"
+      },
+      {
+        "id": "claude-1",
+        "name": "Claude 1",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "gemma",
+        "name": "Gemma 7B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "llama-3",
+        "name": "Llama 3 70B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "code-llama",
+        "name": "Code Llama 34B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "mixtral-8x7b",
+        "name": "Mixtral 8x7B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "vicuna",
+        "name": "Vicuna 13B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "alpaca",
+        "name": "Alpaca 7B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "phi-3",
+        "name": "Phi-3",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "qwen-15",
+        "name": "Qwen1.5 72B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "qwen2",
+        "name": "Qwen2 72B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "glm-4",
+        "name": "GLM-4",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "ernie-bot",
+        "name": "ERNIE Bot",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "doubao",
+        "name": "Doubao Pro",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "yi",
+        "name": "Yi 34B",
+        "before": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "doubao-seed-1-8",
+        "name": "Doubao Seed 1.8",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "doubao-seed-2-0-pro",
+        "name": "Doubao Seed 2.0 Pro",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "doubao-seed-2-1-pro",
+        "name": "Doubao Seed 2.1 Pro",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "线索不完整，仅保留搜索"
+      },
+      {
+        "id": "gpt-4-1-mini",
+        "name": "GPT-4.1 mini",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "常见或经典型号进入普通档；每日精选"
+      },
+      {
+        "id": "qwen3-7-flash",
+        "name": "Qwen3.7 Flash",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "glm-4-7-flash",
+        "name": "GLM-4.7 Flash",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "llama-3-1-8b-instruct",
+        "name": "Llama 3.1 8B Instruct",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：llama-3-1-70b-instruct"
+      },
+      {
+        "id": "muse-spark-1-2",
+        "name": "Muse Spark 1.2",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "glm-5-turbo",
+        "name": "GLM-5 Turbo",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "qwen3-coder-480b-a35b",
+        "name": "Qwen3 Coder 480B A35B",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen3-coder-30b-a3b"
+      },
+      {
+        "id": "muse-spark-1-1",
+        "name": "Muse Spark 1.1",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "gemma-3-12b-it",
+        "name": "Gemma 3 12B",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gemma-3-27b-it"
+      },
+      {
+        "id": "qwen3-vl-8b-instruct",
+        "name": "Qwen3 VL 8B Instruct",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen3-vl-32b-instruct"
+      },
+      {
+        "id": "aion-3-0",
+        "name": "Aion-3.0",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "专门系列进入地狱档"
+      },
+      {
+        "id": "longcat-2-0",
+        "name": "LongCat 2.0",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "保留原难度"
+      },
+      {
+        "id": "qwen-2-5-7b-instruct",
+        "name": "Qwen2.5 7B Instruct",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：qwen-2-5-72b-instruct"
+      },
+      {
+        "id": "granite-4-0-h-micro",
+        "name": "Granite 4.0 Micro",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 4,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "reason": "专门系列进入地狱档"
+      },
+      {
+        "id": "ministral-14b-2512",
+        "name": "Ministral 3 14B 2512",
+        "before": {
+          "difficulty": 3,
+          "answerEligible": true,
+          "dailyEligible": false
+        },
+        "after": {
+          "difficulty": 3,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：ministral-8b-2512"
+      },
+      {
+        "id": "gpt-6-sol",
+        "name": "GPT-6 Sol",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：gpt-6-1-sol"
+      },
+      {
+        "id": "claude-opus-5-5",
+        "name": "Claude Opus 5.5",
+        "before": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 2,
+          "answerEligible": false,
+          "dailyEligible": false
+        },
+        "reason": "同线索代表：claude-sonnet-5-5"
+      },
+      {
+        "id": "grok-4-7",
+        "name": "Grok 4.7",
+        "before": {
+          "difficulty": 2,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "after": {
+          "difficulty": 1,
+          "answerEligible": true,
+          "dailyEligible": true
+        },
+        "reason": "简单档代表型号；每日精选"
+      }
+    ],
+    "identicalClueRepresentatives": [
+      {
+        "representative": "gpt-5-6-sol",
+        "lookupOnly": [
+          "gpt-5-6-terra"
+        ]
+      },
+      {
+        "representative": "qwen3-5-27b",
+        "lookupOnly": [
+          "qwen3-5-397b-a17b",
+          "qwen3-5-35b-a3b",
+          "qwen3-5-122b-a10b"
+        ]
+      },
+      {
+        "representative": "gpt-5-1",
+        "lookupOnly": [
+          "gpt-5-1-codex"
+        ]
+      },
+      {
+        "representative": "gpt-5-2",
+        "lookupOnly": [
+          "gpt-5-2-codex"
+        ]
+      },
+      {
+        "representative": "gemini-3-6-flash",
+        "lookupOnly": [
+          "gemini-3-5-flash-lite"
+        ]
+      },
+      {
+        "representative": "qwen3-coder-30b-a3b",
+        "lookupOnly": [
+          "qwen3-coder-480b-a35b"
+        ]
+      },
+      {
+        "representative": "llama-3-1-70b-instruct",
+        "lookupOnly": [
+          "llama-3-1-8b-instruct"
+        ]
+      },
+      {
+        "representative": "gemma-3-27b-it",
+        "lookupOnly": [
+          "gemma-3-12b-it"
+        ]
+      },
+      {
+        "representative": "qwen3-vl-32b-instruct",
+        "lookupOnly": [
+          "qwen3-vl-8b-instruct"
+        ]
+      },
+      {
+        "representative": "ministral-8b-2512",
+        "lookupOnly": [
+          "ministral-14b-2512"
+        ]
+      },
+      {
+        "representative": "qwen-2-5-72b-instruct",
+        "lookupOnly": [
+          "qwen-2-5-7b-instruct"
+        ]
+      },
+      {
+        "representative": "gpt-6-1-sol",
+        "lookupOnly": [
+          "gpt-6-sol"
+        ]
+      },
+      {
+        "representative": "claude-sonnet-5-5",
+        "lookupOnly": [
+          "claude-opus-5-5"
+        ]
+      }
+    ],
+    "dailyIds": [
+      "claude-fable-5-1",
+      "claude-haiku-4-5",
+      "claude-haiku-5-5",
+      "claude-opus-4-8",
+      "claude-opus-5",
+      "claude-sonnet-4-6",
+      "claude-sonnet-5-5",
+      "deepseek-r1",
+      "deepseek-v3-2",
+      "deepseek-v4-1-flash",
+      "deepseek-v4-pro",
+      "gemini-2-5-flash",
+      "gemini-2-5-pro",
+      "gemini-3-1-pro-preview",
+      "gemini-3-7-flash",
+      "gemini-4-argon",
+      "glm-4-7",
+      "glm-5-2",
+      "glm-5-3",
+      "glm-5-3-flash",
+      "gpt-35-turbo",
+      "gpt-4",
+      "gpt-4-1",
+      "gpt-4-1-mini",
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-5",
+      "gpt-5-3-codex",
+      "gpt-5-4",
+      "gpt-5-4-mini",
+      "gpt-5-4-nano",
+      "gpt-5-5",
+      "gpt-5-5-pro",
+      "gpt-6-1-sol",
+      "gpt-6-astra",
+      "gpt-6-luna",
+      "grok-4-7",
+      "hy4-preview",
+      "kimi-k2-5",
+      "kimi-k2-6",
+      "kimi-k2-thinking",
+      "kimi-k3",
+      "mimo-v2-6-flash",
+      "mimo-v2-6-pro",
+      "minimax-m2-7",
+      "minimax-m3",
+      "mistral-large-4-preview",
+      "muse-spark-1-3",
+      "o3",
+      "o4-mini",
+      "qwen3-7-plus",
+      "qwen3-8-flash",
+      "qwen3-8-max",
+      "step-5-preview"
+    ],
+    "incompleteIds": [
+      "gpt-3",
+      "claude-1",
+      "gemma",
+      "llama-3",
+      "code-llama",
+      "mixtral-8x7b",
+      "vicuna",
+      "alpaca",
+      "phi-3",
+      "qwen-15",
+      "qwen2",
+      "glm-4",
+      "ernie-bot",
+      "doubao",
+      "yi",
+      "doubao-seed-1-8",
+      "doubao-seed-2-0-pro",
+      "doubao-seed-2-1-pro"
+    ]
+  }
+}

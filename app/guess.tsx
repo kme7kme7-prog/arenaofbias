@@ -51,6 +51,8 @@ import {
   MAX_ATTEMPTS,
   PracticeExpiredError,
   DailyChangedError,
+  CatalogChangedError,
+  dailyCatalogChanged,
   RateLimitedError,
   reportResult,
   settleStats,
@@ -164,18 +166,18 @@ function FeedbackCell({
 }
 
 // ── 双模式入口（决策 064/081）──
-// 进游戏先选模式：每日一题（全球同题，种子派生，只出普通池=简单+普通）；
+// 进游戏先选模式：每日一题（全球同题，种子派生，从简单、普通中精选）；
 // 练习模式（四档难度随机出题、不限次、可再来一把，不计战绩）。池是层叠的：
-// 难度 k 的池 = difficulty ≤ k 的全部模型（地狱=全库）。地狱卡横跨栅格整行、
+// 难度 k 的池 = difficulty ≤ k 且有出题资格的模型。地狱卡横跨栅格整行、
 // 低一层视觉层级；空池时禁用（防御，收录后自动开放）。
 // 对照页用 localStorage 键 guess-force-mode（'daily' | '1'-'4'）跳过本屏。
 
 const DIFFICULTY_ICONS = [Sprout, Compass, Flame, Skull] as const;
 const DIFFICULTY_BLURBS = [
-  '热门模型专场，都叫得上名字',
-  '热门与主流都在场，答案得绕点弯',
-  '上面两档之外，经典与冷门也进场',
-  '全库上阵，含只在这里出没的化石与传说',
+  '常见系列的代表型号',
+  '主流型号与经典模型',
+  '细分版本、参数规格与专门系列',
+  '范围最广，包含较冷门的型号',
 ] as const;
 
 type PlayMode = 'daily' | GuessDifficulty;
@@ -184,7 +186,7 @@ type ModeStatus = { kind: 'fresh' | 'done' | 'active' };
 
 /** 今日状态角标：未开始、可续玩或已完成。 */
 function dailyStatus(data: TodayResponse): ModeStatus {
-  const saved = loadDailySession(data.dayKey, data.models);
+  const saved = loadDailySession(data.dayKey, data.models, data.catalogVersion);
   return { kind: saved?.finished ? 'done' : saved?.guesses.length ? 'active' : 'fresh' };
 }
 
@@ -289,8 +291,8 @@ export default function GuessPage() {
       // setToday 必须写回（2026-09-20 审查修复）：跨零点守卫的收敛条件靠它——
       // 不写的话 today 永远停在开局那天，守卫永不收敛，之后每次提交都被丢弃
       setToday(data);
-      setError(null);
-      setSession(loadDailySession(data.dayKey, data.models) ?? emptySession());
+      setError(dailyCatalogChanged(data.dayKey, data.catalogVersion) ? t('题库资料已更新，本日未完成的对局已重置；累计战绩保留。') : null);
+      setSession(loadDailySession(data.dayKey, data.models, data.catalogVersion) ?? emptySession());
       setStats(loadStats());
       setGameId(null);
       setMode('daily');
@@ -381,15 +383,15 @@ export default function GuessPage() {
     }, 'back');
   }
 
-  // 当前模式的答案池（层叠，081）：每日=普通池（≤2）；练习=≤所选难度。
+  // 当前模式的答案池：每日单独精选；练习=≤所选难度的可出题模型。
   // 只决定「答什么」，搜索候选不限于此（见下）
   const pool = useMemo(() => {
     if (!today || mode === null) return [];
     if (mode === 'daily')
       return today.models.filter((m) =>
-        DAILY_DIFFICULTIES.includes(m.difficulty),
+        m.answerEligible !== false && m.dailyEligible === true && DAILY_DIFFICULTIES.includes(m.difficulty),
       );
-    return today.models.filter((m) => m.difficulty <= mode);
+    return today.models.filter((m) => m.answerEligible !== false && m.difficulty <= mode);
   }, [today, mode]);
 
   const usedIds = useMemo(
@@ -435,7 +437,7 @@ export default function GuessPage() {
       if (event.key !== `guess-daily:${today.dayKey}` && event.key !== `guess-settled:${today.dayKey}`) return;
       setStats(loadStats());
       if (mode === 'daily') {
-        const saved = loadDailySession(today.dayKey, today.models);
+        const saved = loadDailySession(today.dayKey, today.models, today.catalogVersion);
         if (saved) { setSession(saved); setFreshGuess(null); }
       }
     };
@@ -524,7 +526,7 @@ export default function GuessPage() {
 
   function syncNewerDaily(): boolean {
     if (mode !== 'daily' || !today) return false;
-    const saved = loadDailySession(today.dayKey, today.models);
+    const saved = loadDailySession(today.dayKey, today.models, today.catalogVersion);
     if (saved && (saved.finished || JSON.stringify(saved.guesses) !== JSON.stringify(session?.guesses ?? []))) {
       setSession(saved);
       setFreshGuess(null);
@@ -547,8 +549,19 @@ export default function GuessPage() {
         isFinalAttempt,
         mode === 'daily' ? undefined : (gameId ?? undefined),
         mode === 'daily' ? today.dayKey : undefined,
+        today.catalogVersion,
       );
     } catch (error) {
+      if (error instanceof CatalogChangedError) {
+        const fresh = await fetchToday();
+        if (!mounted.current) return;
+        if (!fresh) { setError(t('题库暂时无法更新，请刷新重试。')); return; }
+        setToday(fresh);
+        if (mode === 'daily') enterDaily(fresh);
+        else await recoverExpiredPractice(mode);
+        setError(t('题库资料已更新，已重新载入本局；累计战绩保留。'));
+        return;
+      }
       if (error instanceof DailyChangedError) {
         await dailyRolledOver(true);
         return;
@@ -585,7 +598,7 @@ export default function GuessPage() {
     };
     if (mode === 'daily') {
       if (syncNewerDaily()) return;
-      saveDailySession(today.dayKey, next);
+      saveDailySession(today.dayKey, next, today.catalogVersion);
     }
     if (!mounted.current) return;
     setFreshGuess(model.id);
@@ -624,8 +637,19 @@ export default function GuessPage() {
         true,
         mode === 'daily' ? undefined : (gameId ?? undefined),
         mode === 'daily' ? today.dayKey : undefined,
+        today.catalogVersion,
       );
     } catch (error) {
+      if (error instanceof CatalogChangedError) {
+        const fresh = await fetchToday();
+        if (!mounted.current) return;
+        if (!fresh) { setError(t('题库暂时无法更新，请刷新重试。')); return; }
+        setToday(fresh);
+        if (mode === 'daily') enterDaily(fresh);
+        else await recoverExpiredPractice(mode);
+        setError(t('题库资料已更新，已重新载入本局；累计战绩保留。'));
+        return;
+      }
       if (error instanceof DailyChangedError) {
         await dailyRolledOver(true);
         return;
@@ -656,7 +680,7 @@ export default function GuessPage() {
     };
     if (mode === 'daily') {
       if (syncNewerDaily()) return;
-      saveDailySession(today.dayKey, next);
+      saveDailySession(today.dayKey, next, today.catalogVersion);
     }
     if (!mounted.current) return;
     setSession(next);
@@ -763,7 +787,7 @@ export default function GuessPage() {
             {(() => {
               const status = dailyStatus(today);
               const dailyCount = today.models.filter((m) =>
-                DAILY_DIFFICULTIES.includes(m.difficulty),
+                m.answerEligible !== false && m.dailyEligible === true && DAILY_DIFFICULTIES.includes(m.difficulty),
               ).length;
               return (
                 <button
@@ -816,7 +840,7 @@ export default function GuessPage() {
                 const Icon = DIFFICULTY_ICONS[d - 1];
                 // 层叠池（081）：难度 k 的候选 = difficulty ≤ k 的全部模型
                 const count = today.models.filter(
-                  (m) => m.difficulty <= d,
+                  (m) => m.answerEligible !== false && m.difficulty <= d,
                 ).length;
                 // 空池禁用入口（防御：服务端对空池拒开局），收录后自动开放
                 const unavailable = count === 0;
@@ -871,7 +895,7 @@ export default function GuessPage() {
               </p>
             )}
             <p className="guess-difficulty-foot">
-              {t('每日一题只从简单与普通池出；练习不限次，战绩只记每日题。')}
+              {t('每日一题从简单和普通中精选；练习不限次，战绩只记每日题。')}
             </p>
           </section>
         ) : (
@@ -1196,6 +1220,9 @@ export default function GuessPage() {
                         ? ` · $${session.answer.priceOut}/M`
                         : ''}
                     </p>
+                    {won && session.answer && session.guesses.some(row => row.won && row.guess.id !== session.answer?.id) && (
+                      <p>{t('你猜的模型与答案七条线索完全相同，按等价答案计为猜中。')}</p>
+                    )}
                   </div>
                   <div className="guess-result-actions">
                     {mode === 'daily' ? (
@@ -1395,9 +1422,10 @@ export default function GuessPage() {
                 </p>
                 <p>
                   {t(
-                    '价格按官方 API 输出单价分档；箭头指向答案更高或更低的方向。',
+                    '价格按 API 输出单价分档；箭头指向答案更高或更低的方向。',
                   )}
                 </p>
+                <p>{t('旗舰：$25–50/M；顶档：≥$50/M。七条线索完全相同的模型，猜中任一个都算赢。')}</p>
                 <p>
                   {t(
                     '战绩只记每日一题，一天只记一次；练习模式随便刷，不影响连胜。每日挑战保留进度，完成后当天不能重玩；练习可重新开局。',
