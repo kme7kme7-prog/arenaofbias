@@ -104,7 +104,8 @@ const catalog = [
   },
   {
     id: 'generals',
-    progress: 80,
+    href: '/generals.html',
+    cta: '开始交锋',
     name: '将军对垒',
     title: ['将军', '对垒'],
     short: 'AI 训练 bot，攻城夺地',

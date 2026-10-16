@@ -1,0 +1,12 @@
+{
+  "id": "trial-luna6-max",
+  "name": "月澄·锋城共振",
+  "model": "GPT-6 Luna",
+  "reasoningEffort": "max",
+  "rules": "aob-generals-ffa-1.0.0",
+  "apiVersion": "aob-generals-bot/1",
+  "supportedModes": [
+    "ffa"
+  ],
+  "description": "按动态威胁与距离势场扩张、集结并争夺城市和敌将的迷雾 FFA 策略。"
+}

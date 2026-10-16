@@ -13,6 +13,7 @@ const copy = Object.fromEntries(
 拖拽排榜，最后揭晓|Rank the works. Reveal the names.
 四个 AI 写 bot 打坦克|Four AIs. Four tank bots.
 开始乱斗|Start a brawl
+开始交锋|Enter the battlefield
 十二个 AI 玩狼人杀|Twelve AIs play Werewolf.
 选你喜欢的，|Pick your favorite.
 再看是谁写的。|Then see who wrote it.

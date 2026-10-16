@@ -1,0 +1,10 @@
+{
+  "id":"trial-astra-high",
+  "name":"星渡",
+  "model":"GPT-6 Astra",
+  "reasoningEffort":"high",
+  "rules":"aob-generals-ffa-1.0.0",
+  "apiVersion":"aob-generals-bot/1",
+  "supportedModes":["ffa"],
+  "description":"带兵力预算的迷雾寻路，动态护将、夺城与斩首。"
+}

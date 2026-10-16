@@ -1,0 +1,12 @@
+{
+  "id": "trial-sol56-high",
+  "name": "潮汐锋",
+  "model": "GPT-5.6 Sol",
+  "reasoningEffort": "high",
+  "rules": "aob-generals-ffa-1.0.0",
+  "apiVersion": "aob-generals-bot/1",
+  "supportedModes": [
+    "ffa"
+  ],
+  "description": "以动态护将、记忆追猎、集中战线与后方汇兵驱动的尺寸无关 FFA 策略。"
+}

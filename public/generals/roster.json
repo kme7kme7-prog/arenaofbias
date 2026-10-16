@@ -1,0 +1,178 @@
+[
+  {
+    "id": "trial-astra-high",
+    "name": "星渡",
+    "model": "GPT-6 Astra",
+    "reasoningEffort": "high",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "带兵力预算的迷雾寻路，动态护将、夺城与斩首。",
+    "kind": "entry",
+    "sha256": "94507a387c573164b95b9bae0fd45939fa0abe6cd8d32ba09eeb0e456bd3c475"
+  },
+  {
+    "id": "trial-sol61-high",
+    "name": "巡衡",
+    "model": "GPT-6.1 Sol",
+    "reasoningEffort": "high",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "按兵力损耗寻找攻将与城市路线，以动态护将和友军补给维持迷雾战线。",
+    "kind": "entry",
+    "sha256": "5d8c5f8410a96b221f1253051cafc50713b887c7415809736775ae9d51725cdf"
+  },
+  {
+    "id": "trial-luna6-max",
+    "name": "月澄·锋城共振",
+    "model": "GPT-6 Luna",
+    "reasoningEffort": "max",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "按动态威胁与距离势场扩张、集结并争夺城市和敌将的迷雾 FFA 策略。",
+    "kind": "entry",
+    "sha256": "50a022e32f23e8cccf8d1eafee9a838823b5124193bba18f64972e2695ab144b"
+  },
+  {
+    "id": "trial-terra56-high",
+    "name": "边境潮汐",
+    "model": "GPT-5.6 Terra",
+    "reasoningEffort": "high",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "按可见威胁、记忆目标和前沿兵力动态推进的迷雾 FFA 策略。",
+    "kind": "entry",
+    "sha256": "140ab29b23374c43f626cc84fa9da500fcc70969c45a7c24ea0ec9ce64017465"
+  },
+  {
+    "id": "trial-sol56-high",
+    "name": "潮汐锋",
+    "model": "GPT-5.6 Sol",
+    "reasoningEffort": "high",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "以动态护将、记忆追猎、集中战线与后方汇兵驱动的尺寸无关 FFA 策略。",
+    "kind": "entry",
+    "sha256": "5d26f6122744972ff8e49c2ced16fa56136b5058b4060e22b23e0c4b891a0707"
+  },
+  {
+    "id": "random",
+    "name": "baseline-01",
+    "description": "纯随机乱走，欢乐担当。",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "group": "easy",
+    "kind": "training",
+    "source": "builtin",
+    "authorModel": "内置陪练",
+    "originalName": "Random 随机哥",
+    "sha256": "39572b917788a739fbff6575a5074dc6b8ae3944ec9a7f95bf2be98f5a778e8c"
+  },
+  {
+    "id": "locust",
+    "name": "baseline-02",
+    "description": "贪婪铺地、守将、见到敌将就扑。固定公开陪练。",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "group": "easy",
+    "kind": "training",
+    "source": "builtin",
+    "authorModel": "内置陪练",
+    "originalName": "Locust 蝗虫",
+    "sha256": "68f7f2b58623df18e0ee2fee960d115ff80b5f17375d24fd4e74e1783a0775fb"
+  },
+  {
+    "id": "blitz",
+    "name": "baseline-03",
+    "description": "ALL-IN 攻势流：卫兵只留 12，见到敌将全军冲锋。",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "group": "easy",
+    "kind": "training",
+    "source": "builtin",
+    "authorModel": "内置陪练",
+    "originalName": "Blitz 闪电战",
+    "sha256": "7bf6fa1f877a7064f35867f8aae02f1a5bb551abb38d352b1fa5756b33e895d7"
+  },
+  {
+    "id": "fortress",
+    "name": "baseline-04",
+    "description": "龟壳经济流：将军 40 卫兵，抢城优先，攒出大军再一波推。",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "group": "easy",
+    "kind": "training",
+    "source": "builtin",
+    "authorModel": "内置陪练",
+    "originalName": "Fortress 铁壁",
+    "sha256": "1fd1f311a1af0f5f889651bd1161948b5924b737f4debe381559a6fb725dd810"
+  },
+  {
+    "id": "luna-sentinel",
+    "name": "baseline-05",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "动态护将、战线集结与可见斩首并重的多阶段 FFA 策略。",
+    "group": "hard",
+    "kind": "training",
+    "source": "independent-generated-training",
+    "sha256": "3fcd2d167f6d24f16b49ecda9b31e9d97cb2f4b1445a10229d12a04bb3f0eb5b",
+    "authorModel": "GPT-6 Luna",
+    "originalName": "月盾·边境猎手"
+  },
+  {
+    "id": "sol-vanguard",
+    "name": "baseline-06",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "记忆迷雾地图、响应将军威胁，并以分层前线和后方汇兵持续施压的进阶陪练。",
+    "group": "hard",
+    "kind": "training",
+    "source": "independent-generated-training",
+    "sha256": "4b922d8455b12c8bfcaec01150cef29ed9d3a1679cecfe5278fcc8fdc23c5186",
+    "authorModel": "GPT-5.6 Sol",
+    "originalName": "霁锋"
+  },
+  {
+    "id": "terra-bastion",
+    "name": "baseline-07",
+    "model": "baseline",
+    "reasoningEffort": "unknown",
+    "rules": "aob-generals-ffa-1.0.0",
+    "apiVersion": "aob-generals-bot/1",
+    "supportedModes": [
+      "ffa"
+    ],
+    "description": "结合局部将军防守、可见斩首与前线集兵的迷雾混战策略。",
+    "group": "hard",
+    "kind": "training",
+    "source": "independent-generated-training",
+    "sha256": "c06cda36b7c75364600bcadbd240832b4ec362f85416a2055d7713dade3098e2",
+    "authorModel": "GPT-5.6 Terra",
+    "originalName": "土垒先机"
+  }
+]

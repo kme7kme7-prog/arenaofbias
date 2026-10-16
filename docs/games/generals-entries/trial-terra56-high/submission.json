@@ -1,0 +1,12 @@
+{
+  "id": "trial-terra56-high",
+  "name": "边境潮汐",
+  "model": "GPT-5.6 Terra",
+  "reasoningEffort": "high",
+  "rules": "aob-generals-ffa-1.0.0",
+  "apiVersion": "aob-generals-bot/1",
+  "supportedModes": [
+    "ffa"
+  ],
+  "description": "按可见威胁、记忆目标和前沿兵力动态推进的迷雾 FFA 策略。"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "trial-sol61-high",
+  "name": "巡衡",
+  "model": "GPT-6.1 Sol",
+  "reasoningEffort": "high",
+  "rules": "aob-generals-ffa-1.0.0",
+  "apiVersion": "aob-generals-bot/1",
+  "supportedModes": ["ffa"],
+  "description": "按兵力损耗寻找攻将与城市路线，以动态护将和友军补给维持迷雾战线。"
+}
