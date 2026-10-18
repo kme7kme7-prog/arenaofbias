@@ -1,0 +1,5 @@
+@import '../globals.css';
+/* Explicit sources also work in an isolated release checkout under .local/. */
+@source '../../components/account.tsx';
+@source '../../components/ui/dialog.tsx';
+@source '../../components/ui/button.tsx';

@@ -1,0 +1,42 @@
+坦克排位赛 S01 · 投稿与 Bot 编写说明
+
+入口：https://game.arenaofbias.icu/ladder.html
+登录现有网站账号 → 提交我的坦克 → 上传 bot.js → 我的坦克 → 等待运行检查 → 安排 12 场。
+首份合格代码自动成为主力。后续版本需手动「切换为主力」。每账号同时只上一辆；历史版本和成绩保留。
+公开测试额度：滚动 24 小时 6 次上传、24 场排赛。一次 12 场（三图各四席），种子随机；同一图内四席用相同种子。
+对手由服务器匹配。关闭网页不影响计算，节点离线时排队等待。可暂停/取消未开始的自己场次。
+排位分采用 OpenSkill 保守分；12 场完成定级。并列胜者分摊胜场；可切换胜率/场均击杀、看回放、导出摘要和单场回放。
+模型名与思考强度由作者声明，榜单评的是代码版本，不代表模型的总体水平。
+
+提交文件
+- 只提交单文件 JavaScript bot.js，UTF-8，最大 256 KiB。不要上传压缩包、HTML、项目目录或密钥。
+- 顶层定义同步 function decide(state) { return {move:'stay', fire:false}; }
+- 不用 export、import 或 require。不要返回 Promise，不支持外部依赖、网络、文件、DOM、Node API、计时器。
+- move 是 up/right/down/left/stay 中的一个，fire 必须为布尔值。
+- 每局每辆坦克有独立环境，可用顶层变量保存本局记忆。不同对局会重新初始化。
+- 不要依赖 Date 或真实运行时间；state.random 是当前步可复现的 [0,1) 随机值。
+- 实际上传由 QuickJS 沙箱检查；这不是 AI 审查或人工审核。源码不提供给其他访客下载。
+
+观测 state（四人 brawl 2.6.0）
+mode: 'brawl'
+tick: 当前步数，从 0 开始，最多 600 步。
+mapId: crossroads / islands / ruins。
+map: 26×26 的二维数组，map[y][x]。0空地，1砖墙，2钢墙，3河道，4草地。
+self: id(A/B/C/D), x,y,dir,lives,hp,maxHp,onField,respawnTicks,invincibleTicks,fireCooldown,hurtTicks,rapidTicks。
+x,y 是坦克 2×2 占地的左上角；x向右、y向下。dir: 0上、1右、2下、3左。
+radar.tanks: 目前可见的敌人（id,x,y,dir,hp,maxHp,invincibleTicks,hurtTicks,rapidTicks），未看见不等于不存在。
+radar.bullets: 附近可见子弹（x,y,dir）。
+opponents / scoreboard: 公开战绩，含 id,points,damage,kills,deaths,status,lives,respawnTicks；没有隐藏敌人坐标。
+arena: mode,totalTicks,phase(skirmish/collapse/finale),safeZone,radarPulse,supply,nextDropTick。
+arena.safeZone: min,max,nextShrinkTick,nextMin；坐标应让坦克整个 2×2 落在范围内。
+supply 可能为 null；读任何可选字段先判空。
+
+环境与胜负
+三条命、两格装甲、600步；200步起缩圈，500步最终雷达常亮。沿用主站四人赛 2.6.0 规则。
+S01：独立 i5 / Debian / Node 22.23.1 / QuickJS 0.32.0，1场并发。
+每 Bot 64MiB 内存，64KiB 栈；每步 4000 次解释器中断检查，2秒墙钟兜底，单场进程120秒截止。
+QuickJS预算不是原V8的50ms；不要用耗时墙钟估算同一代码能跑多少搜索。
+Bot 异常/预算耗尽按比赛规则出局；基础设施失败不计分。历史连接测试不进入 S01。
+
+给 AI 的简短任务模板
+请根据上面的真实观测和接口，为四人坦克 brawl 2.6.0 写一份独立 bot.js。只使用提供的观测，不读取隐藏敌人；考虑 2×2 碰撞、子弹、复活、缩圈和道具。导出方式是顶层 function decide(state)，禁止模块导入、异步和外部依赖。注意 QuickJS 的内存/中断预算。只交付 bot.js。

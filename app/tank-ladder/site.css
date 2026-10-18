@@ -1,0 +1,14 @@
+/* Shared account dialogs retain the website's tokens; the league keeps its paper desk. */
+body { background: var(--paper); color: var(--ink); }
+.masthead .brand { flex-shrink: 0; white-space: nowrap; }
+.masthead .brand strong { display: inline; font: inherit; font-weight: 700; letter-spacing: inherit; }
+.header-actions { flex-wrap: wrap; }
+#ladder-account .account-entry { margin: 0; padding: 7px 10px; }
+.guide-intro { flex-wrap: wrap; }
+.guide-intro > div { flex: 1 1 320px; }
+@media (max-width: 650px) {
+  .masthead { align-items: flex-start; padding: 16px 0; }
+  .header-actions { justify-content: flex-end; gap: 8px; }
+  .local-tag { display: none; }
+  .brand { font-size: 12px; gap: 8px; }
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>坦克排位赛 · ARENA OF BIAS</title><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="https://game.arenaofbias.icu/tanks.html"><i class="brand-mark" aria-hidden="true"><b></b><b></b><b></b></i><span>ARENA OF <strong>BIAS</strong></span></a>
+      <div class="header-actions"><a class="back-link" href="https://game.arenaofbias.icu/tanks.html">返回四人赛 ↗</a><span class="local-tag">本地试赛</span><button id="theme" class="icon-button" aria-label="切换纸墨主题">◐</button></div>
+    </header>
+    <main>
+      <section class="page-heading" aria-label="赛场概览">
+        <div class="page-title"><p class="eyebrow">TANK LEAGUE</p><h1>坦克<span>排位赛</span><i aria-hidden="true">.</i></h1><p>写好你的坦克，让战绩替它说话。</p></div>
+        <div class="season-stats"><div><strong id="entry-count">—</strong><span>参赛作品</span></div><div><strong id="match-count">—</strong><span>已完成对局</span></div><div><strong>03</strong><span>基底战场</span></div></div>
+        <button class="primary" id="upload-open">提交我的坦克 <span>↗</span></button>
+      </section>
+      <nav class="tabs" aria-label="排位赛导航">
+        <div class="tab-links"><button data-tab="hall" class="selected" aria-current="page">排位大厅</button><button data-tab="mine">我的坦克 <span id="mine-count"></span></button><button data-tab="matches">对战记录</button><button data-tab="guide">参赛指南</button></div>
+        <a href="/api/export" class="export" download title="导出当前参赛版本与最近 60 场成绩，不含源代码">导出数据 ↓</a>
+      </nav>
+      <div class="queue-status" role="status"><i aria-hidden="true"></i><span id="queue-label">正在连接赛场</span><button id="queue-pause" class="text-button" hidden>暂停我的队列</button><button id="queue-resume" class="text-button" hidden>继续</button></div>
+      <section id="hall" class="panel" aria-label="排位大厅">
+        <div class="hall-grid">
+          <div class="ranking-panel surface">
+            <div class="section-heading"><div><span class="section-index">01 / RANKING</span><h2>实力榜</h2></div><label class="search"><span aria-hidden="true">⌕</span><input id="search" placeholder="搜索坦克或模型" aria-label="搜索坦克或模型"></label></div>
+            <div class="board-table"><table class="leaderboard"><thead><tr><th scope="col">排名</th><th scope="col">坦克 / 模型</th><th scope="col" aria-sort="descending"><button data-sort="rating" class="sort chosen">排位分 ↓</button></th><th scope="col"><button data-sort="winRate" class="sort">胜率</button></th><th scope="col"><button data-sort="avgKills" class="sort">场均击杀</button></th><th scope="col">场数</th></tr></thead><tbody id="rankings"></tbody></table></div>
+            <nav id="rank-pages" class="pagination" aria-label="实力榜分页"></nav>
+            <p class="board-note">12 场完成定级 · 成绩按代码版本计算</p>
+          </div>
+          <aside class="spectator surface" aria-label="观赛与试赛">
+            <div class="section-heading"><div><span class="section-index">02 / LIVE ARENA</span><h2>场边席</h2></div><span id="watch-label" class="live-label">战场预览</span></div>
+            <button id="featured-watch" class="arena-preview" aria-label="查看最新对局回放"><canvas id="featured-canvas"></canvas><span class="watch-overlay" id="watch-overlay">十字猎场 <span>↗</span></span></button>
+            <div id="featured-info"></div>
+            <div class="trial-box"><h3>挑一辆，先试一组</h3><p>三张地图 × 四席轮换，共 12 场。</p><label class="sr-only" for="trial-bot">试赛坦克</label><select id="trial-bot"></select><button id="trial-start" class="secondary">安排 12 场试赛 <span>↗</span></button><p id="trial-progress" class="quiet" role="status"></p></div>
+          </aside>
+        </div>
+      </section>
+      <section id="mine" class="panel" aria-label="我的坦克" hidden>
+        <div class="section-heading panel-heading"><div><span class="section-index">YOUR GARAGE</span><h2>我的坦克库</h2><p class="quiet">1 辆主力参赛，其他作品与历史战绩保留。</p></div><button class="secondary" data-upload>＋ 新建作品</button></div>
+        <div id="my-works" class="my-works"></div><nav id="works-pages" class="pagination" aria-label="作品分页"></nav>
+        <section class="queue-panel surface"><div class="section-heading"><div><span class="section-index">COMPUTE QUEUE</span><h2>我的计算队列</h2></div><button id="queue-cancel" class="text-button">取消未开始的比赛</button></div><div id="jobs" class="jobs"></div><nav id="jobs-pages" class="pagination" aria-label="计算队列分页"></nav></section>
+      </section>
+      <section id="matches" class="panel" aria-label="对战记录" hidden>
+        <div class="section-heading panel-heading"><div><span class="section-index">MATCH ARCHIVE</span><h2>每一次交锋，都有迹可循。</h2></div><span class="quiet">最近 60 场 · 点击回看</span></div>
+        <div id="match-list" class="match-list"></div><nav id="matches-pages" class="pagination" aria-label="对战记录分页"></nav>
+      </section>
+      <section id="guide" class="panel" aria-label="参赛指南" hidden>
+        <div class="guide-intro"><div><span class="section-index">FROM CODE TO COMBAT</span><h2>从一份代码，到一个席位。</h2><p>准备好 bot.js，剩下的交给赛场。</p></div><a class="primary" href="/starter.js" download>下载入门 bot.js <span>↓</span></a></div>
+        <div class="guide-steps">
+          <article class="surface"><span>01</span><div><h3>写好你的选手</h3><p>提供同步函数 <code>decide(state)</code>，返回 <code>move</code> 与 <code>fire</code>。移动支持 up、right、down、left、stay，开火为布尔值。只读取引擎给你的观测。</p></div></article>
+          <article class="surface"><span>02</span><div><h3>提交，通过运行检查</h3><p>上传单文件 JavaScript，最大 256 KiB，不支持压缩包或外部依赖。坦克名与生成模型分开填写；模型与思考强度由作者声明。</p></div></article>
+          <article class="surface"><span>03</span><div><h3>三张地图，四席轮换</h3><p>每组 12 场，每张地图使用同一种子轮换四个出生位。同一作者不会占多个席位。每次点击安排一组，关闭网页不影响计算。</p></div></article>
+          <article class="surface"><span>04</span><div><h3>看战绩，也看过程</h3><p>12 场完成定级，按 OpenSkill 保守评级排序，并列胜者平分胜场。每场保留版本指纹、种子与回放，可以随时回看或导出。</p></div></article>
+        </div>
+        <details class="rules surface"><summary><span>完整规则与执行环境</span><span class="summary-mark" aria-hidden="true">＋</span></summary><div class="rules-content">
+          <section><h3>赛制与作品</h3><p>四人引擎 2.6.0；十字猎场、四桥孤岛、环形废墟。每位三条命、两格装甲，沿用原有胜负与计分规则。本地预赛与线上原有成绩分别存放。</p><p>每账号仅 1 辆主力同时上榜；切换后其他作品保留。已排定的比赛仍按原版本完成，成绩归原版本，不覆盖或转移。当前每个试玩身份每天最多上传 20 次、安排 120 场。</p></section>
+          <section><h3>运行与预算</h3><p>使用 quickjs-emscripten 0.32.0 的 WebAssembly 环境，不提供文件、网络、Node API、计时器或异步任务。每份 Bot 内存上限 64 MiB，每步 4,000 次解释器中断检查，另有 2 秒墙钟截止。Math.random 使用可复现种子；请优先使用 state.random。</p><p>Windows + QuickJS/WASM 是独立的新赛季，其执行速度和支持接口与原 V8 不完全相同。现有作品须通过兼容检查，当前结果不代表原运行环境排名。计算预算仍在定标，正式额度与账号接入主站时确定。Bot 异常或超预算按引擎判负，基础设施故障不计分。</p></section>
+        </div></details>
+      </section>
+    </main>
+    <footer><span>ARENA OF BIAS <i>/</i> TANK LEAGUE</span><span id="identity">建立本地试玩身份中</span></footer>
+  </div>
+  <dialog id="upload-dialog" aria-labelledby="upload-title"><div class="dialog-sheet"><form id="upload-form">
+    <div class="dialog-header"><div><p class="eyebrow">NEW CONTENDER</p><h2 id="upload-title">提交坦克</h2></div><button type="button" data-close="upload-dialog" class="icon-button" aria-label="关闭提交窗口">×</button></div>
+    <div class="upload-layout">
+      <label class="dropzone" id="dropzone"><span class="file-symbol" aria-hidden="true">↥</span><strong id="file-name">选择或拖入 bot.js</strong><span>单文件 JavaScript<br>最大 256 KiB</span><input id="bot-file" type="file" accept=".js,text/javascript" required aria-label="选择 bot.js 文件"></label>
+      <div class="form-grid"><label class="full">提交到<select name="workId" id="work-select"><option value="">新建坦克作品</option></select></label><label class="full">坦克名字<input name="name" maxlength="48" required placeholder="例如：Apex Warden"></label><label>生成模型<input name="model" maxlength="64" required placeholder="例如：GPT-6 Astra"></label><label>思考强度<select name="effort"><option value="default">Default</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="max">Max</option></select></label><label class="full">版本说明<input name="note" maxlength="240" placeholder="这次改了什么？可留空"></label></div>
+    </div>
+    <p class="form-note">代码仅用于计算，不向其他访客公开。模型信息由提交者声明。</p><p id="form-error" role="alert"></p><div class="dialog-footer"><a href="/starter.js" download>下载入门示例 ↓</a><button type="submit" class="primary" id="submit-bot">提交并检查 <span>↗</span></button></div>
+  </form></div></dialog>
+  <dialog id="replay-dialog" class="replay-dialog" aria-labelledby="replay-title"><div class="dialog-sheet">
+    <div class="dialog-header"><div><p class="eyebrow" id="replay-meta"></p><h2 id="replay-title">对局回放</h2></div><button class="icon-button" data-close="replay-dialog" aria-label="关闭回放">×</button></div>
+    <div class="replay-grid"><div class="replay-stage"><canvas id="replay-canvas"></canvas><div class="playback"><button id="play-toggle" class="icon-button" aria-label="播放或暂停">Ⅱ</button><input id="seek" type="range" min="0" max="600" value="0" step="0.1" aria-label="回放进度"><output id="clock">00:00</output><select id="speed" aria-label="回放速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></div></div><aside><div class="section-heading"><h3>本场结算</h3><span class="quiet">最终成绩</span></div><div id="replay-players"></div><a id="replay-download" class="secondary" download>下载这场回放 ↓</a></aside></div>
+  </div></dialog>
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="dialog-sheet"><div class="dialog-header"><div><p class="eyebrow">CONTENDER PROFILE</p><h2 id="detail-title">坦克档案</h2></div><button class="icon-button" data-close="detail-dialog" aria-label="关闭档案">×</button></div><div id="detail-body"></div></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div><script type="module" src="/ui.js"></script>
+</body></html>

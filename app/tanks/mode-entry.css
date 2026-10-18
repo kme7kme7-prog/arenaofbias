@@ -4,3 +4,4 @@
 .tank-mode-switch a { border-left: 1px solid var(--line); color: var(--accent); transition: background .2s ease; }
 .tank-mode-switch a:hover { background: var(--panel); }
 .tank-mode-switch a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.tank-mode-switch a:last-child:nth-child(3) { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }

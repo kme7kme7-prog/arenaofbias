@@ -17,5 +17,14 @@ if (new URLSearchParams(location.search).get('mode') === 'royale') {
     window.PlaygroundEntry.navigate(link.href);
   });
   modes.append(link);
+  const ladder = document.createElement('a');
+  ladder.href = '/ladder.html';
+  ladder.textContent = '排位赛 ↗';
+  ladder.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !window.PlaygroundEntry) return;
+    event.preventDefault();
+    window.PlaygroundEntry.navigate(ladder.href);
+  });
+  modes.append(ladder);
   document.querySelector('.title-block').append(modes);
 }

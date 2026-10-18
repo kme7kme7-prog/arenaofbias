@@ -1,3 +1,8 @@
 # Registered competition sources keep their original bytes.
 app/tanks/bots/*.js -text
 public/generals/bots/*.js -text
+
+# Frozen remote runner fingerprints original bytes.
+/tools/tank-ladder/*.mjs -text
+/tools/tank-ladder/package-lock.json -text
+/app/tanks/engine/core/*.js -text

@@ -1,0 +1,50 @@
+[Unit]
+Description=Arena of Bias tank queue (remote compute only)
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=aob-tank-calibration
+StateDirectoryMode=0700
+WorkingDirectory=/opt/aob-tank-coordinator/current/tools/tank-ladder
+Environment=TANK_COORDINATOR_MODE=remote-only
+Environment=TANK_COORDINATOR_DATA=/var/lib/aob-tank-calibration
+Environment=TANK_GATEWAY_PORT=5474
+Environment=TANK_BROKER_PORT=5473
+EnvironmentFile=/etc/aob-tank-coordinator/runtime.env
+LoadCredential=node-token:/etc/aob-tank-coordinator/node-token
+LoadCredential=operator-token:/etc/aob-tank-coordinator/operator-token
+ExecStart=/usr/bin/node coordinator.mjs
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+KillMode=control-group
+UMask=0077
+MemoryHigh=384M
+MemoryMax=512M
+CPUQuota=40%
+TasksMax=48
+LimitNOFILE=256
+LimitFSIZE=268435456
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost
+InaccessiblePaths=/www/wwwroot /root /home
+
+[Install]
+WantedBy=multi-user.target

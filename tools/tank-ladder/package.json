@@ -1,0 +1,9 @@
+{
+  "name": "aob-tank-ladder",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": { "start": "node server.mjs", "test": "node --test test/*.test.mjs" },
+  "dependencies": { "quickjs-emscripten": "0.32.0", "openskill": "5.0.1" }
+}
