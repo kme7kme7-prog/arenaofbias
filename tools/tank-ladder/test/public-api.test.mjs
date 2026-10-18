@@ -17,8 +17,8 @@ test('public accounts, private source, CSRF, quota and remote-only queue', async
   });
   await new Promise(resolve => auth.listen(0, '127.0.0.1', resolve));
   const key = () => randomBytes(32).toString('hex'), origin = 'https://game.arenaofbias.icu';
-  const operatorToken = key();
-  const app = await startCoordinator({ directory: mkdtempSync(path.join(os.tmpdir(), 'tank-public-')), token: key(), operatorToken,
+  const operatorToken = key(), token = key();
+  const app = await startCoordinator({ directory: mkdtempSync(path.join(os.tmpdir(), 'tank-public-')), token, operatorToken,
     expectedRuntime: RUNTIME_HASH, port: 0, brokerPort: 0, web: { secret: key(), origin, authUrl: `http://127.0.0.1:${auth.address().port}/api/auth/me`, authHost: 'api.arenaofbias.icu' } });
   const url = `http://127.0.0.1:${app.port}/api/tank-ladder`;
   const call = (route, input, user = '', csrf = '', extra = {}) => fetch(url + route, { method: input === undefined ? 'GET' : 'POST',
@@ -47,6 +47,14 @@ test('public accounts, private source, CSRF, quota and remote-only queue', async
     assert.equal((await call('/source/' + version.id)).status, 404);
     const operator = await fetch(`http://127.0.0.1:${app.port}/ops/trial`, { method:'POST', headers:{Authorization:`Bearer ${operatorToken}`,'Content-Type':'application/json'},body:'{"action":"prepare"}' });
     assert.equal(operator.status, 403);
+    const autoControl = (action, bearer, extra = {}) => fetch(`http://127.0.0.1:${app.port}/ops/automatic`, {
+      method:'POST', headers:{ Authorization:`Bearer ${bearer}`, 'Content-Type':'application/json', ...extra }, body:JSON.stringify({ action }) });
+    assert.equal((await autoControl('resume', token)).status, 403);
+    assert.equal((await autoControl('resume', operatorToken, { Origin: origin })).status, 403);
+    assert.equal((await autoControl('delete', operatorToken)).status, 400);
+    assert.equal((await (await autoControl('resume', operatorToken)).json()).enabled, true);
+    assert.equal((await (await call('/state')).json()).automatic.enabled, true);
+    assert.equal((await (await autoControl('pause', operatorToken)).json()).state, 'paused');
     assert.equal((await call('/versions', { ...payload, source: 'a'.repeat(300001) }, 'a', a.csrf)).status, 413);
     // Ready is a fixture here; no evaluator is present in the web coordinator.
     app.store.db.prepare("UPDATE versions SET status='ready' WHERE id=?").run(version.id); app.store.activate('site:alice', version.id);

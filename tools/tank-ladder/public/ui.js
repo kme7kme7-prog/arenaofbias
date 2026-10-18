@@ -74,7 +74,7 @@ function mine() {
   const groups = new Map();
   for (const version of state.mine) { if (!groups.has(version.work)) groups.set(version.work, []); groups.get(version.work).push(version); }
   const expanded = new Set([...document.querySelectorAll('[data-history][open]')].map(el=>el.dataset.history));
-  const row = v => `<div class="version-row"><div><strong>v${v.number}</strong><span class="badge ${v.active===v.id?'active':''}">${v.active===v.id?'当前主力':esc(statusText[v.status])}</span><small>${esc(v.model)} · ${esc(v.effort)} · ${v.games} 场${v.games ? ` · ${fmt(v.rating)} 分`:''}${v.note?`<br>${esc(v.note)}`:''}</small>${v.issue?`<small class="issue">${esc(v.issue)}</small>`:''}</div>${v.status==='ready' ? `<button class="secondary" ${v.active===v.id?`data-batch="${esc(v.id)}"`:`data-activate="${esc(v.id)}"`}>${v.active===v.id?'安排 12 场':'切换为主力'} ↗</button>`:''}</div>`;
+  const row = v => `<div class="version-row"><div><strong>v${v.number}</strong><span class="badge ${v.active===v.id?'active':''}">${v.active===v.id?'当前主力':esc(statusText[v.status])}</span><small>${esc(v.model)} · ${esc(v.effort)} · ${v.games} 场${v.games ? ` · ${fmt(v.rating)} 分`:''}${v.note?`<br>${esc(v.note)}`:''}</small>${v.issue?`<small class="issue">${esc(v.issue)}</small>`:''}</div>${v.status==='ready' ? `<button class="secondary" ${v.active===v.id?`data-batch="${esc(v.id)}"`:`data-activate="${esc(v.id)}"`}>${v.active===v.id?(config.apiBase?'加赛 12 场':'安排 12 场'):'切换为主力'} ↗</button>`:''}</div>`;
   const visible = pageOf([...groups.entries()], 'works');
   $('my-works').innerHTML = groups.size ? visible.map(([id, versions]) => {
     const sorted=[...versions].sort((a,b)=>b.number-a.number);
@@ -83,16 +83,16 @@ function mine() {
     const primary=sorted.filter(v=>v===current || v===sorted[0]);
     const history=sorted.filter(v=>!primary.includes(v));
     return `<article class="work-card"><header><h3>${esc(current.name)}</h3><button data-new-version="${esc(id)}">上传新版本 ↗</button></header>${primary.map(row).join('')}${history.length?`<details class="version-history" data-history="${esc(id)}" ${expanded.has(id)?'open':''}><summary>历史版本 · ${history.length} 份</summary>${history.map(row).join('')}</details>`:''}</article>`;
-  }).join('') : '<div class="empty full"><h3>下一位选手，还在你的代码里。</h3><p>提交第一份 bot.js，通过检查即可安排定级赛。</p><button class="secondary" data-upload>提交我的坦克 ↗</button></div>';
+  }).join('') : '<div class="empty full"><h3>下一位选手，还在你的代码里。</h3><p>提交第一份 bot.js，通过检查后自动参加排位。</p><button class="secondary" data-upload>提交我的坦克 ↗</button></div>';
   jobs();
 }
 function jobs() {
   const visible=pageOf(state.jobs,'jobs');
-  $('jobs').innerHTML = state.jobs.length ? visible.map(job => `<div class="job"><div>${job.kind==='validate'?'作品运行检查':'四人排位对局'} <small>· ${date(job.created)}</small>${job.issue?`<small class="issue">${esc(job.issue)}</small>`:''}</div><span>${esc(statusText[job.status])}</span></div>`).join('') : '<div class="job quiet">目前没有待计算的任务。</div>';
+  $('jobs').innerHTML = state.jobs.length ? visible.map(job => `<div class="job"><div>${job.kind==='validate'?'作品运行检查':job.automatic?'自动排位对局':'四人排位对局'} <small>· ${date(job.created)}</small>${job.issue?`<small class="issue">${esc(job.issue)}</small>`:''}</div><span>${esc(statusText[job.status])}</span></div>`).join('') : '<div class="job quiet">目前没有待计算的任务。</div>';
 }
 function matches() {
   const visible=pageOf(state.matches,'matches');
-  $('match-list').innerHTML = state.matches.length ? visible.map(m => `<button class="match-card" data-watch="${esc(m.id)}"><div class="match-map">${esc(mapName(m.mapId))}<time>${date(m.created)}</time></div><div class="match-contenders">${[...m.rows].sort((a,b)=>a.rank-b.rank).map(r=>`<div class="contender"><strong>${r.rank} · ${esc(r.name)}</strong><small>${r.kills} 击杀 <span class="delta ${r.delta<0?'negative':''}">${signed(r.delta)}</span></small></div>`).join('')}</div><span class="match-link">回放 ↗</span></button>`).join('') : '<div class="empty"><h3>战场还在等第一声炮响。</h3><p>提交自己的坦克，通过运行检查后即可安排对局。</p><button class="secondary" data-show-hall>去安排试赛 ↗</button></div>';
+  $('match-list').innerHTML = state.matches.length ? visible.map(m => `<button class="match-card" data-watch="${esc(m.id)}"><div class="match-map">${esc(mapName(m.mapId))}<time>${date(m.created)}</time></div><div class="match-contenders">${[...m.rows].sort((a,b)=>a.rank-b.rank).map(r=>`<div class="contender"><strong>${r.rank} · ${esc(r.name)}</strong><small>${r.kills} 击杀 <span class="delta ${r.delta<0?'negative':''}">${signed(r.delta)}</span></small></div>`).join('')}</div><span class="match-link">回放 ↗</span></button>`).join('') : '<div class="empty"><h3>战场还在等第一声炮响。</h3><p>提交自己的坦克，通过运行检查后自动参加对局。</p><button class="secondary" data-show-hall>去排位大厅 ↗</button></div>';
 }
 async function feature() {
   const latest = state.matches[0];
@@ -115,7 +115,7 @@ function renderState(next) {
   state = next;
   if (config.apiBase) { csrf=next.csrf; $('identity').textContent=next.user ? `${next.user.name} · S01` : '登录主站账号，即可投稿'; }
   $('entry-count').textContent = fmt(state.rankings.length); $('match-count').textContent = fmt(state.counts.matches);
-  const pending = state.jobs.filter(j=>['queued','running','held'].includes(j.status)&&j.kind==='match');
+  const pending = state.jobs.filter(j=>['queued','running','held'].includes(j.status)&&j.kind==='match'&&!j.automatic);
   $('queue-label').textContent = state.counts.running ? `计算中 · ${state.counts.queued} 场等待` : state.counts.queued ? `${state.counts.queued} 场等待`:'赛场待命';
   document.querySelector('.queue-status').classList.toggle('busy',state.counts.running>0);
   $('queue-pause').hidden = !pending.some(j=>j.status==='queued'); $('queue-resume').hidden = !pending.some(j=>j.status==='held');
@@ -124,7 +124,12 @@ function renderState(next) {
   $('mine-count').textContent = new Set(state.mine.map(v=>v.work)).size || '';
   const options = (config.apiBase ? state.mine.filter(r=>r.active===r.id && r.status==='ready') : state.rankings.filter(r=>r.official)).map(r=>`<option value="${esc(r.id)}">${esc(r.model)} / ${esc(r.name)}</option>`).join('');
   if ($('trial-bot').dataset.options !== options) { const old = $('trial-bot').value; $('trial-bot').innerHTML=options; $('trial-bot').dataset.options=options; if ([...$('trial-bot').options].some(o=>o.value===old)) $('trial-bot').value=old; }
-  if (config.apiBase) { $('trial-bot').hidden=!$('trial-bot').options.length; $('trial-start').textContent=$('trial-bot').options.length ? '安排 12 场 ↗' : '提交我的坦克 ↗'; if (!state.nodeOnline) $('queue-label').textContent='计算节点暂时离线 · 已提交任务保留，恢复后继续'; }
+  if (config.apiBase) { $('trial-bot').hidden=!$('trial-bot').options.length; $('trial-start').textContent=$('trial-bot').options.length ? '加赛 12 场 ↗' : '提交我的坦克 ↗'; if (!state.nodeOnline) $('queue-label').textContent='计算节点暂时离线 · 已提交任务保留，恢复后继续'; }
+  if (config.apiBase && state.automatic?.enabled && state.nodeOnline) {
+    const a=state.automatic;
+    $('queue-label').textContent = ({capacity:'自动排赛暂停 · 存储容量待处理',cooldown:'自动排赛稍后重试',error:'自动排赛暂缓 · 等待恢复',entrants:'自动排赛 · 等待四位选手'})[a.state] || (state.counts.running ? `自动排位中 · ${state.counts.queued} 场等待` : '自动排位 · 正在安排下一组');
+    if (!pending.length && $('trial-bot').options.length) $('trial-progress').textContent='主力已参加自动排位 · 场次少的优先';
+  }
   const signature = JSON.stringify([state.rankings,state.mine,state.jobs,state.matches]);
   if (signature !== previousSignature) { previousSignature=signature; rankings(); mine(); matches(); void feature().catch(()=>{}); }
 }
@@ -182,7 +187,7 @@ async function watch(id){
   $('replay-download').href=apiPath(`/api/matches/${id}/replay`); $('replay-download').download=`tank-match-${id}.json`;
   $('replay-dialog').showModal();
 }
-$('featured-watch').onclick=()=>{if(featureId)void watch(featureId).catch(e=>toast(e.message));else toast('安排一组真实对局后，这里会出现回放。');};
+$('featured-watch').onclick=()=>{if(featureId)void watch(featureId).catch(e=>toast(e.message));else toast('真实对局完成后，这里会出现回放。');};
 $('replay-dialog').addEventListener('close',()=>{playing=false;replayRequest++;replay=null;});
 $('play-toggle').onclick=()=>{if(replay&&time>=replay.frames.length-1)time=0;playing=!playing;$('play-toggle').textContent=playing?'Ⅱ':'▶';};
 $('seek').oninput=()=>{time=Number($('seek').value);playing=false;$('play-toggle').textContent='▶';};

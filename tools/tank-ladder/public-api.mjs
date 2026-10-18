@@ -7,9 +7,19 @@ export const PUBLIC_LIMITS = Object.freeze({ placements: 12, dailyUploads: 6, da
 const safeRow = ({ owner: _owner, note: _note, issue: _issue, ...row }) => row;
 const prefix = '/api/tank-ladder';
 
+export function assertPublicCapacity(store, directory, added) {
+  const pending = store.db.prepare("SELECT count(*) n FROM jobs WHERE status IN ('queued','running','held')").get().n;
+  if (pending + added > PUBLIC_LIMITS.queue) throw failure('计算队列已满，请稍后再试。', 429);
+  const pages = store.db.prepare('PRAGMA page_count').get().page_count;
+  const pageSize = store.db.prepare('PRAGMA page_size').get().page_size;
+  const free = statfsSync(directory);
+  if (pages * pageSize > 512 * 1024 ** 2 || free.bavail * free.bsize < 512 * 1024 ** 2 || store.counts().matches >= 10000)
+    throw failure('本赛季存储接近容量，暂缓新投稿和排赛；已有成绩仍可查看。', 503);
+}
+
 // Identity comes only from the existing website's authenticated session endpoint.
 // No submitted JavaScript, evaluator or host API is imported by this module.
-export function publicApi({ store, directory, secret, origin, authUrl, authHost, status }) {
+export function publicApi({ store, directory, secret, origin, authUrl, authHost, status, jobsFor = owner => store.jobs(owner) }) {
   if (!/^[a-f0-9]{64}$/.test(secret || '')) throw Error('Public CSRF signing key required');
   if (!/^https:\/\/[^/]+$/.test(origin) && !/^http:\/\/127\.0\.0\.1:\d+$/.test(origin)) throw Error('An exact browser origin is required');
   const endpoint = new URL(authUrl);
@@ -52,15 +62,7 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw failure('提交格式不正确。');
     return input;
   };
-  const capacity = added => {
-    const pending = store.db.prepare("SELECT count(*) n FROM jobs WHERE status IN ('queued','running','held')").get().n;
-    if (pending + added > PUBLIC_LIMITS.queue) throw failure('计算队列已满，请稍后再试。', 429);
-    const pages = store.db.prepare('PRAGMA page_count').get().page_count;
-    const pageSize = store.db.prepare('PRAGMA page_size').get().page_size;
-    const free = statfsSync(directory);
-    if (pages * pageSize > 512 * 1024 ** 2 || free.bavail * free.bsize < 512 * 1024 ** 2 || store.counts().matches >= 10000)
-      throw failure('本赛季存储接近容量，暂缓新投稿和排赛；已有成绩仍可查看。', 503);
-  };
+  const capacity = added => assertPublicCapacity(store, directory, added);
   const json = (res, value, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); };
   return async (req, res) => {
     if (!req.url.startsWith(`${prefix}/`)) return false;
@@ -106,8 +108,8 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
         else throw failure('接口不存在。', 404);
       } else if (route === '/session') json(res, { user: user ? { name: user.name } : null, csrf: user?.csrf || '' });
       else if (route === '/state') json(res, { local: false, season: PUBLIC_SEASON, profile: PROFILE, engineHash: ENGINE_HASH, runtimeHash: RUNTIME_HASH,
-        user: user ? { name: user.name } : null, csrf: user?.csrf || '', nodeOnline: status().nodeOnline, maps: MAPS, limits: PUBLIC_LIMITS,
-        rankings: store.rankings().map(safeRow), matches: store.recent(), counts: store.counts(), mine: user ? store.myVersions(user.owner) : [], jobs: user ? store.jobs(user.owner) : [] });
+        user: user ? { name: user.name } : null, csrf: user?.csrf || '', nodeOnline: status().nodeOnline, automatic: status().automatic, maps: MAPS, limits: PUBLIC_LIMITS,
+        rankings: store.rankings().map(safeRow), matches: store.recent(), counts: store.counts(), mine: user ? store.myVersions(user.owner) : [], jobs: user ? jobsFor(user.owner) : [] });
       else if (route === '/preview') { res.setHeader('Content-Type', 'application/json'); res.end(readFileSync(new URL('./public/preview.json', import.meta.url))); }
       else if (route === '/export') {
         res.setHeader('Content-Disposition', 'attachment; filename="tank-ladder-s01.json"');

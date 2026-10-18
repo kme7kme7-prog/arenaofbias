@@ -7,6 +7,7 @@ import { openStore } from './store.mjs';
 import { startBroker, RESULT_BYTES } from './runner-broker.mjs';
 import { PROFILE, ENGINE_HASH, RUNTIME_HASH } from './config.mjs';
 import { publicApi, PUBLIC_SEASON } from './public-api.mjs';
+import { createAutoScheduler } from './auto-scheduler.mjs';
 
 // This entry point never imports an executor or evaluates submitted JavaScript.
 // Keep the installed runner's source fingerprint unchanged during connection setup.
@@ -44,11 +45,11 @@ function ownDirectory(directory, expectedRuntime, environment) {
   return () => unlinkSync(lock);
 }
 
-export async function startCoordinator({ directory, token, operatorToken, expectedRuntime, port = 5474, brokerPort = 5473, leaseMs = 180000, web = null } = {}) {
+export async function startCoordinator({ directory, token, operatorToken, expectedRuntime, port = 5474, brokerPort = 5473, leaseMs = 180000, web = null, automatic = false } = {}) {
   if (!validKey(token) || !validKey(operatorToken) || token === operatorToken) throw Error('Separate node and operator keys are required; there is no local compute fallback.');
   const environment = web ? PUBLIC_SEASON : ENVIRONMENT;
   const unlock = ownDirectory(directory, expectedRuntime, environment);
-  let store, broker, server, ticker, closed = false, activeRequests = 0;
+  let store, broker, server, ticker, scheduler, closed = false, activeRequests = 0;
   const observed = { lastClaimAt: null, lastCompletionAt: null, claims: 0, completions: 0 };
   const observationFile = path.join(directory, 'node-status.json');
   if (existsSync(observationFile)) Object.assign(observed, JSON.parse(readFileSync(observationFile)));
@@ -91,8 +92,9 @@ export async function startCoordinator({ directory, token, operatorToken, expect
     advanceTrial();
     return trial();
   };
+  const online = () => !!observed.lastClaimAt && Date.now() - Date.parse(observed.lastClaimAt) < 150000;
   const snapshot = () => ({ schema: 1, environment, environmentVerification: 'operator-provisioned; legacy runner does not attest OS',
-    ...manifest, mode: 'remote-only', slots: 1, startedAt, nodeOnline: !!observed.lastClaimAt && Date.now() - Date.parse(observed.lastClaimAt) < 150000,
+    ...manifest, mode: 'remote-only', slots: 1, startedAt, nodeOnline: online(), automatic: scheduler?.status(),
     ...observed, counts: store.counts(), trial: trial() });
   const reply = (res, status, value) => {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Connection': 'close' });
@@ -117,16 +119,21 @@ export async function startCoordinator({ directory, token, operatorToken, expect
     store.bootstrap();
     advanceTrial();
     broker = await startBroker(store, { token, port: brokerPort, slots: 1, leaseMs });
-    const handlePublic = web ? publicApi({ ...web, store, directory, status: snapshot }) : null;
+    if (web) scheduler = createAutoScheduler({ store, directory, enabled: automatic, online });
+    const handlePublic = web ? publicApi({ ...web, store, directory, status: snapshot, jobsFor: scheduler.jobsFor }) : null;
     server = http.createServer(async (req, res) => {
       if (handlePublic && await handlePublic(req, res)) return;
-      const operator = req.url === '/ops/trial';
+      const operator = ['/ops/trial', '/ops/automatic'].includes(req.url);
       if (req.headers.origin || !matchesKey(req.headers.authorization, operator ? operatorToken : token)) return reply(res, 403, { error: 'Unauthorized' });
       if (++activeRequests > 2) { activeRequests--; return reply(res, 429, { error: 'Busy' }); }
       try {
         if (req.method === 'GET' && req.url === '/status') return reply(res, 200, snapshot());
         if (operator && req.method === 'POST') {
           const input = JSON.parse(await body(req, 256));
+          if (req.url === '/ops/automatic') {
+            if (!scheduler) return reply(res, 403, { error: 'Automatic scheduling requires a public season' });
+            return reply(res, 200, scheduler.control(input.action));
+          }
           if (input.action !== 'prepare') return reply(res, 400, { error: 'Unsupported operator action' });
           return reply(res, 200, prepareTrial());
         }
@@ -147,6 +154,7 @@ export async function startCoordinator({ directory, token, operatorToken, expect
     server.requestTimeout = 30000; server.headersTimeout = 10000; server.maxHeadersCount = 24; server.maxConnections = 16;
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
     ticker = setInterval(() => {
+      scheduler?.pump();
       try { atomicJson(observationFile, observed); }
       catch { console.error('Could not persist node observation.'); }
     }, 10000);
@@ -172,6 +180,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const app = await startCoordinator({ directory: process.env.TANK_COORDINATOR_DATA,
     token: readFileSync(path.join(credentials, 'node-token'), 'utf8').trim(), operatorToken: readFileSync(path.join(credentials, 'operator-token'), 'utf8').trim(),
     expectedRuntime: process.env.TANK_EXPECTED_RUNTIME,
+    automatic: process.env.TANK_AUTO_MATCHES === '1',
     web: process.env.TANK_PUBLIC_ORIGIN ? { origin: process.env.TANK_PUBLIC_ORIGIN,
       authUrl: 'http://127.0.0.1:5273/api/auth/me', authHost: 'api.arenaofbias.icu',
       secret: readFileSync(path.join(credentials, 'web-secret'), 'utf8').trim() } : null,
