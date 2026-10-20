@@ -50,6 +50,8 @@ function fixture(promptResponses, workResponses = []) {
     const next = queues[path]?.shift();
     assert.notEqual(next, undefined, `unexpected request ${path}`);
     if (next === 'network') throw new TypeError('Network unavailable');
+    if (next === 'html') return { ok: true, json: async () => JSON.parse('<html>') };
+    if (next === 'limited') return { ok: false, status: 429, headers: new Headers({ 'Retry-After': '8' }) };
     if (next === 'headers') return aborted(options.signal);
     if (next === 'body') return { ok: true, json: () => aborted(options.signal) };
     if (typeof next === 'function') return next(options.signal);
@@ -65,7 +67,7 @@ for (const failure of ['headers', 'body']) {
   await flush();
   await expire(12000);
   assert.equal(prompts.getPromptsState().status, 'loading', 'do not declare the seed a successful catalog');
-  await expire(400);
+  await expire(1000);
   await first;
   assert.deepEqual(prompts.currentPrompts().map(prompt => prompt.id), promptRows.map(row => row.id));
   assert.equal(prompts.getPromptsState().source, 'remote');
@@ -79,15 +81,64 @@ prompts.resetPromptsForTest();
 fixture(['network', 'http']);
 let read = prompts.loadPrompts();
 await flush();
-await expire(400);
+await expire(1000);
 await read;
-assert.equal(prompts.getPromptsState().source, 'builtin');
+assert.equal(prompts.getPromptsState().status, 'error', 'a failed catalog is reported, not replaced by seeds');
+assert.deepEqual(prompts.currentPrompts().map(prompt => prompt.id), ['001'], 'synchronous consumers keep their local stand-in');
+assert.equal(calls.length, 2, 'an HTTP error after a network failure is final');
+assert.equal(timers.size, 0, 'the retry stops without a loop');
+
+prompts.resetPromptsForTest();
+fixture(['network', 'html', 'limited', 'network', { prompts: promptRows }]);
+read = prompts.loadPrompts();
+for (const ms of [1000, 3000, 8000]) {
+  await flush();
+  assert.equal(prompts.getPromptsState().status, 'loading', 'retries keep the catalog loading');
+  await expire(ms);
+}
+await read;
+assert.equal(prompts.getPromptsState().status, 'error', 'three retries are the limit');
+assert.equal(calls.length, 4);
+assert.equal(timers.size, 0);
+
+prompts.resetPromptsForTest();
+fixture(['limited', { prompts: promptRows }]);
+read = prompts.loadPrompts();
+await flush();
+assert.ok(![...timers.values()].some(timer => timer.ms === 1000), 'Retry-After replaces a shorter backoff');
+await expire(8000);
+await read;
+assert.equal(prompts.getPromptsState().source, 'remote');
 assert.equal(calls.length, 2);
-assert.equal(timers.size, 0, 'two failures stop without a retry loop');
-fixture([{ prompts: promptRows }]);
+
+prompts.resetPromptsForTest();
+fixture(['http']);
 await prompts.loadPrompts();
+assert.equal(prompts.getPromptsState().status, 'error');
+assert.equal(calls.length, 1, 'HTTP errors are never retried');
+assert.equal(timers.size, 0);
+
+prompts.resetPromptsForTest();
+fixture(['headers', 'headers', 'headers']);
+read = prompts.loadPrompts();
+await flush();
+await expire(12000);
+await expire(1000);
+await expire(12000);
+await expire(3000);
+await expire(45000);
+await read;
+assert.equal(prompts.getPromptsState().status, 'error', 'the 45s budget cuts off the third attempt');
+assert.equal(calls.length, 3);
+assert.equal(timers.size, 0);
+fixture(['network', { prompts: promptRows }]);
+read = prompts.loadPrompts();
+await flush();
+assert.equal(prompts.getPromptsState().status, 'loading', 'the retry button starts a full retry run');
+await expire(1000);
+await read;
 assert.equal(prompts.getPromptsState().source, 'remote', 'manual/online/re-entry can recover the same session');
-assert.equal(calls.length, 1);
+assert.equal(calls.length, 2);
 
 prompts.resetPromptsForTest();
 fixture([{ prompts: [] }]);
@@ -96,7 +147,7 @@ await prompts.loadPrompts();
 assert.deepEqual(prompts.currentPrompts(), []);
 assert.equal(prompts.getPromptsState().source, 'remote');
 assert.equal(calls.length, 1, 'a published empty catalog never resurrects seeds or retries');
-console.log('PASS two failures stop; same-session recovery works; published empty prompts stay empty');
+console.log('PASS backoff 1s/3s/6s with Retry-After; HTTP errors final; three retries max; 45s budget; failure state without seed fallback; retry reruns backoff; published empty prompts stay empty');
 
 prompts.resetPromptsForTest();
 fixture(['network']);
@@ -113,7 +164,7 @@ fixture([], ['network', { works: [workRow('recovered')] }]);
 read = works.loadWorks();
 assert.equal(works.loadWorks(), read);
 await flush();
-await expire(400);
+await expire(1000);
 await read;
 assert.equal(works.getWorksState().source, 'remote');
 assert.equal(works.currentWorks()[0].id, 'recovered');
@@ -127,7 +178,11 @@ fixture([], [{ works: [] }]);
 assert.equal(await works.refreshWorks(new AbortController().signal), true);
 assert.deepEqual(works.currentWorks(), []);
 assert.equal(works.getWorksState().source, 'remote');
-console.log('PASS canceled retry cleans up; works recover; match refresh stays single and preserves valid empty data');
+works.resetWorksForTest();
+fixture([], ['http']);
+await works.loadWorks();
+assert.equal(works.getWorksState().status, 'error', 'a failed roster is reported, not replaced by the built-in roster');
+console.log('PASS canceled retry cleans up; works recover or fail without fallback; match refresh stays single and preserves valid empty data');
 
 works.resetWorksForTest();
 let resolveOld;

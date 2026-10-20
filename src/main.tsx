@@ -63,6 +63,17 @@ function subscribeRoute(callback: () => void) {
 }
 // 作品清单（服务端 works 表）就绪后重渲染，让 currentPairs 等
 // 数据消费方从内置花名册切到远端清单（决策 040）
+// Arena routes need the live catalog; after the retries a clear failure replaces any built-in stand-in.
+function CatalogFailure() {
+  const { t } = useI18n();
+  return (
+    <div className="route-empty library-empty" role="alert">
+      <h1>{t('题库暂时连不上')}</h1>
+      <p>{t('题库连接失败，请检查网络后重试。')}</p>
+      <button type="button" onClick={() => { void loadPrompts(); void loadWorks(); }}>{t('重试')}</button>
+    </div>
+  );
+}
 function Routes() {
   useEffect(() => settlePortalHome(container!), []);
   const { t } = useI18n();
@@ -96,6 +107,9 @@ function Routes() {
       window.location.replace(currentRandomArenaHash());
     }
   }, [route, worksState.status, promptsState.status]);
+  const catalogFailed = worksState.status === 'error' || promptsState.status === 'error';
+  if (catalogFailed && (route === '#arena' || route === '#random' || route.startsWith('#arena/') || route.startsWith('#formal/')))
+    return <CatalogFailure />;
   if (route === '#arena' || route === '#random') return null;
   if (route === '#terms' || route.startsWith('#terms/'))
     return <LegalPage key="terms" kind="terms" section={route.slice(7) || undefined} />;
@@ -134,7 +148,7 @@ function Routes() {
     if (sharedDuel && sharedDuel[0] === route.slice(7)) {
       if (worksState.status === 'loading' || getPromptsState().status === 'loading') return <output className="route-empty">{t('正在打开分享的对决…')}</output>;
       const pair = resolveSharedDuel(sharedDuel, currentResultsForPrompt(sharedDuel[0]));
-      if (prompt && pair && !pair.some(work => work.isDemo) && worksState.source === 'remote' && currentPairs(prompt.id).length > 0) return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
+      if (prompt && pair && !pair.some(work => work.isDemo) && worksState.status === 'ready' && worksState.source === 'remote' && currentPairs(prompt.id).length > 0) return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
       if (prompt && currentPairs(prompt.id).length === 0) return <PromptPreview key={prompt.id} prompt={prompt} />;
       return <div className="route-empty"><h1>{t('这场对决暂时无法打开。')}</h1><p>{t('作品可能已下架，请从题库选择另一场。')}</p><a href="#prompts">{t('前往提示词库 ↗')}</a></div>;
     }
@@ -155,7 +169,7 @@ function Routes() {
 }
 const reactRoot = createRoot(container);
 if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
-// 应用启动即拉取服务端作品清单；拉不到时 lib/works.ts 会回退内置花名册。
+// 应用启动即拉取服务端作品清单；重试用完仍拉不到时进入失败状态，竞技场与题库页显示重试入口。
 // 同时上报一次页面浏览（含初始 hash 路由，后台访客统计用）
 trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
 void loadWorks();
