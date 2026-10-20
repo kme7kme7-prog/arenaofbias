@@ -18,8 +18,8 @@ function applyLocale(next: Locale) {
   document.documentElement.lang = next === 'zh' ? 'zh-CN' : 'en';
   document.title =
     next === 'zh'
-      ? '偏见试验场 — 相信你的第一直觉'
-      : 'Arena of Bias — Trust your instinct';
+      ? '偏见试验场 ARENA OF BIAS · 亿模亿样 — 相信你的第一直觉'
+      : 'Arena of Bias · 亿模亿样 — Trust your instinct';
   listeners.forEach((notify) => notify());
 }
 export function setLocale(next: Locale) {
