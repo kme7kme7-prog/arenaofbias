@@ -50,3 +50,10 @@ kme7 希望网站能在百度、Bing、Google 按名字「亿模亿样」搜到�
 ## 下一步建议
 
 - 发布后在三个站长平台提交 sitemap；验证文件放 apex 根目录或 `public/` 根目录。
+
+## 勘误（2026-10-20 追加提交）
+
+- 按 kme7 定稿改文案：game 是 AI 对战游戏场，不再写「凭直觉二选一」「姊妹站」。game 的 title、og:title、twitter:title 和运行时标题统一为「偏见试验场 · AI 对战游戏场 | 亿模亿样」（英文「Arena of Bias · AI Game Arena | ArenaGalleri」）。description、og:description、twitter:description 统一为「今天，看 AI 玩点什么？攻城对垒、坦克大战、博弈联赛、辩论交锋，几个 AI 同场较劲，你来围观、你来评判。」，静态介绍与 noscript 同步。
+- apex：title 改为「亿模亿样 · 偏见试验场 — AI 模型对比与 AI 对战游戏」；顶栏、正文里介绍 game 的文字、description、og 和 JSON-LD 同步改；`share-portal.png` 左半边重新生成。
+- 随心玩、坦克斗蛐蛐、将军对垒三页的 description 按 `reference/menu-demo/modes.mjs` 与页面实际内容重写。
+- 验证：typecheck、build、ladder 构建、build-portal 通过；grep 产物，新文案都在，旧说法没有残留。

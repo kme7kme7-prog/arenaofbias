@@ -4,6 +4,7 @@
 - 总入口 `portal/index.html`：新 title、description、canonical `https://arenaofbias.icu/`、Open Graph、itemprop、twitter、WebSite 结构化数据；新增 `portal/robots.txt`、`portal/sitemap.xml`、占位分享图 `portal/share-portal.png`。`scripts/build-portal.mjs` 把它们复制进 `output/portal-dist/`，不清空目录。
 - 竞技场 `index.html`：canonical 和 og:url 从 apex 改回 `https://game.arenaofbias.icu/`，分享图写 game 直链，title/description 带「亿模亿样」，`#root` 内放静态介绍（React `createRoot` 首次渲染时替换），并加 noscript。`lib/locale.ts` 运行时标题同步。六个独立玩法页补 description、canonical、og、twitter。新增 `public/robots.txt`（屏蔽 admin/capture）和 `public/sitemap.xml`。
 - 发布注意：apex 根目录 `/www/wwwroot/arenaofbias-home/` 只逐个上传 portal-dist 的五个文件，不删除已有的 `.well-known/` 和站长验证文件。
+- 文案（kme7 定稿）：game 定位为 AI 对战游戏场，title「偏见试验场 · AI 对战游戏场 | 亿模亿样」，description「今天，看 AI 玩点什么？攻城对垒、坦克大战、博弈联赛、辩论交锋，几个 AI 同场较劲，你来围观、你来评判。」；apex 介绍 game 的文字与分享图同步。不再用「二选一」「姊妹站」「同一道题，两种看法」。
 - 归档：docs/handoff/2026-10-20-seo-share-metadata-kme7kme7-prog.md。
 
 ## 2026-10-20 · 题库/作品启动读取退避重试（已授权开 PR，未合并/未部署）

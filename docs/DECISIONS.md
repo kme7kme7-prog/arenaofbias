@@ -1070,3 +1070,4 @@
 - kme7 批准：三站要能在百度、Bing、Google 按名字「亿模亿样」搜到。每站的 title、description、canonical、Open Graph 和 twitter 标签都写在静态 HTML 里，不靠 JS 注入，因为 QQ/微信分享卡片和百度不执行 JS。og:image 用绝对 https 地址。
 - canonical 和 og:url 指向各自子域：game 写 `https://game.arenaofbias.icu/`，总入口写 `https://arenaofbias.icu/`（`/index.html` 会 301）。不再让 game 指向 apex。
 - 运行时改标题时保留站名；首屏静态介绍必须与真实页面内容一致，不写隐藏关键词。
+- game 已不是「盲评二选一」的竞技场，对外定位为 AI 对战游戏场（kme7 定稿）：title「偏见试验场 · AI 对战游戏场 | 亿模亿样」，英文「Arena of Bias · AI Game Arena | ArenaGalleri」；description「今天，看 AI 玩点什么？攻城对垒、坦克大战、博弈联赛、辩论交锋，几个 AI 同场较劲，你来围观、你来评判。」，玩法与顺序照用，不自行替换。apex 介绍 game 时用同一说法。
