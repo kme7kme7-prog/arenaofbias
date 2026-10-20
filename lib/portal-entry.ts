@@ -14,6 +14,7 @@ export function settlePortalHome(root: HTMLElement) {
   const check = () => {
     const works = getWorksState();
     const prompts = getPromptsState();
+    if (works.status === 'error' || prompts.status === 'error') { gate.fail(); return; }
     if (works.status !== 'ready' || prompts.status !== 'ready') return;
     if (works.source === 'builtin' || prompts.source === 'builtin') gate.fail();
     else void gate.ready(root);

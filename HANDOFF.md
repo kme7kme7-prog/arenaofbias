@@ -1,6 +1,6 @@
 ## 2026-10-20 · 题库/作品启动读取退避重试（已授权开 PR，未合并/未部署）
 
-- 背景：部分移动用户的 api 请求被调度到 EdgeOne 洛杉矶节点，TLS 慢或偶发失败。`/api/prompts`、`/api/works` 启动读取改为只对网络类失败（无响应、12 秒截止、非 JSON、429）按 1/3/6 秒退避，最多再试 3 次，429 至少等 Retry-After；其他 HTTP 错误不重试；45 秒总预算，期间显示「正在同步」，用尽才回退内置题库。代码在 `lib/api.ts`（`RetryableRead`、`readCatalogWithRetry`）。
+- 背景：部分移动用户的 api 请求被调度到 EdgeOne 洛杉矶节点，TLS 慢或偶发失败。`/api/prompts`、`/api/works` 启动读取改为只对网络类失败（无响应、12 秒截止、非 JSON、429）按 1/3/6 秒退避，最多再试 3 次，429 至少等 Retry-After；其他 HTTP 错误不重试；45 秒总预算，期间显示「正在同步」。用尽后不回退内置题库，进入失败状态：题库页与竞技场路由显示连接失败提示和「重试」按钮，点击重新走完整退避流程（第二个提交，kme7 要求）。代码在 `lib/api.ts`（`RetryableRead`、`readCatalogWithRetry`）。
 - typecheck、build、check-loading、check-catalog-recovery 通过；lint 与三个 validate 脚本的失败与 main 相同。本机 Chrome 拦截验证了恢复、持续失败约 10 秒回退、500 不重试。详见 [本轮归档](docs/handoff/2026-10-20-catalog-read-retry-kme7kme7-prog.md)。
 
 ## 2026-10-19 · 坦克排位自动补赛发布

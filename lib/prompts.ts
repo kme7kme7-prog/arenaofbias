@@ -81,6 +81,7 @@ export async function fetchPrompts(signal?: AbortSignal): Promise<Prompt[] | nul
 
 export type PromptsState =
   | { status: 'loading' }
+  | { status: 'error' }
   | { status: 'ready'; source: 'remote' | 'builtin'; prompts: Prompt[] };
 
 type Listener = () => void;
@@ -120,10 +121,8 @@ export function loadPrompts(): Promise<void> {
   promptsLoad = (async () => {
     const prompts = await readCatalogWithRetry(fetchPrompts, controller.signal);
     if (controller.signal.aborted) return;
-    state =
-      prompts === null
-        ? { status: 'ready', source: 'builtin', prompts: seedPrompts }
-        : { status: 'ready', source: 'remote', prompts };
+    // Retries used up: report the failure instead of presenting the seed as the catalog.
+    state = prompts === null ? { status: 'error' } : { status: 'ready', source: 'remote', prompts };
     emit();
   })().finally(() => {
     if (promptsController === controller) {

@@ -251,9 +251,9 @@ export default function PromptLibrary() {
   const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
   const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
   const catalogLoading = promptsState.status === 'loading' || worksState.status === 'loading';
-  const catalogUnavailable = (promptsState.status === 'ready' && promptsState.source === 'builtin') ||
-    (worksState.status === 'ready' && worksState.source === 'builtin');
-  const prompts = currentPrompts();
+  const catalogFailed = promptsState.status === 'error' || worksState.status === 'error';
+  // A failed catalog shows no built-in prompts; the notice offers a full retry instead.
+  const prompts = catalogFailed ? [] : currentPrompts();
   const visible = prompts.filter(
     (prompt) =>
       (kind === 'all' || prompt.kind === kind) &&
@@ -400,17 +400,17 @@ export default function PromptLibrary() {
             </span>
           </div>
         </section>
-        {(catalogLoading || catalogUnavailable) && (
-          <output className="archive-load-notice">
+        {(catalogLoading || catalogFailed) && (
+          <output className="archive-load-notice" role={catalogFailed && !catalogLoading ? 'alert' : undefined}>
             <span>{t(catalogLoading
               ? '正在同步展览馆题目与作品…'
-              : '展览馆数据未能加载完整，当前显示临时内容。')}</span>
+              : '题库连接失败，请检查网络后重试。')}</span>
             <button
               type="button"
               disabled={catalogLoading}
               onClick={() => { void loadPrompts(); void loadWorks(); }}
             >
-              {t(catalogLoading ? '正在加载…' : '重新加载')}
+              {t(catalogLoading ? '正在加载…' : '重试')}
             </button>
           </output>
         )}
@@ -573,14 +573,18 @@ export default function PromptLibrary() {
                 <Search size={36} strokeWidth={1} />
                 <h2>
                   {localize(
-                    prompts.length
+                    catalogFailed
+                      ? '题库暂时连不上'
+                      : prompts.length
                       ? '这个问题，还没找到。'
                       : '新的命题，正在准备。',
                   )}
                 </h2>
                 <p>
                   {localize(
-                    prompts.length
+                    catalogFailed
+                      ? '题库连接失败，请检查网络后重试。'
+                      : prompts.length
                       ? '试试其他关键词，或换一种作品类型。'
                       : '题库暂时没有已发布的提示词。',
                   )}

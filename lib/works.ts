@@ -98,6 +98,7 @@ export async function fetchWorks(signal?: AbortSignal): Promise<ModelResult[] | 
 
 export type WorksState =
   | { status: 'loading' }
+  | { status: 'error' }
   | { status: 'ready'; source: 'remote' | 'builtin'; works: ModelResult[] };
 
 type Listener = () => void;
@@ -138,10 +139,8 @@ export function loadWorks(): Promise<void> {
     const works = await readCatalogWithRetry(fetchWorks, controller.signal);
     const current = getWorksState();
     if (controller.signal.aborted || (current.status === 'ready' && current.source === 'remote')) return;
-    state =
-      works === null
-        ? { status: 'ready', source: 'builtin', works: modelResults }
-        : { status: 'ready', source: 'remote', works };
+    // Retries used up: report the failure instead of presenting the built-in roster as the catalog.
+    state = works === null ? { status: 'error' } : { status: 'ready', source: 'remote', works };
     emit();
   })().finally(() => {
     if (worksController === controller) {
