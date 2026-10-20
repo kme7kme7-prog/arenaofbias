@@ -36,7 +36,7 @@ kme7 希望网站能在百度、Bing、Google 按名字「亿模亿样」搜到�
 - `node scripts/validate-locale.mjs`：通过。
 - `vite preview` 加 headless Chrome：首页静态介绍被 React 替换，运行后标题正确。
 - 未跑：`scripts/check-portal-entry.mjs` 写死了 `../Show2/...` 的 Gallery 路径，`scripts/validate-portal-entry.mjs` 需要 msedge，本机都没有。
-- `npm ci` 因既有 lock 不同步失败（缺 `@emnapi/*`），改用 `npm install --package-lock=false`，没有改 lock。
+- 安装依赖：lock 缺 `@emnapi/*` 的问题已由 #8 修好，直接用 `npm ci`。
 
 ## 明确没做
 
