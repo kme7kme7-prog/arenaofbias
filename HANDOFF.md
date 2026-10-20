@@ -1,3 +1,8 @@
+## 2026-10-20 · 题库/作品启动读取退避重试（已授权开 PR，未合并/未部署）
+
+- 背景：部分移动用户的 api 请求被调度到 EdgeOne 洛杉矶节点，TLS 慢或偶发失败。`/api/prompts`、`/api/works` 启动读取改为只对网络类失败（无响应、12 秒截止、非 JSON、429）按 1/3/6 秒退避，最多再试 3 次，429 至少等 Retry-After；其他 HTTP 错误不重试；45 秒总预算，期间显示「正在同步」，用尽才回退内置题库。代码在 `lib/api.ts`（`RetryableRead`、`readCatalogWithRetry`）。
+- typecheck、build、check-loading、check-catalog-recovery 通过；lint 与三个 validate 脚本的失败与 main 相同。本机 Chrome 拦截验证了恢复、持续失败约 10 秒回退、500 不重试。详见 [本轮归档](docs/handoff/2026-10-20-catalog-read-retry-kme7kme7-prog.md)。
+
 ## 2026-10-19 · 坦克排位自动补赛发布
 
 - 新增auto-scheduler.mjs：公开S01空闲且i5在线时补一组12场；少有效场次优先，同场作者不同、随机种子与对手、三图四席轮换。新主力自动补赛，内置22件持续参与。一次一组，不消耗个人手动额度；个人暂停/取消只影响手动任务。自己的自动参赛任务显示在队列。

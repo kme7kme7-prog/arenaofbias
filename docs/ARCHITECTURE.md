@@ -43,6 +43,7 @@
 | `lib/arena.ts` | 题库数据与核心逻辑，详见下节 |
 | `lib/prompts.ts` / `prompts-seed.json` | 远端题库数据层（045）：启动拉 `/api/prompts`，失败回退内置种子；消费方以 `currentPrompts()` 为准 |
 | `lib/works.ts` / `works-roster.json` | 远端作品数据层（040）：启动拉 `/api/works`，失败回退内置 roster；roster 同时是 works 表种子 |
+| `lib/api.ts` | `apiReadJson` 12 秒读取截止，网络类失败（无响应、超时、非 JSON、429）抛 `RetryableRead`；`readCatalogWithRetry` 供题库/作品启动读取按 1/3/6 秒退避（至少 Retry-After），总预算 45 秒，其他 HTTP 错误不重试 |
 | `lib/matchmaking.ts` | 轻量匹配（046）：声望分软性分档 + 熔断 + 冷门优先加权（109），参数集中 `MATCH_CONFIG`；`computeRatings` 全量重放 Elo 暗分 |
 | `lib/ratings.ts` | 声望分数据层：拉 `/api/ratings`（含 games 出场数），未就绪按基础分/全均匀兜底（=均匀随机） |
 | `lib/leaderboard.ts` | 榜单类型、标签与配色；本地 Elo/六维聚合仅供开发占位模式 |

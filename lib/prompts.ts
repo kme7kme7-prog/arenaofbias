@@ -4,7 +4,7 @@
 // 与 lib/works.ts 同构：后台题目管理（新增/编辑/上下架）落库后，
 // 这里就是「后台点了、前台刷新即生效」的通道。
 
-import { apiReadJson, readCatalogWithRetry } from '@/lib/api';
+import { apiReadJson, readCatalogWithRetry, RetryableRead } from '@/lib/api';
 import { prompts as seedPrompts } from '@/lib/arena';
 import type { Prompt } from '@/lib/arena';
 import { isPromptId } from './prompt-id';
@@ -56,7 +56,7 @@ function parsePromptRow(row: unknown): Prompt | null {
   return parsed;
 }
 
-/** 拉已发布题目清单；失败返回 null（调用方回退内置题库）。空清单是合法结果
+/** 拉已发布题目清单；失败返回 null（调用方回退内置题库），网络类失败抛 RetryableRead。空清单是合法结果
  *（题目全部下架——决策 045「完全隐藏」），原样返回 []，不回退内置题库 */
 export async function fetchPrompts(signal?: AbortSignal): Promise<Prompt[] | null> {
   try {
@@ -72,7 +72,9 @@ export async function fetchPrompts(signal?: AbortSignal): Promise<Prompt[] | nul
     // 服务端本来就返回了空清单则视为合法的空，不回退
     if (data.prompts.length > 0 && prompts.length === 0) return null;
     return prompts;
-  } catch {
+  } catch (error) {
+    // Network-type failures go to the caller, which decides whether to read again.
+    if (error instanceof RetryableRead) throw error;
     return null;
   }
 }

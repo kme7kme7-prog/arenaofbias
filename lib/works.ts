@@ -3,7 +3,7 @@
 // 拉不到时调用方回退到 lib/arena.ts 的内置花名册，站点行为与改造前一致。
 // 后台内容管理（登记/发布开关）落地后，这里就是「后台点了、前台即刻生效」的通道。
 
-import { apiReadJson, readCatalogWithRetry } from '@/lib/api';
+import { apiReadJson, readCatalogWithRetry, RetryableRead } from '@/lib/api';
 import { knownContentKinds, modelResults } from '@/lib/arena';
 import type { ModelResult } from '@/lib/arena';
 
@@ -70,7 +70,7 @@ function parseWorkRow(row: unknown): ModelResult | null {
   };
 }
 
-/** 拉已发布作品清单；失败返回 null（调用方回退内置花名册）。空清单是合法结果
+/** 拉已发布作品清单；失败返回 null（调用方回退内置花名册），网络类失败抛 RetryableRead。空清单是合法结果
  *（作品全部下架——发布开关语义），原样返回 []，不回退内置清单 */
 export async function fetchWorks(signal?: AbortSignal): Promise<ModelResult[] | null> {
   try {
@@ -89,7 +89,9 @@ export async function fetchWorks(signal?: AbortSignal): Promise<ModelResult[] | 
     // 服务端本来就返回了空清单则视为合法的空（作品全部下架），不回退
     if (data.works.length > 0 && works.length === 0) return null;
     return works;
-  } catch {
+  } catch (error) {
+    // Network-type failures go to the caller, which decides whether to read again.
+    if (error instanceof RetryableRead) throw error;
     return null;
   }
 }
@@ -152,7 +154,7 @@ export function loadWorks(): Promise<void> {
 
 /** Recovery refresh: retain the current roster on failure, publish a valid empty roster. */
 export async function refreshWorks(signal: AbortSignal): Promise<boolean> {
-  const works = await fetchWorks(signal);
+  const works = await fetchWorks(signal).catch(() => null);
   if (signal.aborted || works === null) return false;
   state = { status: 'ready', source: 'remote', works };
   emit();
