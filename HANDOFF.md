@@ -6,6 +6,14 @@
 - 发布候选基于origin/main 794a69a，仅本轮11个功能文件及本条文档；不纳入其他本地开发遗留。精确清单、SHA256、构建/测试/部署与浏览器验收在 `.local/tank-auto-release-20261019/`；线上发布结果/首组真实赛果以result.json、live-proof.json及最终答复为准，不把模拟测试当i5实跑。生产回退资料 `/root/aob-tank-auto-20261019/`，不替换现有S01数据。
 - 用户授权完成或无法继续时关闭当前开发电脑DESKTOP-D7EM9B3；i5计算机与其VM保持运行。关机前保存本轮状态。
 
+## 2026-10-20 · 搜索收录与分享卡片元信息（PR，未部署）
+
+- 目标：百度、Bing、Google 能按名字「亿模亿样」搜到；QQ/微信分享卡片只读原始 HTML，元信息写在静态 HTML 里（决策见 DECISIONS 2026-10-20）。
+- 总入口 `portal/index.html`：新 title、description、canonical `https://arenaofbias.icu/`、Open Graph、itemprop、twitter、WebSite 结构化数据；新增 `portal/robots.txt`、`portal/sitemap.xml`、占位分享图 `portal/share-portal.png`。`scripts/build-portal.mjs` 把它们复制进 `output/portal-dist/`，不清空目录。
+- 竞技场 `index.html`：canonical 和 og:url 从 apex 改回 `https://game.arenaofbias.icu/`，分享图写 game 直链，title/description 带「亿模亿样」，`#root` 内放静态介绍（React `createRoot` 首次渲染时替换），并加 noscript。`lib/locale.ts` 运行时标题同步。六个独立玩法页补 description、canonical、og、twitter。新增 `public/robots.txt`（屏蔽 admin/capture）和 `public/sitemap.xml`。
+- 发布注意：apex 根目录 `/www/wwwroot/arenaofbias-home/` 只逐个上传 portal-dist 的五个文件，不删除已有的 `.well-known/` 和站长验证文件。
+- 归档：docs/handoff/2026-10-20-seo-share-metadata-kme7kme7-prog.md。
+
 ## 2026-10-19 · 坦克排位 S01 公开投稿发布
 
 - 用户授权提交、推送、部署与开放入口。`/ladder.html` 复用主站账号；四人赛新增排位入口与通用色块横推返回。单文件上传、私有不可变版本、一账号一主力、12场排赛、回放与导出，页面附入门bot和编写说明。
