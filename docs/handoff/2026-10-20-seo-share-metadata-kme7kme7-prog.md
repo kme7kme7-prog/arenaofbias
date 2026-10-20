@@ -57,3 +57,5 @@ kme7 希望网站能在百度、Bing、Google 按名字「亿模亿样」搜到�
 - apex：title 改为「亿模亿样 · 偏见试验场 — AI 模型对比与 AI 对战游戏」；顶栏、正文里介绍 game 的文字、description、og 和 JSON-LD 同步改；`share-portal.png` 左半边重新生成。
 - 随心玩、坦克斗蛐蛐、将军对垒三页的 description 按 `reference/menu-demo/modes.mjs` 与页面实际内容重写。
 - 验证：typecheck、build、ladder 构建、build-portal 通过；grep 产物，新文案都在，旧说法没有残留。
+- 追加：`public/share-preview.png`（game 通用分享图，1200×630）去掉「不看名字，你会选谁？」「先看作品，凭直觉选择」，改为「偏见试验场 · AI 对战游戏场」「今天，看 AI 玩点什么？」「攻城对垒 · 坦克大战 · 博弈联赛 · 辩论交锋」。以原图为底，保留边框、logo、分隔线和荧光绿箭头卡，只重绘文字区；右上角标签改为「亿模亿样」。Pillow + Noto Sans CJK SC 生成。图片引用不带 `?v=`，地址不变。
+- 追加：`scripts/validate-share.mjs` 的 og:image 断言随 canonical 改成 `https://game.arenaofbias.icu/share-preview.png`（前一提交漏改，`validate:share` 会失败），现 6 项通过。
