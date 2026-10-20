@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin.html
+Disallow: /capture.html
+
+Sitemap: https://game.arenaofbias.icu/sitemap.xml

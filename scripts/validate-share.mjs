@@ -47,7 +47,7 @@ check('竞猜卡含答案、轨迹和个人记录说明', () => {
 });
 check('通用链接预览图为静态 1200×630 PNG', () => {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /og:image" content="https:\/\/arenaofbias\.icu\/share-preview\.png"/);
+  assert.match(html, /og:image" content="https:\/\/game\.arenaofbias\.icu\/share-preview\.png"/);
   const png = fs.readFileSync(new URL('../public/share-preview.png', import.meta.url));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
   assert.equal(png.readUInt32BE(16), 1200);

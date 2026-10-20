@@ -1,3 +1,12 @@
+## 2026-10-20 · 搜索收录与分享卡片元信息（PR，未部署）
+
+- 目标：百度、Bing、Google 能按名字「亿模亿样」搜到；QQ/微信分享卡片只读原始 HTML，元信息写在静态 HTML 里（决策见 DECISIONS 2026-10-20）。
+- 总入口 `portal/index.html`：新 title、description、canonical `https://arenaofbias.icu/`、Open Graph、itemprop、twitter、WebSite 结构化数据；新增 `portal/robots.txt`、`portal/sitemap.xml`、占位分享图 `portal/share-portal.png`。`scripts/build-portal.mjs` 把它们复制进 `output/portal-dist/`，不清空目录。
+- 竞技场 `index.html`：canonical 和 og:url 从 apex 改回 `https://game.arenaofbias.icu/`，分享图写 game 直链，title/description 带「亿模亿样」，`#root` 内放静态介绍（React `createRoot` 首次渲染时替换），并加 noscript。`lib/locale.ts` 运行时标题同步。六个独立玩法页补 description、canonical、og、twitter。新增 `public/robots.txt`（屏蔽 admin/capture）和 `public/sitemap.xml`。
+- 发布注意：apex 根目录 `/www/wwwroot/arenaofbias-home/` 只逐个上传 portal-dist 的五个文件，不删除已有的 `.well-known/` 和站长验证文件。
+- 文案（kme7 定稿）：game 定位为 AI 对战游戏场，title「偏见试验场 · AI 对战游戏场 | 亿模亿样」，description「今天，看 AI 玩点什么？攻城对垒、坦克大战、博弈联赛、辩论交锋，几个 AI 同场较劲，你来围观、你来评判。」；apex 介绍 game 的文字与分享图同步。不再用「二选一」「姊妹站」「同一道题，两种看法」。
+- 归档：docs/handoff/2026-10-20-seo-share-metadata-kme7kme7-prog.md。
+
 ## 2026-10-20 · 题库/作品启动读取退避重试（已授权开 PR，未合并/未部署）
 
 - 背景：部分移动用户的 api 请求被调度到 EdgeOne 洛杉矶节点，TLS 慢或偶发失败。`/api/prompts`、`/api/works` 启动读取改为只对网络类失败（无响应、12 秒截止、非 JSON、429）按 1/3/6 秒退避，最多再试 3 次，429 至少等 Retry-After；其他 HTTP 错误不重试；45 秒总预算，期间显示「正在同步」。用尽后不回退内置题库，进入失败状态：题库页与竞技场路由显示连接失败提示和「重试」按钮，点击重新走完整退避流程（第二个提交，kme7 要求）。代码在 `lib/api.ts`（`RetryableRead`、`readCatalogWithRetry`）。
