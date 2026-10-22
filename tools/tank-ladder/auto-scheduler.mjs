@@ -1,6 +1,6 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { MAPS, SIDES, PROFILE, ENGINE_HASH, RUNTIME_HASH } from './config.mjs';
-import { assertPublicCapacity } from './public-api.mjs';
+import { assertPublicCapacity, assertMatchCapacity } from './public-api.mjs';
 
 export const AUTO_OWNER = 'system:automatic-s01';
 const pending = "status IN ('queued','running','held')";
@@ -20,11 +20,12 @@ export function createAutoScheduler({ store, directory, enabled = false, online,
     if (autoPending) return state('playing', { remaining: autoPending });
     // User requests and code validation take precedence; never build an unbounded backlog.
     if (db.prepare(`SELECT count(*) n FROM jobs WHERE ${pending} AND status<>'held'`).get().n) return state('waiting');
+    try { assertMatchCapacity(store, 12); }
+    catch { return state('season-limit'); }
     const failed = db.prepare("SELECT max(finished) at FROM jobs WHERE owner=? AND status='failed'").get(AUTO_OWNER).at;
     if (failed && now() < failed + 300000) return state('cooldown', { nextAt: failed + 300000 });
     try { assertPublicCapacity(store, directory, 12); }
     catch { return state('capacity'); }
-    if (store.counts().matches + 12 > 10000) return state('capacity');
     const lastAnchors = new Map(db.prepare("SELECT target,max(created) at FROM audit WHERE action='auto-anchor' GROUP BY target").all().map(r => [r.target, r.at]));
     const entrants = store.rankings().map(p => ({ ...p, lastAnchor: lastAnchors.get(p.id) || 0, tie: randomInt(0, 0x7fffffff) }));
     if (new Set(entrants.map(p => p.owner)).size < 4) return state('entrants');

@@ -4,6 +4,9 @@ import { MAPS, PROFILE, ENGINE_HASH, RUNTIME_HASH, LIMITS, failure } from './con
 
 export const PUBLIC_SEASON = 's01-i5-linux-quickjs';
 export const PUBLIC_LIMITS = Object.freeze({ placements: 12, dailyUploads: 6, dailyMatches: 24, queue: 96 });
+export const PUBLIC_MAX_MATCHES = 100000;
+export const PUBLIC_MAX_DATABASE_BYTES = 6 * 1024 ** 3;
+export const PUBLIC_MIN_FREE_BYTES = 4 * 1024 ** 3;
 const safeRow = ({ owner: _owner, note: _note, issue: _issue, ...row }) => row;
 const prefix = '/api/tank-ladder';
 
@@ -13,8 +16,13 @@ export function assertPublicCapacity(store, directory, added) {
   const pages = store.db.prepare('PRAGMA page_count').get().page_count;
   const pageSize = store.db.prepare('PRAGMA page_size').get().page_size;
   const free = statfsSync(directory);
-  if (pages * pageSize > 512 * 1024 ** 2 || free.bavail * free.bsize < 512 * 1024 ** 2 || store.counts().matches >= 10000)
-    throw failure('本赛季存储接近容量，暂缓新投稿和排赛；已有成绩仍可查看。', 503);
+  if (pages * pageSize >= PUBLIC_MAX_DATABASE_BYTES || free.bavail * free.bsize < PUBLIC_MIN_FREE_BYTES)
+    throw failure('赛季存储保护已触发，暂缓新投稿和排赛；已有成绩仍可查看。', 503);
+}
+
+export function assertMatchCapacity(store, matches = 12) {
+  if (store.counts().matches + matches > PUBLIC_MAX_MATCHES)
+    throw failure('本赛季场次接近 10 万场上限，无法再安排完整的 12 场批次。', 429);
 }
 
 // Identity comes only from the existing website's authenticated session endpoint.
@@ -101,6 +109,7 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
         else if (route === '/batches') {
           if (input.exhibition) throw failure('只能为自己的主力安排比赛。', 403);
           capacity(12);
+          assertMatchCapacity(store, 12);
           const used = store.db.prepare('SELECT coalesce(sum(total),0) n FROM batches WHERE owner=? AND created>?').get(user.owner, Date.now() - 86400000).n;
           if (used + 12 > PUBLIC_LIMITS.dailyMatches) throw failure('过去 24 小时的 24 场排赛额度已用完。', 429);
           json(res, store.createBatch(user.owner, input.version, false), 201);
@@ -109,7 +118,8 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
       } else if (route === '/session') json(res, { user: user ? { name: user.name } : null, csrf: user?.csrf || '' });
       else if (route === '/state') json(res, { local: false, season: PUBLIC_SEASON, profile: PROFILE, engineHash: ENGINE_HASH, runtimeHash: RUNTIME_HASH,
         user: user ? { name: user.name } : null, csrf: user?.csrf || '', nodeOnline: status().nodeOnline, automatic: status().automatic, maps: MAPS, limits: PUBLIC_LIMITS,
-        rankings: store.rankings().map(safeRow), matches: store.recent(), counts: store.counts(), mine: user ? store.myVersions(user.owner) : [], jobs: user ? jobsFor(user.owner) : [] });
+        rankings: store.rankings().map(safeRow), matches: store.recent(), counts: store.counts(), mine: user ? store.myVersions(user.owner) : [], jobs: user ? jobsFor(user.owner) : [],
+        limits: { ...PUBLIC_LIMITS, seasonMatches: PUBLIC_MAX_MATCHES } });
       else if (route === '/preview') { res.setHeader('Content-Type', 'application/json'); res.end(readFileSync(new URL('./public/preview.json', import.meta.url))); }
       else if (route === '/export') {
         res.setHeader('Content-Disposition', 'attachment; filename="tank-ladder-s01.json"');

@@ -127,7 +127,7 @@ function renderState(next) {
   if (config.apiBase) { $('trial-bot').hidden=!$('trial-bot').options.length; $('trial-start').textContent=$('trial-bot').options.length ? '加赛 12 场 ↗' : '提交我的坦克 ↗'; if (!state.nodeOnline) $('queue-label').textContent='计算节点暂时离线 · 已提交任务保留，恢复后继续'; }
   if (config.apiBase && state.automatic?.enabled && state.nodeOnline) {
     const a=state.automatic;
-    $('queue-label').textContent = ({capacity:'自动排赛暂停 · 存储容量待处理',cooldown:'自动排赛稍后重试',error:'自动排赛暂缓 · 等待恢复',entrants:'自动排赛 · 等待四位选手'})[a.state] || (state.counts.running ? `自动排位中 · ${state.counts.queued} 场等待` : '自动排位 · 正在安排下一组');
+    $('queue-label').textContent = ({capacity:'存储保护触发 · 自动排赛暂停', 'season-limit':'本季剩余场次不足一整组',cooldown:'自动排赛稍后重试',error:'自动排赛暂缓 · 等待恢复',entrants:'自动排赛 · 等待四位选手'})[a.state] || (state.counts.running ? `自动排位中 · ${state.counts.queued} 场等待` : '自动排位 · 正在安排下一组');
     if (!pending.length && $('trial-bot').options.length) $('trial-progress').textContent='主力已参加自动排位 · 场次少的优先';
   }
   const signature = JSON.stringify([state.rankings,state.mine,state.jobs,state.matches]);

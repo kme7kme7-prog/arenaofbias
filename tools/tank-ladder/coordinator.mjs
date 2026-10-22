@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { openStore } from './store.mjs';
 import { startBroker, RESULT_BYTES } from './runner-broker.mjs';
 import { PROFILE, ENGINE_HASH, RUNTIME_HASH } from './config.mjs';
-import { publicApi, PUBLIC_SEASON } from './public-api.mjs';
+import { publicApi, PUBLIC_SEASON, PUBLIC_MAX_DATABASE_BYTES } from './public-api.mjs';
 import { createAutoScheduler } from './auto-scheduler.mjs';
 
 // This entry point never imports an executor or evaluates submitted JavaScript.
@@ -115,7 +115,9 @@ export async function startCoordinator({ directory, token, operatorToken, expect
   };
   try {
     store = openStore(directory);
-    store.db.exec('PRAGMA max_page_count=262144');
+    const pageSize = store.db.prepare('PRAGMA page_size').get().page_size;
+    const maxDatabaseBytes = web ? PUBLIC_MAX_DATABASE_BYTES : 1024 ** 3;
+    store.db.exec(`PRAGMA max_page_count=${Math.floor(maxDatabaseBytes / pageSize)}`);
     store.bootstrap();
     advanceTrial();
     broker = await startBroker(store, { token, port: brokerPort, slots: 1, leaseMs });
