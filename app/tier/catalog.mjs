@@ -1,4 +1,6 @@
 // Use the live public roster; never fall back to a cached work after it is hidden.
+import { publicWorkURL } from '../../lib/public-work-url.mjs';
+
 export function createTierCatalog({
   topics,
   brands,
@@ -6,12 +8,15 @@ export function createTierCatalog({
   readCatalog,
   origin,
 }) {
-  let pending;
+  const pending = new Map();
   const rounds = new Map();
-  const snapshot = () =>
-    (pending ||= readCatalog().finally(() => {
-      pending = null;
-    }));
+  const topicWorkIds = [...new Set(topics.flatMap(topic => topic.workIds))];
+  const snapshot = (ids, promptIds = []) => {
+    const compare = (a, b) => a.localeCompare(b);
+    const key = JSON.stringify([[...ids].sort(compare), [...promptIds].sort(compare)]);
+    if (!pending.has(key)) pending.set(key, readCatalog({ ids, promptIds }).finally(() => pending.delete(key)));
+    return pending.get(key);
+  };
   function select(topic, works) {
     const byId = new Map(works.map((work) => [work.id, work]));
     const models = new Set();
@@ -41,16 +46,7 @@ export function createTierCatalog({
           return [];
       } else {
         if (content.kind !== 'html') return [];
-        try {
-          const url = new URL(content.src);
-          if (
-            url.protocol !== 'https:' ||
-            !/^[wpc][0-9a-f]{32}\.w\.arenaofbias\.icu$/.test(url.hostname)
-          )
-            return [];
-        } catch {
-          return [];
-        }
+        if (!publicWorkURL(content.src)) return [];
       }
       models.add(work.modelId);
       return [{ id: String.fromCharCode(97 + index), sourceId, work, content }];
@@ -60,7 +56,7 @@ export function createTierCatalog({
     storageKey: 'aob-tier-v1',
     themeKey: 'aob-theme',
     async topics() {
-      const { works } = await snapshot();
+      const { works } = await snapshot(topicWorkIds);
       return topics.flatMap((topic) => {
         const count = select(topic, works).length;
         return count >= 2
@@ -69,9 +65,9 @@ export function createTierCatalog({
       });
     },
     async round(id) {
-      const { works, prompts } = await snapshot();
       const topic = topics.find((t) => t.id === id);
       if (!topic) throw Error('这道题暂时不可用');
+      const { works, prompts } = await snapshot(topic.workIds, [topic.promptId]);
       const selected = select(topic, works);
       if (selected.length < 2)
         throw Error('这道题目前还没有足够的公开作品，换一道再试。');
@@ -116,7 +112,7 @@ export function createTierCatalog({
     async identities(id) {
       const selected = rounds.get(id);
       if (!selected) throw Error('请先加载题目');
-      const { works } = await snapshot();
+      const { works } = await snapshot(selected.map(work => work.sourceId));
       const publicWorks = new Map(works.map((work) => [work.id, work]));
       return Object.fromEntries(
         selected.map(({ id: alias, sourceId }) => {

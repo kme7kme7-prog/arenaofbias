@@ -2,7 +2,7 @@ import topics from '../../reference/tier-play/topics.json';
 import brands from '../../reference/tier-play/brands.json';
 import { configureTierCatalog } from '../../reference/tier-play/catalog-access.mjs';
 import { createTierCatalog } from './catalog.mjs';
-import { apiReadJson } from '../../lib/api';
+import { publicCatalog } from '../../lib/public-catalog';
 
 const assets = import.meta.glob(
   '../../reference/tier-play/assets/brands/*.{svg,png,ico}',
@@ -15,14 +15,12 @@ configureTierCatalog(
     origin: location.origin,
     assetURL: (name) =>
       assets[`../../reference/tier-play/assets/brands/${name}`],
-    async readCatalog() {
-      const [roster, questions] = await Promise.all([
-        apiReadJson('/api/playground/works'),
-        apiReadJson('/api/prompts'),
+    async readCatalog({ ids, promptIds }) {
+      const [works, prompts] = await Promise.all([
+        publicCatalog.works(ids, '/api/playground/works'),
+        publicCatalog.prompts(promptIds),
       ]);
-      if (!Array.isArray(roster?.works) || !Array.isArray(questions?.prompts))
-        throw Error('题库暂时无法加载，请刷新再试。');
-      return { works: roster.works, prompts: questions.prompts };
+      return { works, prompts };
     },
   }),
 );

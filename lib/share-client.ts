@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { publicCatalog } from './public-catalog';
 import type { ModelResult, Prompt } from './arena';
 import { shareSvg } from './share-card.js';
 import { isPromptId } from './prompt-id';
@@ -31,14 +31,6 @@ export type ShareData = {
 };
 
 export type ShareResult = { data: ShareData; url: string; file: File; imageUrl: string };
-
-async function publicList<T>(path: string, field: string): Promise<T[]> {
-  const response = await apiFetch(path);
-  if (!response.ok) throw new Error('分享数据暂不可用，请稍后重试。');
-  const body = await response.json() as Record<string, unknown>;
-  if (!Array.isArray(body[field])) throw new Error('分享数据暂不可用，请稍后重试。');
-  return body[field] as T[];
-}
 
 function parseWork(row: Record<string, unknown>): ModelResult | null {
   if (typeof row.id !== 'string' || typeof row.promptId !== 'string' ||
@@ -113,13 +105,13 @@ export async function resolveShareData(query: string): Promise<ShareData> {
   if (type !== 'duel' && type !== 'prompt') throw new Error('分享类型无效。');
   const promptId = params.get('prompt') ?? '';
   if (!isPromptId(promptId)) throw new Error('这道题暂不可用。');
-  const prompts = await publicList<Prompt>('/api/prompts', 'prompts');
+  const prompts = await publicCatalog.prompts([promptId]);
   const prompt = prompts.find((item) => item.id === promptId);
   if (!prompt) throw new Error('这道题暂不可用。');
   const a = params.get('a'), b = params.get('b');
   let pair: ModelResult[] | null = null;
-  if (a && b && a !== b && a.length <= 200 && b.length <= 200) {
-    const works = (await publicList<Record<string, unknown>>('/api/works', 'works'))
+  if (a && b && a !== b && a.length <= 128 && b.length <= 128 && !a.includes(',') && !b.includes(',')) {
+    const works = (await publicCatalog.works([a, b]))
       .map(parseWork).filter((work): work is ModelResult => work !== null);
     const left = works.find((work) => work.id === a && work.promptId === promptId);
     const right = works.find((work) => work.id === b && work.promptId === promptId);

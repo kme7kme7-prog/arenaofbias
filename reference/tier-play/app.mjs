@@ -955,14 +955,17 @@ $('#prompt-dialog').addEventListener('click', (event) => {
   if (event.target === $('#prompt-dialog')) $('#prompt-dialog').close();
 });
 $('#change-topic').addEventListener('click', async () => {
-  if (changing || revealing || exporting || !topics.length) return;
+  if (changing || revealing || exporting) return;
   changing = true;
   finishDrag(false);
   render();
-  const pool = topics.filter((t) => t.id !== data.topicId);
-  const next = pool[Math.floor(Math.random() * pool.length)];
   let failed = false;
   try {
+    // The availability index is only needed after the player asks for another topic.
+    if (!topics.length) topics = await readTierTopics();
+    const pool = topics.filter((t) => t.id !== data.topicId);
+    const next = pool[Math.floor(Math.random() * pool.length)];
+    if (!next) throw Error('暂时没有其他公开题目');
     const round = await fetchRound(next.id);
     await closeViewer();
     mountRound(round);
@@ -998,11 +1001,7 @@ async function start() {
   }
   const requested =
     new URL(location.href).searchParams.get('topic') || saved?.topic || '004';
-  const [round, available] = await Promise.all([
-    fetchRound(requested),
-    readTierTopics(),
-  ]);
-  topics = available;
+  const round = await fetchRound(requested);
   mountRound(round, saved);
   if (board.revealed) await loadIdentities();
   render();
