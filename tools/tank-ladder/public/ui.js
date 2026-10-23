@@ -9,6 +9,8 @@ const signed = value => `${value > 0 ? '+' : ''}${value}`;
 const fmt = value => new Intl.NumberFormat('zh-CN').format(value);
 const date = value => new Date(value).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 let csrf = '', state, sort = 'rating', tab = 'hall', pollTimer, toastTimer, source = '', previousSignature = '';
+let replayCache, previewRead;
+const replayReads = new Map();
 let featureId = '', featureReplay, featureEvents = [], featureTime = 0, replay, replayEvents = [], time = 0, playing = false, replayRequest = 0;
 const pages = { rank: 1, works: 1, jobs: 1, matches: 1 };
 const pageSizes = { rank: 6, works: 4, jobs: 6, matches: 6 };
@@ -94,11 +96,23 @@ function matches() {
   const visible=pageOf(state.matches,'matches');
   $('match-list').innerHTML = state.matches.length ? visible.map(m => `<button class="match-card" data-watch="${esc(m.id)}"><div class="match-map">${esc(mapName(m.mapId))}<time>${date(m.created)}</time></div><div class="match-contenders">${[...m.rows].sort((a,b)=>a.rank-b.rank).map(r=>`<div class="contender"><strong>${r.rank} · ${esc(r.name)}</strong><small>${r.kills} 击杀 <span class="delta ${r.delta<0?'negative':''}">${signed(r.delta)}</span></small></div>`).join('')}</div><span class="match-link">回放 ↗</span></button>`).join('') : '<div class="empty"><h3>战场还在等第一声炮响。</h3><p>提交自己的坦克，通过运行检查后自动参加对局。</p><button class="secondary" data-show-hall>去排位大厅 ↗</button></div>';
 }
+async function readReplay(id) {
+  if (replayCache?.id === id) return replayCache.value;
+  if (!replayReads.has(id)) {
+    const pending = api(`/api/matches/${id}/replay`).then(value => { replayCache = { id, value }; return value; }).finally(() => replayReads.delete(id));
+    replayReads.set(id, pending);
+  }
+  return replayReads.get(id);
+}
 async function feature() {
+  // A one-frame map preview keeps the hall useful without downloading each new match.
+  if (!featureReplay) {
+    previewRead ||= api('/api/preview').catch(error => { previewRead = null; throw error; });
+    featureReplay = await previewRead; featureEvents = [];
+  }
   const latest = state.matches[0];
   if (!latest) {
     $('featured-info').innerHTML = '<p class="feature-caption"><strong>十字猎场</strong>中央交锋，四路入场。</p>';
-    if (!featureReplay) { featureReplay = await api('/api/preview'); featureEvents = []; }
     return;
   }
   if (featureId === latest.id) return;
@@ -107,9 +121,6 @@ async function feature() {
   $('watch-label').textContent = '最新交锋';
   const winners = latest.rows.filter(r=>r.rank===1).map(r=>r.name).join(' / ');
   $('featured-info').innerHTML = `<p class="feature-caption"><strong>${esc(winners)} · 胜出</strong>${esc(mapName(latest.mapId))} · ${date(latest.created)}</p>`;
-  const loaded = await api(`/api/matches/${latest.id}/replay`);
-  if (featureId !== latest.id) return;
-  featureReplay = loaded; featureEvents = prepareEffects(loaded); featureTime = Math.min(180,loaded.frames.length-1);
 }
 function renderState(next) {
   state = next;
@@ -178,7 +189,7 @@ function detail(id){
 }
 async function watch(id){
   const ticket=++replayRequest;toast('正在载入回放…');
-  const loaded=await api(`/api/matches/${id}/replay`); if(ticket!==replayRequest)return;
+  const loaded=await readReplay(id); if(ticket!==replayRequest)return;
   if($('toast').textContent==='正在载入回放…'){clearTimeout(toastTimer);$('toast').classList.remove('visible');}
   replay=loaded;replayEvents=prepareEffects(replay);time=0;playing=true;
   $('replay-title').textContent=mapName(replay.meta.mapId);$('replay-meta').textContent=`MATCH / SEED ${replay.meta.seed}`;

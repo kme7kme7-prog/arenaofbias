@@ -64,6 +64,7 @@ import {
   appendPlaceholderVote,
   currentMatchup,
   currentPairs,
+  currentPairCount,
   currentRandomArenaHash,
   currentResultsForPrompt,
   isPlaceholderMode,
@@ -670,11 +671,11 @@ export default function Arena({
   useEffect(() => {
     refreshRatings(scope);
   }, [scope]);
-  const pairCount = currentPairs(prompt.id, scope).length;
-  const forumQuestions = forumTopics(currentPrompts(), id => currentPairs(id, scope).length > 0);
+  const pairCount = currentPairCount(prompt.id, scope);
+  const forumQuestions = forumTopics(currentPrompts(), id => currentPairCount(id, scope) > 0);
   const forumPosition = forumQuestions.findIndex(item => item.id === prompt.id) + 1;
   const hasOtherArena = (forum ? forumQuestions : currentPrompts()).some(
-    (item) => item.id !== prompt.id && currentPairs(item.id, scope).length > 0,
+    (item) => item.id !== prompt.id && currentPairCount(item.id, scope) > 0,
   );
   const continueLock = useRef(false);
   // 换对的新稿暂存：快门盖满前旧作还在场上，提前 setPair 会让新作品的加载
@@ -732,7 +733,7 @@ export default function Arena({
   const gotoRandomArena = () => {
     // 加载超时后仍允许既有「跳过此题」出口，普通继续按钮保持禁用。
     if (((continueLock.current || worksLoading) && !worksStalled) || state.phase === 'transition') return;
-    const available = playgroundCatalog.filter(item => currentPairs(item.id).length > 0);
+    const available = playgroundCatalog.filter(item => currentPairCount(item.id) > 0);
     const nextText = available[(available.findIndex(item => item.id === prompt.id) + 1) % available.length];
     const candidate = forum ? `#arena/${nextForumTopic(prompt.id, forumQuestions)?.id ?? prompt.id}`
       : playground ? `#arena/${nextText?.id ?? prompt.id}` : currentRandomArenaHash(prompt.id, scope);

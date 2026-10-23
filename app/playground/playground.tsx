@@ -1,12 +1,11 @@
-import { Component, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode, type MouseEvent } from 'react';
+import { Component, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode, type MouseEvent, type ImgHTMLAttributes } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AccountProvider } from '@/components/account';
 import { currentPrompts, getPromptsState, loadPrompts, subscribePrompts } from '@/lib/prompts';
 import { configureWorksCatalog, getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
-import { currentPairs } from '@/lib/placeholder';
+import { currentPairCount } from '@/lib/placeholder';
 import type { Prompt } from '@/lib/arena';
 import { isForumPrompt, forumTopics, FORUM_PROMPT_ID } from '@/lib/forum-topics';
-import { loadRatings } from '@/lib/ratings';
 import { initTheme, setThemeScene } from '@/lib/theme';
 import { bandsNavigate, navigationTransitionActive, setTransitionFactory } from '@/lib/game-transitions';
 import { enterArena, releaseWorksGate } from '@/lib/works-gate';
@@ -92,7 +91,6 @@ configureWorksCatalog('/api/playground/works');
 addEventListener('pg:reader-cancel', releaseWorksGate);
 if (import.meta.hot) import.meta.hot.dispose(() => removeEventListener('pg:reader-cancel', releaseWorksGate));
 if (import.meta.hot) import.meta.hot.dispose(disposeTheme);
-loadRatings();
 setTransitionFactory(createPlaygroundPassage);
 
 function Brand() {
@@ -141,9 +139,28 @@ function Home() {
     </div><p className="pg-footnote">没有标准答案，喜欢就好。</p>
   </main>;
 }
+function CoverImage({ src, alt = '', ...props }: ImgHTMLAttributes<HTMLImageElement>) {
+  const image = useRef<HTMLImageElement>(null);
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    const target = image.current?.closest('.pg-story') ?? image.current;
+    if (!target) return;
+    if (typeof IntersectionObserver === 'undefined') return;
+    // Native lazy loading can fetch every card in this short directory. Start
+    // the large illustrations only as their card approaches the actual viewport.
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      setVisible(true);
+      observer.disconnect();
+    }, { rootMargin: '160px 0px' });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [src]);
+  return <img {...props} alt={alt} ref={image} src={visible ? src : undefined} loading="eager" decoding="async" />;
+}
 function SceneArt({ skin, mark }: { skin: string; mark: string }) {
   return <div className={`pg-scene-art pg-art-${skin}`} aria-hidden="true">
-    {skin === 'forest' ? <img src="/text-scenes/forest-line-v3.png" alt="" /> : skin === 'waiting' ? <img src="/text-scenes/waiting-line-v2.png" alt="" /> : skin === 'orange' ? <img className="pg-orange-illustration" src="/text-scenes/orange-editorial-v1.webp" alt="" width="1254" height="1254" loading="lazy" decoding="async" /> : skin === 'chat' ? <><i>还没睡？</i><i>嗯，想说说话。</i></> : skin === 'letter' ? <><i className="pg-small-envelope" /><span>{mark}</span></> : <span>{mark}</span>}
+    {skin === 'forest' ? <CoverImage src="/text-scenes/forest-line-v3.png" alt="" /> : skin === 'waiting' ? <CoverImage src="/text-scenes/waiting-line-v2.png" alt="" /> : skin === 'orange' ? <CoverImage className="pg-orange-illustration" src="/text-scenes/orange-editorial-v1.webp" alt="" width="1254" height="1254" /> : skin === 'chat' ? <><i>还没睡？</i><i>嗯，想说说话。</i></> : skin === 'letter' ? <><i className="pg-small-envelope" /><span>{mark}</span></> : <span>{mark}</span>}
   </div>;
 }
 function LetterCover() {
@@ -158,16 +175,16 @@ function EditorialCover({ item }: { item: typeof catalog[number] }) {
   if (item.skin === 'letter') return <LetterCover />;
   return <div className={`pg-story-cover pg-cover-${item.skin}`} aria-hidden="true">
     {item.skin === 'chat' ? <><div className="pg-chat-time">02<span>:</span>30</div><SceneArt skin="chat" mark="" /><span className="pg-chat-status">对方还在。</span></> :
-      item.skin === 'forest' ? <><div className="pg-book-spine" /><span className="pg-forest-title">小红帽</span><img src="/text-scenes/forest-line-v3.png" alt="" /><span className="pg-book-rule" /></> :
+      item.skin === 'forest' ? <><div className="pg-book-spine" /><span className="pg-forest-title">小红帽</span><CoverImage src="/text-scenes/forest-line-v3.png" alt="" /><span className="pg-book-rule" /></> :
       item.skin === 'forum' ? <><div className="pg-forum-bar"><b>贴</b><span>弱智吧</span></div><strong>认真一问。</strong><div className="pg-forum-reply"><span>2楼</span><i /><i /></div><div className="pg-forum-reply"><span>3楼</span><i /></div></> :
       item.skin === 'orange' ? <><span className="pg-orange-rule">三句话</span><SceneArt skin="orange" mark="" /><strong>卖我这颗橘子。</strong></> :
       item.skin === 'channels' ? <><b>18</b><div><span>散文</span><span>电影</span><span>群聊</span></div></> :
       item.skin === 'blackout' ? <><strong>停<br />电</strong><div className="pg-night-crack" /><span>故事还没。</span></> :
-      <><div className="pg-waiting-stamp"><img src="/text-scenes/waiting-line-v2.png" alt="" /><span>等待</span></div><div className="pg-waiting-postmark" /></>}
+      <><div className="pg-waiting-stamp"><CoverImage src="/text-scenes/waiting-line-v2.png" alt="" /><span>等待</span></div><div className="pg-waiting-postmark" /></>}
   </div>;
 }
 const editorialOrder = ['letter', 'chat', 'forest', 'forum', 'orange', 'channels', 'blackout', 'waiting'];
-function TextLibrary({ available }: { available: Set<string> }) {
+function TextLibrary({ available, loading, failed, retry }: { available: Set<string>; loading: boolean; failed: boolean; retry: () => void }) {
   const [pending, setPending] = useState<string | null>(null);
   const [failure, setFailure] = useState(false);
   const live = useRef(true);
@@ -182,7 +199,7 @@ function TextLibrary({ available }: { available: Set<string> }) {
     // Touch and keyboard activation start the module alongside the closing doors.
     void loadArena().catch(() => { if (live.current) setFailure(true); });
     try {
-      const topics = id === FORUM_PROMPT_ID ? forumTopics(currentPrompts(), topicId => currentPairs(topicId).length > 0) : [];
+      const topics = id === FORUM_PROMPT_ID ? forumTopics(currentPrompts(), topicId => currentPairCount(topicId) > 0) : [];
       const target = topics.find(topic => topic.id === id)?.id ?? topics[0]?.id ?? id;
       enterArena(`#arena/${target}`, catalog.find(item => item.id === id)?.name);
     } catch { setFailure(true); }
@@ -193,13 +210,15 @@ function TextLibrary({ available }: { available: Set<string> }) {
       <div className="pg-masthead"><h1>字里<span>行间</span><svg viewBox="0 0 220 22" aria-hidden="true"><path d="M4 12Q110 0 215 9M30 19Q105 10 176 15" /></svg></h1><p>不必打分，<br /><em>喜欢就好。</em></p><span className="pg-masthead-mark" aria-hidden="true"><svg viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"><path d="M28 16C21 10 13 10 6 12v30c8-2 16-1 22 4 6-5 14-6 22-4V12c-7-2-15-2-22 4Zm0 0v30M11 18c5-1 9 0 12 2m-12 5c5-1 9 0 12 2m10-7c3-2 7-3 12-2m-12 9c3-2 7-3 12-2" /><path d="M38 11v21l4-3 4 2V11" /></svg></span></div>
     </header>
     <div className="pg-editorial-stories">
-      {editorialOrder.map((skin, index) => {const item = catalog.find(entry => entry.skin === skin)!;return <a key={item.id} className={`pg-story pg-story-${item.skin}`} href={`#arena/${item.id}`} onMouseEnter={() => { void loadArena().catch(() => {}); }} onFocus={() => { void loadArena().catch(() => {}); }} onClick={event => {
+      {editorialOrder.map((skin, index) => {const item = catalog.find(entry => entry.skin === skin)!;return <a key={item.id} className={`pg-story pg-story-${item.skin}`} href={`#arena/${item.id}`} onMouseEnter={() => { if (available.has(item.id)) void loadArena().catch(() => {}); }} onFocus={() => { if (available.has(item.id)) void loadArena().catch(() => {}); }} onClick={event => {
       if (!available.has(item.id)) { event.preventDefault(); return; }
       void openScene(event, item.id);
     }} aria-disabled={!available.has(item.id) || !!pending} aria-busy={pending === item.id}>
       <EditorialCover item={item} /><div className="pg-story-caption"><span>{String(index + 1).padStart(2, '0')}</span><div className="pg-story-title"><h2>{item.name}</h2><p>{item.note}</p></div><span className="pg-story-open" aria-hidden="true">{pending === item.id ? '正在打开…' : <><span>翻开</span><b>↗</b></>}</span></div>
     </a>;})}</div>
     <footer className="pg-editorial-colophon"><a href="/objects.html?topic=keyboards">3D 作品 <b aria-hidden="true">↗</b></a></footer>
+    {loading && <output className="pg-notice" aria-live="polite">正在读取题目…</output>}
+    {failed && <p className="pg-notice" role="alert">题目暂时连不上。<button type="button" onClick={retry}>重试</button></p>}
     {pending && <output className="pg-opening-note">正在打开…<button onClick={cancelReaderPassage}>取消</button></output>}
     {failure && <p className="pg-notice" role="alert">这次没能打开，点击题目可以再试一次。</p>}
   </main>;
@@ -219,7 +238,15 @@ function Playground() {
   const renderId = sceneId;
   const prompt = ready && renderId ? currentPrompts().find(item => item.id === renderId &&
     (isForumPrompt(item) || catalog.some(entry => entry.id === renderId))) : undefined;
-  useEffect(() => { void loadWorks(); void loadPrompts(); }, []);
+  const catalogRequired = section !== 'home';
+  const retryCatalog = () => { void loadWorks(); void loadPrompts(); };
+  useEffect(() => {
+    if (!catalogRequired) return;
+    const recover = () => { void loadWorks(); void loadPrompts(); };
+    recover();
+    window.addEventListener('online', recover);
+    return () => window.removeEventListener('online', recover);
+  }, [catalogRequired, route]);
   useLayoutEffect(settlePlaygroundEntry, []);
   const pageTitle = (section === 'scene' && prompt?.name) || (section === 'text' ? '文字题目' : '随心玩');
   useLayoutEffect(() => {
@@ -229,14 +256,14 @@ function Playground() {
     document.title = `${pageTitle} · Arena of Bias`;
   }, [section, sceneId, pageTitle]);
   useEffect(() => {
-    if (sceneId && ready && (!prompt || !currentPairs(sceneId).length)) releaseWorksGate();
+    if (sceneId && ready && (!prompt || !currentPairCount(sceneId))) releaseWorksGate();
   }, [sceneId, ready, prompt]);
-  const available = new Set(ready ? catalog.filter(item => currentPairs(item.id).length > 0).map(item => item.id) : []);
-  const forumReady = forumTopics(currentPrompts(), id => currentPairs(id).length > 0);
+  const available = new Set(ready ? catalog.filter(item => currentPairCount(item.id) > 0).map(item => item.id) : []);
+  const forumReady = forumTopics(currentPrompts(), id => currentPairCount(id) > 0);
   const forumEntry = catalog.find(item => item.skin === 'forum')!;
   if (ready && forumReady.length) available.add(forumEntry.id);
-  return <>{section === 'scene' ? <ReaderHeader prompt={prompt} /> : <Header section={section} />}{section === 'home' ? <Home /> : section === 'text' ? <TextLibrary available={available} /> : null}
-    {ready && prompt && currentPairs(prompt.id).length ? <div className="pg-scene-host" data-preparing={section !== 'scene' ? '' : undefined} inert={section !== 'scene'} aria-hidden={section !== 'scene' || undefined}><SceneBoundary key={prompt.id}><Suspense fallback={<output className="pg-notice">正在打开这段故事…</output>}><Arena key={prompt.id} prompt={prompt} playground /></Suspense></SceneBoundary></div> : section === 'scene' ? <output className="pg-notice">{works.status === 'loading' || prompts.status === 'loading' ? '正在取出故事…' : <>故事暂时没有准备好。<a href="#text">返回选题</a><button onClick={() => location.reload()}>重新加载</button></>}</output> : null}</>;
+  return <>{section === 'scene' ? <ReaderHeader prompt={prompt} /> : <Header section={section} />}{section === 'home' ? <Home /> : section === 'text' ? <TextLibrary available={available} loading={works.status === 'loading' || prompts.status === 'loading'} failed={works.status === 'error' || prompts.status === 'error'} retry={retryCatalog} /> : null}
+    {ready && prompt && currentPairCount(prompt.id) ? <div className="pg-scene-host" data-preparing={section !== 'scene' ? '' : undefined} inert={section !== 'scene'} aria-hidden={section !== 'scene' || undefined}><SceneBoundary key={prompt.id}><Suspense fallback={<output className="pg-notice">正在打开这段故事…</output>}><Arena key={prompt.id} prompt={prompt} playground /></Suspense></SceneBoundary></div> : section === 'scene' ? <output className="pg-notice">{works.status === 'loading' || prompts.status === 'loading' ? '正在取出故事…' : <>故事暂时没有准备好。<a href="#text">返回选题</a><button onClick={() => location.reload()}>重新加载</button></>}</output> : null}</>;
 }
 if (location.hash.startsWith('#arena/')) readerPassage(location.hash.slice(7));
 const root = createRoot(document.getElementById('playground-root')!);

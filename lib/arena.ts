@@ -228,6 +228,20 @@ export function eligiblePairs(
   );
 }
 
+/** Count cross-model pairs without allocating every pair just to decide readiness. */
+export function eligiblePairCount(promptId: string, results = modelResults): number {
+  const counts = new Map<string, number>();
+  let entries = 0, pairs = 0;
+  for (const work of results) {
+    if (work.promptId !== promptId || work.isDemo) continue;
+    const sameModel = counts.get(work.modelId) ?? 0;
+    pairs += entries - sameModel;
+    counts.set(work.modelId, sameModel + 1);
+    entries++;
+  }
+  return pairs;
+}
+
 /** 模型 → 该题下它的作品列表（决策 097：同名变体已合并为一个模型多件作品） */
 export function modelGroups(
   promptId: string,
@@ -317,7 +331,7 @@ export function randomArenaHash(
 ) {
   const available = promptList.filter(
     (prompt) => entertainmentWorkCount(prompt.id, results) >= minimumWorks
-      && eligiblePairs(prompt.id, results).length > 0,
+      && eligiblePairCount(prompt.id, results) > 0,
   );
   const other = available.filter((prompt) => prompt.id !== excludeId);
   const pool = other.length ? other : available;

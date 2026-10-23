@@ -16,7 +16,8 @@ import {
   type MouseEvent,
 } from 'react';
 import { createGameTransition } from '@/lib/game-transitions';
-import { ShareButton, guessShareQuery } from '@/components/share';
+import { ShareButton } from '@/components/share';
+import { guessShareQuery } from '@/lib/guess-share';
 import { useI18n } from '@/lib/locale';
 import { LanguageSwitch } from '@/components/language-switch';
 import { AccountButton } from '@/components/account';

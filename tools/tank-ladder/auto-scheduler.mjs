@@ -1,6 +1,7 @@
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { MAPS, SIDES, PROFILE, ENGINE_HASH, RUNTIME_HASH } from './config.mjs';
 import { assertPublicCapacity, assertMatchCapacity } from './public-api.mjs';
+import { initializePublicReads, automaticJobsFor } from './public-reads.mjs';
 
 export const AUTO_OWNER = 'system:automatic-s01';
 const pending = "status IN ('queued','running','held')";
@@ -8,6 +9,7 @@ const pending = "status IN ('queued','running','held')";
 // Only sealed jobs are created here. The remote node remains the sole executor.
 export function createAutoScheduler({ store, directory, enabled = false, online, now = Date.now }) {
   const { db } = store;
+  initializePublicReads(store);
   const get = key => db.prepare('SELECT value FROM settings WHERE key=?').get(`auto:${key}`)?.value;
   const set = (key, value) => db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run(`auto:${key}`, String(value));
   if (get('enabled') === undefined) set('enabled', enabled ? '1' : '0');
@@ -62,10 +64,7 @@ export function createAutoScheduler({ store, directory, enabled = false, online,
   return {
     pump: () => { try { return pump(); } catch { console.error('Automatic scheduling deferred; no partial batch committed.'); return state('error'); } },
     status: () => ({ ...current }),
-    jobsFor: owner => [...store.jobs(owner), ...db.prepare(`SELECT j.id,j.kind,j.batch,j.status,j.issue,j.created,j.finished,1 AS automatic
-      FROM jobs j WHERE j.owner=? AND EXISTS (SELECT 1 FROM json_each(j.task,'$.versions') seat
-        JOIN versions v ON v.id=seat.value JOIN works w ON w.id=v.work WHERE w.owner=?)
-      ORDER BY j.seq DESC LIMIT 80`).all(AUTO_OWNER, owner)].sort((a, b) => b.created - a.created).slice(0, 80),
+    jobsFor: owner => [...store.jobs(owner), ...automaticJobsFor(store, owner)].sort((a, b) => b.created - a.created).slice(0, 80),
     control: action => {
       if (!['pause', 'resume'].includes(action)) throw Object.assign(Error('Unsupported automatic scheduling action'), { status: 400 });
       set('enabled', action === 'resume' ? '1' : '0');

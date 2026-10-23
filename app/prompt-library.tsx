@@ -32,7 +32,7 @@ import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 import { GALLERY_QUESTIONS } from '@/lib/gallery-links';
 import type { Prompt } from '@/lib/arena';
 import {
-  currentPairs,
+  currentPairCount,
   currentResultsForPrompt,
   isPlaceholderMode,
 } from '@/lib/placeholder';
@@ -95,7 +95,7 @@ function promptStats(id: string) {
     models: new Set(entries.map((result) => result.modelId)).size,
     works: entertainmentWorkCount(id, results),
     samples: results.filter((result) => result.isDemo).length,
-    ready: currentPairs(id).length > 0,
+    ready: currentPairCount(id) > 0,
   };
 }
 function PromptDossier({ prompt }: { prompt: Prompt }) {
@@ -253,7 +253,7 @@ export default function PromptLibrary() {
   const catalogLoading = promptsState.status === 'loading' || worksState.status === 'loading';
   const catalogFailed = promptsState.status === 'error' || worksState.status === 'error';
   // A failed catalog shows no built-in prompts; the notice offers a full retry instead.
-  const prompts = catalogFailed ? [] : currentPrompts();
+  const prompts = catalogFailed || catalogLoading ? [] : currentPrompts();
   const visible = prompts.filter(
     (prompt) =>
       (kind === 'all' || prompt.kind === kind) &&
@@ -272,7 +272,7 @@ export default function PromptLibrary() {
   const pageStart = page * PAGE_SIZE;
   const pagePrompts = visible.slice(pageStart, pageStart + PAGE_SIZE);
   const readyCount = prompts.filter(
-    (prompt) => currentPairs(prompt.id).length > 0,
+    (prompt) => currentPairCount(prompt.id) > 0,
   ).length;
   const visibleKey = pagePrompts.map((prompt) => prompt.id).join(',');
   useLayoutEffect(

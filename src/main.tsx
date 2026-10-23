@@ -2,22 +2,13 @@ import { useI18n } from '@/lib/locale';
 import { AccountProvider, useAccount } from '@/components/account';
 import '@/app/account.css';
 import { createRoot } from 'react-dom/client';
-import Arena from '@/app/page';
-import { useEffect, useSyncExternalStore } from 'react';
-import PlayMenu from '@/app/play-menu';
-import Event from '@/app/event';
-import GuessPage from '@/app/guess';
-import GuessFriendsPage from '@/app/guess-friends';
+import { Component, Suspense, lazy, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import Home from '@/app/home';
-import PromptLibrary from '@/app/prompt-library';
-import PromptPreview from '@/app/prompt-preview';
-import Ranking from '@/app/ranking';
-import LegalPage from '@/app/legal';
 import { DevPanel } from '@/components/dev-panel';
 import { PageShare } from '@/components/share';
 import { parseSharedDuel, resolveSharedDuel } from '@/lib/shared-duel';
 import '@/app/share.css';
-import { currentPairs, currentRandomArenaHash, isPlaceholderMode } from '@/lib/placeholder';
+import { currentPairCount, currentRandomArenaHash, isPlaceholderMode } from '@/lib/placeholder';
 import { currentResultsForPrompt } from '@/lib/placeholder';
 import {
   currentPrompts,
@@ -25,7 +16,6 @@ import {
   loadPrompts,
   subscribePrompts,
 } from '@/lib/prompts';
-import { loadRatings } from '@/lib/ratings';
 import { trackPageView } from '@/lib/track';
 import { getWorksState, loadWorks, subscribeWorks } from '@/lib/works';
 // observatory.css 保留：Event 页与其中的品牌排版（MiSans 字标）仍在使用，
@@ -56,6 +46,35 @@ const container = document.getElementById('root');
 const sharedDuel = parseSharedDuel(window.location.search);
 if (!container) throw new Error('Missing #root mount point');
 
+// The landing page stays immediate. Games and secondary pages
+// load on demand, with an explicit recovery path if a chunk cannot be fetched.
+const PlayMenu = lazy(() => import('@/app/play-menu'));
+const Arena = lazy(() => import('@/app/page'));
+const Event = lazy(() => import('@/app/event'));
+const GuessPage = lazy(() => import('@/app/guess'));
+const GuessFriendsPage = lazy(() => import('@/app/guess-friends'));
+const PromptLibrary = lazy(() => import('@/app/prompt-library'));
+const PromptPreview = lazy(() => import('@/app/prompt-preview'));
+const Ranking = lazy(() => import('@/app/ranking'));
+const LegalPage = lazy(() => import('@/app/legal'));
+
+function RouteLoading() {
+  const { t } = useI18n();
+  return <output className="route-empty" aria-live="polite">{t('正在接入试验场')}</output>;
+}
+function RouteFailure() {
+  const { language, t } = useI18n();
+  return <div className="route-empty library-empty" role="alert">
+    <h1>{language === 'en' ? 'This page could not be loaded.' : '页面暂时无法加载。'}</h1>
+    <button type="button" onClick={() => window.location.reload()}>{t('重试')}</button>
+  </div>;
+}
+class RouteBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <RouteFailure /> : this.props.children; }
+}
+
 // 与旧版一致：不启用 StrictMode，避免入场动画相关 effect 在开发模式重复执行。
 function subscribeRoute(callback: () => void) {
   window.addEventListener('hashchange', callback);
@@ -75,7 +94,6 @@ function CatalogFailure() {
   );
 }
 function Routes() {
-  useEffect(() => settlePortalHome(container!), []);
   const { t } = useI18n();
   const { user, loading: authLoading } = useAccount();
   const route = useSyncExternalStore(
@@ -86,19 +104,26 @@ function Routes() {
   const worksState = useSyncExternalStore(subscribeWorks, getWorksState);
   // 动态题库（决策 045）：远端题目就绪后重渲染，消费方从内置种子切到服务端题库
   const promptsState = useSyncExternalStore(subscribePrompts, getPromptsState);
+  const catalogRequired = route === '#prompts' || route === '#arena' || route === '#random'
+    || route.startsWith('#arena/') || (route.startsWith('#formal/') && user?.role === 'admin')
+    || ((route === '#rank' || route === '#rank/formal') && isPlaceholderMode());
   useEffect(() => {
+    if (!catalogRequired) return;
     const recoverCatalogs = () => { void loadPrompts(); void loadWorks(); };
     recoverCatalogs();
     window.addEventListener('online', recoverCatalogs);
     return () => window.removeEventListener('online', recoverCatalogs);
-  }, [route]);
+    // Requests belong to the shared stores. Leaving a route removes this
+    // listener, but cannot cancel a read another consumer is waiting for.
+  }, [catalogRequired, route]);
+  useEffect(() => settlePortalHome(container!, catalogRequired), [route, catalogRequired, worksState.status, promptsState.status]);
   useEffect(() => {
     const arenaPromptId = route.startsWith('#arena/')
       ? route.slice(7)
       : route.startsWith('#formal/')
         ? route.slice(8)
         : '';
-    if (!arenaPromptId || currentPairs(arenaPromptId, route.startsWith('#formal/') ? 'formal' : 'entertainment').length === 0)
+    if (!arenaPromptId || currentPairCount(arenaPromptId, route.startsWith('#formal/') ? 'formal' : 'entertainment') === 0)
       window.scrollTo(0, 0);
     if (route === '#arena' || route === '#random') {
       // 等题目和作品清单都就绪再随机抽题：用内置兜底清单抽题
@@ -129,9 +154,9 @@ function Routes() {
     const prompt = currentPrompts().find((item) => item.id === route.slice(8));
     // 清单加载中先不判型（2026-09-20 审查修复）：用内置兜底挂载竞技场后，
     // 远端清单到达可能把页面换成预览页，入场序列被中途卸载
-    if (worksState.status === 'loading')
+    if (worksState.status === 'loading' || promptsState.status === 'loading')
       return <output className="route-empty">{t('正在接入试验场')}</output>;
-    if (prompt && currentPairs(prompt.id, 'formal').length > 0)
+    if (prompt && currentPairCount(prompt.id, 'formal') > 0)
       return <Arena key={`formal-${prompt.id}`} prompt={prompt} formal />;
     if (prompt)
       return <PromptPreview key={`formal-${prompt.id}`} prompt={prompt} />;
@@ -148,13 +173,13 @@ function Routes() {
     if (sharedDuel && sharedDuel[0] === route.slice(7)) {
       if (worksState.status === 'loading' || getPromptsState().status === 'loading') return <output className="route-empty">{t('正在打开分享的对决…')}</output>;
       const pair = resolveSharedDuel(sharedDuel, currentResultsForPrompt(sharedDuel[0]));
-      if (prompt && pair && !pair.some(work => work.isDemo) && worksState.status === 'ready' && worksState.source === 'remote' && currentPairs(prompt.id).length > 0) return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
-      if (prompt && currentPairs(prompt.id).length === 0) return <PromptPreview key={prompt.id} prompt={prompt} />;
+      if (prompt && pair && !pair.some(work => work.isDemo) && worksState.status === 'ready' && worksState.source === 'remote' && currentPairCount(prompt.id) > 0) return <Arena key={`shared-${prompt.id}`} prompt={prompt} initialPair={pair} />;
+      if (prompt && currentPairCount(prompt.id) === 0) return <PromptPreview key={prompt.id} prompt={prompt} />;
       return <div className="route-empty"><h1>{t('这场对决暂时无法打开。')}</h1><p>{t('作品可能已下架，请从题库选择另一场。')}</p><a href="#prompts">{t('前往提示词库 ↗')}</a></div>;
     }
     if (worksState.status === 'loading' || promptsState.status === 'loading')
       return <output className="route-empty">{t('正在接入试验场')}</output>;
-    if (prompt && currentPairs(prompt.id).length > 0)
+    if (prompt && currentPairCount(prompt.id) > 0)
       return <Arena key={prompt.id} prompt={prompt} />;
     if (prompt) return <PromptPreview key={prompt.id} prompt={prompt} />;
     return (
@@ -169,16 +194,11 @@ function Routes() {
 }
 const reactRoot = createRoot(container);
 if (import.meta.hot) import.meta.hot.dispose(() => reactRoot.unmount());
-// 应用启动即拉取服务端作品清单；重试用完仍拉不到时进入失败状态，竞技场与题库页显示重试入口。
-// 同时上报一次页面浏览（含初始 hash 路由，后台访客统计用）
+// Full catalogs start only on routes that consume them. Track this visit once.
 trackPageView(`/#${(window.location.hash || '#home').slice(1)}`);
-void loadWorks();
-void loadPrompts(); // 动态题库（决策 045）
-loadRatings(); // 声望分：软性匹配的数据源（决策 046）
-loadRatings('formal'); // 正式匹配使用独立快照，不借用娱乐分数或出场数。
 reactRoot.render(
   <AccountProvider>
-    <Routes />
+    <RouteBoundary><Suspense fallback={<RouteLoading />}><Routes /></Suspense></RouteBoundary>
     <PageShare />
     <DevPanel />
   </AccountProvider>,

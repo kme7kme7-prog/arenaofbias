@@ -12,6 +12,7 @@
 
 import {
   eligiblePairs,
+  eligiblePairCount,
   entertainmentPoolReady,
   pickMatchup,
   randomArenaHash,
@@ -339,6 +340,13 @@ export function currentPairs(promptId: string, scope: EvaluationScope = 'enterta
   if (scope === 'entertainment' && !isPlaceholderMode()
     && !entertainmentPoolReady(promptId, currentResults())) return [];
   return eligiblePairs(promptId, currentResults());
+}
+
+export function currentPairCount(promptId: string, scope: EvaluationScope = 'entertainment'): number {
+  const results = currentResults();
+  if (scope === 'entertainment' && !isPlaceholderMode()
+    && !entertainmentPoolReady(promptId, results)) return 0;
+  return eligiblePairCount(promptId, results);
 }
 
 export function currentMatchup(

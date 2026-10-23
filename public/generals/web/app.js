@@ -3,6 +3,8 @@ import {Match} from '../engine/runtime.js';
 import {decodeFrame,validateReplay} from '../engine/replay.js';
 import {drawBoard,fieldVisibility} from './render.js';
 import {createTutorial} from './tutorial.js';
+import {createBotSourceLoader} from './bot-sources.js';
+const loadBotSource=createBotSourceLoader();
 const $=id=>document.getElementById(id);
 const COLORS=['#b96950','#568999','#b49a50','#847b9d'];
 const HUMAN={id:'local-human',name:'你',model:'本地玩家',human:true,reasoningEffort:'unknown'};
@@ -28,16 +30,8 @@ async function loadLibrary(){
   const response=await fetch('/generals/roster.json',{cache:'no-store'});
   if(!response.ok)throw Error('选手库暂时无法读取，请刷新重试');
   const roster=await response.json();
-  const pool=await Promise.all(roster.map(async entry=>{
-    if(!/^[a-z][a-z0-9-]{1,39}$/.test(entry.id))throw Error('选手代号不合法');
-    const response=await fetch('/generals/bots/'+entry.id+'.js',{cache:'no-store'});
-    if(!response.ok)throw Error('无法加载作品：'+entry.name);
-    const bytes=await response.arrayBuffer();
-    const code=new TextDecoder().decode(bytes);
-    const sha256=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');
-    if(sha256!==entry.sha256)throw Error('作品校验失败，请刷新重试：'+entry.name);
-    return {...entry,code};
-  }));
+  if(!Array.isArray(roster)||!roster.length||roster.some(entry=>!/^[a-z][a-z0-9-]{1,39}$/.test(entry.id)||!/^[a-f0-9]{64}$/.test(entry.sha256)))throw Error('选手库信息不合法');
+  const pool=roster.map(({code:_code,...entry})=>entry);
   let local=[];try{local=JSON.parse(localStorage.getItem('aob-generals-entries-v1')||'[]');}catch{}
   S.pool=pool;for(const e of local)if(!S.pool.some(b=>b.id===e.id))S.pool.push(e);
   if(!S.selected.length)S.selected=['trial-astra-high','trial-sol61-high','trial-luna6-max','trial-terra56-high'];
@@ -124,7 +118,8 @@ function setPhase(phase){S.phase=phase;const setup=phase==='setup',human=phase==
 async function start(){if(S.phase!=='setup')return;
   const epoch=++S.epoch;S.queue=[];S.selectedCell=-1;S.replay=null;S.resultShown=false;S.paused=false;$('pause-live').textContent='暂停';$('progress').style.width='0';$('progress-text').textContent='准备选手…';
   try{
-    const list=entrants();if(list.some(e=>!e.id))throw new Error('请先选择选手');S.match=new Match(list,config());setPhase('computing');status('正在加载各位选手的策略');
+    const selected=entrants();if(selected.some(e=>!e.id))throw new Error('请先选择选手');const setup=config();setPhase('computing');status('正在读取参赛代码并校验…');
+    const list=await Promise.all(selected.map(loadBotSource));if(epoch!==S.epoch)return;S.match=new Match(list,setup);status('正在加载各位选手的策略');
     if(S.mode==='watch'){
       const replay=await S.match.run((t,max)=>{if(epoch!==S.epoch)return;$('progress').style.width=(t/max*100)+'%';$('progress-text').textContent=`已计算 ${t} / ${max} 回合`;});
       if(epoch!==S.epoch)return;enterReplay(replay,true);status('计算完成 · 正在播放本地回放');

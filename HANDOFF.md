@@ -1,3 +1,10 @@
+## 2026-10-23 · 性能与按需加载优化（已完成）
+
+- 首页/菜单/猜模型/法律/真实榜单不预取全量目录和评分；路由、菜单、分享生成器按需分包，配对数量线性计算，文本封面临近可见才读。将军开始时只读实际选手并校验源码；排位仅一帧预览，回放点击读取并复用。坦克增加读索引/派生归属表、gzip直出。修复兼容依赖公告。
+- typecheck、两构建、相关lint、按需/重试/分享检查、10项网络与真实Worker验证、390px封面3项和12种主题/视口/减少动态过场均通过；audit含dev为0。坦克原完整套件24过/1既有缺tools/tank-bench/match.mjs失败；新增专项和Linux3/3、实库副本所有25归属/业务哈希/回放字节/冻结指纹一致。
+- 四入口+将军两个web模块与新hash资源增量上线，旧资源及其他入口保留；静态回滚/www/wwwroot/show1-dist.before-performance-20261023。协调器新release /opt/aob-tank-coordinator/releases/performance-20261023-f783850c3ac1/coordinator，重启2.58秒，自动排赛已恢复；只加索引和派生关系，不覆盖成绩库。冻结引擎及runner、Bot/i5保持。
+- 四仓先同步，原未提交内容完整保留并完善；用户已授权四仓分别一条英文提交并推送 main，身份 wsnxxxs / 269096463+wsnxxxs@users.noreply.github.com。本条记录推送准备，实际 SHA 与远端核对结果见父工作区私有 receipts。完整验证、真实测量限制与未执行项见[2026-10-23-performance-demand-loading.md](docs/handoff/2026-10-23-performance-demand-loading.md)，私有发布证据与报告在父工作区.local/performance-20261023/。
+
 ## 2026-10-22 · 坦克排位赛季上限调整
 
 - 用户将赛季场数上限提高到10万。自动排赛仍按公平完整的12场组排；接近上限时若剩余场数不足12场，停止创建下一组并在页面说明原因。

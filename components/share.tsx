@@ -9,9 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { useI18n } from '@/lib/locale';
 import type { Matchup, Prompt, Side } from '@/lib/arena';
-import type { GuessSession } from '@/lib/guess';
-import { ATTRIBUTE_KEYS } from '@/lib/guess-logic';
-import { createShareCard } from '@/lib/share-client';
 
 const SHARE_ENABLED = true;
 type ShareMeta = {
@@ -32,28 +29,6 @@ export function duelShareQuery(
     pick,
   }).toString();
 }
-export function guessShareQuery(
-  session: GuessSession,
-  day: string,
-  won: boolean,
-) {
-  const states = { hit: 'h', near: 'n', miss: 'm', unknown: 'u' };
-  const grid = session.guesses
-    .map((row) =>
-      ATTRIBUTE_KEYS.map((key) => states[row.attributes[key].state]).join(''),
-    )
-    .join('.');
-  const answer =
-    session.answer?.name ?? session.guesses.find((row) => row.won)?.guess.name;
-  return new URLSearchParams({
-    type: 'guess',
-    day,
-    won: won ? '1' : '0',
-    grid,
-    ...(answer ? { answer } : {}),
-  }).toString();
-}
-
 function ShareSheet({ query }: { query: string }) {
   const { t } = useI18n();
   const [meta, setMeta] = useState<ShareMeta | null>(null);
@@ -69,6 +44,7 @@ function ShareSheet({ query }: { query: string }) {
     let disposed = false;
     void (async () => {
       try {
+        const { createShareCard } = await import('@/lib/share-client');
         const result = await createShareCard(query);
         objectUrl = result.imageUrl;
         if (disposed) {

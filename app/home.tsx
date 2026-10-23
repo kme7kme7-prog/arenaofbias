@@ -79,6 +79,8 @@ export default function Home() {
   // 盖满时经 onCovered 切路由；随机入场走钉住纸幕（2026-09-19，取代横扫）
   const enter = () => {
     if (leaving || frameTransitionRunning || navigationTransitionActive()) return;
+    // User activation gives the menu module the duration of the closing cover.
+    void import('./play-menu').catch(() => {});
     setLeaving(true);
     frameTransitionRunning = true;
     const transition = createGameTransition('frame', {

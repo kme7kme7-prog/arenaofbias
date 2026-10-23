@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { statfsSync, readFileSync } from 'node:fs';
 import { MAPS, PROFILE, ENGINE_HASH, RUNTIME_HASH, LIMITS, failure } from './config.mjs';
+import { initializePublicReads, sendPublicReplay } from './public-reads.mjs';
 
 export const PUBLIC_SEASON = 's01-i5-linux-quickjs';
 export const PUBLIC_LIMITS = Object.freeze({ placements: 12, dailyUploads: 6, dailyMatches: 24, queue: 96 });
@@ -34,7 +35,7 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
   if (endpoint.hostname !== '127.0.0.1' || endpoint.protocol !== 'http:') throw Error('Auth bridge must use a fixed loopback endpoint');
   const rates = new Map();
   let inFlight = 0;
-  store.db.exec('CREATE INDEX IF NOT EXISTS public_audit_owner ON audit(owner,action,created); CREATE INDEX IF NOT EXISTS public_jobs_status ON jobs(status);');
+  initializePublicReads(store);
   const rate = (key, limit) => {
     const now = Date.now();
     if (rates.size > 2000) for (const [k, v] of rates) if (v.until < now) rates.delete(k);
@@ -117,7 +118,7 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
         else throw failure('接口不存在。', 404);
       } else if (route === '/session') json(res, { user: user ? { name: user.name } : null, csrf: user?.csrf || '' });
       else if (route === '/state') json(res, { local: false, season: PUBLIC_SEASON, profile: PROFILE, engineHash: ENGINE_HASH, runtimeHash: RUNTIME_HASH,
-        user: user ? { name: user.name } : null, csrf: user?.csrf || '', nodeOnline: status().nodeOnline, automatic: status().automatic, maps: MAPS, limits: PUBLIC_LIMITS,
+        user: user ? { name: user.name } : null, csrf: user?.csrf || '', nodeOnline: status().nodeOnline, automatic: status().automatic, maps: MAPS,
         rankings: store.rankings().map(safeRow), matches: store.recent(), counts: store.counts(), mine: user ? store.myVersions(user.owner) : [], jobs: user ? jobsFor(user.owner) : [],
         limits: { ...PUBLIC_LIMITS, seasonMatches: PUBLIC_MAX_MATCHES } });
       else if (route === '/preview') { res.setHeader('Content-Type', 'application/json'); res.end(readFileSync(new URL('./public/preview.json', import.meta.url))); }
@@ -128,7 +129,7 @@ export function publicApi({ store, directory, secret, origin, authUrl, authHost,
       } else {
         const match = /^\/matches\/([a-zA-Z0-9-]{1,80})\/replay$/.exec(route);
         if (!match) throw failure('接口不存在。', 404);
-        res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.setHeader('Content-Disposition', 'attachment; filename="tank-match.json"'); res.end(store.replay(match[1]));
+        await sendPublicReplay(store, req, res, match[1]);
       }
     } catch (error) { if (!res.headersSent) json(res, { error: error.status ? error.message : '服务暂时不可用，请稍后重试。' }, error.status || 503); else res.end(); }
     finally { if (acquired) inFlight--; }
