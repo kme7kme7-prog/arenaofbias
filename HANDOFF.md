@@ -1,3 +1,13 @@
+## 2026-10-23 排位按需读取与账号边界 (round 5, deployed)
+
+正式ladder入口仅在身份相关字段变化时通知；state在途共享、请求代际与12秒含正文截止，真实换号清私密作品、队列、CSRF及草稿，同账号刷新保留编辑。预览失败可随下一次state恢复，不提前读取完整回放。上传、排赛、队列操作和文件文本迟到回执绑定账号代际，不重置新草稿或补发命令。新快照缩容时页数归位。
+
+typecheck、相关默认/API lint、主构建与独立ladder构建通过，原主dist1295文件逐字未变。2项旧版复现及14项候选真实dist浏览器通过，1440/390无异常/横溢。公网两宽度实际state/preview完成，指南/记录不读完整回放，手动两次打开共1次回放GET；主代理已目视。未重跑冻结引擎长期对局或无关全仓测试。
+
+仅ladder.html及两个新JS共3文件402194B；4保留依赖匹配生产hash。两JS增加1049B，本机gzip+371B（非公网协商测量）。保留其他所有入口和旧资源，回滚/www/wwwroot/show1-dist.before-reads5-20261023。不发布协调器、引擎、i5或成绩；ENGINE/RUNTIME指纹相同。
+
+[排位按需读取与账号边界](docs/handoff/2026-10-23-ladder-account-loading-wsnxxxs.md). Authorized commit/push; actual SHA/CI in parent private performance-round5-20261023. Subsequent dots work is separate.
+
 ## 2026-10-23 · 好友房与表态按需读取（第四轮，已上线）
 
 - 好友房空大厅不取目录，恢复按房间/目录版本读取一次，修复重绘导致连续请求；未就绪不能猜测，失败局部重试，退出关闭旧读取/SSE。双侧表态共享在途，12秒含正文和队列等待，完成丢弃，账号/模型隔离；今日题离开取消，原写队列不变。

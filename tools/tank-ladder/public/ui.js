@@ -9,6 +9,7 @@ const signed = value => `${value > 0 ? '+' : ''}${value}`;
 const fmt = value => new Intl.NumberFormat('zh-CN').format(value);
 const date = value => new Date(value).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 let csrf = '', state, sort = 'rating', tab = 'hall', pollTimer, toastTimer, source = '', previousSignature = '';
+let refreshRead, refreshController, refreshVersion = 0, accountEpoch = 0, accountIdentity = config.accountId, fileRequest = 0;
 let replayCache, previewRead;
 const replayReads = new Map();
 let featureId = '', featureReplay, featureEvents = [], featureTime = 0, replay, replayEvents = [], time = 0, playing = false, replayRequest = 0;
@@ -20,10 +21,15 @@ let theme = localStorage.getItem(config.apiBase ? 'aob-theme' : 'ladder-theme') 
 document.documentElement.dataset.theme = theme;
 $('theme').onclick = () => { theme = theme === 'paper' ? 'ink' : 'paper'; document.documentElement.dataset.theme = theme; localStorage.setItem(config.apiBase ? 'aob-theme' : 'ladder-theme', theme); };
 function toast(text) { clearTimeout(toastTimer); $('toast').textContent = text; $('toast').classList.add('visible'); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 5000); }
-async function api(url, input) {
-  const response = await fetch(apiPath(url), { method: input === undefined ? 'GET' : 'POST', credentials:'include', signal:AbortSignal.timeout(12000),
-    ...(input === undefined ? {} : { headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':csrf }, body:JSON.stringify(input) }) });
-  const result = await response.json(); if (!response.ok) throw Error(result.error || '请求失败。'); return result;
+async function api(url, input, signal) {
+  const controller = new AbortController(), abort = () => controller.abort();
+  if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, {once:true});
+  const timer = setTimeout(abort, 12000);
+  try {
+    const response = await fetch(apiPath(url), { method: input === undefined ? 'GET' : 'POST', credentials:'include', signal:controller.signal,
+      ...(input === undefined ? {} : { headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':csrf }, body:JSON.stringify(input) }) });
+    const result = await response.json(); if (!response.ok) throw Error(result.error || '请求失败。'); return result;
+  } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
 }
 function switchTab(next) {
   tab = next;
@@ -141,17 +147,25 @@ function renderState(next) {
     $('queue-label').textContent = ({capacity:'存储保护触发 · 自动排赛暂停', 'season-limit':'本季剩余场次不足一整组',cooldown:'自动排赛稍后重试',error:'自动排赛暂缓 · 等待恢复',entrants:'自动排赛 · 等待四位选手'})[a.state] || (state.counts.running ? `自动排位中 · ${state.counts.queued} 场等待` : '自动排位 · 正在安排下一组');
     if (!pending.length && $('trial-bot').options.length) $('trial-progress').textContent='主力已参加自动排位 · 场次少的优先';
   }
-  const signature = JSON.stringify([state.rankings,state.mine,state.jobs,state.matches]);
-  if (signature !== previousSignature) { previousSignature=signature; rankings(); mine(); matches(); void feature().catch(()=>{}); }
+  const signature = JSON.stringify([state.rankings,state.mine,state.jobs,state.matches]), changed = signature !== previousSignature;
+  if (changed) { previousSignature=signature; rankings(); mine(); matches(); }
+  if (changed || !featureReplay) void feature().catch(()=>{});
 }
-async function refresh() {
-  try { renderState(await api('/api/state')); }
-  catch { $('queue-label').textContent = '暂时无法连接，正在重试'; }
-  finally { clearTimeout(pollTimer); pollTimer=setTimeout(refresh,document.hidden ? 30000 : config.apiBase ? 10000 : 2500); }
+function refresh(force = false) {
+  if (refreshRead && !force) return refreshRead;
+  const ticket = ++refreshVersion;
+  clearTimeout(pollTimer); refreshController?.abort();
+  const controller = refreshController = new AbortController();
+  refreshRead = (async () => {
+    try { const next=await api('/api/state',undefined,controller.signal); if(ticket===refreshVersion && !controller.signal.aborted)renderState(next); }
+    catch { if(ticket===refreshVersion && !controller.signal.aborted)$('queue-label').textContent='暂时无法连接，正在重试'; }
+    finally { if(ticket===refreshVersion){refreshRead=null;refreshController=null;pollTimer=setTimeout(()=>void refresh(),document.hidden ? 30000 : config.apiBase ? 10000 : 2500);} }
+  })();
+  return refreshRead;
 }
 function openUpload(work = '') {
   if (config.apiBase && !state?.user) { config.openAccount?.(); return; }
-  $('upload-form').reset(); source=''; $('file-name').textContent='选择或拖入 bot.js'; $('form-error').textContent='';
+  fileRequest++; $('upload-form').reset(); source=''; $('file-name').textContent='选择或拖入 bot.js'; $('form-error').textContent='';
   const works=[...new Map((state?.mine||[]).map(v=>[v.work,v])).values()];
   $('work-select').innerHTML='<option value="">新建坦克作品</option>'+works.map(v=>`<option value="${esc(v.work)}">${esc(v.name)} · 新版本</option>`).join('');
   $('work-select').value=work; fillExisting(); $('upload-dialog').showModal();
@@ -163,9 +177,11 @@ function fillExisting() {
 }
 $('work-select').onchange=fillExisting; $('upload-open').onclick=()=>openUpload();
 async function loadFile(file) {
+  const ticket=++fileRequest, owner=accountEpoch;
   source='';
   if (!file || !file.name.toLowerCase().endsWith('.js') || file.size>262144) { $('form-error').textContent='请选择不超过 256 KiB 的 .js 文件。'; return; }
-  source=await file.text(); $('file-name').textContent=`${file.name} · ${(file.size/1024).toFixed(1)} KiB`; $('form-error').textContent='';
+  const code=await file.text(); if(ticket!==fileRequest || owner!==accountEpoch)return;
+  source=code; $('file-name').textContent=`${file.name} · ${(file.size/1024).toFixed(1)} KiB`; $('form-error').textContent='';
 }
 $('bot-file').onchange=()=>loadFile($('bot-file').files[0]);
 $('dropzone').ondragover=e=>{e.preventDefault();$('dropzone').classList.add('over');};
@@ -173,13 +189,13 @@ $('dropzone').ondragleave=()=>$('dropzone').classList.remove('over');
 $('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('over');$('bot-file').required=false;void loadFile(e.dataTransfer.files[0]);};
 $('upload-form').onsubmit=async e=>{
   e.preventDefault(); if (!source) { $('form-error').textContent='请先选择代码文件。'; return; }
-  $('submit-bot').disabled=true;
-  try { await api('/api/versions',{...Object.fromEntries(new FormData(e.target)),source}); pages.works=1; $('upload-dialog').close(); switchTab('mine'); toast('已保存版本，正在独立环境中检查。'); await refresh(); }
-  catch(error){$('form-error').textContent=error.message;} finally{$('submit-bot').disabled=false;}
+  const owner=accountEpoch; $('submit-bot').disabled=true;
+  try { await api('/api/versions',{...Object.fromEntries(new FormData(e.target)),source}); if(owner!==accountEpoch)return; pages.works=1; $('upload-dialog').close(); switchTab('mine'); toast('已保存版本，正在独立环境中检查。'); await refresh(true); }
+  catch(error){if(owner===accountEpoch)$('form-error').textContent=error.message;} finally{if(owner===accountEpoch)$('submit-bot').disabled=false;}
 };
-async function arrange(version,exhibition=false){await api('/api/batches',{version,exhibition});toast('12 场已入队：三张地图，四席轮换。');await refresh();}
-$('trial-start').onclick=async()=>{const b=$('trial-start');b.disabled=true;try{if (config.apiBase && !$('trial-bot').value) openUpload(); else await arrange($('trial-bot').value,!config.apiBase);}catch(e){toast(e.message);b.disabled=false;}};
-for(const action of ['pause','resume','cancel']) $('queue-'+action).onclick=async()=>{try{await api('/api/queue',{action});toast(action==='pause'?'当前一场完成后暂停。':action==='resume'?'继续计算。':'已取消尚未开始的比赛，完成的成绩已保留。');await refresh();}catch(e){toast(e.message);}};
+async function arrange(version,exhibition=false){const owner=accountEpoch;await api('/api/batches',{version,exhibition});if(owner!==accountEpoch)return;toast('12 场已入队：三张地图，四席轮换。');await refresh(true);}
+$('trial-start').onclick=async()=>{const b=$('trial-start'),owner=accountEpoch;b.disabled=true;try{if (config.apiBase && !$('trial-bot').value) openUpload(); else await arrange($('trial-bot').value,!config.apiBase);}catch(e){if(owner===accountEpoch){toast(e.message);b.disabled=false;}}};
+for(const action of ['pause','resume','cancel']) $('queue-'+action).onclick=async()=>{const owner=accountEpoch;try{await api('/api/queue',{action});if(owner!==accountEpoch)return;toast(action==='pause'?'当前一场完成后暂停。':action==='resume'?'继续计算。':'已取消尚未开始的比赛，完成的成绩已保留。');await refresh(true);}catch(e){if(owner===accountEpoch)toast(e.message);}};
 
 function detail(id){
   const r=[...state.rankings,...state.mine].find(v=>v.id===id);if(!r)return;
@@ -219,7 +235,7 @@ document.addEventListener('click',async e=>{
   if(button.dataset.newVersion)return openUpload(button.dataset.newVersion);
   if(button.dataset.detail)return detail(button.dataset.detail);
   if(button.dataset.watch){try{await watch(button.dataset.watch);}catch(error){toast(error.message);}return;}
-  if(button.dataset.batch||button.dataset.activate){button.disabled=true;try{if(button.dataset.batch)await arrange(button.dataset.batch);else{await api('/api/activate',{id:button.dataset.activate});toast('已切换主力。其他作品和历史战绩仍保留。');await refresh();}}catch(error){toast(error.message);}finally{button.disabled=false;}}
+  if(button.dataset.batch||button.dataset.activate){const owner=accountEpoch;button.disabled=true;try{if(button.dataset.batch)await arrange(button.dataset.batch);else{await api('/api/activate',{id:button.dataset.activate});if(owner!==accountEpoch)return;toast('已切换主力。其他作品和历史战绩仍保留。');await refresh(true);}}catch(error){if(owner===accountEpoch)toast(error.message);}finally{if(owner===accountEpoch)button.disabled=false;}}
 });
 let last=performance.now();const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function frame(now){
@@ -239,7 +255,16 @@ function frame(now){
 async function init(){try{if (!config.apiBase) { const session=await api('/api/session',{});csrf=session.csrf;$('identity').textContent=`${session.name} · 本地试玩身份`; }await refresh();requestAnimationFrame(frame);}catch(e){$('queue-label').textContent='连接失败，请刷新重试';toast(e.message);}}
 if (config.apiBase) {
   document.querySelector('.export').href=apiPath('/api/export');
-  window.addEventListener('ladder-account-change',()=>{previousSignature='';void refresh();});
+  window.addEventListener('ladder-account-change',()=>{
+    if(accountIdentity!==config.accountId){
+      accountIdentity=config.accountId;accountEpoch++;fileRequest++;source='';csrf='';
+      $('upload-dialog').close();$('detail-dialog').close();$('upload-form').reset();$('submit-bot').disabled=false;
+      $('file-name').textContent='选择或拖入 bot.js';$('form-error').textContent='';
+      if(state)renderState({...state,user:null,csrf:'',mine:[],jobs:[]});
+      $('identity').textContent='正在确认当前账号';
+    }
+    previousSignature='';void refresh(true);
+  });
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh();});
 }
 void init();

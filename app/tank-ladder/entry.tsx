@@ -9,7 +9,7 @@ import '../../tools/tank-ladder/public/style.css';
 import './site.css';
 
 declare global {
-  interface Window { TankLadderConfig?: { apiBase: string; openAccount?: () => void } }
+  interface Window { TankLadderConfig?: { apiBase: string; accountId?: string | null; openAccount?: () => void } }
 }
 window.TankLadderConfig = { apiBase: apiUrl('/api/tank-ladder') };
 document.title = '坦克排位赛 · ARENA OF BIAS';
@@ -19,8 +19,11 @@ function Account() {
     window.TankLadderConfig!.openAccount = open;
   }, [open]);
   useEffect(() => {
-    if (!loading) window.dispatchEvent(new Event('ladder-account-change'));
-  }, [user, loading]);
+    if (!loading) {
+      window.TankLadderConfig!.accountId = user?.id ?? null;
+      window.dispatchEvent(new Event('ladder-account-change'));
+    }
+  }, [user?.id, user?.email, loading]);
   return <AccountButton />;
 }
 createRoot(document.getElementById('ladder-account')!).render(<AccountProvider><Account /></AccountProvider>);
