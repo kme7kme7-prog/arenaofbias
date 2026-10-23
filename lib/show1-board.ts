@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiReadJson } from '@/lib/api';
 import { presentServerBoard } from '@/lib/leaderboard';
 import type { BoardCategory, BoardData, BoardScope, RadarProfiles, ServerBoardData } from '@/lib/leaderboard';
 
@@ -16,9 +16,7 @@ export async function fetchShow1Board(
   signal: AbortSignal,
 ): Promise<BoardSnapshot> {
   const query = new URLSearchParams({ scope, category });
-  const response = await apiFetch(`/api/show1/leaderboard?${query}`, { signal });
-  if (!response.ok) throw new Error('榜单暂时无法载入');
-  const data = await response.json() as {
+  const data = await apiReadJson(`/api/show1/leaderboard?${query}`, signal) as {
     scope: BoardScope;
     category: BoardCategory;
     board: ServerBoardData;
@@ -26,7 +24,7 @@ export async function fetchShow1Board(
     radar: { profiles: Record<string, number[]>; average: number[] };
     scopedPromptCount: number;
   };
-  if (data.scope !== scope || data.category !== category || !Array.isArray(data.board?.rows)
+  if (!data || data.scope !== scope || data.category !== category || !Array.isArray(data.board?.rows)
     || !Array.isArray(data.allBoard?.rows) || !data.radar?.profiles || data.radar.average?.length !== 6)
     throw new Error('榜单数据格式无效');
   return {

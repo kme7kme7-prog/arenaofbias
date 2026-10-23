@@ -1,5 +1,5 @@
 import { useI18n } from '@/lib/locale';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, apiReadJson } from '@/lib/api';
 import { useTheme } from '@/lib/theme';
 import {
   createContext,
@@ -37,6 +37,7 @@ type Auth = {
 };
 const AccountContext = createContext<Auth | null>(null);
 const USERNAME_PATTERN = /^[\p{L}\p{N}_-]{2,24}$/u;
+const GATE_FAILED = '人机验证加载失败，请重试。';
 export function useAccount() {
   const value = useContext(AccountContext);
   if (!value) throw new Error('Missing account provider');
@@ -71,18 +72,29 @@ declare global {
 }
 let turnstileLoader: Promise<void> | null = null;
 const loadTurnstile = () => {
+  if (window.turnstile) return Promise.resolve();
   if (!turnstileLoader)
     turnstileLoader = new Promise<void>((resolve, reject) => {
       const script = document.createElement('script');
       script.src =
         'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       script.async = true;
-      script.onload = () => window.turnstile ? resolve() : script.onerror?.(new Event('error'));
-      script.onerror = () => {
-        turnstileLoader = null; // 失败可重试：下次重挂组件再走一遍加载
-        script.remove();
-        reject(new Error('turnstile script failed'));
+      let settled = false;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        script.onload = null;
+        script.onerror = null;
+        if (error) {
+          turnstileLoader = null;
+          script.remove();
+          reject(error);
+        } else resolve();
       };
+      const timeout = setTimeout(() => finish(new Error('turnstile script timed out')), 12000);
+      script.onload = () => finish(window.turnstile ? undefined : new Error('turnstile script unavailable'));
+      script.onerror = () => finish(new Error('turnstile script failed'));
       document.head.appendChild(script);
     });
   return turnstileLoader;
@@ -105,18 +117,20 @@ function TurnstileGate({
   });
   useEffect(() => {
     let widget = '';
+    let api: Window['turnstile'];
     let cancelled = false;
     loadTurnstile()
       .then(() => {
         if (cancelled || !host.current) return;
         if (!window.turnstile) throw new Error('turnstile unavailable');
+        api = window.turnstile;
         // token 一次性：拿到就回调，过期/出错回空串让按钮重新要求验证
-        widget = window.turnstile.render(host.current, {
+        widget = api.render(host.current, {
           sitekey: siteKey,
           theme: theme === 'ink' ? 'dark' : 'light',
-          callback: (token) => handlers.current.onToken(token),
-          'expired-callback': () => handlers.current.onToken(''),
-          'error-callback': () => handlers.current.onToken(''),
+          callback: (token) => { if (!cancelled) handlers.current.onToken(token); },
+          'expired-callback': () => { if (!cancelled) handlers.current.onToken(''); },
+          'error-callback': () => { if (!cancelled) handlers.current.onToken(''); },
         });
       })
       .catch(() => {
@@ -124,7 +138,7 @@ function TurnstileGate({
       });
     return () => {
       cancelled = true;
-      if (widget && window.turnstile) window.turnstile.remove(widget);
+      if (widget) api?.remove(widget);
       handlers.current.onToken('');
     };
   }, [siteKey, theme]);
@@ -176,6 +190,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [gateToken, setGateToken] = useState('');
   const [gateUnavailable, setGateUnavailable] = useState(false);
   const [gateEpoch, setGateEpoch] = useState(0);
+  const [gateRequest, setGateRequest] = useState(0);
+  const gateNeeded = opened && (!user || mode === 'bind');
   // 翻页计数：驱动底纸堆每次切换换一个略不同的静止姿态（走 CSS transform 过渡），
   // 关弹窗时清零，下次打开回到默认姿态、不抢开场动画
   const turns = useRef(0);
@@ -256,31 +272,41 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, [countdown]);
   // 开弹窗时问一次服务端要不要人机验证；没配密钥就一直空串，后面零打扰
   useEffect(() => {
-    if (!opened) return;
+    if (!gateNeeded) return;
     let cancelled = false;
+    const controller = new AbortController();
     setGateConfig('loading');
-    apiFetch('/api/auth/turnstile')
-      .then((response) => {
-        if (!response.ok) throw new Error('turnstile config unavailable');
-        return response.json();
-      })
+    setGateToken('');
+    setGateSiteKey('');
+    apiReadJson('/api/auth/turnstile', controller.signal)
       .then((data) => {
-        if (data.siteKey !== null && typeof data.siteKey !== 'string') throw new Error('invalid turnstile config');
+        const config = data as { siteKey?: unknown } | null;
+        if (!config || (config.siteKey !== null && typeof config.siteKey !== 'string')) throw new Error('invalid turnstile config');
         if (!cancelled) {
-          setGateSiteKey(data.siteKey || '');
+          setGateSiteKey(typeof config.siteKey === 'string' ? config.siteKey : '');
           setGateConfig('ready');
         }
       })
       .catch(() => {
         if (!cancelled) {
           setGateConfig('error');
-          setError('人机验证加载失败，请刷新页面重试。');
+          setError(GATE_FAILED);
         }
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [opened]);
+  }, [gateNeeded, gateRequest]);
+  const retryGate = () => {
+    setError('');
+    setGateToken('');
+    setGateSiteKey('');
+    setGateUnavailable(false);
+    setGateConfig('loading');
+    setGateEpoch(epoch => epoch + 1);
+    setGateRequest(request => request + 1);
+  };
   const close = (next: boolean) => {
     if (submitting.current) return;
     setOpened(next);
@@ -347,7 +373,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const sendCode = async () => {
     if (busy || sending || countdown > 0) return;
     if (gateConfig !== 'ready' || gateUnavailable) {
-      setError('人机验证加载失败，请刷新页面重试。');
+      setError(GATE_FAILED);
       return;
     }
     if (gateSiteKey && !gateToken) {
@@ -406,7 +432,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
     if (!user && mode === 'login') {
       if (gateConfig !== 'ready' || gateUnavailable) {
-        setError('人机验证加载失败，请刷新页面重试。');
+        setError(GATE_FAILED);
         return;
       }
       if (gateSiteKey && !gateToken) {
@@ -535,7 +561,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setNotice('');
   };
   // 发码后重挂组件，获取新的一次性 token。
-  const gate = gateSiteKey ? (
+  const gate = gateConfig === 'ready' && gateSiteKey ? (
     <TurnstileGate
       key={gateEpoch}
       siteKey={gateSiteKey}
@@ -546,7 +572,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       onUnavailable={() => {
         setGateToken('');
         setGateUnavailable(true);
-        setError('人机验证加载失败，请刷新页面重试。');
+        setError(GATE_FAILED);
       }}
     />
   ) : null;
@@ -1039,6 +1065,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
                       <output className="account-error" aria-live="polite">
                         {localize(error)}
                       </output>
+                      {gateNeeded && (gateConfig === 'error' || gateUnavailable) && (
+                        <button type="button" className="account-link account-gate-retry" onClick={retryGate} disabled={busy || sending}>
+                          {t('重试')}
+                        </button>
+                      )}
                       <output className="account-notice" aria-live="polite">
                         {localize(notice)}
                       </output>
