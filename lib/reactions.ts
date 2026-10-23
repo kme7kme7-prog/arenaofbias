@@ -8,7 +8,7 @@
 // 信息，乱按也不再烧 social 限流桶。发送失败保留待下次补发；未登录/非法
 // 直接丢弃（点了也白记）。
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch, apiReadJson } from '@/lib/api';
 import { newId } from '@/lib/id';
 
 export type ReactionKind = 'up' | 'down' | 'laugh';
@@ -20,6 +20,75 @@ export type ReactionResponse = {
   counts: ReactionCounts;
   mine: MyReactions;
 };
+
+function reactionResponse(data: unknown): ReactionResponse | null {
+  if (!data || typeof data !== 'object') return null;
+  const { counts, mine } = data as Partial<ReactionResponse>;
+  if (!counts || typeof counts !== 'object' || Array.isArray(counts)
+    || !mine || typeof mine !== 'object' || Array.isArray(mine)) return null;
+  const kinds: ReactionKind[] = ['up', 'down', 'laugh'];
+  for (const row of Object.values(counts)) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)
+      || kinds.some(kind => row[kind] !== undefined && (!Number.isSafeInteger(row[kind]) || row[kind] < 0))) return null;
+  }
+  if (Object.values(mine).some(kind => !kinds.includes(kind))) return null;
+  return { counts, mine };
+}
+
+type ReactionRead = { controller: AbortController; promise: Promise<ReactionResponse | null>; readers: number };
+const reactionReads = new Map<string, ReactionRead>();
+
+/** Only share the current read within one identity. Discard its result on completion,
+ * and cancel when the last bar leaves, so a later reveal checks the live roster again.
+ * The deadline includes waiting for queued intentions; it never cancels/retries writes. */
+export function readReactions(promptId: string, owner: string, signal: AbortSignal): Promise<ReactionResponse | null> {
+  if (signal.aborted) return Promise.resolve(null);
+  const key = JSON.stringify([promptId, owner]);
+  let read = reactionReads.get(key);
+  if (!read) {
+    const controller = new AbortController();
+    const pending = new Promise<ReactionResponse | null>(resolve => {
+      let settled = false;
+      const finish = (data: ReactionResponse | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        controller.signal.removeEventListener('abort', abort);
+        resolve(data);
+      };
+      const abort = () => finish(null);
+      const timer = setTimeout(() => controller.abort(), 12000);
+      controller.signal.addEventListener('abort', abort, { once: true });
+      void flushReactions().then(async () => {
+        if (controller.signal.aborted) return null;
+        return reactionResponse(await apiReadJson(`/api/reactions?prompt=${encodeURIComponent(promptId)}`, controller.signal));
+      }).catch(() => null).then(finish);
+    });
+    read = { controller, readers: 0, promise: pending };
+    const owned = read;
+    read.promise = pending.finally(() => { if (reactionReads.get(key) === owned) reactionReads.delete(key); });
+    reactionReads.set(key, read);
+  }
+  const owned = read;
+  owned.readers++;
+  return new Promise(resolve => {
+    let finished = false;
+    const finish = (data: ReactionResponse | null) => {
+      if (finished) return;
+      finished = true;
+      signal.removeEventListener('abort', abort);
+      owned.readers--;
+      if (!owned.readers && reactionReads.get(key) === owned) {
+        reactionReads.delete(key);
+        owned.controller.abort();
+      }
+      resolve(data);
+    };
+    const abort = () => finish(null);
+    signal.addEventListener('abort', abort, { once: true });
+    void owned.promise.then(finish);
+  });
+}
 
 type PendingEntry = { userId: string; promptId: string; mid: string; kind: ReactionKind | null };
 const pending = new Map<string, PendingEntry>();
@@ -81,7 +150,7 @@ export function flushReactions(): Promise<number> {
     if (!pending.size) return 0;
     let userId: string | null;
     try {
-      // 兼容接口不校验 body.userId，发送前按当前 cookie 账号核对旧队列。
+      // 发送前核对当前 cookie；服务端同时校验显式 userId，覆盖跨标签切号竞态。
       const response = await apiFetch('/api/auth/me', { keepalive: true });
       if (!response.ok) return pending.size;
       const data = await response.json();

@@ -1,7 +1,6 @@
 'use client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useI18n, getLocale, translate } from '@/lib/locale';
-import { apiFetch } from '@/lib/api';
 import { LanguageSwitch } from '@/components/language-switch';
 import { FixedHtmlWork } from '@/components/fixed-html-work';
 import { workCanvas } from '@/lib/work-framing';
@@ -75,6 +74,7 @@ import {
   flushReactions,
   peekPending,
   queueReaction,
+  readReactions,
   type ReactionKind,
 } from '@/lib/reactions';
 import { DocumentDecryption } from '@/lib/decryption';
@@ -299,15 +299,17 @@ function PromptRecall({ round }: { round: Prompt }) {
 
 // 揭晓后的模型反应条（点赞/点踩/大笑，2026-09-13 用户拍板）：
 // 跟着题号累计、一人一槽可换态度；纸面仪器风——描边小圆钮 + 计数，不照搬爱心样例。
-function ReactionBar({
+type ReactionBarProps = { promptId: string; mid: string; modelLabel: string };
+function ReactionBar(props: ReactionBarProps) {
+  const { user } = useAccount();
+  // A new identity or model gets fresh local state before it can paint or accept a click.
+  return <ReactionBarView key={JSON.stringify([props.promptId, props.mid, user?.id ?? null, user?.email ?? null])} {...props} />;
+}
+function ReactionBarView({
   promptId,
   mid,
   modelLabel,
-}: {
-  promptId: string;
-  mid: string;
-  modelLabel: string;
-}) {
+}: ReactionBarProps) {
   const { t, localize } = useI18n();
   const { user, openBinding } = useAccount();
   const [mine, setMine] = useState<ReactionKind | null>(null);
@@ -321,7 +323,7 @@ function ReactionBar({
   useEffect(() => {
     const rejected = (event: Event) => {
       const entry = (event as CustomEvent).detail;
-      if (entry.promptId !== promptId || entry.mid !== mid) return;
+      if (entry.promptId !== promptId || entry.mid !== mid || entry.userId !== user?.id) return;
       setReactionError(t('绑定并验证邮箱后才能表态。'));
       const known = reactionKnown.current;
       setCounts((current) => {
@@ -337,23 +339,14 @@ function ReactionBar({
     };
     window.addEventListener('account-email-required', rejected);
     return () => window.removeEventListener('account-email-required', rejected);
-  }, [promptId, mid, mine, t]);
+  }, [promptId, mid, mine, t, user?.id]);
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     void (async () => {
       // 先把上一局/上一页没同步出去的意图补发，再读服务端真相
-      await flushReactions();
-      if (cancelled) return;
       try {
-        const response = await apiFetch(
-          `/api/reactions?prompt=${encodeURIComponent(promptId)}`,
-        );
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          counts?: Record<string, Partial<Record<ReactionKind, number>>>;
-          mine?: Record<string, ReactionKind>;
-        };
-        if (cancelled) return;
+        const data = await readReactions(promptId, JSON.stringify([user?.id ?? null, user?.email ?? null]), controller.signal);
+        if (controller.signal.aborted || !data) return;
         const row = data.counts?.[mid] ?? {};
         const serverMine = data.mine?.[mid] ?? null;
         reactionKnown.current = serverMine;
@@ -376,7 +369,7 @@ function ReactionBar({
       }
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
       // 离开这件作品（换组/换题/路由切换）：补发该 mid 的最终意图
       void flushReactions();
     };

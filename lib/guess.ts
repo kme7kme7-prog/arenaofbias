@@ -255,6 +255,10 @@ const GUESS_REQUEST_TIMEOUT_MS = 12000;
 /** Keep the deadline active until JSON is read, including stalled response bodies. */
 async function guessRequest<T>(path: string, options?: RequestInit): Promise<T | null> {
   const controller = new AbortController();
+  const signal = options?.signal;
+  const abort = () => controller.abort();
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
   const timeout = setTimeout(() => controller.abort(), GUESS_REQUEST_TIMEOUT_MS);
   try {
     const response = await apiFetch(path, { ...options, signal: controller.signal });
@@ -271,12 +275,13 @@ async function guessRequest<T>(path: string, options?: RequestInit): Promise<T |
     return (await response.json()) as T;
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener('abort', abort);
   }
 }
 
-export async function fetchToday(): Promise<TodayResponse | null> {
+export async function fetchToday(signal?: AbortSignal): Promise<TodayResponse | null> {
   try {
-    return await guessRequest<TodayResponse>('/api/guess/today');
+    return await guessRequest<TodayResponse>('/api/guess/today', { signal });
   } catch {
     return null;
   }

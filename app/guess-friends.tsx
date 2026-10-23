@@ -171,7 +171,9 @@ function FriendGame() {
   const { t } = useI18n();
   const { refresh } = useAccount();
   const [room, setRoom] = useState<FriendRoom | null>(null);
-  const [models, setModels] = useState<GuessApiModel[]>([]);
+  const [catalog, setCatalog] = useState<{ key: string; models: GuessApiModel[] } | null>(null);
+  const [catalogFailed, setCatalogFailed] = useState<{ key: string; run: number } | null>(null);
+  const [catalogRun, setCatalogRun] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -227,21 +229,9 @@ function FriendGame() {
   useEffect(() => {
     const controller = new AbortController();
     const generation = epoch.current;
-    void Promise.all([
-      friendRequest<{ room: FriendRoom | null }>(
-        'current',
-        undefined,
-        controller.signal,
-      ),
-      friendRequest<{ models: GuessApiModel[] }>(
-        'catalog',
-        undefined,
-        controller.signal,
-      ),
-    ])
-      .then(([state, catalog]) => {
+    void friendRequest<{ room: FriendRoom | null }>('current', undefined, controller.signal)
+      .then((state) => {
         if (controller.signal.aborted || generation !== epoch.current) return;
-        setModels(catalog.models);
         if (state.room) apply(state.room);
       })
       .catch((err) => {
@@ -257,14 +247,24 @@ function FriendGame() {
   }, [retry, apply, refresh]);
   const roomCode = room?.code;
   const catalogVersion = room?.catalogVersion;
+  const catalogKey = roomCode ? JSON.stringify([roomCode, catalogVersion ?? null]) : '';
+  const models = useMemo(() => catalog?.key === catalogKey ? catalog.models : [], [catalog, catalogKey]);
+  const catalogReady = Boolean(catalog && catalog.key === catalogKey);
   useEffect(() => {
-    if (!catalogVersion) return;
+    if (!roomCode) return;
     const controller = new AbortController();
-    void friendRequest<{ models: GuessApiModel[] }>('catalog', undefined, controller.signal)
-      .then(catalog => { if (!controller.signal.aborted) setModels(catalog.models); })
-      .catch(() => { if (!controller.signal.aborted) setError(t('题库暂时无法更新，请刷新重试。')); });
+    void friendRequest<{ models: GuessApiModel[]; catalogVersion?: string }>('catalog', undefined, controller.signal)
+      .then(next => {
+        if (controller.signal.aborted) return;
+        if (!Array.isArray(next?.models) || !next.models.every(model => model && typeof model.id === 'string'
+          && typeof model.name === 'string' && typeof model.vendor === 'string' && typeof model.released === 'string'
+          && (model.aliases === undefined || (Array.isArray(model.aliases) && model.aliases.every(alias => typeof alias === 'string'))))
+          || (catalogVersion && next.catalogVersion !== catalogVersion)) throw new Error('Invalid room catalog');
+        setCatalog({ key: catalogKey, models: next.models });
+      })
+      .catch(() => { if (!controller.signal.aborted) setCatalogFailed({ key: catalogKey, run: catalogRun }); });
     return () => controller.abort();
-  }, [catalogVersion, roomCode, t]);
+  }, [catalogVersion, roomCode, catalogKey, catalogRun]);
   useEffect(() => {
     if (!roomCode) return;
     const controller = new AbortController();
@@ -414,6 +414,7 @@ function FriendGame() {
     : 0;
   const canGuess =
     room?.status === 'playing' &&
+    catalogReady &&
     remaining > 0 &&
     !busy &&
     connection !== 'recovering';
@@ -514,6 +515,12 @@ function FriendGame() {
           {t(error)}
         </p>
       )}
+      {room && !catalogReady && (catalogFailed?.key === catalogKey && catalogFailed.run === catalogRun ? (
+        <div className="gf-error gf-catalog-error" role="alert">
+          {t('连接暂时失败，请重试。')}
+          <button type="button" className="gf-text-button" onClick={() => setCatalogRun(run => run + 1)}>{t('重试')}</button>
+        </div>
+      ) : <output className="gf-loading">{t('模一把加载中…')}</output>)}
       {loading ? (
         <div className="gf-loading" role="status">
           <LoaderCircle className="guess-spinner" />

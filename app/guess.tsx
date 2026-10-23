@@ -342,7 +342,8 @@ export default function GuessPage() {
   // 初始化：拉今日题（含全部模型与难度标记）；选模式时才落对局
   useEffect(() => {
     let alive = true;
-    void fetchToday().then((data) => {
+    const controller = new AbortController();
+    void fetchToday(controller.signal).then((data) => {
       if (!alive) return;
       if (!data) {
         setLoadFailed(true);
@@ -365,6 +366,7 @@ export default function GuessPage() {
     });
     return () => {
       alive = false;
+      controller.abort();
     };
     // enterDaily/enterPractice 只依赖 today 与存储，loadRun 重试时重建即可
     // oxlint-disable-next-line react-hooks/exhaustive-deps
