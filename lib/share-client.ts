@@ -41,22 +41,32 @@ function parseWork(row: Record<string, unknown>): ModelResult | null {
   } catch { return null; }
 }
 
-async function imageData(work: ModelResult): Promise<string | null> {
+async function imageData(work: ModelResult, signal?: AbortSignal): Promise<string | null> {
+  signal?.throwIfAborted();
   if (work.content.kind !== 'image') return null;
-  const source = new URL(work.content.src, location.origin);
-  if (source.protocol !== 'http:' && source.protocol !== 'https:') return null;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
+  // A thumbnail is optional. Bound both response headers and body so a stalled
+  // image cannot prevent the existing card without a thumbnail from being made.
+  const timeout = setTimeout(abort, 12000);
   try {
+    const source = new URL(work.content.src, location.origin);
+    if (source.protocol !== 'http:' && source.protocol !== 'https:') return null;
     // oxlint-disable-next-line no-restricted-globals -- Public share images intentionally omit credentials.
-    const response = await fetch(source.href, { credentials: 'omit' });
+    const response = await fetch(source.href, { credentials: 'omit', signal: controller.signal });
     const mime = response.headers.get('content-type')?.split(';')[0] ?? '';
     if (!response.ok || !/^image\/(png|jpeg|webp|svg\+xml)$/.test(mime)) return null;
     const blob = await response.blob();
+    signal?.throwIfAborted();
     if (mime === 'image/svg+xml') {
       const blobUrl = URL.createObjectURL(blob);
       try {
         const image = new Image();
         image.src = blobUrl;
         await image.decode();
+        signal?.throwIfAborted();
         const canvas = document.createElement('canvas');
         canvas.width = 1280;
         canvas.height = 720;
@@ -64,16 +74,20 @@ async function imageData(work: ModelResult): Promise<string | null> {
         return canvas.toDataURL('image/png');
       } finally { URL.revokeObjectURL(blobUrl); }
     }
-    return await new Promise((resolve, reject) => {
+    const data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(blob);
     });
-  } catch { return null; }
+    signal?.throwIfAborted();
+    return data;
+  } catch { signal?.throwIfAborted(); return null; }
+  finally { clearTimeout(timeout); signal?.removeEventListener('abort', abort); }
 }
 
-export async function resolveShareData(query: string): Promise<ShareData> {
+export async function resolveShareData(query: string, signal?: AbortSignal): Promise<ShareData> {
+  signal?.throwIfAborted();
   const params = new URLSearchParams(query);
   const type = params.get('type') || 'site';
   if (type === 'site') {
@@ -106,6 +120,7 @@ export async function resolveShareData(query: string): Promise<ShareData> {
   const promptId = params.get('prompt') ?? '';
   if (!isPromptId(promptId)) throw new Error('这道题暂不可用。');
   const prompts = await publicCatalog.prompts([promptId]);
+  signal?.throwIfAborted();
   const prompt = prompts.find((item) => item.id === promptId);
   if (!prompt) throw new Error('这道题暂不可用。');
   const a = params.get('a'), b = params.get('b');
@@ -113,6 +128,7 @@ export async function resolveShareData(query: string): Promise<ShareData> {
   if (a && b && a !== b && a.length <= 128 && b.length <= 128 && !a.includes(',') && !b.includes(',')) {
     const works = (await publicCatalog.works([a, b]))
       .map(parseWork).filter((work): work is ModelResult => work !== null);
+    signal?.throwIfAborted();
     const left = works.find((work) => work.id === a && work.promptId === promptId);
     const right = works.find((work) => work.id === b && work.promptId === promptId);
     if (left && right && left.modelId !== right.modelId) pair = [left, right];
@@ -123,7 +139,7 @@ export async function resolveShareData(query: string): Promise<ShareData> {
       throw new Error('这场对决暂时无法分享，作品可能已下架。');
     const names = pair.map((work) => work.modelName);
     return { type, prompt, pair: [a!, b!], names, pick,
-      thumbs: await Promise.all(pair.map(imageData)),
+      thumbs: await Promise.all(pair.map(work => imageData(work, signal))),
       kicker: 'MY CHOICE / 我的直觉',
       headline: pick === 'draw' ? '这一次，\n难分高下。' : '名字揭晓，\n直觉有了回响。',
       subtitle: `${prompt.name} · ${pick === 'draw' ? '我选了难分高下' : `我选择了 ${names[pick === 'a' ? 0 : 1]}`}`,
@@ -132,14 +148,15 @@ export async function resolveShareData(query: string): Promise<ShareData> {
   }
   return { type, prompt, ...(pair ? {
     pair: [a!, b!], names: pair.map((work) => work.modelName),
-    thumbs: await Promise.all(pair.map(imageData)),
+    thumbs: await Promise.all(pair.map(work => imageData(work, signal))),
   } : {}), kicker: `PROMPT / ${promptId}`, headline: prompt.name,
     subtitle: prompt.prompt, title: `${prompt.name} · 偏见试验场`,
     target: pair ? `/?duel=${encodeURIComponent(JSON.stringify([promptId, a, b]))}#arena/${promptId}` : `/#arena/${promptId}` };
 }
 
-export async function createShareCard(query: string): Promise<ShareResult> {
-  const data = await resolveShareData(query);
+export async function createShareCard(query: string, signal?: AbortSignal): Promise<ShareResult> {
+  const data = await resolveShareData(query, signal);
+  signal?.throwIfAborted();
   const url = new URL('/', location.origin);
   const canonical = new URLSearchParams({ type: data.type });
   if (data.type === 'site') canonical.set('page', data.target.slice(2));
@@ -162,6 +179,7 @@ export async function createShareCard(query: string): Promise<ShareResult> {
     const image = new Image();
     image.src = svgUrl;
     await image.decode();
+    signal?.throwIfAborted();
     const canvas = document.createElement('canvas');
     canvas.width = image.naturalWidth;
     canvas.height = image.naturalHeight;
@@ -170,6 +188,7 @@ export async function createShareCard(query: string): Promise<ShareResult> {
     context.drawImage(image, 0, 0);
     const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
       (value) => value ? resolve(value) : reject(new Error('图片生成失败，请重试。')), 'image/png'));
+    signal?.throwIfAborted();
     const file = new File([blob], 'arena-of-bias.png', { type: 'image/png' });
     return { data, url: url.href, file, imageUrl: URL.createObjectURL(blob) };
   } finally { URL.revokeObjectURL(svgUrl); }

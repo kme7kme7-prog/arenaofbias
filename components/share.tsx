@@ -42,10 +42,12 @@ function ShareSheet({ query }: { query: string }) {
   useEffect(() => {
     let objectUrl = '';
     let disposed = false;
+    const controller = new AbortController();
     void (async () => {
       try {
         const { createShareCard } = await import('@/lib/share-client');
-        const result = await createShareCard(query);
+        if (disposed) return;
+        const result = await createShareCard(query, controller.signal);
         objectUrl = result.imageUrl;
         if (disposed) {
           URL.revokeObjectURL(objectUrl);
@@ -63,6 +65,7 @@ function ShareSheet({ query }: { query: string }) {
     })();
     return () => {
       disposed = true;
+      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [query, run]);
