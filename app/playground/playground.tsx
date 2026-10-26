@@ -15,6 +15,7 @@ import { playgroundNavigate, settlePlaygroundEntry } from '@/lib/playground-entr
 import '@/app/observatory.css';
 import '@/app/globals.css';
 import '@/app/account.css';
+import '@/app/share.css';
 import '@/app/game-transitions.css';
 import '@/app/arena-refinement.css';
 import '@/app/theme.css';
